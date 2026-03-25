@@ -1,18 +1,24 @@
-import { describe, it, expect, vi } from 'vitest'
-import { firstValueFrom, BehaviorSubject } from 'rxjs'
-import { OpenRepositoryUseCaseImpl } from '../usecases/open-repository-usecase'
-import { OpenRepositoryByPathUseCaseImpl } from '../usecases/open-repository-by-path-usecase'
-import { GetRecentRepositoriesUseCaseImpl } from '../usecases/get-recent-repositories-usecase'
-import { RemoveRecentRepositoryUseCaseImpl } from '../usecases/remove-recent-repository-usecase'
-import { PinRepositoryUseCaseImpl } from '../usecases/pin-repository-usecase'
-import { GetSettingsUseCaseImpl } from '../usecases/get-settings-usecase'
-import { UpdateSettingsUseCaseImpl } from '../usecases/update-settings-usecase'
-import { GetErrorNotificationsUseCaseImpl } from '../usecases/get-error-notifications-usecase'
-import { DismissErrorUseCaseImpl } from '../usecases/dismiss-error-usecase'
-import { RetryErrorUseCaseImpl } from '../usecases/retry-error-usecase'
-import type { RepositoryRepository, IRepositoryService, ISettingsService, IErrorNotificationService, SettingsRepository } from '../../di-tokens'
-import type { RepositoryInfo, RecentRepository, ErrorNotification, AppSettings } from '../../domain'
+import type {
+  IErrorNotificationService,
+  IRepositoryService,
+  ISettingsService,
+  RepositoryRepository,
+  SettingsRepository,
+} from '../../di-tokens'
+import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '../../domain'
+import { BehaviorSubject, firstValueFrom } from 'rxjs'
+import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../domain'
+import { DismissErrorUseCaseImpl } from '../usecases/dismiss-error-usecase'
+import { GetErrorNotificationsUseCaseImpl } from '../usecases/get-error-notifications-usecase'
+import { GetRecentRepositoriesUseCaseImpl } from '../usecases/get-recent-repositories-usecase'
+import { GetSettingsUseCaseImpl } from '../usecases/get-settings-usecase'
+import { OpenRepositoryByPathUseCaseImpl } from '../usecases/open-repository-by-path-usecase'
+import { OpenRepositoryUseCaseImpl } from '../usecases/open-repository-usecase'
+import { PinRepositoryUseCaseImpl } from '../usecases/pin-repository-usecase'
+import { RemoveRecentRepositoryUseCaseImpl } from '../usecases/remove-recent-repository-usecase'
+import { RetryErrorUseCaseImpl } from '../usecases/retry-error-usecase'
+import { UpdateSettingsUseCaseImpl } from '../usecases/update-settings-usecase'
 
 // --- Mock factories ---
 

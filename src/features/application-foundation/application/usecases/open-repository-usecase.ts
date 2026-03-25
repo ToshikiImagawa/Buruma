@@ -1,5 +1,5 @@
 import type { RunnableUseCase } from '@/lib/usecase'
-import type { RepositoryRepository, IRepositoryService, IErrorNotificationService } from '../../di-tokens'
+import type { IErrorNotificationService, IRepositoryService, RepositoryRepository } from '../../di-tokens'
 
 export class OpenRepositoryUseCaseImpl implements RunnableUseCase {
   constructor(

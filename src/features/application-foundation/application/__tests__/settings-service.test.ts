@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
 import { firstValueFrom } from 'rxjs'
-import { SettingsService } from '../settings-service'
+import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../domain'
+import { SettingsService } from '../settings-service'
 
 describe('SettingsService', () => {
   it('初期値は DEFAULT_SETTINGS', async () => {

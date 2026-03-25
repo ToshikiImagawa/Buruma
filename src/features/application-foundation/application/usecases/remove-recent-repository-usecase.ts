@@ -1,5 +1,5 @@
 import type { ConsumerUseCase } from '@/lib/usecase'
-import type { RepositoryRepository, IRepositoryService } from '../../di-tokens'
+import type { IRepositoryService, RepositoryRepository } from '../../di-tokens'
 
 export class RemoveRecentRepositoryUseCaseImpl implements ConsumerUseCase<string> {
   constructor(

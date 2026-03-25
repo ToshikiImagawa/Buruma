@@ -1,5 +1,5 @@
 import type { Observable } from 'rxjs'
-import type { ISettingsViewModel, GetSettingsUseCase, UpdateSettingsUseCase } from '../di-tokens'
+import type { GetSettingsUseCase, ISettingsViewModel, UpdateSettingsUseCase } from '../di-tokens'
 import type { AppSettings, Theme } from '../domain'
 
 export class SettingsViewModel implements ISettingsViewModel {

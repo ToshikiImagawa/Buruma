@@ -1,54 +1,50 @@
 import type { VContainerConfig } from '@/lib/di'
-import {
-  // Service tokens
-  RepositoryServiceToken,
-  SettingsServiceToken,
-  ErrorNotificationServiceToken,
-  // Repository tokens
-  RepositoryRepositoryToken,
-  SettingsRepositoryToken,
-  // UseCase tokens
-  OpenRepositoryUseCaseToken,
-  OpenRepositoryByPathUseCaseToken,
-  GetRecentRepositoriesUseCaseToken,
-  RemoveRecentRepositoryUseCaseToken,
-  PinRepositoryUseCaseToken,
-  GetSettingsUseCaseToken,
-  UpdateSettingsUseCaseToken,
-  GetErrorNotificationsUseCaseToken,
-  DismissErrorUseCaseToken,
-  RetryErrorUseCaseToken,
-  // ViewModel tokens
-  RepositorySelectorViewModelToken,
-  SettingsViewModelToken,
-  ErrorNotificationViewModelToken,
-} from './di-tokens'
-
+import { ErrorNotificationService } from './application/error-notification-service'
 // Services
 import { RepositoryService } from './application/repository-service'
 import { SettingsService } from './application/settings-service'
-import { ErrorNotificationService } from './application/error-notification-service'
-
+import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
+import { GetErrorNotificationsUseCaseImpl } from './application/usecases/get-error-notifications-usecase'
+import { GetRecentRepositoriesUseCaseImpl } from './application/usecases/get-recent-repositories-usecase'
+import { GetSettingsUseCaseImpl } from './application/usecases/get-settings-usecase'
+import { OpenRepositoryByPathUseCaseImpl } from './application/usecases/open-repository-by-path-usecase'
 // UseCases
 import { OpenRepositoryUseCaseImpl } from './application/usecases/open-repository-usecase'
-import { OpenRepositoryByPathUseCaseImpl } from './application/usecases/open-repository-by-path-usecase'
-import { GetRecentRepositoriesUseCaseImpl } from './application/usecases/get-recent-repositories-usecase'
-import { RemoveRecentRepositoryUseCaseImpl } from './application/usecases/remove-recent-repository-usecase'
 import { PinRepositoryUseCaseImpl } from './application/usecases/pin-repository-usecase'
-import { GetSettingsUseCaseImpl } from './application/usecases/get-settings-usecase'
-import { UpdateSettingsUseCaseImpl } from './application/usecases/update-settings-usecase'
-import { GetErrorNotificationsUseCaseImpl } from './application/usecases/get-error-notifications-usecase'
-import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
+import { RemoveRecentRepositoryUseCaseImpl } from './application/usecases/remove-recent-repository-usecase'
 import { RetryErrorUseCaseImpl } from './application/usecases/retry-error-usecase'
-
+import { UpdateSettingsUseCaseImpl } from './application/usecases/update-settings-usecase'
+import {
+  DismissErrorUseCaseToken,
+  ErrorNotificationServiceToken,
+  ErrorNotificationViewModelToken,
+  GetErrorNotificationsUseCaseToken,
+  GetRecentRepositoriesUseCaseToken,
+  GetSettingsUseCaseToken,
+  OpenRepositoryByPathUseCaseToken,
+  // UseCase tokens
+  OpenRepositoryUseCaseToken,
+  PinRepositoryUseCaseToken,
+  RemoveRecentRepositoryUseCaseToken,
+  // Repository tokens
+  RepositoryRepositoryToken,
+  // ViewModel tokens
+  RepositorySelectorViewModelToken,
+  // Service tokens
+  RepositoryServiceToken,
+  RetryErrorUseCaseToken,
+  SettingsRepositoryToken,
+  SettingsServiceToken,
+  SettingsViewModelToken,
+  UpdateSettingsUseCaseToken,
+} from './di-tokens'
 // Infrastructure (renderer-side)
 import { RepositoryRepositoryImpl } from './infrastructure/repository-repository-impl'
 import { SettingsRepositoryImpl } from './infrastructure/settings-repository-impl'
-
+import { ErrorNotificationViewModel } from './presentation/error-notification-viewmodel'
 // ViewModels
 import { RepositorySelectorViewModel } from './presentation/repository-selector-viewmodel'
 import { SettingsViewModel } from './presentation/settings-viewmodel'
-import { ErrorNotificationViewModel } from './presentation/error-notification-viewmodel'
 
 export const applicationFoundationConfig: VContainerConfig = {
   register: (container) => {

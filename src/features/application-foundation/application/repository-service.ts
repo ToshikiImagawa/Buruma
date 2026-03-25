@@ -1,6 +1,6 @@
-import { BehaviorSubject, Observable } from 'rxjs'
-import type { RecentRepository, RepositoryInfo } from '../domain'
 import type { IRepositoryService } from '../di-tokens'
+import type { RecentRepository, RepositoryInfo } from '../domain'
+import { BehaviorSubject, Observable } from 'rxjs'
 
 export class RepositoryService implements IRepositoryService {
   private readonly _currentRepository$ = new BehaviorSubject<RepositoryInfo | null>(null)

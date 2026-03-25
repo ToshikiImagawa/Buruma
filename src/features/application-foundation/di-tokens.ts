@@ -1,16 +1,10 @@
 /**
  * application-foundation の DI トークン定義
  */
-import { createToken } from '@/lib/di'
-import type { Observable } from 'rxjs'
-import type {
-  AppSettings,
-  ErrorNotification,
-  RecentRepository,
-  RepositoryInfo,
-  Theme,
-} from './domain'
 import type { ConsumerUseCase, ObservableStoreUseCase, ReactivePropertyUseCase, RunnableUseCase } from '@/lib/usecase'
+import type { Observable } from 'rxjs'
+import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo, Theme } from './domain'
+import { createToken } from '@/lib/di'
 
 // --- Repository IF ---
 
@@ -102,9 +96,11 @@ export const SettingsRepositoryToken = createToken<SettingsRepository>('Settings
 // UseCases
 export const OpenRepositoryUseCaseToken = createToken<OpenRepositoryUseCase>('OpenRepositoryUseCase')
 export const OpenRepositoryByPathUseCaseToken = createToken<OpenRepositoryByPathUseCase>('OpenRepositoryByPathUseCase')
-export const GetRecentRepositoriesUseCaseToken = createToken<GetRecentRepositoriesUseCase>('GetRecentRepositoriesUseCase')
-export const RemoveRecentRepositoryUseCaseToken =
-  createToken<RemoveRecentRepositoryUseCase>('RemoveRecentRepositoryUseCase')
+export const GetRecentRepositoriesUseCaseToken =
+  createToken<GetRecentRepositoriesUseCase>('GetRecentRepositoriesUseCase')
+export const RemoveRecentRepositoryUseCaseToken = createToken<RemoveRecentRepositoryUseCase>(
+  'RemoveRecentRepositoryUseCase',
+)
 export const PinRepositoryUseCaseToken = createToken<PinRepositoryUseCase>('PinRepositoryUseCase')
 export const GetSettingsUseCaseToken = createToken<GetSettingsUseCase>('GetSettingsUseCase')
 export const UpdateSettingsUseCaseToken = createToken<UpdateSettingsUseCase>('UpdateSettingsUseCase')
@@ -114,8 +110,6 @@ export const DismissErrorUseCaseToken = createToken<DismissErrorUseCase>('Dismis
 export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryErrorUseCase')
 
 // ViewModels
-export const RepositorySelectorViewModelToken =
-  createToken<IRepositorySelectorViewModel>('RepositorySelectorViewModel')
+export const RepositorySelectorViewModelToken = createToken<IRepositorySelectorViewModel>('RepositorySelectorViewModel')
 export const SettingsViewModelToken = createToken<ISettingsViewModel>('SettingsViewModel')
-export const ErrorNotificationViewModelToken =
-  createToken<IErrorNotificationViewModel>('ErrorNotificationViewModel')
+export const ErrorNotificationViewModelToken = createToken<IErrorNotificationViewModel>('ErrorNotificationViewModel')

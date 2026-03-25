@@ -1,8 +1,8 @@
 import type { Observable } from 'rxjs'
 import type {
-  IErrorNotificationViewModel,
-  GetErrorNotificationsUseCase,
   DismissErrorUseCase,
+  GetErrorNotificationsUseCase,
+  IErrorNotificationViewModel,
   RetryErrorUseCase,
 } from '../di-tokens'
 import type { ErrorNotification } from '../domain'

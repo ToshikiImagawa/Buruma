@@ -1,11 +1,8 @@
-import { ipcMain } from 'electron'
 import type { RepositoryMainService } from './repository-main-service'
 import type { SettingsMainService } from './settings-main-service'
+import { ipcMain } from 'electron'
 
-export function registerIPCHandlers(
-  repoService: RepositoryMainService,
-  settingsService: SettingsMainService,
-): void {
+export function registerIPCHandlers(repoService: RepositoryMainService, settingsService: SettingsMainService): void {
   ipcMain.handle('repository:open', () => repoService.openWithDialog())
   ipcMain.handle('repository:open-path', (_event, path: string) => repoService.openByPath(path))
   ipcMain.handle('repository:validate', (_event, path: string) => repoService.validate(path))

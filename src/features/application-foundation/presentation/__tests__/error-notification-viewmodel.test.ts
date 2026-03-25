@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
-import { BehaviorSubject } from 'rxjs'
-import { ErrorNotificationViewModel } from '../error-notification-viewmodel'
-import type { GetErrorNotificationsUseCase, DismissErrorUseCase, RetryErrorUseCase } from '../../di-tokens'
+import type { DismissErrorUseCase, GetErrorNotificationsUseCase, RetryErrorUseCase } from '../../di-tokens'
 import type { ErrorNotification } from '../../domain'
+import { BehaviorSubject } from 'rxjs'
+import { describe, expect, it, vi } from 'vitest'
+import { ErrorNotificationViewModel } from '../error-notification-viewmodel'
 
 function createMocks() {
   const notificationsSubject = new BehaviorSubject<ErrorNotification[]>([])

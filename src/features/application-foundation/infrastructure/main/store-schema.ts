@@ -1,4 +1,4 @@
-import type { RecentRepository, AppSettings } from '../../domain'
+import type { AppSettings, RecentRepository } from '../../domain'
 import { DEFAULT_SETTINGS } from '../../domain'
 
 export interface StoreSchema {

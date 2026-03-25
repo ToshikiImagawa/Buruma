@@ -1,6 +1,6 @@
-import { BehaviorSubject, Observable } from 'rxjs'
-import type { ErrorNotification } from '../domain'
 import type { IErrorNotificationService } from '../di-tokens'
+import type { ErrorNotification } from '../domain'
+import { BehaviorSubject, Observable } from 'rxjs'
 
 export class ErrorNotificationService implements IErrorNotificationService {
   private readonly _notifications$ = new BehaviorSubject<ErrorNotification[]>([])

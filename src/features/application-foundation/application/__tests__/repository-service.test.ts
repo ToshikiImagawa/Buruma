@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
+import type { RecentRepository, RepositoryInfo } from '../../domain'
 import { firstValueFrom } from 'rxjs'
+import { describe, expect, it } from 'vitest'
 import { RepositoryService } from '../repository-service'
-import type { RepositoryInfo, RecentRepository } from '../../domain'
 
 describe('RepositoryService', () => {
   it('初期値は currentRepository$ が null', async () => {

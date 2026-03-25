@@ -27,17 +27,26 @@ export function ipcFailure<T>(code: string, message: string, detail?: string): I
  * renderer → main (invoke/handle)
  */
 export interface IPCChannelMap {
-  'repository:open': { args: []; result: IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null> }
+  'repository:open': {
+    args: []
+    result: IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null>
+  }
   'repository:open-path': {
     args: [string]
     result: IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null>
   }
   'repository:validate': { args: [string]; result: IPCResult<boolean> }
-  'repository:get-recent': { args: []; result: IPCResult<import('../features/application-foundation/domain').RecentRepository[]> }
+  'repository:get-recent': {
+    args: []
+    result: IPCResult<import('../features/application-foundation/domain').RecentRepository[]>
+  }
   'repository:remove-recent': { args: [string]; result: IPCResult<void> }
   'repository:pin': { args: [{ path: string; pinned: boolean }]; result: IPCResult<void> }
   'settings:get': { args: []; result: IPCResult<import('../features/application-foundation/domain').AppSettings> }
-  'settings:set': { args: [Partial<import('../features/application-foundation/domain').AppSettings>]; result: IPCResult<void> }
+  'settings:set': {
+    args: [Partial<import('../features/application-foundation/domain').AppSettings>]
+    result: IPCResult<void>
+  }
   'settings:get-theme': { args: []; result: IPCResult<import('../features/application-foundation/domain').Theme> }
   'settings:set-theme': { args: [import('../features/application-foundation/domain').Theme]; result: IPCResult<void> }
 }
@@ -51,7 +60,9 @@ export interface IPCEventMap {
 export interface ElectronAPI {
   repository: {
     open(): Promise<IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null>>
-    openByPath(path: string): Promise<IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null>>
+    openByPath(
+      path: string,
+    ): Promise<IPCResult<import('../features/application-foundation/domain').RepositoryInfo | null>>
     validate(path: string): Promise<IPCResult<boolean>>
     getRecent(): Promise<IPCResult<import('../features/application-foundation/domain').RecentRepository[]>>
     removeRecent(path: string): Promise<IPCResult<void>>
@@ -63,7 +74,9 @@ export interface ElectronAPI {
     getTheme(): Promise<IPCResult<import('../features/application-foundation/domain').Theme>>
     setTheme(theme: import('../features/application-foundation/domain').Theme): Promise<IPCResult<void>>
   }
-  onError(callback: (notification: import('../features/application-foundation/domain').ErrorNotification) => void): () => void
+  onError(
+    callback: (notification: import('../features/application-foundation/domain').ErrorNotification) => void,
+  ): () => void
 }
 
 declare global {

@@ -1,7 +1,7 @@
-import type { Observable } from 'rxjs'
 import type { ObservableStoreUseCase } from '@/lib/usecase'
-import type { ErrorNotification } from '../../domain'
+import type { Observable } from 'rxjs'
 import type { IErrorNotificationService } from '../../di-tokens'
+import type { ErrorNotification } from '../../domain'
 
 export class GetErrorNotificationsUseCaseImpl implements ObservableStoreUseCase<ErrorNotification[]> {
   constructor(private readonly service: IErrorNotificationService) {}

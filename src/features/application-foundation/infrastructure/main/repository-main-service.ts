@@ -1,10 +1,11 @@
-import { dialog } from 'electron'
-import { execFile } from 'child_process'
-import { promisify } from 'util'
-import path from 'path'
-import { type IPCResult, ipcSuccess, ipcFailure } from '@/types/ipc'
-import type { RepositoryInfo, RecentRepository } from '../../domain'
+import type { IPCResult } from '@/types/ipc'
+import type { RecentRepository, RepositoryInfo } from '../../domain'
 import type { AppStore } from './store-schema'
+import { execFile } from 'child_process'
+import path from 'path'
+import { promisify } from 'util'
+import { dialog } from 'electron'
+import { ipcFailure, ipcSuccess } from '@/types/ipc'
 
 const execFileAsync = promisify(execFile)
 

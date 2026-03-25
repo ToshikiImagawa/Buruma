@@ -1,15 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
-import { BehaviorSubject } from 'rxjs'
-import { RepositorySelectorViewModel } from '../repository-selector-viewmodel'
 import type {
-  OpenRepositoryUseCase,
-  OpenRepositoryByPathUseCase,
   GetRecentRepositoriesUseCase,
-  RemoveRecentRepositoryUseCase,
-  PinRepositoryUseCase,
   IRepositoryService,
+  OpenRepositoryByPathUseCase,
+  OpenRepositoryUseCase,
+  PinRepositoryUseCase,
+  RemoveRecentRepositoryUseCase,
 } from '../../di-tokens'
 import type { RecentRepository, RepositoryInfo } from '../../domain'
+import { BehaviorSubject } from 'rxjs'
+import { describe, expect, it, vi } from 'vitest'
+import { RepositorySelectorViewModel } from '../repository-selector-viewmodel'
 
 function createMocks() {
   const recentSubject = new BehaviorSubject<RecentRepository[]>([])

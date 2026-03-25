@@ -1,25 +1,26 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { createContainer, type VContainer } from '@/lib/di'
+import type { VContainer } from '@/lib/di'
+import type { RepositoryRepository, SettingsRepository } from '../di-tokens'
+import type { AppSettings, RecentRepository, RepositoryInfo } from '../domain'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { createContainer } from '@/lib/di'
+import { applicationFoundationConfig } from '../di-config'
 import {
-  RepositoryRepositoryToken,
-  SettingsRepositoryToken,
-  RepositoryServiceToken,
-  SettingsServiceToken,
+  DismissErrorUseCaseToken,
   ErrorNotificationServiceToken,
-  OpenRepositoryUseCaseToken,
+  ErrorNotificationViewModelToken,
+  GetErrorNotificationsUseCaseToken,
   GetRecentRepositoriesUseCaseToken,
   GetSettingsUseCaseToken,
-  UpdateSettingsUseCaseToken,
-  GetErrorNotificationsUseCaseToken,
-  DismissErrorUseCaseToken,
+  OpenRepositoryUseCaseToken,
+  RepositoryRepositoryToken,
   RepositorySelectorViewModelToken,
+  RepositoryServiceToken,
+  SettingsRepositoryToken,
+  SettingsServiceToken,
   SettingsViewModelToken,
-  ErrorNotificationViewModelToken,
+  UpdateSettingsUseCaseToken,
 } from '../di-tokens'
-import type { RepositoryRepository, SettingsRepository } from '../di-tokens'
-import type { RepositoryInfo, RecentRepository, AppSettings } from '../domain'
 import { DEFAULT_SETTINGS } from '../domain'
-import { applicationFoundationConfig } from '../di-config'
 
 function createMockRepositoryRepository(): RepositoryRepository {
   return {
@@ -34,9 +35,9 @@ function createMockRepositoryRepository(): RepositoryRepository {
       isValid: true,
     }),
     validate: vi.fn<[string], Promise<boolean>>().mockResolvedValue(true),
-    getRecent: vi.fn<[], Promise<RecentRepository[]>>().mockResolvedValue([
-      { path: '/recent/repo', name: 'recent', lastAccessed: '2026-01-01', pinned: false },
-    ]),
+    getRecent: vi
+      .fn<[], Promise<RecentRepository[]>>()
+      .mockResolvedValue([{ path: '/recent/repo', name: 'recent', lastAccessed: '2026-01-01', pinned: false }]),
     removeRecent: vi.fn<[string], Promise<void>>().mockResolvedValue(undefined),
     pin: vi.fn<[string, boolean], Promise<void>>().mockResolvedValue(undefined),
   }

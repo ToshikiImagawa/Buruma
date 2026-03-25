@@ -1,9 +1,9 @@
-import { describe, it, expect, vi } from 'vitest'
-import { BehaviorSubject } from 'rxjs'
-import { SettingsViewModel } from '../settings-viewmodel'
 import type { GetSettingsUseCase, UpdateSettingsUseCase } from '../../di-tokens'
 import type { AppSettings } from '../../domain'
+import { BehaviorSubject } from 'rxjs'
+import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from '../../domain'
+import { SettingsViewModel } from '../settings-viewmodel'
 
 function createMocks() {
   const settingsSubject = new BehaviorSubject<AppSettings>(DEFAULT_SETTINGS)

@@ -1,7 +1,7 @@
-import { describe, it, expect } from 'vitest'
-import { firstValueFrom } from 'rxjs'
-import { ErrorNotificationService } from '../error-notification-service'
 import type { ErrorNotification } from '../../domain'
+import { firstValueFrom } from 'rxjs'
+import { describe, expect, it } from 'vitest'
+import { ErrorNotificationService } from '../error-notification-service'
 
 const createNotification = (id: string): ErrorNotification => ({
   id,

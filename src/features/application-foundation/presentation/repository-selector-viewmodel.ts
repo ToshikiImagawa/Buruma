@@ -1,12 +1,12 @@
 import type { Observable } from 'rxjs'
 import type {
-  IRepositorySelectorViewModel,
-  OpenRepositoryUseCase,
-  OpenRepositoryByPathUseCase,
   GetRecentRepositoriesUseCase,
-  RemoveRecentRepositoryUseCase,
-  PinRepositoryUseCase,
+  IRepositorySelectorViewModel,
   IRepositoryService,
+  OpenRepositoryByPathUseCase,
+  OpenRepositoryUseCase,
+  PinRepositoryUseCase,
+  RemoveRecentRepositoryUseCase,
 } from '../di-tokens'
 import type { RecentRepository, RepositoryInfo } from '../domain'
 

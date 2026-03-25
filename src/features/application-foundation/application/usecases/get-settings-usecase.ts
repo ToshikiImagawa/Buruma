@@ -1,12 +1,16 @@
-import { type Observable, map, BehaviorSubject } from 'rxjs'
 import type { ReactivePropertyUseCase, ReadOnlyReactiveProperty } from '@/lib/usecase'
-import type { AppSettings } from '../../domain'
+import type { Observable } from 'rxjs'
 import type { ISettingsService } from '../../di-tokens'
+import type { AppSettings } from '../../domain'
+import { BehaviorSubject, map } from 'rxjs'
 
 class SettingsReactiveProperty implements ReadOnlyReactiveProperty<AppSettings> {
   private readonly _subject: BehaviorSubject<AppSettings>
 
-  constructor(private readonly settings$: Observable<AppSettings>, initialValue: AppSettings) {
+  constructor(
+    private readonly settings$: Observable<AppSettings>,
+    initialValue: AppSettings,
+  ) {
     this._subject = new BehaviorSubject<AppSettings>(initialValue)
     this.settings$.pipe(map((v) => v)).subscribe((v) => this._subject.next(v))
   }
