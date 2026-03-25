@@ -84,10 +84,7 @@ describe('useResolve', () => {
     const consoleSpy = vi.spyOn(console, 'error')
     consoleSpy.mockImplementation(() => undefined)
 
-    class ErrorBoundary extends React.Component<
-      { children: React.ReactNode },
-      { error: Error | null }
-    > {
+    class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
       state = { error: null as Error | null }
       static getDerivedStateFromError(error: Error) {
         return { error }
@@ -126,10 +123,7 @@ describe('useResolve', () => {
     const consoleSpy = vi.spyOn(console, 'error')
     consoleSpy.mockImplementation(() => undefined)
 
-    class ErrorBoundary extends React.Component<
-      { children: React.ReactNode },
-      { error: Error | null }
-    > {
+    class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
       state = { error: null as Error | null }
       static getDerivedStateFromError(error: Error) {
         return { error }
@@ -153,9 +147,7 @@ describe('useResolve', () => {
       </ErrorBoundary>,
     )
 
-    expect(getByTestId('error').textContent).toContain(
-      'useVContainer must be used within VContainerProvider',
-    )
+    expect(getByTestId('error').textContent).toContain('useVContainer must be used within VContainerProvider')
 
     consoleSpy.mockRestore()
   })

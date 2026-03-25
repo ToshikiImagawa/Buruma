@@ -3,12 +3,9 @@ import type { VContainerConfig } from '../v-container-provider'
 import { cleanup, render, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { VContainer } from '../container'
-import {
-  VContainerProvider,
-  useVContainer,
-  useVContainerError,
-  useVContainerReady,
-} from '../v-container-provider' /**
+import { VContainerProvider, useVContainer, useVContainerError, useVContainerReady } from '../v-container-provider'
+
+/**
  * VContainerProviderのテストケース
  * - React Strict Modeでの二重実行に対応
  * - プロバイダーのマウント・アンマウント・再マウントの動作確認
@@ -395,9 +392,7 @@ describe('VContainerProvider', () => {
       })
 
       // 呼び出し順序を確認（LIFO: Last In, First Out）
-      const callOrder = [tearDown3, tearDown2, tearDown1].map(
-        (mock) => mock.mock.invocationCallOrder[0],
-      )
+      const callOrder = [tearDown3, tearDown2, tearDown1].map((mock) => mock.mock.invocationCallOrder[0])
       expect(callOrder[0]).toBeLessThan(callOrder[1])
       expect(callOrder[1]).toBeLessThan(callOrder[2])
     })
@@ -562,9 +557,7 @@ describe('VContainerProvider', () => {
 
       const { getByText } = render(
         <VContainerProvider configs={configs}>
-          {({ isReady, error }) => (
-            <div>{error ? `Error: ${error.message}` : isReady ? 'Ready' : 'Loading'}</div>
-          )}
+          {({ isReady, error }) => <div>{error ? `Error: ${error.message}` : isReady ? 'Ready' : 'Loading'}</div>}
         </VContainerProvider>,
       )
 
@@ -645,10 +638,7 @@ describe('VContainerProvider', () => {
       ]
 
       // Error Boundaryでキャッチする
-      class ErrorBoundary extends Component<
-        { children: ReactNode },
-        { hasError: boolean; error: Error | null }
-      > {
+      class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean; error: Error | null }> {
         constructor(props: { children: ReactNode }) {
           super(props)
           this.state = { hasError: false, error: null }

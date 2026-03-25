@@ -1,26 +1,20 @@
 // @ts-check
 import eslint from '@eslint/js'
-import tseslint from 'typescript-eslint'
-import importX from 'eslint-plugin-import-x'
 import eslintConfigPrettier from 'eslint-config-prettier'
+import importX from 'eslint-plugin-import-x'
 import globals from 'globals'
+import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/', 'out/', 'dist/', '.vite/'],
+    ignores: ['node_modules/', 'out/', 'dist/', '.vite/', '.prettierrc.cjs'],
   },
 
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
 
   {
-    files: [
-      'src/main.ts',
-      'src/preload.ts',
-      'vite.*.config.ts',
-      'forge.config.ts',
-      'postcss.config.js',
-    ],
+    files: ['src/main.ts', 'src/preload.ts', 'vite.*.config.ts', 'forge.config.ts', 'postcss.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,

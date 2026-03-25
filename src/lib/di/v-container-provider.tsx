@@ -1,10 +1,10 @@
 import { ReactNode, createContext, useContext, useEffect, useMemo, useRef, useState } from 'react'
 import type { VContainer } from './container'
-import type { InjectionToken } from './types'
 import type { DisposableStack } from './disposable-stack'
+import type { InjectionToken } from './types'
+import { logger } from '../logger'
 import { createContainer } from './container'
 import { createDisposableStack } from './disposable-stack'
-import { logger } from '../logger'
 
 /**
  * コンテナの登録関数
@@ -146,16 +146,11 @@ export const VContainerProvider = ({
       if (setUpErrors.length > 0) {
         const result = stack.dispose()
         if (!result.success) {
-          logger.error(
-            '[VContainerProvider] setUp失敗後のクリーンアップ中にエラーが発生しました:',
-            result.errors,
-          )
+          logger.error('[VContainerProvider] setUp失敗後のクリーンアップ中にエラーが発生しました:', result.errors)
         }
         logger.error('[VContainerProvider] Container setup failed:', setUpErrors)
         setError(
-          setUpErrors.length === 1
-            ? setUpErrors[0]
-            : new AggregateError(setUpErrors, 'Multiple setUp errors occurred'),
+          setUpErrors.length === 1 ? setUpErrors[0] : new AggregateError(setUpErrors, 'Multiple setUp errors occurred'),
         )
         return
       }
@@ -184,11 +179,7 @@ export const VContainerProvider = ({
 
   // children が関数の場合は、状態を渡して実行（render propsパターン）
   if (typeof children === 'function') {
-    return (
-      <VContainerContext.Provider value={value}>
-        {children({ isReady, error })}
-      </VContainerContext.Provider>
-    )
+    return <VContainerContext.Provider value={value}>{children({ isReady, error })}</VContainerContext.Provider>
   }
 
   // children が ReactNode の場合は、fallback/errorFallbackパターンを使用

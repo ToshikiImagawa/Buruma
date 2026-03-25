@@ -1,7 +1,7 @@
 import React from 'react'
-import { render, waitFor, act } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { act, render, waitFor } from '@testing-library/react'
 import { BehaviorSubject, Observable, Subject } from 'rxjs'
+import { describe, expect, it, vi } from 'vitest'
 import { useObservable } from '../use-observable'
 
 describe('useObservable', () => {
@@ -89,10 +89,7 @@ describe('useObservable', () => {
       return <div />
     }
 
-    class ErrorBoundary extends React.Component<
-      { children: React.ReactNode },
-      { error: Error | null }
-    > {
+    class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { error: Error | null }> {
       state = { error: null as Error | null }
       static getDerivedStateFromError(error: Error) {
         return { error }

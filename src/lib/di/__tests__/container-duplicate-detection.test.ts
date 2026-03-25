@@ -1,5 +1,5 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import type { InjectionToken } from '../types'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { VContainer, createToken } from '../container'
 
 /**

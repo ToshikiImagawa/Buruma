@@ -135,10 +135,7 @@ export interface CleanupHandle {
  * @param onError - エラー時のコールバック（オプション）
  * @return CleanupHandle
  */
-export function createCleanupHandle(
-  stack: DisposableStack,
-  onError?: (errors: Error[]) => void,
-): CleanupHandle {
+export function createCleanupHandle(stack: DisposableStack, onError?: (errors: Error[]) => void): CleanupHandle {
   const dispose = (): DisposableStackResult => {
     const result = stack.dispose()
     if (!result.success && onError) {
