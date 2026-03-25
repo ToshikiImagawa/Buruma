@@ -13,6 +13,8 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 - `npm run make` — 配布用インストーラー作成
 - `npm run lint` — ESLint 実行 (`eslint .`)
 
+**注意**: テストランナー（Vitest）は未インストール。テストコードは `src/lib/di/__tests__/` に存在するが、package.json に vitest が未追加のため実行不可。
+
 ## Architecture
 
 Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。
@@ -29,16 +31,42 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 - レンダラーから Node.js API を直接使わない
 - IPC チャネルには型安全なインターフェースを定義する
 
+### DI（依存性注入）アーキテクチャ
+
+`src/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。サービス間の依存関係は必ずこのコンテナを通じて注入する。
+
+**コア API**:
+- `createToken<T>(key)` — 型安全な InjectionToken を作成
+- `container.register()` / `registerSingleton()` / `registerTransient()` — サービス登録
+- `container.resolve<T>(token)` — サービス取得
+- `container.createScope()` — 親子コンテナ階層
+
+**React 統合**:
+- `VContainerProvider` — configs（register + setUp）でコンテナを初期化し React ツリーに提供
+- `useVContainer()` — コンポーネントからコンテナを取得
+- setUp 関数は priority で実行順制御、tearDown は `DisposableStack` で LIFO クリーンアップ
+
+**ライフタイム**: `singleton`（デフォルト、インスタンス再利用）、`transient`（毎回新規作成）。`scoped` は未実装。
+
+**遅延解決**: `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される。
+
 ## Tech Stack
 
 - **Electron 41** + Electron Forge 7 + Vite 5
-- **React 19** + TypeScript
+- **React 19** + TypeScript 5.8
 - **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）。`@tailwindcss/vite` は ESM only で Vite 5 と非互換のため使用不可
 - **Shadcn/ui** — `components.json` で設定。`npx shadcn@latest add <component>` でコンポーネント追加。`rsc: false`（Server Components 無効）
 
 ## Path Aliases
 
 `@/*` → `./src/*`（`tsconfig.json` の `paths` と `vite.renderer.config.ts` の `resolve.alias` で設定）。レンダラープロセスでのみ有効。
+
+## ESLint 設定
+
+`eslint.config.mjs` でプロセスごとにグローバル変数を分離:
+- **main / preload**: Node.js グローバル許可
+- **renderer**: Browser グローバルのみ
+- `eslint-plugin-import-x` で未解決インポートと重複チェック
 
 ## AI-SDD Instructions (v3.3.0)
 
