@@ -15,13 +15,32 @@ export type { VContainer } from './container'
 export { createToken, createContainer, globalContainer } from './container'
 
 // React Provider と Hooks
-export { VContainerProvider, useVContainer, useVContainerReady, useVContainerError } from './v-container-provider'
+export {
+  VContainerProvider,
+  useVContainer,
+  useResolve,
+  useVContainerReady,
+  useVContainerError,
+} from './v-container-provider'
 export type { VContainerProviderProps, VContainerConfig } from './v-container-provider'
 
 // 型定義
-export type { InjectionToken, Lazy, ServiceLifetime, ServiceMetadata, Type, Factory, Provider } from './types'
+export type {
+  InjectionToken,
+  Lazy,
+  ServiceLifetime,
+  ServiceMetadata,
+  Type,
+  Factory,
+  Provider,
+} from './types'
 export { asLazy } from './types'
 
 // DisposableStack
 export { createDisposableStack, createCleanupHandle } from './disposable-stack'
-export type { DisposableStack, DisposableStackResult, CleanupHandle, TearDownable } from './disposable-stack'
+export type {
+  DisposableStack,
+  DisposableStackResult,
+  CleanupHandle,
+  TearDownable,
+} from './disposable-stack'

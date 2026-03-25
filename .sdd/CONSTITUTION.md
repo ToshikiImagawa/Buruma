@@ -165,6 +165,81 @@
 
 **適用範囲**: すべての feature 実装
 
+**依存方向**:
+
+```
+domain ← application ← infrastructure
+                     ← presentation
+```
+
+- **domain**: 何にも依存しない（純粋な TypeScript のみ）
+- **application**: domain のみに依存（RxJS の Observable は許可）
+- **infrastructure**: domain + application に依存
+- **presentation**: domain + application に依存
+
+**各層の責務**:
+
+| 層 | 配置場所 | 責務 | 許可される依存 |
+|:---|:---|:---|:---|
+| **domain** | `features/*/domain/` | エンティティ、値オブジェクト、ドメインイベント | なし（純粋 TypeScript） |
+| **application** | `features/*/application/` | UseCase（ステートレス）、Service（ステートフル）、リポジトリIF | domain, RxJS |
+| **infrastructure** | `features/*/infrastructure/` | リポジトリ実装、IPC 通信、Git 操作、外部 API 連携 | domain, application, Node.js, Electron |
+| **presentation** | `features/*/presentation/` | React コンポーネント、ViewModel | domain, application, React, RxJS |
+
+**application 層の UseCase / Service 分離**:
+
+- **UseCase（ステートレス）**: `src/lib/usecase/` の型を継承し、単一の操作・変換・ストリーム提供を担う。内部に状態を持たない
+- **Service（ステートフル）**: BehaviorSubject 等で状態を保持・管理する。UseCase から利用される
+- ViewModel は UseCase のみを参照し、Service を直接参照しない
+
+```
+ViewModel → UseCase（ステートレス） → Service（ステートフル）
+                                   → リポジトリIF → infrastructure 実装
+```
+
+**feature 間依存ルール**:
+
+- feature 間の直接参照は禁止する
+- feature 間で共有が必要な型・ロジックは `src/lib/` に切り出す
+- feature 間の連携は application 層のインターフェース + DI で行う
+
+**IPC 通信の位置付け**:
+
+- IPC 通信は外部境界として infrastructure 層に配置する
+- レンダラー側: infrastructure 層が preload API を呼び出す
+- メインプロセス側: infrastructure 層として IPC ハンドラーを実装する
+- application 層はリポジトリインターフェースのみ参照し、IPC の詳細を知らない
+
+**presentation 層の状態管理（MVVM パターン）**:
+
+- ViewModel は純粋な TypeScript クラスとして実装する（React 非依存、Observable を公開）
+- 各 ViewModel に対応する Hook ラッパー（`useXxxViewModel()`）を作成し、Observable → React state 変換を担う
+- React コンポーネントは Hook ラッパー経由でのみ ViewModel を利用する
+- `useResolve(token)` で DI コンテナから ViewModel を取得し、`useObservable(obs$, initial)` で Observable を購読する
+- ViewModel 単体のテストは React 不要（Observable のテストのみ）
+
+```
+// ViewModel クラス（React 非依存）
+class XxxViewModel {
+  constructor(private someUseCase: SomeUseCase) {}
+  readonly items$ = this.someUseCase.store
+  doAction(arg: string) { this.someUseCase.invoke(arg) }
+}
+
+// Hook ラッパー（Observable → React state）
+function useXxxViewModel() {
+  const vm = useResolve(XxxViewModelToken)
+  const items = useObservable(vm.items$, [])
+  return { items, doAction: vm.doAction }
+}
+
+// React コンポーネント
+function XxxPanel() {
+  const { items, doAction } = useXxxViewModel()
+  return <ul>{items.map(...)}</ul>
+}
+```
+
 **検証方法**:
 
 - [ ] domain 層が他の層に依存していないか（純粋な TypeScript のみ）
@@ -172,19 +247,30 @@
 - [ ] infrastructure 層が presentation に依存していないか
 - [ ] リポジトリインターフェースが application 層に、実装が infrastructure 層に配置されているか
 - [ ] feature ごとに `src/features/{feature-name}/` 配下にまとまっているか
+- [ ] feature 間の直接参照が存在しないか
+- [ ] IPC 通信が infrastructure 層に閉じているか
+- [ ] ViewModel が presentation 層に配置され、React に直接依存していないか
+- [ ] UseCase がステートレスであるか（内部に BehaviorSubject 等の状態を持っていないか）
+- [ ] Service がステートフルな状態管理を担い、UseCase 経由でのみアクセスされているか
+- [ ] ViewModel が Service を直接参照せず UseCase のみを参照しているか
 
 **違反例**:
 
 - domain 層で React, Electron, RxJS 等の外部ライブラリをインポートする
 - application 層から infrastructure の具象クラスを直接参照する
 - feature をまたいで domain 層を直接参照する（共有は `src/lib/` 経由）
+- React コンポーネント内で直接 IPC を呼び出す
+- ViewModel 内で `useState` や `useEffect` を使用する
+- UseCase 内に BehaviorSubject 等の状態を保持する
+- ViewModel が Service を直接参照する
 
 **準拠例**:
 
 - domain 層にエンティティ・値オブジェクト・ドメインイベントを配置
-- application 層にユースケース・リポジトリインターフェースを配置し、DI で infrastructure 実装を注入
-- infrastructure 層に IPC 通信、Git 操作、外部 API 連携の実装を配置
-- presentation 層に React コンポーネント・ViewModel を配置
+- application 層に UseCase（ステートレス、`src/lib/usecase/` 型を継承）と Service（ステートフル、状態管理）を配置
+- UseCase が Service の状態を Observable として公開し、ViewModel が subscribe する
+- infrastructure 層に IPC 通信、Git 操作、外部 API 連携の実装を配置し、リポジトリIF 経由で UseCase から利用
+- presentation 層に ViewModel を配置し、UseCase のみを参照。React コンポーネントは hooks 経由で ViewModel を利用
 
 ---
 

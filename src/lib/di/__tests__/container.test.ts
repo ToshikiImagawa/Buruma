@@ -111,7 +111,9 @@ describe('VContainer', () => {
     })
 
     it('登録されていないサービスを解決しようとするとエラー', () => {
-      expect(() => container.resolve(TestServiceToken)).toThrow('Service Symbol(TestService) not registered')
+      expect(() => container.resolve(TestServiceToken)).toThrow(
+        'Service Symbol(TestService) not registered',
+      )
     })
   })
 
@@ -262,7 +264,8 @@ describe('VContainer', () => {
 
       container.register({
         token: UserServiceToken,
-        useFactory: () => new UserService(container.resolve(DatabaseToken), container.resolve(LoggerToken)),
+        useFactory: () =>
+          new UserService(container.resolve(DatabaseToken), container.resolve(LoggerToken)),
       })
 
       // サービスを解決して動作確認
@@ -371,7 +374,9 @@ describe('VContainer', () => {
 
       // OrderServiceとNotificationServiceが互いに通信する場合
       const orderServiceToken = createToken<{ createOrder(id: string): void }>('OrderService')
-      const notificationServiceToken = createToken<{ sendNotification(message: string): void }>('NotificationService')
+      const notificationServiceToken = createToken<{ sendNotification(message: string): void }>(
+        'NotificationService',
+      )
 
       container.register({
         token: orderServiceToken,
@@ -469,7 +474,9 @@ describe('VContainer', () => {
       createOrder(userId: string, productId: string): string {
         this.logger.log(`Creating order for user ${userId}`)
         const user = this.userRepo.findUser(userId)
-        const orderResult = this.db.query(`INSERT INTO orders (user_id, product_id) VALUES (${userId}, ${productId})`)
+        const orderResult = this.db.query(
+          `INSERT INTO orders (user_id, product_id) VALUES (${userId}, ${productId})`,
+        )
         return `Order created: ${user}, ${orderResult}`
       }
     }
@@ -510,7 +517,10 @@ describe('VContainer', () => {
     })
 
     it('registerSingleton + depsでシングルトンとして依存関係付きサービスを登録できる', () => {
-      container.registerSingleton(UserRepoToken, UserRepository as Type<UserRepository>, [DatabaseToken, LoggingToken])
+      container.registerSingleton(UserRepoToken, UserRepository as Type<UserRepository>, [
+        DatabaseToken,
+        LoggingToken,
+      ])
 
       const userRepo1 = container.resolve(UserRepoToken)
       const userRepo2 = container.resolve(UserRepoToken)
@@ -524,7 +534,10 @@ describe('VContainer', () => {
     })
 
     it('registerTransient + depsでトランジェントとして依存関係付きサービスを登録できる', () => {
-      container.registerTransient(UserRepoToken, UserRepository as Type<UserRepository>, [DatabaseToken, LoggingToken])
+      container.registerTransient(UserRepoToken, UserRepository as Type<UserRepository>, [
+        DatabaseToken,
+        LoggingToken,
+      ])
 
       const userRepo1 = container.resolve(UserRepoToken)
       const userRepo2 = container.resolve(UserRepoToken)
@@ -559,7 +572,9 @@ describe('VContainer', () => {
       const result = orderService.createOrder('user123', 'product456')
 
       expect(result).toContain('DB Result: SELECT * FROM users WHERE id = user123')
-      expect(result).toContain('DB Result: INSERT INTO orders (user_id, product_id) VALUES (user123, product456)')
+      expect(result).toContain(
+        'DB Result: INSERT INTO orders (user_id, product_id) VALUES (user123, product456)',
+      )
 
       // ログが両方のサービスから記録されているか確認
       const logger = container.resolve(LoggingToken)
@@ -613,7 +628,9 @@ describe('VContainer', () => {
         deps: [NonExistentToken],
       })
 
-      expect(() => container.resolve(ServiceToken)).toThrow('Service Symbol(NonExistent) not registered')
+      expect(() => container.resolve(ServiceToken)).toThrow(
+        'Service Symbol(NonExistent) not registered',
+      )
     })
 
     it('依存関係の解決に失敗した場合、詳細なエラーメッセージを表示', () => {

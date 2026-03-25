@@ -70,4 +70,3 @@ export interface ObservableStoreUseCase<T> {
 export interface ReactivePropertyUseCase<T> {
   readonly property: ReadOnlyReactiveProperty<T>
 }
-

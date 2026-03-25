@@ -2,7 +2,7 @@
  * 軽量で型安全なDependency Injectionコンテナの実装。
  * 手動での依存関係解決を基本とし、シンプルで理解しやすいAPIを提供します。
  */
-import { logger } from '../../utils'
+import { logger } from '@/utils'
 import {
   DependencyToken,
   Factory,
@@ -126,7 +126,9 @@ export class VContainer {
       // クラスからインスタンスを作成するファクトリー（依存関係付き）
       factory = () => this.createInstance(useClass, deps)
     } else {
-      throw new Error(`Provider for ${String(token)} must specify useClass, useFactory, or useValue`)
+      throw new Error(
+        `Provider for ${String(token)} must specify useClass, useFactory, or useValue`,
+      )
     }
 
     // サービスメタデータを作成してマップに保存
@@ -360,7 +362,8 @@ export class VContainer {
             `  Consider using unique prefixes like 'FeatureName.ServiceName'`,
         )
         throw new Error(
-          `[VContainer] Token key collision: "${tokenKey}". ` + `Different tokens are using the same key string.`,
+          `[VContainer] Token key collision: "${tokenKey}". ` +
+            `Different tokens are using the same key string.`,
         )
       }
     }

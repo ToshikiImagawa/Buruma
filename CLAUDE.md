@@ -12,8 +12,11 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 - `npm run package` — アプリのパッケージング（out/ に出力）
 - `npm run make` — 配布用インストーラー作成
 - `npm run lint` — ESLint 実行 (`eslint .`)
+- `npm run typecheck` — TypeScript 型チェック (`tsc --noEmit`)
+- `npm run format` — Prettier でフォーマット適用
+- `npm run format:check` — フォーマット差分チェック（CI 向け）
 
-**注意**: テストランナー（Vitest）は未インストール。テストコードは `src/lib/di/__tests__/` に存在するが、package.json に vitest が未追加のため実行不可。
+**注意**: テストランナー（Vitest）は未インストール。テストコードは `src/lib/di/__tests__/` と `src/lib/hooks/__tests__/` に存在するが、package.json に vitest が未追加のため実行不可。
 
 ## Architecture
 
@@ -46,9 +49,39 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 - `useVContainer()` — コンポーネントからコンテナを取得
 - setUp 関数は priority で実行順制御、tearDown は `DisposableStack` で LIFO クリーンアップ
 
+**React Hooks**:
+- `useResolve<T>(token)` — DI コンテナからトークンでサービスを解決する Hook（`src/lib/di/v-container-provider.tsx`）
+- `useObservable<T>(observable, initialValue)` — RxJS Observable を React state に変換する Hook（`src/lib/hooks/use-observable.ts`）
+
 **ライフタイム**: `singleton`（デフォルト、インスタンス再利用）、`transient`（毎回新規作成）。`scoped` は未実装。
 
 **遅延解決**: `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される。
+
+### ViewModel + Hook パターン
+
+ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook ラッパー経由で利用する:
+
+```typescript
+// ViewModel（純粋 TS クラス、DI で transient 登録）
+class XxxViewModel {
+  readonly items$: Observable<Item[]>
+  constructor(useCase: GetItemsUseCase) { ... }
+}
+
+// Hook ラッパー（useResolve + useObservable で ViewModel を React に接続）
+function useXxxViewModel() {
+  const vm = useResolve(xxxViewModelToken)
+  const items = useObservable(vm.items$, [])
+  return { items }
+}
+```
+
+### UseCase 型定義
+
+`src/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
+- `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
+- `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
+- `ObservableStoreUseCase<T>` / `ReactivePropertyUseCase<T>` — RxJS Observable でリアクティブデータを公開
 
 ### Clean Architecture（4層構成）
 

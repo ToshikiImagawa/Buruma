@@ -10,7 +10,10 @@
     "package": "electron-forge package",
     "make": "electron-forge make",
     "publish": "electron-forge publish",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "keywords": [],
   "author": {
@@ -34,9 +37,11 @@
     "@vitejs/plugin-react": "^4.7.0",
     "electron": "41.0.4",
     "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
     "globals": "^16.5.0",
+    "prettier": "^3.8.1",
     "typescript": "~5.8",
     "typescript-eslint": "^8.57.2",
     "vite": "^5.4.21"

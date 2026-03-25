@@ -15,5 +15,6 @@
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "jsx": "react-jsx"
-  }
+  },
+  "exclude": ["node_modules", "out", "dist", "**/__tests__/**"]
 }
