@@ -444,6 +444,8 @@ export function registerIPCHandlers(
 | electron-store の Vite 5 との ESM 互換性 | 中 | 実装時に検証。問題がある場合は conf ライブラリを代替案とする |
 | 大量の IPC チャネル定義の管理方法 | 低 | 初期は手動定義。チャネル数が増えた段階でコード生成を検討 |
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
+| RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
+| IPC ハンドラーの入力バリデーション | 低 | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討 |
 
 ---
 
