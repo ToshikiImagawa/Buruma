@@ -2,6 +2,7 @@
 import eslint from '@eslint/js'
 import eslintConfigPrettier from 'eslint-config-prettier'
 import importX from 'eslint-plugin-import-x'
+import reactHooks from 'eslint-plugin-react-hooks'
 import globals from 'globals'
 import tseslint from 'typescript-eslint'
 
@@ -23,11 +24,18 @@ export default tseslint.config(
   },
 
   {
-    files: ['src/renderer.tsx', 'src/App.tsx', 'src/components/**/*.tsx', 'src/lib/**/*.ts'],
+    files: ['src/renderer.tsx', 'src/App.tsx', 'src/components/**/*.tsx', 'src/lib/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
       },
+    },
+    plugins: {
+      'react-hooks': reactHooks,
+    },
+    rules: {
+      'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/exhaustive-deps': 'warn',
     },
   },
 
