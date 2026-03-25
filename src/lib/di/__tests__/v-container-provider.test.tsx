@@ -1,7 +1,7 @@
 import { Component, ReactNode, StrictMode } from 'react'
 import type { VContainerConfig } from '../v-container-provider'
-import { render, waitFor } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, render, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { VContainer } from '../container'
 import {
   VContainerProvider,
@@ -19,6 +19,8 @@ import {
  * - React Strict Modeでの二重実行に対応
  * - プロバイダーのマウント・アンマウント・再マウントの動作確認
  */
+
+afterEach(cleanup)
 
 describe('VContainerProvider', () => {
   describe('基本的な動作', () => {

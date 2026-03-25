@@ -1,8 +1,11 @@
+import React from 'react'
 import type { VContainerConfig } from '../v-container-provider'
-import { render, waitFor } from '@testing-library/react'
-import { describe, expect, it } from 'vitest'
+import { cleanup, render, waitFor } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createToken } from '../container'
 import { VContainerProvider, useResolve } from '../v-container-provider'
+
+afterEach(cleanup)
 
 describe('useResolve', () => {
   it('トークンに登録されたサービスを解決できる', async () => {
@@ -78,30 +81,82 @@ describe('useResolve', () => {
       },
     ]
 
+    const consoleSpy = vi.spyOn(console, 'error')
+    consoleSpy.mockImplementation(() => undefined)
+
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null }
+      static getDerivedStateFromError(error: Error) {
+        return { error }
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>
+        }
+        return this.props.children
+      }
+    }
+
     const Child = () => {
       useResolve(token)
       return <div />
     }
 
-    expect(() => {
-      render(
+    const { getByTestId } = render(
+      <ErrorBoundary>
         <VContainerProvider configs={configs}>
           <Child />
-        </VContainerProvider>,
-      )
-    }).toThrow()
+        </VContainerProvider>
+      </ErrorBoundary>,
+    )
+
+    await waitFor(() => {
+      expect(getByTestId('error')).toBeTruthy()
+    })
+
+    consoleSpy.mockRestore()
   })
 
   it('VContainerProvider 外で使用するとエラーがスローされる', () => {
     const token = createToken<string>('test.useResolve.outside')
 
+    const consoleSpy = vi.spyOn(console, 'error')
+    consoleSpy.mockImplementation(() => undefined)
+
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null }
+      static getDerivedStateFromError(error: Error) {
+        return { error }
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>
+        }
+        return this.props.children
+      }
+    }
+
     const Child = () => {
       useResolve(token)
       return <div />
     }
 
-    expect(() => {
-      render(<Child />)
-    }).toThrow('useVContainer must be used within VContainerProvider')
+    const { getByTestId } = render(
+      <ErrorBoundary>
+        <Child />
+      </ErrorBoundary>,
+    )
+
+    expect(getByTestId('error').textContent).toContain(
+      'useVContainer must be used within VContainerProvider',
+    )
+
+    consoleSpy.mockRestore()
   })
 })
