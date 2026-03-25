@@ -140,6 +140,12 @@ vite.config.ts.timestamp-*
 # dotenv environment variable files
 .env.local
 
+# Electron Forge
+out/
+
+# Vite
+.vite/
+
 # claude
 .claude/settings.local.json
 
