@@ -2,7 +2,7 @@
  * 軽量で型安全なDependency Injectionコンテナの実装。
  * 手動での依存関係解決を基本とし、シンプルで理解しやすいAPIを提供します。
  */
-import { logger } from '@/utils'
+import { logger } from '../logger'
 import {
   DependencyToken,
   Factory,

@@ -1,3 +1,4 @@
+import React from 'react'
 import { render, waitFor, act } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 import { BehaviorSubject, Observable, Subject } from 'rxjs'
@@ -78,7 +79,7 @@ describe('useObservable', () => {
     expect(unsubscribeSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('Observable のエラーが console.error に出力される', async () => {
+  it('Observable のエラーが throw される（Error Boundary で捕捉可能）', async () => {
     const subject = new Subject<number>()
     const consoleSpy = vi.spyOn(console, 'error')
     consoleSpy.mockImplementation(() => undefined)
@@ -88,14 +89,34 @@ describe('useObservable', () => {
       return <div />
     }
 
-    render(<Child />)
+    class ErrorBoundary extends React.Component<
+      { children: React.ReactNode },
+      { error: Error | null }
+    > {
+      state = { error: null as Error | null }
+      static getDerivedStateFromError(error: Error) {
+        return { error }
+      }
+      render() {
+        if (this.state.error) {
+          return <div data-testid="error">{this.state.error.message}</div>
+        }
+        return this.props.children
+      }
+    }
+
+    const { getByTestId } = render(
+      <ErrorBoundary>
+        <Child />
+      </ErrorBoundary>,
+    )
 
     act(() => {
       subject.error(new Error('test error'))
     })
 
     await waitFor(() => {
-      expect(consoleSpy).toHaveBeenCalledWith('[useObservable] Error:', expect.any(Error))
+      expect(getByTestId('error').textContent).toBe('test error')
     })
 
     consoleSpy.mockRestore()

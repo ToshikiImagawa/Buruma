@@ -153,4 +153,4 @@ out/
 .envrc
 
 # idea
-.idea/workspace.xml
+.idea/

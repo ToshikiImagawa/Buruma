@@ -152,7 +152,11 @@ export const VContainerProvider = ({
           )
         }
         logger.error('[VContainerProvider] Container setup failed:', setUpErrors)
-        setError(setUpErrors[0])
+        setError(
+          setUpErrors.length === 1
+            ? setUpErrors[0]
+            : new AggregateError(setUpErrors, 'Multiple setUp errors occurred'),
+        )
         return
       }
 

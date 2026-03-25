@@ -22,13 +22,10 @@ export const logger = {
   },
 
   /**
-   * 開発環境でのみ console.error を実行
-   * エラーは重要なので、本番環境でも必要に応じて出力可能にするオプション付き
+   * console.error は常に出力する（エラーは本番環境でも重要）
    */
   error: (...args: unknown[]): void => {
-    if (process.env.NODE_ENV === 'development' || process.env.NEXT_PUBLIC_LOG_ERRORS === 'true') {
-      console.error(...args)
-    }
+    console.error(...args)
   },
 
   /**
