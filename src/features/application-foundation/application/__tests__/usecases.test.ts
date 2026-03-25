@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi } from 'vitest'
 import { firstValueFrom, BehaviorSubject } from 'rxjs'
 import { OpenRepositoryUseCaseImpl } from '../usecases/open-repository-usecase'
 import { OpenRepositoryByPathUseCaseImpl } from '../usecases/open-repository-by-path-usecase'

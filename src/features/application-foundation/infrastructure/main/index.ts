@@ -1,0 +1,5 @@
+export { registerIPCHandlers } from './ipc-handlers'
+export { RepositoryMainService } from './repository-main-service'
+export { SettingsMainService } from './settings-main-service'
+export { storeDefaults } from './store-schema'
+export type { StoreSchema } from './store-schema'

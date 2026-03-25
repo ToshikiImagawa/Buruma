@@ -2,11 +2,11 @@
 id: "design-application-foundation"
 title: "アプリケーション基盤"
 type: "design"
-status: "draft"
-sdd-phase: "plan"
-impl-status: "not-implemented"
+status: "approved"
+sdd-phase: "implement"
+impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-03-26"
 depends-on: ["spec-application-foundation"]
 tags: ["foundation", "ipc", "electron", "error-handling", "clean-architecture", "di", "rxjs"]
 category: "infrastructure"
@@ -23,20 +23,20 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装完了
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| DI コンテナ登録 | 🔴 | VContainerConfig 定義 |
-| domain 層（エンティティ） | 🔴 | RepositoryInfo, AppSettings 等 |
-| application 層（UseCase / Service） | 🔴 | ステートレス UseCase + ステートフル Service |
-| infrastructure 層（レンダラー側） | 🔴 | リポジトリ実装（IPC 経由） |
-| infrastructure 層（メインプロセス側） | 🔴 | IPC ハンドラー + データアクセス |
-| presentation 層（ViewModel） | 🔴 | 純粋 TypeScript クラス |
-| presentation 層（Hook ラッパー） | 🔴 | useXxxViewModel |
-| presentation 層（React コンポーネント） | 🔴 | UI コンポーネント |
+| DI コンテナ登録 | 🟢 | VContainerConfig 定義済み |
+| domain 層（エンティティ） | 🟢 | RepositoryInfo, AppSettings 等 |
+| application 層（UseCase / Service） | 🟢 | ステートレス UseCase + ステートフル Service |
+| infrastructure 層（レンダラー側） | 🟢 | リポジトリ実装（IPC 経由） |
+| infrastructure 層（メインプロセス側） | 🟢 | IPC ハンドラー + データアクセス |
+| presentation 層（ViewModel） | 🟢 | 純粋 TypeScript クラス |
+| presentation 層（Hook ラッパー） | 🟢 | useXxxViewModel |
+| presentation 層（React コンポーネント） | 🔴 | UI コンポーネント（別 feature で実装予定） |
 
 ---
 

@@ -1,6 +1,4 @@
-import type { Observable } from 'rxjs'
-import { map } from 'rxjs'
-import { BehaviorSubject } from 'rxjs'
+import { type Observable, map, BehaviorSubject } from 'rxjs'
 import type { ReactivePropertyUseCase, ReadOnlyReactiveProperty } from '@/lib/usecase'
 import type { AppSettings } from '../../domain'
 import type { ISettingsService } from '../../di-tokens'
