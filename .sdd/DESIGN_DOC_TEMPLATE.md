@@ -1,6 +1,6 @@
 ---
 id: "design-{feature-name}"
-title: "{Feature Name}"
+title: "{機能名}"
 type: "design"
 status: "draft"
 sdd-phase: "plan"
@@ -14,85 +14,85 @@ priority: "medium"
 risk: "medium"
 ---
 
-# Technical Design Document Template (Design Doc)
+# 技術設計書テンプレート (Design Doc)
 
-This document is a template for creating Technical Design Documents under `.sdd/specification/`.
-The filename should be `{feature-name}_design.md`.
+このドキュメントは `.sdd/specification/` 配下の技術設計書（Design Doc）を作成する際のテンプレートです。
+ファイル名は `{機能名}_design.md` となります。
 
-> **Note**: This template is a fallback for the plugin.
-> When using in a project, customize it according to your programming language and project structure,
-> and save it as `.sdd/DESIGN_DOC_TEMPLATE.md`.
+> **注意**: このテンプレートはプラグインのフォールバック用です。
+> プロジェクトで使用する際は、プログラミング言語やプロジェクト構成に合わせてカスタマイズし、
+> `.sdd/DESIGN_DOC_TEMPLATE.md` として保存してください。
 
-## Difference from Abstract Specification
+## 抽象仕様書との違い
 
-| Document        | SDD Phase         | Role and Focus                                                                                     | Abstraction           |
-|-----------------|-------------------|----------------------------------------------------------------------------------------------------|-----------------------|
-| `xxx_spec.md`   | **Specify**       | **"What to build" "Why to build"** - Defines abstract structure and behavior. No technical details | High (Abstract)       |
-| `xxx_design.md` | **Plan (Design)** | **"How to implement"** - Concrete technical design. Ensures design decision transparency           | Medium-Low (Concrete) |
-
----
-
-# {Feature Name} `<MUST>`
-
-**Related Spec:** [link to xxx_spec.md]
-**Related PRD:** [link to requirement/{feature-name}.md]
+| ドキュメント          | SDDフェーズ          | 役割と焦点                                               | 抽象度      |
+|-----------------|------------------|-----------------------------------------------------|----------|
+| `xxx_spec.md`   | **Specify（仕様化）** | **「何を作るか」「なぜ作るか」** - システムの抽象的な構造と振る舞いを定義。技術的詳細は含めない | 高（抽象的）   |
+| `xxx_design.md` | **Plan（計画/設計）**  | **「どのように実現するか」** - 抽象仕様を実現するための具体的な技術設計。設計判断の透明性を確保 | 中〜低（具体的） |
 
 ---
 
-# 1. Implementation Status `<MUST>`
+# {機能名} `<MUST>`
 
-**Status:** 🟢 Implemented / 🟡 Partial / 🔴 Not Implemented
-
-## 1.1. Implementation Progress `<OPTIONAL>`
-
-| Module/Feature | Status   | Notes   |
-|----------------|----------|---------|
-| [Module]       | 🟢/🟡/🔴 | [Notes] |
+**関連 Spec:** [xxx_spec.md へのリンク]
+**関連 PRD:** [requirement/{機能名}.md へのリンク]
 
 ---
 
-# 2. Design Goals `<MUST>`
+# 1. 実装ステータス `<MUST>`
 
-Describe the main technical goals this design must achieve.
+**ステータス:** 🟢 実装済み / 🟡 部分実装 / 🔴 未実装
 
----
+## 1.1. 実装進捗 `<OPTIONAL>`
 
-# 3. Technology Stack `<MUST>`
-
-**Clearly document the rationale for why each technology was chosen.**
-
-| Area   | Technology | Selection Rationale |
-|--------|------------|---------------------|
-| [Area] | [Tech]     | [Rationale]         |
+| モジュール/機能 | ステータス    | 備考   |
+|----------|----------|------|
+| [モジュール]  | 🟢/🟡/🔴 | [備考] |
 
 ---
 
-# 4. Architecture `<MUST>`
+# 2. 設計目標 `<MUST>`
 
-## 4.1. System Architecture Diagram
+本設計が達成すべき主要な技術目標を記述します。
+
+---
+
+# 3. 技術スタック `<MUST>`
+
+**なぜその技術を選んだのか** という判断の根拠を明確に残します。
+
+| 領域   | 採用技術 | 選定理由 |
+|------|------|------|
+| [領域] | [技術] | [理由] |
+
+---
+
+# 4. アーキテクチャ `<MUST>`
+
+## 4.1. システム構成図
 
 ```mermaid
 graph TD
     A[Component A] --> B[Component B]
 ```
 
-## 4.2. Module Structure
+## 4.2. モジュール分割
 
-| Module Name | Responsibility   | Dependencies   | Location |
-|-------------|------------------|----------------|----------|
-| [Name]      | [Responsibility] | [Dependencies] | [Path]   |
+| モジュール名 | 責務   | 依存関係 | 配置場所 |
+|--------|------|------|------|
+| [名前]   | [責務] | [依存] | [パス] |
 
 ---
 
-# 5. Data Model `<OPTIONAL>`
+# 5. データモデル `<OPTIONAL>`
 
 <!--
-Modify the notation according to your project's programming language.
-e.g., TypeScript, Go, Python, Kotlin, etc.
+プロジェクトのプログラミング言語に合わせて記法を変更してください。
+例: TypeScript, Go, Python, Kotlin など
 -->
 
 ```
-// Describe data model according to your project's language
+// プロジェクトの言語に合わせたデータモデルを記載
 interface SomeEntity {
   id: string
   name: string
@@ -101,14 +101,14 @@ interface SomeEntity {
 
 ---
 
-# 6. Interface Definition `<OPTIONAL>`
+# 6. インターフェース定義 `<OPTIONAL>`
 
 <!--
-Modify the notation according to your project's programming language.
+プロジェクトのプログラミング言語に合わせて記法を変更してください。
 -->
 
 ```
-// Describe interface definitions according to your project's language
+// プロジェクトの言語に合わせたインターフェース定義を記載
 interface SomeRepository {
   fetch(): Promise<Data>
 }
@@ -116,105 +116,104 @@ interface SomeRepository {
 
 ---
 
-# 7. Non-Functional Requirements Implementation `<OPTIONAL>`
+# 7. 非機能要件実現方針 `<OPTIONAL>`
 
-| Requirement   | Implementation Approach |
-|---------------|-------------------------|
-| [Requirement] | [Approach]              |
-
----
-
-# 8. Test Strategy `<OPTIONAL>`
-
-| Test Level | Target   | Coverage Goal |
-|------------|----------|---------------|
-| [Level]    | [Target] | [Goal]        |
+| 要件   | 実現方針 |
+|------|------|
+| [要件] | [方針] |
 
 ---
 
-# 9. Design Decisions `<MUST>`
+# 8. テスト戦略 `<OPTIONAL>`
 
-## 9.1. Decisions Made
-
-| Decision   | Options   | Chosen   | Rationale   |
-|------------|-----------|----------|-------------|
-| [Decision] | [Options] | [Chosen] | [Rationale] |
-
-## 9.2. Unresolved Issues `<OPTIONAL>`
-
-| Issue   | Impact   | Proposed Resolution |
-|---------|----------|---------------------|
-| [Issue] | [Impact] | [Resolution]        |
+| テストレベル | 対象   | カバレッジ目標 |
+|--------|------|---------|
+| [レベル]  | [対象] | [目標]    |
 
 ---
 
-# 10. Change History `<OPTIONAL>`
+# 9. 設計判断 `<MUST>`
+
+## 9.1. 決定事項
+
+| 決定事項 | 選択肢 | 決定内容 | 理由   |
+|------|-----|------|------|
+| [事項] | [肢] | [決定] | [理由] |
+
+## 9.2. 未解決の課題 `<OPTIONAL>`
+
+| 課題   | 影響度 | 対応方針 |
+|------|-----|------|
+| [課題] | [度] | [方針] |
+
+---
+
+# 10. 変更履歴 `<OPTIONAL>`
 
 ## vX.X
 
-**Changes:**
+**変更内容:**
 
-- Change 1
+- 変更1
 
-**Migration Guide:**
+**移行ガイド:**
 
 <!--
-Modify the notation according to your project's programming language.
+プロジェクトのプログラミング言語に合わせて記法を変更してください。
 -->
 
 ```
-// ❌ Old code
-// ✅ New code
+// ❌ 旧コード
+// ✅ 新コード
 ```
 
 ---
 
-# Section Requirement Legend
+# セクション必須度の凡例
 
-| Marker          | Meaning     | Description                              |
-|-----------------|-------------|------------------------------------------|
-| `<MUST>`        | Required    | Must be included in all design documents |
-| `<RECOMMENDED>` | Recommended | Include whenever possible                |
-| `<OPTIONAL>`    | Optional    | Include as needed                        |
-
----
-
-# Guidelines
-
-## What to Include
-
-- ✅ Implementation status and progress
-- ✅ Technology stack selection rationale
-- ✅ Architecture and module structure
-- ✅ Implementation patterns and design patterns
-- ✅ Directory structure and file placement
-- ✅ Test strategy and coverage goals
-- ✅ Design decision records
-- ✅ Change history and migration guides
-
-## What NOT to Include (→ Spec)
-
-- ❌ Feature purpose and background
-- ❌ User stories and use cases
-- ❌ Public API (interface) definitions
-- ❌ Logical structure of data models
-- ❌ Abstract description of behavior
-- ❌ Functional and non-functional requirements
-- ❌ Glossary
+| マーク             | 意味 | 説明                   |
+|-----------------|----|----------------------|
+| `<MUST>`        | 必須 | すべての技術設計書で必ず記載してください |
+| `<RECOMMENDED>` | 推奨 | 可能な限り記載することを推奨します    |
+| `<OPTIONAL>`    | 任意 | 必要に応じて記載してください       |
 
 ---
 
-# Customization Guidelines for Projects
+# ガイドライン
 
-When customizing this template for your project, update the following:
+## 含めるべき内容
 
-1. **Data model notation**: Adjust to project's programming language
-2. **Interface definition notation**: Adjust to project's programming language
-3. **Change history code examples**: Adjust to project's programming language
-4. **Module structure table columns**: Adjust to project's structure (package/module organization)
-5. **Technology stack table**: Adjust to technology areas used in the project
+- ✅ 実装ステータス・進捗
+- ✅ 技術スタックの選定理由
+- ✅ アーキテクチャ・モジュール構成
+- ✅ 実装パターン・デザインパターンの適用
+- ✅ ディレクトリ構造・ファイル配置
+- ✅ テスト戦略・カバレッジ目標
+- ✅ 設計判断の記録
+- ✅ 変更履歴・移行ガイド
+
+## 含めないべき内容（→ Spec へ）
+
+- ❌ 機能の目的と背景
+- ❌ ユーザーストーリー・ユースケース
+- ❌ 公開API（インターフェース）の定義
+- ❌ データモデルの論理構造
+- ❌ 振る舞いの抽象的な記述
+- ❌ 機能要件・非機能要件
+- ❌ 用語集
 
 ---
 
-**This Design Doc serves as the guideline for concrete code generation that AI agents reference during the Implement
-phase.**
+# プロジェクトへのカスタマイズ指針
+
+このテンプレートをプロジェクト用にカスタマイズする際は、以下の項目を更新してください：
+
+1. **データモデルの記法**: プロジェクトのプログラミング言語に合わせる
+2. **インターフェース定義の記法**: プロジェクトのプログラミング言語に合わせる
+3. **変更履歴のコード例**: プロジェクトのプログラミング言語に合わせる
+4. **モジュール分割表のカラム**: プロジェクトの構成（パッケージ/モジュール構造）に合わせる
+5. **技術スタック表**: プロジェクトで使用する技術領域に合わせる
+
+---
+
+**この Design Docは、AIエージェントが実装（Implement）フェーズで参照する、具体的なコード生成のための指針となります。**

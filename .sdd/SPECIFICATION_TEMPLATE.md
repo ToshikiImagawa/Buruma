@@ -1,6 +1,6 @@
 ---
 id: "spec-{feature-name}"
-title: "{Feature Name}"
+title: "{機能名}"
 type: "spec"
 status: "draft"
 sdd-phase: "specify"
@@ -13,150 +13,150 @@ priority: "medium"
 risk: "medium"
 ---
 
-# Abstract Specification Template
+# 抽象仕様書テンプレート
 
-This document is a template for creating abstract specifications under `.sdd/specification/`.
-The filename should be `{feature-name}_spec.md`.
+このドキュメントは `.sdd/specification/` 配下の抽象仕様書を作成する際のテンプレートです。
+ファイル名は `{機能名}_spec.md` となります。
 
-> **Note**: This template is a fallback for the plugin.
-> When using in a project, customize it according to your programming language and project structure,
-> and save it as `.sdd/SPECIFICATION_TEMPLATE.md`.
+> **注意**: このテンプレートはプラグインのフォールバック用です。
+> プロジェクトで使用する際は、プログラミング言語やプロジェクト構成に合わせてカスタマイズし、
+> `.sdd/SPECIFICATION_TEMPLATE.md` として保存してください。
 
-## Difference from Technical Design Doc
+## 技術設計書との違い
 
-| Document        | SDD Phase         | Role and Focus                                                                                     | Abstraction           |
-|-----------------|-------------------|----------------------------------------------------------------------------------------------------|-----------------------|
-| `xxx_spec.md`   | **Specify**       | **"What to build" "Why to build"** - Defines abstract structure and behavior. No technical details | High (Abstract)       |
-| `xxx_design.md` | **Plan (Design)** | **"How to implement"** - Concrete technical design. Ensures design decision transparency           | Medium-Low (Concrete) |
-
----
-
-# {Feature Name} `<MUST>`
-
-**Related Design Doc:** [link to xxx_design.md]
-**Related PRD:** [link to requirement/{feature-name}.md]
+| ドキュメント          | SDDフェーズ          | 役割と焦点                                               | 抽象度      |
+|-----------------|------------------|-----------------------------------------------------|----------|
+| `xxx_spec.md`   | **Specify（仕様化）** | **「何を作るか」「なぜ作るか」** - システムの抽象的な構造と振る舞いを定義。技術的詳細は含めない | 高（抽象的）   |
+| `xxx_design.md` | **Plan（計画/設計）**  | **「どのように実現するか」** - 抽象仕様を実現するための具体的な技術設計。設計判断の透明性を確保 | 中〜低（具体的） |
 
 ---
 
-# 1. Background `<MUST>`
+# {機能名} `<MUST>`
 
-Describe why this feature is needed.
+**関連 Design Doc:** [xxx_design.md へのリンク]
+**関連 PRD:** [requirement/{機能名}.md へのリンク]
 
-# 2. Overview `<MUST>`
+---
 
-Describe the purpose and main design principles of the feature.
-**Do not include technical implementation details; focus on "what to achieve".**
+# 1. 背景 `<MUST>`
 
-# 3. Requirements Definition `<RECOMMENDED>`
+なぜこの機能が必要なのかを説明します。
 
-## 3.1. Functional Requirements
+# 2. 概要 `<MUST>`
 
-| ID     | Requirement   | Priority | Rationale |
-|--------|---------------|----------|-----------|
-| FR-001 | [Requirement] | Required | [Reason]  |
+機能の目的と主要な設計原則を説明します。
+**技術的な実装詳細は含めず、「何を実現するか」に焦点を当てます。**
 
-## 3.2. Non-Functional Requirements `<OPTIONAL>`
+# 3. 要求定義 `<RECOMMENDED>`
 
-| ID      | Category    | Requirement   | Target   |
-|---------|-------------|---------------|----------|
-| NFR-001 | Performance | [Requirement] | [Target] |
+## 3.1. 機能要件 (Functional Requirements)
+
+| ID     | 要件   | 優先度 | 根拠   |
+|--------|------|-----|------|
+| FR-001 | [要件] | 必須  | [理由] |
+
+## 3.2. 非機能要件 (Non-Functional Requirements) `<OPTIONAL>`
+
+| ID      | カテゴリ | 要件   | 目標値  |
+|---------|------|------|------|
+| NFR-001 | 性能   | [要件] | [目標] |
 
 # 4. API `<MUST>`
 
-List of public APIs in table format.
+公開APIの一覧を表形式で記載します。
 
-| pkg (directory name) | class (filename) | member   | description   |
-|----------------------|------------------|----------|---------------|
-| [pkg]                | [class]          | [member] | [description] |
+| pkg (ディレクトリ名) | class(ファイル名) | member   | 概要   |
+|---------------|--------------|----------|------|
+| [pkg]         | [class]      | [member] | [概要] |
 
-## 4.1. Type Definitions `<OPTIONAL>`
+## 4.1. 型定義 `<OPTIONAL>`
 
 <!--
-Modify the notation according to your project's programming language.
-e.g., TypeScript, Go, Python, Kotlin, etc.
+プロジェクトのプログラミング言語に合わせて記法を変更してください。
+例: TypeScript, Go, Python, Kotlin など
 -->
 
 ```
-// Describe type definitions according to your project's language
+// プロジェクトの言語に合わせた型定義を記載
 interface SomeType {
   property: string
 }
 ```
 
-# 5. Glossary `<OPTIONAL>`
+# 5. 用語集 `<OPTIONAL>`
 
-| Term   | Description   |
-|--------|---------------|
-| [Term] | [Description] |
+| 用語   | 説明   |
+|------|------|
+| [用語] | [説明] |
 
-# 6. Usage Examples `<RECOMMENDED>`
+# 6. 使用例 `<RECOMMENDED>`
 
 <!--
-Modify the notation according to your project's programming language.
+プロジェクトのプログラミング言語に合わせて記法を変更してください。
 -->
 
 ```
-// Describe usage examples according to your project's language
+// プロジェクトの言語に合わせた使用例を記載
 ```
 
-# 7. Behavior Diagram `<OPTIONAL>`
+# 7. 振る舞い図 `<OPTIONAL>`
 
-Describe behavior in Mermaid format.
+Mermaid形式で振る舞いを記述します。
 
 ```mermaid
 sequenceDiagram
     participant User
     participant System
-    User ->> System: Operation
-    System -->> User: Result
+    User ->> System: 操作
+    System -->> User: 結果
 ```
 
-# 8. Constraints `<OPTIONAL>`
+# 8. 制約事項 `<OPTIONAL>`
 
-Describe business or technical constraints.
-
----
-
-# Section Requirement Legend
-
-| Marker          | Meaning     | Description                            |
-|-----------------|-------------|----------------------------------------|
-| `<MUST>`        | Required    | Must be included in all specifications |
-| `<RECOMMENDED>` | Recommended | Include whenever possible              |
-| `<OPTIONAL>`    | Optional    | Include as needed                      |
+ビジネス制約や技術的制約を記載します。
 
 ---
 
-# Guidelines
+# セクション必須度の凡例
 
-## What to Include
-
-- ✅ Feature purpose and background
-- ✅ User stories and use cases
-- ✅ Public API (interface) definitions
-- ✅ Logical structure of data models
-- ✅ Abstract description of behavior
-- ✅ Functional and non-functional requirements
-- ✅ Glossary
-
-## What NOT to Include (→ Design Doc)
-
-- ❌ Implementation status and progress
-- ❌ Technology stack selection rationale
-- ❌ Architecture and module structure
-- ❌ Implementation patterns and design patterns
-- ❌ Directory structure and file placement
-- ❌ Test strategy and coverage goals
-- ❌ Design decision records
-- ❌ Change history and migration guides
+| マーク             | 意味 | 説明                 |
+|-----------------|----|--------------------|
+| `<MUST>`        | 必須 | すべての仕様書で必ず記載してください |
+| `<RECOMMENDED>` | 推奨 | 可能な限り記載することを推奨します  |
+| `<OPTIONAL>`    | 任意 | 必要に応じて記載してください     |
 
 ---
 
-# Customization Guidelines for Projects
+# ガイドライン
 
-When customizing this template for your project, update the following:
+## 含めるべき内容
 
-1. **Type definition notation**: Adjust to project's programming language
-2. **Usage example notation**: Adjust to project's programming language
-3. **API table columns**: Adjust to project's structure (package/module organization)
-4. **Related document link format**: Adjust to project's document management method
+- ✅ 機能の目的と背景
+- ✅ ユーザーストーリー・ユースケース
+- ✅ 公開API（インターフェース）の定義
+- ✅ データモデルの論理構造
+- ✅ 振る舞いの抽象的な記述
+- ✅ 機能要件・非機能要件
+- ✅ 用語集
+
+## 含めないべき内容（→ Design Doc へ）
+
+- ❌ 実装ステータス・進捗
+- ❌ 技術スタックの選定理由
+- ❌ アーキテクチャ・モジュール構成
+- ❌ 実装パターン・デザインパターンの適用
+- ❌ ディレクトリ構造・ファイル配置
+- ❌ テスト戦略・カバレッジ目標
+- ❌ 設計判断の記録
+- ❌ 変更履歴・移行ガイド
+
+---
+
+# プロジェクトへのカスタマイズ指針
+
+このテンプレートをプロジェクト用にカスタマイズする際は、以下の項目を更新してください：
+
+1. **型定義の記法**: プロジェクトのプログラミング言語に合わせる
+2. **使用例の記法**: プロジェクトのプログラミング言語に合わせる
+3. **API表のカラム**: プロジェクトの構成（パッケージ/モジュール構造）に合わせる
+4. **関連ドキュメントのリンク形式**: プロジェクトのドキュメント管理方法に合わせる
