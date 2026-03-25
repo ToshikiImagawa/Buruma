@@ -93,7 +93,6 @@ dist
 
 # vuepress v2.x temp and cache directory
 .temp
-.cache
 
 # Sveltekit cache directory
 .svelte-kit/
@@ -137,3 +136,15 @@ dist
 # Vite logs files
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+# dotenv environment variable files
+.env.local
+
+# claude
+.claude/settings.local.json
+
+# direnv
+.envrc
+
+# idea
+.idea/workspace.xml
