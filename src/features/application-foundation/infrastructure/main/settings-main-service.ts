@@ -1,5 +1,4 @@
-import type { IPCResult } from '../../../../types/ipc'
-import { ipcSuccess } from '../../../../types/ipc'
+import { type IPCResult, ipcSuccess } from '@/types/ipc'
 import type { AppSettings, Theme } from '../../domain'
 import type { AppStore } from './store-schema'
 
