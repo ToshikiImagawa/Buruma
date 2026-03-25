@@ -50,10 +50,28 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 
 **遅延解決**: `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される。
 
+### Clean Architecture（4層構成）
+
+feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation` の一方向のみ。
+
+```
+src/features/{feature-name}/
+├── domain/          # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
+├── application/     # ユースケース、リポジトリIF（純粋 TypeScript + RxJS Observable）
+├── infrastructure/  # リポジトリ実装、IPC 通信、外部連携
+└── presentation/    # React コンポーネント、ViewModel
+```
+
+- **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable のみ許可）
+- リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
+- 非同期データフロー・イベント駆動ロジックには **RxJS** の Observable パターンを使用する
+- feature 間の共有ロジックは `src/lib/` に、共有型定義は `src/types/` に配置する
+
 ## Tech Stack
 
 - **Electron 41** + Electron Forge 7 + Vite 5
 - **React 19** + TypeScript 5.8
+- **RxJS** — 非同期データフロー、イベント駆動ロジック
 - **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）。`@tailwindcss/vite` は ESM only で Vite 5 と非互換のため使用不可
 - **Shadcn/ui** — `components.json` で設定。`npx shadcn@latest add <component>` でコンポーネント追加。`rsc: false`（Server Components 無効）
 

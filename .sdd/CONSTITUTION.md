@@ -159,6 +159,87 @@
 
 ---
 
+### A-004: Clean Architecture（4層構成）
+
+**原則**: feature 単位で domain / application / infrastructure / presentation の 4 層に分離し、依存方向は外側から内側への一方向のみとする
+
+**適用範囲**: すべての feature 実装
+
+**検証方法**:
+
+- [ ] domain 層が他の層に依存していないか（純粋な TypeScript のみ）
+- [ ] application 層が infrastructure / presentation に依存していないか
+- [ ] infrastructure 層が presentation に依存していないか
+- [ ] リポジトリインターフェースが application 層に、実装が infrastructure 層に配置されているか
+- [ ] feature ごとに `src/features/{feature-name}/` 配下にまとまっているか
+
+**違反例**:
+
+- domain 層で React, Electron, RxJS 等の外部ライブラリをインポートする
+- application 層から infrastructure の具象クラスを直接参照する
+- feature をまたいで domain 層を直接参照する（共有は `src/lib/` 経由）
+
+**準拠例**:
+
+- domain 層にエンティティ・値オブジェクト・ドメインイベントを配置
+- application 層にユースケース・リポジトリインターフェースを配置し、DI で infrastructure 実装を注入
+- infrastructure 層に IPC 通信、Git 操作、外部 API 連携の実装を配置
+- presentation 層に React コンポーネント・ViewModel を配置
+
+---
+
+### A-005: Pure TypeScript ビジネスロジック
+
+**原則**: ビジネスロジック（domain 層・application 層）はフレームワーク非依存の純粋な TypeScript で実装する
+
+**適用範囲**: `src/features/*/domain/`、`src/features/*/application/`
+
+**検証方法**:
+
+- [ ] domain 層に React, Electron, Node.js API のインポートが存在しないか
+- [ ] application 層に React, Electron のインポートが存在しないか
+- [ ] ビジネスロジックのテストがフレームワークのモック無しで実行可能か
+
+**違反例**:
+
+- domain 層で `import { ipcRenderer } from 'electron'` を使用
+- application 層のユースケースで React hooks を使用
+- ビジネスロジック内で `window` や `document` を参照
+
+**準拠例**:
+
+- domain 層のエンティティが plain class / interface のみで構成
+- application 層のユースケースがリポジトリインターフェースのみに依存
+- テストがブラウザ環境・Electron 環境を不要とする
+
+---
+
+### A-006: RxJS リアクティブストリーム
+
+**原則**: 非同期データフローおよびイベント駆動ロジックには RxJS の Observable パターンを採用する
+
+**適用範囲**: application 層のユースケース、infrastructure 層のデータソース、presentation 層の状態管理
+
+**検証方法**:
+
+- [ ] 非同期データフローが Observable ベースで実装されているか
+- [ ] Subscription の解放が適切に管理されているか（DisposableStack / tearDown との連携）
+- [ ] domain 層で RxJS に直接依存していないか（domain 層は純粋な TypeScript を維持）
+
+**違反例**:
+
+- domain 層のエンティティが Observable を返す
+- Subscription を解放せずにメモリリークを発生させる
+- コールバック地獄を RxJS で置き換え可能な箇所で放置する
+
+**準拠例**:
+
+- application 層のユースケースが `Observable<T>` を返し、presentation 層で subscribe する
+- infrastructure 層で IPC イベントを Observable に変換する
+- VContainerProvider の setUp/tearDown で Subscription をまとめて管理する
+
+---
+
 ## 3. 開発手法原則
 
 ### D-001: Specification-Driven
@@ -277,6 +358,7 @@ Git / Claude Code CLI
 | **UI** | React 19, TypeScript | plain JS, Vue, Angular | 型安全性、エコシステム |
 | **スタイリング** | Tailwind CSS v4 (`@tailwindcss/postcss`) | `@tailwindcss/vite`, CSS-in-JS | ESM 互換性問題の回避 |
 | **コンポーネント** | Shadcn/ui (`rsc: false`) | Material UI, Ant Design | カスタマイズ性、バンドルサイズ |
+| **リアクティブ** | RxJS | xstream, @most/core, 独自実装 | エコシステムの成熟度、TypeScript サポート |
 | **Git 操作** | simple-git（予定） | nodegit, isomorphic-git | メンテナンス性、API の簡潔さ |
 | **エディタ** | Monaco Editor（予定） | CodeMirror | VS Code との親和性 |
 | **テスト** | Vitest, Testing Library | Jest, Enzyme | Vite ネイティブ対応 |
@@ -291,9 +373,15 @@ src/
 ├── preload.ts           # contextBridge API 定義
 ├── renderer.tsx         # React エントリポイント
 ├── App.tsx              # ルートコンポーネント（VContainerProvider でDIコンテナを提供）
-├── components/          # React コンポーネント
+├── features/            # 機能モジュール（Clean Architecture 4層）
+│   └── {feature-name}/
+│       ├── domain/          # エンティティ、値オブジェクト（純粋 TypeScript）
+│       ├── application/     # ユースケース、リポジトリIF（純粋 TypeScript + RxJS）
+│       ├── infrastructure/  # リポジトリ実装、IPC 通信、外部連携
+│       └── presentation/    # React コンポーネント、ViewModel
+├── components/          # 共有 React コンポーネント
 │   └── ui/              # Shadcn/ui コンポーネント
-├── lib/                 # ユーティリティ
+├── lib/                 # 共有ユーティリティ
 │   └── di/              # DIコンテナライブラリ（VContainer）
 └── types/               # 共有型定義
 ```
@@ -302,8 +390,10 @@ src/
 
 - `main.ts` は Node.js API、Git 操作、IPC ハンドラーを担当
 - `preload.ts` は contextBridge で API を公開するのみ
-- `renderer.tsx` / `App.tsx` / `components/` は React UI のみ
-- `types/` は全プロセスから参照可能な共有型定義
+- `features/` 配下は 4 層の依存方向を厳守: domain ← application ← infrastructure / presentation
+- `domain/` 層はフレームワーク非依存（React, Electron, RxJS 等をインポートしない）
+- `application/` 層はフレームワーク非依存（RxJS の Observable のみ許可）
+- feature 間の共有が必要な型・ロジックは `lib/` または `types/` に配置する
 - サービス間の依存は VContainer（`lib/di`）を通じて注入する。直接 `new` やグローバル参照による結合を避ける
 - レンダラープロセスでは VContainerProvider を React ツリーのルート付近に配置し、useVContainer() でコンテナにアクセスする
 
@@ -498,6 +588,9 @@ src/
 - A-001: Electron プロセス分離を定義
 - A-002: Library-First を定義
 - A-003: DI（依存性注入）ベース設計を定義
+- A-004: Clean Architecture（4層構成）を定義
+- A-005: Pure TypeScript ビジネスロジックを定義
+- A-006: RxJS リアクティブストリームを定義
 - D-001: Specification-Driven を定義
 - D-002: Test-First を定義
 - T-001: TypeScript Strict Mode を定義
