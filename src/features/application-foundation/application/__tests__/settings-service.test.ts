@@ -1,0 +1,35 @@
+import { describe, it, expect } from 'vitest'
+import { firstValueFrom } from 'rxjs'
+import { SettingsService } from '../settings-service'
+import { DEFAULT_SETTINGS } from '../../domain'
+
+describe('SettingsService', () => {
+  it('初期値は DEFAULT_SETTINGS', async () => {
+    const service = new SettingsService()
+    const value = await firstValueFrom(service.settings$)
+    expect(value).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('updateSettings で部分更新される', async () => {
+    const service = new SettingsService()
+    service.updateSettings({ theme: 'dark' })
+    const value = await firstValueFrom(service.settings$)
+    expect(value).toEqual({ ...DEFAULT_SETTINGS, theme: 'dark' })
+  })
+
+  it('replaceSettings で全体置換される', async () => {
+    const service = new SettingsService()
+    const newSettings = { theme: 'light' as const, gitPath: '/usr/bin/git', defaultWorkDir: '/home' }
+    service.replaceSettings(newSettings)
+    const value = await firstValueFrom(service.settings$)
+    expect(value).toEqual(newSettings)
+  })
+
+  it('dispose で BehaviorSubject が complete される', () => {
+    const service = new SettingsService()
+    let completed = false
+    service.settings$.subscribe({ complete: () => (completed = true) })
+    service.dispose()
+    expect(completed).toBe(true)
+  })
+})
