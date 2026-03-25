@@ -130,6 +130,35 @@
 
 ---
 
+### A-003: DI（依存性注入）ベース設計
+
+**原則**: すべてのサービス・ロジックの依存関係は VContainer（`src/lib/di`）を通じて注入し、直接インスタンス化やグローバル参照を避ける
+
+**適用範囲**: メインプロセス・レンダラープロセスのサービス層、ビジネスロジック
+
+**検証方法**:
+
+- [ ] サービスの依存関係が InjectionToken を使用してコンテナに登録されているか
+- [ ] サービス間の依存がコンストラクタ注入（deps）またはファクトリー関数で解決されているか
+- [ ] レンダラープロセスでは VContainerProvider 経由でコンテナが提供されているか
+- [ ] ライフタイム（singleton / transient）が適切に設定されているか
+- [ ] リソース解放が必要なサービスは DisposableStack で管理されているか
+
+**違反例**:
+
+- サービスクラス内で他のサービスを直接 `new` して使用する
+- グローバル変数やモジュールスコープの変数でサービスインスタンスを共有する
+- React コンポーネントから VContainerProvider を経由せずにサービスを取得する
+
+**準拠例**:
+
+- `createToken<T>()` で型安全なトークンを定義し、`container.register()` で登録
+- `useVContainer()` フックでコンテナを取得し、`container.resolve()` でサービスを利用
+- 親子コンテナ（`createScope()`）でスコープに応じた依存関係を管理
+- setUp 関数で非同期初期化を行い、tearDown で DisposableStack を通じてクリーンアップ
+
+---
+
 ## 3. 開発手法原則
 
 ### D-001: Specification-Driven
@@ -261,10 +290,11 @@ src/
 ├── main.ts              # Electron メインプロセスエントリ
 ├── preload.ts           # contextBridge API 定義
 ├── renderer.tsx         # React エントリポイント
-├── App.tsx              # ルートコンポーネント
+├── App.tsx              # ルートコンポーネント（VContainerProvider でDIコンテナを提供）
 ├── components/          # React コンポーネント
 │   └── ui/              # Shadcn/ui コンポーネント
 ├── lib/                 # ユーティリティ
+│   └── di/              # DIコンテナライブラリ（VContainer）
 └── types/               # 共有型定義
 ```
 
@@ -274,6 +304,8 @@ src/
 - `preload.ts` は contextBridge で API を公開するのみ
 - `renderer.tsx` / `App.tsx` / `components/` は React UI のみ
 - `types/` は全プロセスから参照可能な共有型定義
+- サービス間の依存は VContainer（`lib/di`）を通じて注入する。直接 `new` やグローバル参照による結合を避ける
+- レンダラープロセスでは VContainerProvider を React ツリーのルート付近に配置し、useVContainer() でコンテナにアクセスする
 
 ## 意思決定フレームワーク
 
@@ -465,6 +497,7 @@ src/
 - B-002: Git 操作の安全性を定義
 - A-001: Electron プロセス分離を定義
 - A-002: Library-First を定義
+- A-003: DI（依存性注入）ベース設計を定義
 - D-001: Specification-Driven を定義
 - D-002: Test-First を定義
 - T-001: TypeScript Strict Mode を定義
