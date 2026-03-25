@@ -15,8 +15,8 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 - `npm run typecheck` — TypeScript 型チェック (`tsc --noEmit`)
 - `npm run format` — Prettier でフォーマット適用
 - `npm run format:check` — フォーマット差分チェック（CI 向け）
-
-**注意**: テストランナー（Vitest）は未インストール。テストコードは `src/lib/di/__tests__/` と `src/lib/hooks/__tests__/` に存在するが、package.json に vitest が未追加のため実行不可。
+- `npm run test` — Vitest でテスト実行
+- `npm run test:watch` — Vitest ウォッチモード
 
 ## Architecture
 
