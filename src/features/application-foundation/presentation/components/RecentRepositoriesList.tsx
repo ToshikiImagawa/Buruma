@@ -1,27 +1,20 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Folder, Pin, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Pin, Trash2, Folder } from 'lucide-react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 
 export function RecentRepositoriesList() {
-  const { recentRepositories, openByPath, removeRecent, pin } =
-    useRepositorySelectorViewModel()
+  const { recentRepositories, openByPath, removeRecent, pin } = useRepositorySelectorViewModel()
 
   if (recentRepositories.length === 0) {
-    return (
-      <div className="text-center text-muted-foreground py-8">
-        最近開いたリポジトリはありません
-      </div>
-    )
+    return <div className="text-center text-muted-foreground py-8">最近開いたリポジトリはありません</div>
   }
 
   const sortedRepositories = [...recentRepositories].sort((a, b) => {
     if (a.pinned !== b.pinned) {
       return a.pinned ? -1 : 1
     }
-    return (
-      new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime()
-    )
+    return new Date(b.lastAccessed).getTime() - new Date(a.lastAccessed).getTime()
   })
 
   return (
@@ -46,9 +39,7 @@ export function RecentRepositoriesList() {
                   onClick={() => pin(repo.path, !repo.pinned)}
                   aria-label={repo.pinned ? 'ピン解除' : 'ピン留め'}
                 >
-                  <Pin
-                    className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`}
-                  />
+                  <Pin className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`} />
                 </Button>
                 <Button
                   variant="ghost"

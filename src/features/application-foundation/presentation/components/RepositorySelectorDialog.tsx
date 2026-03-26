@@ -1,12 +1,6 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
 import { FolderOpen } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 import { RecentRepositoriesList } from './RecentRepositoriesList'
 
@@ -15,10 +9,7 @@ interface RepositorySelectorDialogProps {
   onOpenChange: (open: boolean) => void
 }
 
-export function RepositorySelectorDialog({
-  open,
-  onOpenChange,
-}: RepositorySelectorDialogProps) {
+export function RepositorySelectorDialog({ open, onOpenChange }: RepositorySelectorDialogProps) {
   const { openWithDialog } = useRepositorySelectorViewModel()
 
   const handleOpenFolder = () => {
@@ -30,17 +21,10 @@ export function RepositorySelectorDialog({
       <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
         <DialogHeader>
           <DialogTitle>リポジトリを選択</DialogTitle>
-          <DialogDescription>
-            Git リポジトリを開いて作業を開始します
-          </DialogDescription>
+          <DialogDescription>Git リポジトリを開いて作業を開始します</DialogDescription>
         </DialogHeader>
         <div className="space-y-4 flex-1 overflow-auto">
-          <Button
-            onClick={handleOpenFolder}
-            className="w-full"
-            size="lg"
-            variant="default"
-          >
+          <Button onClick={handleOpenFolder} className="w-full" size="lg" variant="default">
             <FolderOpen className="mr-2 h-5 w-5" />
             フォルダを選択
           </Button>

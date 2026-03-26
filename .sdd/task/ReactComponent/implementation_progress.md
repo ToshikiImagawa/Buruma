@@ -117,13 +117,13 @@ priority: "high"
 ## テスト結果
 
 ```
- Test Files  15 passed (15)
-      Tests  164 passed (164)
-   Duration  2.10s
+ Test Files  19 passed (19)
+      Tests  186 passed (186)
+   Duration  2.03s
 ```
 
-- 既存テスト: 160 passed
-- 新規コンポーネントテスト: 4 files, 約 20 tests
+- 既存テスト: 164 passed (application, presentation ViewModel)
+- 新規コンポーネントテスト: 4 files, 22 tests
 - すべてのテストが成功
 
 ---
@@ -132,9 +132,37 @@ priority: "high"
 
 - ✅ `npm run typecheck` — エラーなし
 - ✅ `npm run lint` — エラーなし
-- ✅ `npm run test` — 164 tests passed
-- ✅ `npm run format:check` — 既存の差分のみ（本実装とは無関係）
-- ✅ アプリ起動確認 — UI が正しく表示される
+- ✅ `npm run test` — 186 tests passed (19 files)
+- ⏳ `npm run format:check` — 確認予定
+- ⏳ アプリ起動確認 (`npm start`) — 確認予定
+
+---
+
+## アクセシビリティ対応
+
+### 実装済み
+
+1. **ARIA 属性**
+   - `aria-label`: アイコンボタン（ピン留め、削除）に適切に設定
+   - `htmlFor`: Label要素がInput/Selectと適切に関連付け
+   - `DialogTitle`, `DialogDescription`: Dialog に自動設定（shadcn/ui）
+
+2. **キーボードナビゲーション**
+   - Tab キー: フォーカス移動（shadcn/ui 標準対応）
+   - Enter/Space キー: ボタン操作（button要素で実現）
+   - Escape キー: Dialog 閉じる（shadcn/ui 標準対応）
+
+3. **フォーカス表示**
+   - Tailwind CSS の ring-offset スタイルで視認可能なフォーカス表示
+   - shadcn/ui コンポーネントのデフォルトスタイル
+
+4. **セマンティックHTML**
+   - button, label, input 要素の適切な使用
+   - Radix UI ベースの shadcn/ui コンポーネント
+
+### 結論
+
+shadcn/ui（Radix UI ベース）は WCAG 2.1 レベル A の基本要件を標準で満たしており、追加のアクセシビリティ対応は不要と判断。
 
 ---
 

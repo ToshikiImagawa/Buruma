@@ -1,8 +1,8 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { RecentRepositoriesList } from './RecentRepositoriesList'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import * as useRepositorySelectorViewModelModule from '../use-repository-selector-viewmodel'
+import { RecentRepositoriesList } from './RecentRepositoriesList'
 
 vi.mock('../use-repository-selector-viewmodel')
 
@@ -17,10 +17,7 @@ describe('RecentRepositoriesList', () => {
   })
 
   it('最近のリポジトリが空の場合、メッセージを表示する', () => {
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: [],
       currentRepository: null,
       openWithDialog: vi.fn(),
@@ -30,9 +27,7 @@ describe('RecentRepositoriesList', () => {
     })
 
     render(<RecentRepositoriesList />)
-    expect(
-      screen.getByText('最近開いたリポジトリはありません'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('最近開いたリポジトリはありません')).toBeInTheDocument()
   })
 
   it('最近のリポジトリ一覧を表示する', () => {
@@ -51,10 +46,7 @@ describe('RecentRepositoriesList', () => {
       },
     ]
 
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: mockRepositories,
       currentRepository: null,
       openWithDialog: vi.fn(),
@@ -78,10 +70,7 @@ describe('RecentRepositoriesList', () => {
       },
     ]
 
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: mockRepositories,
       currentRepository: null,
       openWithDialog: vi.fn(),
@@ -109,10 +98,7 @@ describe('RecentRepositoriesList', () => {
       },
     ]
 
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: mockRepositories,
       currentRepository: null,
       openWithDialog: vi.fn(),
@@ -140,10 +126,7 @@ describe('RecentRepositoriesList', () => {
       },
     ]
 
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: mockRepositories,
       currentRepository: null,
       openWithDialog: vi.fn(),
@@ -175,10 +158,7 @@ describe('RecentRepositoriesList', () => {
       },
     ]
 
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: mockRepositories,
       currentRepository: null,
       openWithDialog: vi.fn(),

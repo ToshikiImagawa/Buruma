@@ -161,6 +161,13 @@ graph TD
 | useRepositorySelectorViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
 | useSettingsViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
 | useErrorNotificationViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
+| RepositorySelectorDialog | presentation | リポジトリ選択ダイアログ（React） | `features/application-foundation/presentation/components/` |
+| RecentRepositoriesList | presentation | 最近のリポジトリ一覧（React） | `features/application-foundation/presentation/components/` |
+| SettingsDialog | presentation | 設定ダイアログ（React） | `features/application-foundation/presentation/components/` |
+| ErrorNotificationToast | presentation | エラー通知トースト（React） | `features/application-foundation/presentation/components/` |
+| AppLayout | presentation | メインレイアウト（React） | `components/layout/` |
+| MainHeader | presentation | ヘッダーコンポーネント（React） | `components/layout/` |
+| ThemeProvider | presentation | テーマ切り替えプロバイダー（React） | `components/` |
 
 ### メインプロセス側（infrastructure 層のみ）
 
@@ -441,7 +448,7 @@ export function registerIPCHandlers(
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
-| electron-store の Vite 5 との ESM 互換性 | 中 | 実装時に検証。問題がある場合は conf ライブラリを代替案とする |
+| electron-store の Vite 5 との ESM 互換性 | 低 | ✅ 検証済み。Vite 5 + Electron Forge 環境で正常動作を確認 |
 | 大量の IPC チャネル定義の管理方法 | 低 | 初期は手動定義。チャネル数が増えた段階でコード生成を検討 |
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
 | RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
@@ -450,6 +457,22 @@ export function registerIPCHandlers(
 ---
 
 # 10. 変更履歴
+
+## v2.1 (2026-03-26)
+
+**変更内容:**
+
+- React コンポーネント実装完了（presentation 層）
+  - RepositorySelectorDialog: リポジトリ選択ダイアログ
+  - RecentRepositoriesList: 最近開いたリポジトリ一覧
+  - SettingsDialog: 設定ダイアログ（テーマ、Git パス、デフォルトディレクトリ）
+  - ErrorNotificationToast: エラー通知トースト（Sonner）
+  - AppLayout: メインレイアウト
+  - MainHeader: ヘッダーコンポーネント
+  - ThemeProvider: テーマ切り替え（light/dark/system）
+- コンポーネントテスト追加（186 テスト全てパス）
+- アクセシビリティ対応（ARIA 属性、キーボードナビゲーション）
+- electron-store の ESM 互換性を検証・確認
 
 ## v2.0
 

@@ -1,8 +1,9 @@
-import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest'
+import type { Mock } from 'vitest'
 import { render } from '@testing-library/react'
-import { ErrorNotificationToast } from './ErrorNotificationToast'
-import * as useErrorNotificationViewModelModule from '../use-error-notification-viewmodel'
 import { toast } from 'sonner'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import * as useErrorNotificationViewModelModule from '../use-error-notification-viewmodel'
+import { ErrorNotificationToast } from './ErrorNotificationToast'
 
 vi.mock('../use-error-notification-viewmodel')
 vi.mock('sonner', () => ({
@@ -23,10 +24,7 @@ describe('ErrorNotificationToast', () => {
   })
 
   it('通知がない場合、何も表示しない', () => {
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: [],
       dismiss: mockDismiss,
       retry: mockRetry,
@@ -49,10 +47,7 @@ describe('ErrorNotificationToast', () => {
       },
     ]
 
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: mockNotifications,
       dismiss: mockDismiss,
       retry: mockRetry,
@@ -76,10 +71,7 @@ describe('ErrorNotificationToast', () => {
       },
     ]
 
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: mockNotifications,
       dismiss: mockDismiss,
       retry: mockRetry,
@@ -103,10 +95,7 @@ describe('ErrorNotificationToast', () => {
       },
     ]
 
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: mockNotifications,
       dismiss: mockDismiss,
       retry: mockRetry,
@@ -130,10 +119,7 @@ describe('ErrorNotificationToast', () => {
       },
     ]
 
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: mockNotifications,
       dismiss: mockDismiss,
       retry: mockRetry,
@@ -159,10 +145,7 @@ describe('ErrorNotificationToast', () => {
       },
     ]
 
-    vi.spyOn(
-      useErrorNotificationViewModelModule,
-      'useErrorNotificationViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useErrorNotificationViewModelModule, 'useErrorNotificationViewModel').mockReturnValue({
       notifications: mockNotifications,
       dismiss: mockDismiss,
       retry: mockRetry,

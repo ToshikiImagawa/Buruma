@@ -1,22 +1,10 @@
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import type { Theme } from '../../domain'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useSettingsViewModel } from '../use-settings-viewmodel'
-import type { Theme } from '../../domain'
 
 interface SettingsDialogProps {
   open: boolean
@@ -34,9 +22,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     updateSettings({ gitPath: e.target.value || null })
   }
 
-  const handleDefaultWorkDirChange = (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleDefaultWorkDirChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateSettings({ defaultWorkDir: e.target.value || null })
   }
 
@@ -45,18 +31,13 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>設定</DialogTitle>
-          <DialogDescription>
-            アプリケーションの動作をカスタマイズします
-          </DialogDescription>
+          <DialogDescription>アプリケーションの動作をカスタマイズします</DialogDescription>
         </DialogHeader>
         <div className="space-y-6 py-4">
           <div className="space-y-4">
             <div>
               <Label htmlFor="theme">テーマ</Label>
-              <Select
-                value={settings.theme}
-                onValueChange={handleThemeChange}
-              >
+              <Select value={settings.theme} onValueChange={handleThemeChange}>
                 <SelectTrigger id="theme" className="mt-2">
                   <SelectValue />
                 </SelectTrigger>
@@ -93,9 +74,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 onChange={handleDefaultWorkDirChange}
                 className="mt-2"
               />
-              <p className="text-xs text-muted-foreground mt-1">
-                リポジトリ選択時のデフォルトディレクトリを指定します
-              </p>
+              <p className="text-xs text-muted-foreground mt-1">リポジトリ選択時のデフォルトディレクトリを指定します</p>
             </div>
           </div>
         </div>

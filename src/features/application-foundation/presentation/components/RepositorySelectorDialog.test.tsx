@@ -1,8 +1,8 @@
-import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { userEvent } from '@testing-library/user-event'
-import { RepositorySelectorDialog } from './RepositorySelectorDialog'
+import { describe, expect, it, vi } from 'vitest'
 import * as useRepositorySelectorViewModelModule from '../use-repository-selector-viewmodel'
+import { RepositorySelectorDialog } from './RepositorySelectorDialog'
 
 vi.mock('../use-repository-selector-viewmodel')
 vi.mock('./RecentRepositoriesList', () => ({
@@ -14,10 +14,7 @@ describe('RepositorySelectorDialog', () => {
   const mockOnOpenChange = vi.fn()
 
   it('ダイアログが開いているとき、タイトルと説明が表示される', () => {
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: [],
       currentRepository: null,
       openWithDialog: mockOpenWithDialog,
@@ -29,16 +26,11 @@ describe('RepositorySelectorDialog', () => {
     render(<RepositorySelectorDialog open={true} onOpenChange={mockOnOpenChange} />)
 
     expect(screen.getByText('リポジトリを選択')).toBeInTheDocument()
-    expect(
-      screen.getByText('Git リポジトリを開いて作業を開始します'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('Git リポジトリを開いて作業を開始します')).toBeInTheDocument()
   })
 
   it('「フォルダを選択」ボタンが表示される', () => {
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: [],
       currentRepository: null,
       openWithDialog: mockOpenWithDialog,
@@ -49,17 +41,12 @@ describe('RepositorySelectorDialog', () => {
 
     render(<RepositorySelectorDialog open={true} onOpenChange={mockOnOpenChange} />)
 
-    expect(
-      screen.getByRole('button', { name: /フォルダを選択/ }),
-    ).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /フォルダを選択/ })).toBeInTheDocument()
   })
 
   it('「フォルダを選択」ボタンをクリックすると openWithDialog が呼ばれる', async () => {
     const user = userEvent.setup()
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: [],
       currentRepository: null,
       openWithDialog: mockOpenWithDialog,
@@ -77,10 +64,7 @@ describe('RepositorySelectorDialog', () => {
   })
 
   it('最近のリポジトリリストが表示される', () => {
-    vi.spyOn(
-      useRepositorySelectorViewModelModule,
-      'useRepositorySelectorViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useRepositorySelectorViewModelModule, 'useRepositorySelectorViewModel').mockReturnValue({
       recentRepositories: [],
       currentRepository: null,
       openWithDialog: mockOpenWithDialog,

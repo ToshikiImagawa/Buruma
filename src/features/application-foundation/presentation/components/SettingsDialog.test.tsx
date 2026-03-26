@@ -1,7 +1,7 @@
-import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
-import { SettingsDialog } from './SettingsDialog'
+import { fireEvent, render, screen } from '@testing-library/react'
+import { describe, expect, it, vi } from 'vitest'
 import * as useSettingsViewModelModule from '../use-settings-viewmodel'
+import { SettingsDialog } from './SettingsDialog'
 
 vi.mock('../use-settings-viewmodel')
 
@@ -17,10 +17,7 @@ describe('SettingsDialog', () => {
   }
 
   it('ダイアログが開いているとき、タイトルと説明が表示される', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
@@ -29,16 +26,11 @@ describe('SettingsDialog', () => {
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
 
     expect(screen.getByText('設定')).toBeInTheDocument()
-    expect(
-      screen.getByText('アプリケーションの動作をカスタマイズします'),
-    ).toBeInTheDocument()
+    expect(screen.getByText('アプリケーションの動作をカスタマイズします')).toBeInTheDocument()
   })
 
   it('テーマ選択が表示される', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
@@ -50,10 +42,7 @@ describe('SettingsDialog', () => {
   })
 
   it('Git 実行パス入力が表示される', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
@@ -65,10 +54,7 @@ describe('SettingsDialog', () => {
   })
 
   it('デフォルト作業ディレクトリ入力が表示される', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
@@ -76,16 +62,11 @@ describe('SettingsDialog', () => {
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
 
-    expect(
-      screen.getByLabelText('デフォルト作業ディレクトリ'),
-    ).toBeInTheDocument()
+    expect(screen.getByLabelText('デフォルト作業ディレクトリ')).toBeInTheDocument()
   })
 
   it('Git パスを変更すると updateSettings が呼ばれる', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
@@ -100,10 +81,7 @@ describe('SettingsDialog', () => {
   })
 
   it('デフォルト作業ディレクトリを変更すると updateSettings が呼ばれる', () => {
-    vi.spyOn(
-      useSettingsViewModelModule,
-      'useSettingsViewModel',
-    ).mockReturnValue({
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
