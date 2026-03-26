@@ -2,11 +2,8 @@ import path from 'node:path'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
 import Store from 'electron-store'
-import { registerIPCHandlers } from '@/features/application-foundation/infrastructure/main'
-import { RepositoryMainService } from '@/features/application-foundation/infrastructure/main'
-import { SettingsMainService } from '@/features/application-foundation/infrastructure/main'
+import { registerIPCHandlers, RepositoryMainService , SettingsMainService , storeDefaults  } from '@/features/application-foundation/infrastructure/main'
 import type { StoreSchema } from '@/features/application-foundation/infrastructure/main'
-import { storeDefaults } from '@/features/application-foundation/infrastructure/main'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
