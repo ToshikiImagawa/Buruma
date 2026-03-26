@@ -20,23 +20,28 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 
 ## Architecture
 
-Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。
+Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。ソースコードはプロセス別にディレクトリを分離する。
 
-- **Main process** (`src/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。`src/di/main-configs.ts` 経由で feature を初期化する。Vite 設定は `vite.main.config.ts`
-- **Preload** (`src/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
-- **Renderer** (`src/renderer.tsx` → `src/App.tsx`): React UI。Vite 設定は `vite.renderer.config.ts`
+- **Main process** (`src/main/index.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.main.config.ts`
+- **Preload** (`src/preload/index.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
+- **Renderer** (`src/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.renderer.config.ts`
+- **Shared** (`src/shared/`): プロセス間共有の domain 型、IPC 型定義、DI ライブラリ、ユーティリティ
 
 Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin でセキュリティオプション（RunAsNode: false 等）を適用。
+
+`src/renderer/` と `src/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/shared/` に配置する。
 
 ### IPC 通信ルール
 
 - メインプロセスとレンダラーの通信は必ず preload + contextBridge を経由する
 - レンダラーから Node.js API を直接使わない
-- IPC チャネルには型安全なインターフェースを定義する
+- IPC チャネルには型安全なインターフェースを `src/shared/types/` に定義する
+- レンダラー側: IPC クライアントは **infrastructure 層**（データアクセス手段として IPC を使用）
+- メインプロセス側: IPC Handler は **presentation 層**（リクエスト受付・ルーティング、Web の Controller に相当）
 
 ### DI（依存性注入）アーキテクチャ
 
-`src/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。サービス間の依存関係は必ずこのコンテナを通じて注入する。
+`src/shared/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。メインプロセス・レンダラーの両方で使用する。
 
 **コア API**:
 - `createToken<T>(key)` — 型安全な InjectionToken を作成
@@ -59,41 +64,33 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 
 ### DI 統合エントリーポイント
 
-`src/di/` に全 feature の DI 設定を集約する。`main.ts` と `App.tsx` は `src/di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
+各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/index.ts`, `renderer/App.tsx`）は `di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
 
 ```
-src/di/
-├── renderer-configs.ts    ← 全 feature の VContainerConfig を集約
-└── main-configs.ts        ← 全 feature の MainProcessConfig を集約
+src/main/di/
+└── configs.ts             ← メインプロセス側の全 feature VContainerConfig を集約
+
+src/renderer/di/
+└── configs.ts             ← レンダラー側の全 feature VContainerConfig を集約
 ```
 
 **feature 追加時の手順**:
-1. `src/features/{name}/di-config.ts` を作成（レンダラー側）
-2. `src/features/{name}/di-config-main.ts` を作成（メインプロセス側、必要な場合のみ）
-3. `src/di/renderer-configs.ts` に config を 1 行追加
-4. `src/di/main-configs.ts` に config を 1 行追加（メインプロセス側がある場合）
+1. `src/renderer/features/{name}/di-config.ts` を作成（レンダラー側）
+2. `src/main/features/{name}/di-config.ts` を作成（メインプロセス側、必要な場合のみ）
+3. `src/renderer/di/configs.ts` に config を 1 行追加
+4. `src/main/di/configs.ts` に config を 1 行追加（メインプロセス側がある場合）
 
-main.ts と App.tsx は変更不要。
+エントリーポイントは変更不要。
 
 ### Composition Root（依存関係の組み立て）
 
-各 feature は Composition Root として以下のファイルを持つ:
+各 feature は Composition Root として `di-config.ts` を持つ（`VContainerConfig` を実装）。infrastructure 層の具象クラスへの依存はこのファイルに閉じ込める。
 
-- `di-config.ts` — レンダラー側（`VContainerConfig` を実装）。infrastructure 層の具象クラスへの依存はこのファイルに閉じ込める
-- `di-config-main.ts` — メインプロセス側（`MainProcessConfig` を実装）。infrastructure/main の具象クラスへの依存はこのファイルに閉じ込める
+- レンダラー側: `src/renderer/features/{name}/di-config.ts`
+- メインプロセス側: `src/main/features/{name}/di-config.ts`
+- 両プロセスとも `VContainerConfig`（register + setUp）パターンで統一
 
-**main.ts や App.tsx が infrastructure 層の具象クラスを直接参照してはならない。**
-
-### メインプロセス初期化フレームワーク
-
-`src/lib/main-process/` にメインプロセス初期化の統一インターフェースとオーケストレーターを内蔵。
-
-**MainProcessConfig**: VContainerConfig のメインプロセス対応版。各 feature の `di-config-main.ts` が実装する。
-- `initialize()` — IPC ハンドラー登録、サービス生成等
-- `dispose()` — リソース解放
-- `priority` — 初期化の実行優先度（小さい値が先、デフォルト 0）
-
-**bootstrapMainProcess(configs)**: MainProcessConfig の配列を priority 順に初期化し、DisposableStack で LIFO クリーンアップを管理する。
+**エントリーポイントが infrastructure 層の具象クラスを直接参照してはならない。**
 
 ### ViewModel + Hook パターン
 
@@ -116,21 +113,21 @@ function useXxxViewModel() {
 
 ### UseCase 型定義
 
-`src/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
+`src/shared/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
 - `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
 - `ObservableStoreUseCase<T>` / `ReactivePropertyUseCase<T>` — RxJS Observable でリアクティブデータを公開
 
 ### Service 型定義
 
-`src/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
+`src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
 
 - `BaseService` — 引数なし同期 setUp + tearDown
 - `AsyncBaseService` — 引数なし非同期 setUp + tearDown
 - `ParameterizedService<T>` — パラメータ付き同期 setUp + tearDown
 - `AsyncParameterizedService<T>` — パラメータ付き非同期 setUp + tearDown
 
-すべて `TearDownable`（`src/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで BehaviorSubject の complete 等のリソース解放を行う。
+すべて `TearDownable`（`src/shared/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで BehaviorSubject の complete 等のリソース解放を行う。
 
 **ライフサイクルルール**:
 - Service IF は必ず上記の共通インターフェースを extends する（`dispose()` ではなく `tearDown()` に統一）
@@ -139,20 +136,34 @@ function useXxxViewModel() {
 
 ### Clean Architecture（4層構成）
 
-feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation` の一方向のみ。
+feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation` の一方向のみ。メインプロセス・レンダラーの両方に4層構成を適用する。
 
+**レンダラー側**:
 ```
-src/features/{feature-name}/
-├── domain/          # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
-├── application/     # ユースケース、リポジトリIF（純粋 TypeScript + RxJS Observable）
-├── infrastructure/  # リポジトリ実装、IPC 通信、外部連携
-└── presentation/    # React コンポーネント、ViewModel
+src/renderer/features/{feature-name}/
+├── application/     # ユースケース、Service、リポジトリIF（純粋 TypeScript + RxJS Observable）
+├── infrastructure/  # リポジトリ実装（IPC クライアント経由）
+└── presentation/    # React コンポーネント、ViewModel、Hook ラッパー
+```
+
+**メインプロセス側**:
+```
+src/main/features/{feature-name}/
+├── application/     # ユースケース（ビジネスルール、オーケストレーション）
+├── infrastructure/  # electron-store、execFile、dialog 等のネイティブ API
+└── presentation/    # IPC Handler（リクエスト受付・ルーティング）
+```
+
+**共有 domain 型**:
+```
+src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
 ```
 
 - **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable のみ許可）
+- domain 型は `src/shared/domain/` に配置し、両プロセスから参照する
 - リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
 - 非同期データフロー・イベント駆動ロジックには **RxJS** の Observable パターンを使用する
-- feature 間の共有ロジックは `src/lib/` に、共有型定義は `src/types/` に配置する
+- feature 間の共有ロジックは `src/shared/lib/` に、共有型定義は `src/shared/types/` に配置する
 
 ## Tech Stack
 
@@ -164,7 +175,12 @@ src/features/{feature-name}/
 
 ## Path Aliases
 
-`@/*` → `./src/*`（`tsconfig.json` の `paths` と各 Vite 設定の `resolve.alias` で設定）。全プロセス（main / preload / renderer）で有効。
+パスエイリアスは `tsconfig.json` の `paths` と各 Vite 設定の `resolve.alias` で設定。
+
+- `@shared/*` → `./src/shared/*`（全プロセスで有効）
+- `@main/*` → `./src/main/*`（メインプロセスでのみ有効）
+- `@renderer/*` → `./src/renderer/*`（レンダラーでのみ有効）
+- `@preload/*` → `./src/preload/*`（preload でのみ有効）
 
 ## ESLint 設定
 

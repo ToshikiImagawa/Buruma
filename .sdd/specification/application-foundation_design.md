@@ -169,15 +169,24 @@ graph TD
 | MainHeader | presentation | ヘッダーコンポーネント（React） | `components/layout/` |
 | ThemeProvider | presentation | テーマ切り替えプロバイダー（React） | `components/` |
 
-### メインプロセス側（infrastructure 層のみ）
+### メインプロセス側（Clean Architecture 4層構成）
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|---|---|---|---|
+| IPC Handlers | presentation | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/` |
+| RepositoryMainUseCase | application | Git 検証、履歴管理ビジネスルール | `main/features/application-foundation/application/` |
+| SettingsMainUseCase | application | 設定管理オーケストレーション | `main/features/application-foundation/application/` |
+| StoreRepository | infrastructure | electron-store データアクセス | `main/features/application-foundation/infrastructure/` |
+| GitRepositoryValidator | infrastructure | execFile による Git 検証 | `main/features/application-foundation/infrastructure/` |
+| DialogService | infrastructure | Electron dialog API | `main/features/application-foundation/infrastructure/` |
+
+### プロセス間共有
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| IPC Handlers | IPC チャネルの登録・ルーティング | `features/application-foundation/infrastructure/main/` |
-| RepositoryMainService | Git リポジトリ検証・履歴管理 | `features/application-foundation/infrastructure/main/` |
-| SettingsMainService | 設定の読み書き（electron-store） | `features/application-foundation/infrastructure/main/` |
-| IPC 型定義 | IPC チャネルの型定義（共有） | `src/types/ipc.ts` |
-| Preload API | contextBridge による API 公開 | `src/preload.ts` |
+| Domain 型 | エンティティ（RepositoryInfo, AppSettings 等） | `shared/domain/` |
+| IPC 型定義 | IPC チャネルの型定義 | `shared/types/ipc.ts` |
+| Preload API | contextBridge による API 公開 | `preload/index.ts` |
 
 ---
 
@@ -441,7 +450,8 @@ export function registerIPCHandlers(
 | トースト通知ライブラリ | react-hot-toast / react-toastify / Sonner | Sonner | Shadcn/ui 推奨。Tailwind CSS との親和性が高い（原則 A-002） |
 | テーマ管理 | CSS 変数 / Tailwind dark mode / next-themes | Tailwind CSS dark mode + CSS 変数 | Shadcn/ui のテーマ機構と統合。system テーマは `prefers-color-scheme` メディアクエリ |
 | IPC チャネル命名 | フラット / 名前空間 | 名前空間方式 (`domain:action`) | チャネル数増加時の管理性。ドメインごとのグルーピング |
-| メインプロセスの層構成 | 4層 / infrastructure のみ | infrastructure のみ | メインプロセス側はビジネスロジックを持たず、IPC ハンドラー + データアクセスのみ。4層にする必要がない |
+| メインプロセスの層構成 | 4層 / infrastructure のみ | **4層構成** | メインプロセスにも Git 検証・履歴管理等のビジネスロジックが存在するため4層構成を適用。IPC Handler = presentation、UseCase = application、electron-store 等 = infrastructure |
+| プロセス別ディレクトリ分離 | feature 内 / プロセス別 | **プロセス別** | `src/main/`, `src/renderer/`, `src/shared/` に分離。ビルド境界と一致し、プロセス間の不正な依存を防止 |
 | ViewModel の DI ライフタイム | singleton / transient | transient | コンポーネント単位でライフサイクルを管理。画面遷移時に自動的に新しいインスタンスが作成される |
 
 ## 9.2. 未解決の課題
@@ -457,6 +467,20 @@ export function registerIPCHandlers(
 ---
 
 # 10. 変更履歴
+
+## v3.0 (2026-03-26)
+
+**変更内容:**
+
+- プロセス別ディレクトリ分離（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
+- メインプロセス側にも Clean Architecture 4層構成を適用
+  - presentation: IPC Handler（Controller 相当）
+  - application: UseCase（Git 検証、履歴管理ビジネスルール）
+  - infrastructure: electron-store, execFile, dialog
+  - domain: shared/ から参照
+- メインプロセスでも VContainer を使用（container API）
+- IPC の層の位置づけを明確化（レンダラー側 = infrastructure、メインプロセス側 = presentation）
+- 設計判断「メインプロセスは infrastructure のみ」を「4層構成」に変更
 
 ## v2.1 (2026-03-26)
 
