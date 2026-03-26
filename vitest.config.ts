@@ -5,7 +5,8 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     globals: false,
-    include: ['src/**/__tests__/**/*.{test,spec}.{ts,tsx}'],
+    include: ['src/**/__tests__/**/*.{test,spec}.{ts,tsx}', 'src/**/*.{test,spec}.{ts,tsx}'],
+    setupFiles: ['./vitest.setup.ts'],
   },
   resolve: {
     alias: {

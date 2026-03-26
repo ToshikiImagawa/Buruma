@@ -36,7 +36,7 @@ risk: "high"
 | infrastructure 層（メインプロセス側） | 🟢 | IPC ハンドラー + データアクセス |
 | presentation 層（ViewModel） | 🟢 | 純粋 TypeScript クラス |
 | presentation 層（Hook ラッパー） | 🟢 | useXxxViewModel |
-| presentation 層（React コンポーネント） | 🔴 | UI コンポーネント（別 feature で実装予定） |
+| presentation 層（React コンポーネント） | 🟢 | RepositorySelectorDialog, RecentRepositoriesList, SettingsDialog, ErrorNotificationToast, AppLayout, MainHeader, ThemeProvider |
 
 ---
 
