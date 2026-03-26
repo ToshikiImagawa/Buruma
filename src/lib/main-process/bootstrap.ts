@@ -1,5 +1,5 @@
-import type { MainProcessConfig } from './types'
 import type { DisposableStack } from '@/lib/di'
+import type { MainProcessConfig } from './types'
 import { createDisposableStack } from '@/lib/di'
 
 /**
