@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Toaster } from 'sonner'
 import { AppLayout } from '@/components/layout'
 import { ThemeProvider } from '@/components/theme-provider'
-import { applicationFoundationConfig } from '@/features/application-foundation/di-config'
+import { rendererConfigs } from '@/di/renderer-configs'
 import {
   ErrorNotificationToast,
   RepositorySelectorDialog,
@@ -44,7 +44,7 @@ function AppContent() {
 
 function App() {
   return (
-    <VContainerProvider configs={[applicationFoundationConfig]}>
+    <VContainerProvider configs={rendererConfigs}>
       <ThemeProvider>
         <AppContent />
       </ThemeProvider>

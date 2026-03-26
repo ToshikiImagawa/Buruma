@@ -1,26 +1,16 @@
+import type { DisposableStack } from '@/lib/di/disposable-stack'
 import path from 'node:path'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
-import Store from 'electron-store'
-import { registerIPCHandlers, RepositoryMainService , SettingsMainService , storeDefaults  } from '@/features/application-foundation/infrastructure/main'
-import type { StoreSchema } from '@/features/application-foundation/infrastructure/main'
+import { mainProcessConfigs } from '@/di/main-configs'
+import { bootstrapMainProcess } from '@/lib/main-process'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit()
 }
 
-// Initialize electron-store
-const store = new Store<StoreSchema>({
-  defaults: storeDefaults,
-}) as unknown as import('./features/application-foundation/infrastructure/main/store-schema').AppStore
-
-// Initialize services
-const repositoryMainService = new RepositoryMainService(store)
-const settingsMainService = new SettingsMainService(store)
-
-// Register IPC handlers
-registerIPCHandlers(repositoryMainService, settingsMainService)
+let cleanup: DisposableStack | null = null
 
 const createWindow = () => {
   // Create the browser window.
@@ -48,7 +38,14 @@ const createWindow = () => {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.on('ready', createWindow)
+app.on('ready', async () => {
+  cleanup = await bootstrapMainProcess(mainProcessConfigs)
+  createWindow()
+})
+
+app.on('before-quit', () => {
+  cleanup?.dispose()
+})
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
@@ -66,6 +63,3 @@ app.on('activate', () => {
     createWindow()
   }
 })
-
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
