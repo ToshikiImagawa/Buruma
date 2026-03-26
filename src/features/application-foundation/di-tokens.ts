@@ -1,6 +1,7 @@
 /**
  * application-foundation の DI トークン定義
  */
+import type { BaseService, ParameterizedService } from '@/lib/service'
 import type { ConsumerUseCase, ObservableStoreUseCase, ReactivePropertyUseCase, RunnableUseCase } from '@/lib/usecase'
 import type { Observable } from 'rxjs'
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo, Theme } from './domain'
@@ -26,20 +27,20 @@ export interface SettingsRepository {
 
 // --- Service IF ---
 
-export interface IRepositoryService {
+export interface IRepositoryService extends ParameterizedService<RecentRepository[]> {
   readonly currentRepository$: Observable<RepositoryInfo | null>
   readonly recentRepositories$: Observable<RecentRepository[]>
   setCurrentRepository(repo: RepositoryInfo | null): void
   updateRecentRepositories(repos: RecentRepository[]): void
 }
 
-export interface ISettingsService {
+export interface ISettingsService extends ParameterizedService<AppSettings> {
   readonly settings$: Observable<AppSettings>
   updateSettings(settings: Partial<AppSettings>): void
   replaceSettings(settings: AppSettings): void
 }
 
-export interface IErrorNotificationService {
+export interface IErrorNotificationService extends BaseService {
   readonly notifications$: Observable<ErrorNotification[]>
   addNotification(notification: ErrorNotification): void
   removeNotification(id: string): void

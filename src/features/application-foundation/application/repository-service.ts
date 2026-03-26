@@ -14,6 +14,10 @@ export class RepositoryService implements IRepositoryService {
     return this._recentRepositories$.asObservable()
   }
 
+  setUp(repos: RecentRepository[]): void {
+    this._recentRepositories$.next(repos)
+  }
+
   setCurrentRepository(repo: RepositoryInfo | null): void {
     this._currentRepository$.next(repo)
   }
@@ -22,7 +26,7 @@ export class RepositoryService implements IRepositoryService {
     this._recentRepositories$.next(repos)
   }
 
-  dispose(): void {
+  tearDown(): void {
     this._currentRepository$.complete()
     this._recentRepositories$.complete()
   }

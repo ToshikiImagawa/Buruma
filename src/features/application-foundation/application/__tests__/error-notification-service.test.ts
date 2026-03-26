@@ -50,7 +50,7 @@ describe('ErrorNotificationService', () => {
     const service = new ErrorNotificationService()
     let completed = false
     service.notifications$.subscribe({ complete: () => (completed = true) })
-    service.dispose()
+    service.tearDown()
     expect(completed).toBe(true)
   })
 })

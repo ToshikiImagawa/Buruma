@@ -47,7 +47,7 @@ describe('RepositoryService', () => {
     const service = new RepositoryService()
     let completed = false
     service.currentRepository$.subscribe({ complete: () => (completed = true) })
-    service.dispose()
+    service.tearDown()
     expect(completed).toBe(true)
   })
 })

@@ -10,6 +10,10 @@ export class SettingsService implements ISettingsService {
     return this._settings$.asObservable()
   }
 
+  setUp(settings: AppSettings): void {
+    this._settings$.next(settings)
+  }
+
   updateSettings(settings: Partial<AppSettings>): void {
     this._settings$.next({ ...this._settings$.getValue(), ...settings })
   }
@@ -18,7 +22,7 @@ export class SettingsService implements ISettingsService {
     this._settings$.next(settings)
   }
 
-  dispose(): void {
+  tearDown(): void {
     this._settings$.complete()
   }
 }

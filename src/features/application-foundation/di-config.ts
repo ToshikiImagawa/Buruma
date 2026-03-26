@@ -1,6 +1,6 @@
 import type { VContainerConfig } from '@/lib/di'
-import { ErrorNotificationService } from './application/error-notification-service'
 // Services
+import { ErrorNotificationService } from './application/error-notification-service'
 import { RepositoryService } from './application/repository-service'
 import { SettingsService } from './application/settings-service'
 import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
@@ -136,22 +136,22 @@ export const applicationFoundationConfig: VContainerConfig = {
   setUp: async (container) => {
     // 初期データをロード
     const settingsRepo = container.resolve(SettingsRepositoryToken)
-    const settingsService = container.resolve(SettingsServiceToken)
     const repoRepo = container.resolve(RepositoryRepositoryToken)
-    const repoService = container.resolve(RepositoryServiceToken)
-
     const [settings, recent] = await Promise.all([settingsRepo.get(), repoRepo.getRecent()])
-    settingsService.replaceSettings(settings)
-    repoService.updateRecentRepositories(recent)
 
-    // tearDown: BehaviorSubject の complete
+    // Service の setUp で初期データを注入
+    const repoService = container.resolve(RepositoryServiceToken)
+    const settingsService = container.resolve(SettingsServiceToken)
+    const errorService = container.resolve(ErrorNotificationServiceToken)
+    repoService.setUp(recent)
+    settingsService.setUp(settings)
+    errorService.setUp()
+
+    // tearDown: インターフェース経由で各 Service の tearDown() を呼び出し
     return () => {
-      const repositoryService = container.resolve(RepositoryServiceToken) as RepositoryService
-      const settingsServiceInst = container.resolve(SettingsServiceToken) as SettingsService
-      const errorService = container.resolve(ErrorNotificationServiceToken) as ErrorNotificationService
-      repositoryService.dispose()
-      settingsServiceInst.dispose()
-      errorService.dispose()
+      repoService.tearDown()
+      settingsService.tearDown()
+      errorService.tearDown()
     }
   },
 }

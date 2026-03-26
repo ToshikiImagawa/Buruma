@@ -9,6 +9,10 @@ export class ErrorNotificationService implements IErrorNotificationService {
     return this._notifications$.asObservable()
   }
 
+  setUp(): void {
+    // 初期化不要
+  }
+
   addNotification(notification: ErrorNotification): void {
     this._notifications$.next([...this._notifications$.getValue(), notification])
   }
@@ -21,7 +25,7 @@ export class ErrorNotificationService implements IErrorNotificationService {
     this._notifications$.next([])
   }
 
-  dispose(): void {
+  tearDown(): void {
     this._notifications$.complete()
   }
 }

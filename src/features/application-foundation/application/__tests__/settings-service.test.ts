@@ -29,7 +29,7 @@ describe('SettingsService', () => {
     const service = new SettingsService()
     let completed = false
     service.settings$.subscribe({ complete: () => (completed = true) })
-    service.dispose()
+    service.tearDown()
     expect(completed).toBe(true)
   })
 })
