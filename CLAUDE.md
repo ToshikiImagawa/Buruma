@@ -22,7 +22,7 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 
 Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。
 
-- **Main process** (`src/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Vite 設定は `vite.main.config.ts`
+- **Main process** (`src/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。`src/di/main-configs.ts` 経由で feature を初期化する。Vite 設定は `vite.main.config.ts`
 - **Preload** (`src/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
 - **Renderer** (`src/renderer.tsx` → `src/App.tsx`): React UI。Vite 設定は `vite.renderer.config.ts`
 
@@ -57,6 +57,44 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 
 **遅延解決**: `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される。
 
+### DI 統合エントリーポイント
+
+`src/di/` に全 feature の DI 設定を集約する。`main.ts` と `App.tsx` は `src/di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
+
+```
+src/di/
+├── renderer-configs.ts    ← 全 feature の VContainerConfig を集約
+└── main-configs.ts        ← 全 feature の MainProcessConfig を集約
+```
+
+**feature 追加時の手順**:
+1. `src/features/{name}/di-config.ts` を作成（レンダラー側）
+2. `src/features/{name}/di-config-main.ts` を作成（メインプロセス側、必要な場合のみ）
+3. `src/di/renderer-configs.ts` に config を 1 行追加
+4. `src/di/main-configs.ts` に config を 1 行追加（メインプロセス側がある場合）
+
+main.ts と App.tsx は変更不要。
+
+### Composition Root（依存関係の組み立て）
+
+各 feature は Composition Root として以下のファイルを持つ:
+
+- `di-config.ts` — レンダラー側（`VContainerConfig` を実装）。infrastructure 層の具象クラスへの依存はこのファイルに閉じ込める
+- `di-config-main.ts` — メインプロセス側（`MainProcessConfig` を実装）。infrastructure/main の具象クラスへの依存はこのファイルに閉じ込める
+
+**main.ts や App.tsx が infrastructure 層の具象クラスを直接参照してはならない。**
+
+### メインプロセス初期化フレームワーク
+
+`src/lib/main-process/` にメインプロセス初期化の統一インターフェースとオーケストレーターを内蔵。
+
+**MainProcessConfig**: VContainerConfig のメインプロセス対応版。各 feature の `di-config-main.ts` が実装する。
+- `initialize()` — IPC ハンドラー登録、サービス生成等
+- `dispose()` — リソース解放
+- `priority` — 初期化の実行優先度（小さい値が先、デフォルト 0）
+
+**bootstrapMainProcess(configs)**: MainProcessConfig の配列を priority 順に初期化し、DisposableStack で LIFO クリーンアップを管理する。
+
 ### ViewModel + Hook パターン
 
 ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook ラッパー経由で利用する:
@@ -82,6 +120,22 @@ function useXxxViewModel() {
 - `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
 - `ObservableStoreUseCase<T>` / `ReactivePropertyUseCase<T>` — RxJS Observable でリアクティブデータを公開
+
+### Service 型定義
+
+`src/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
+
+- `BaseService` — 引数なし同期 setUp + tearDown
+- `AsyncBaseService` — 引数なし非同期 setUp + tearDown
+- `ParameterizedService<T>` — パラメータ付き同期 setUp + tearDown
+- `AsyncParameterizedService<T>` — パラメータ付き非同期 setUp + tearDown
+
+すべて `TearDownable`（`src/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで BehaviorSubject の complete 等のリソース解放を行う。
+
+**ライフサイクルルール**:
+- Service IF は必ず上記の共通インターフェースを extends する（`dispose()` ではなく `tearDown()` に統一）
+- `setUp()` で初期データの注入を行い、`tearDown()` でリソースを解放する
+- DI コンテナの setUp/tearDown から Service の setUp/tearDown をインターフェース経由で呼び出す（具象クラスへのキャスト不要）
 
 ### Clean Architecture（4層構成）
 
@@ -110,7 +164,7 @@ src/features/{feature-name}/
 
 ## Path Aliases
 
-`@/*` → `./src/*`（`tsconfig.json` の `paths` と `vite.renderer.config.ts` の `resolve.alias` で設定）。レンダラープロセスでのみ有効。
+`@/*` → `./src/*`（`tsconfig.json` の `paths` と各 Vite 設定の `resolve.alias` で設定）。全プロセス（main / preload / renderer）で有効。
 
 ## ESLint 設定
 
