@@ -140,39 +140,44 @@ graph TD
 
 ### レンダラー側（Clean Architecture 4層）
 
-| モジュール名 | 層 | 責務 | 配置場所 |
+> **注**: 配置場所は目標構造（`src/renderer/features/...`）で記載。現在の暫定構造（`src/features/...`）からの移行は別タスクで実施。
+
+| モジュール名 | 層 | 責務 | 配置場所（目標） |
 |---|---|---|---|
-| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `features/application-foundation/domain/` |
-| RepositoryRepository (IF) | application | リポジトリアクセス IF | `features/application-foundation/application/` |
-| SettingsRepository (IF) | application | 設定アクセス IF | `features/application-foundation/application/` |
-| RepositoryService | application | リポジトリ状態管理（ステートフル） | `features/application-foundation/application/` |
-| SettingsService | application | 設定状態管理（ステートフル） | `features/application-foundation/application/` |
-| ErrorNotificationService | application | エラー通知状態管理（ステートフル） | `features/application-foundation/application/` |
-| OpenRepositoryUseCase | application | リポジトリオープン（ステートレス） | `features/application-foundation/application/` |
-| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得（ステートレス） | `features/application-foundation/application/` |
-| GetSettingsUseCase | application | 設定取得（ステートレス） | `features/application-foundation/application/` |
-| UpdateSettingsUseCase | application | 設定更新（ステートレス） | `features/application-foundation/application/` |
-| GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `features/application-foundation/application/` |
-| RepositoryRepositoryImpl | infrastructure | IPC 経由のリポジトリ実装 | `features/application-foundation/infrastructure/` |
-| SettingsRepositoryImpl | infrastructure | IPC 経由の設定実装 | `features/application-foundation/infrastructure/` |
-| RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `features/application-foundation/presentation/` |
-| SettingsViewModel | presentation | 設定 ViewModel | `features/application-foundation/presentation/` |
-| ErrorNotificationViewModel | presentation | エラー通知 ViewModel | `features/application-foundation/presentation/` |
-| useRepositorySelectorViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
-| useSettingsViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
-| useErrorNotificationViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
-| RepositorySelectorDialog | presentation | リポジトリ選択ダイアログ（React） | `features/application-foundation/presentation/components/` |
-| RecentRepositoriesList | presentation | 最近のリポジトリ一覧（React） | `features/application-foundation/presentation/components/` |
-| SettingsDialog | presentation | 設定ダイアログ（React） | `features/application-foundation/presentation/components/` |
-| ErrorNotificationToast | presentation | エラー通知トースト（React） | `features/application-foundation/presentation/components/` |
-| AppLayout | presentation | メインレイアウト（React） | `components/layout/` |
-| MainHeader | presentation | ヘッダーコンポーネント（React） | `components/layout/` |
-| ThemeProvider | presentation | テーマ切り替えプロバイダー（React） | `components/` |
+| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `shared/domain/` |
+| RepositoryRepository (IF) | application | リポジトリアクセス IF | `renderer/features/application-foundation/application/` |
+| SettingsRepository (IF) | application | 設定アクセス IF | `renderer/features/application-foundation/application/` |
+| RepositoryService | application | リポジトリ状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| SettingsService | application | 設定状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| ErrorNotificationService | application | エラー通知状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| OpenRepositoryUseCase | application | リポジトリオープン（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetSettingsUseCase | application | 設定取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| UpdateSettingsUseCase | application | 設定更新（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| RepositoryRepositoryImpl | infrastructure | IPC 経由のリポジトリ実装 | `renderer/features/application-foundation/infrastructure/` |
+| SettingsRepositoryImpl | infrastructure | IPC 経由の設定実装 | `renderer/features/application-foundation/infrastructure/` |
+| RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `renderer/features/application-foundation/presentation/` |
+| SettingsViewModel | presentation | 設定 ViewModel | `renderer/features/application-foundation/presentation/` |
+| ErrorNotificationViewModel | presentation | エラー通知 ViewModel | `renderer/features/application-foundation/presentation/` |
+| useRepositorySelectorViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| useSettingsViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| useErrorNotificationViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| RepositorySelectorDialog | presentation | リポジトリ選択ダイアログ（React） | `renderer/features/application-foundation/presentation/components/` |
+| RecentRepositoriesList | presentation | 最近のリポジトリ一覧（React） | `renderer/features/application-foundation/presentation/components/` |
+| SettingsDialog | presentation | 設定ダイアログ（React） | `renderer/features/application-foundation/presentation/components/` |
+| ErrorNotificationToast | presentation | エラー通知トースト（React） | `renderer/features/application-foundation/presentation/components/` |
+| AppLayout | presentation | メインレイアウト（React） | `renderer/components/layout/` |
+| MainHeader | presentation | ヘッダーコンポーネント（React） | `renderer/components/layout/` |
+| ThemeProvider | presentation | テーマ切り替えプロバイダー（React） | `renderer/components/` |
 
 ### メインプロセス側（Clean Architecture 4層構成）
 
-| モジュール名 | 層 | 責務 | 配置場所 |
+> **注**: 配置場所は目標構造（`src/main/features/...`）で記載。現在の暫定構造（`src/features/.../infrastructure/main/`）からの移行は別タスクで実施。
+
+| モジュール名 | 層 | 責務 | 配置場所（目標） |
 |---|---|---|---|
+| RepositoryInfo, AppSettings 等 | domain | エンティティ（プロセス間共有） | `shared/domain/` |
 | IPC Handlers | presentation | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/` |
 | RepositoryMainUseCase | application | Git 検証、履歴管理ビジネスルール | `main/features/application-foundation/application/` |
 | SettingsMainUseCase | application | 設定管理オーケストレーション | `main/features/application-foundation/application/` |
@@ -217,7 +222,7 @@ const storeDefaults: StoreSchema = {
 ## 6.1. DI コンテナ登録
 
 ```typescript
-// src/features/application-foundation/di.ts
+// src/renderer/features/application-foundation/di-config.ts（目標パス）
 import type { VContainerConfig } from '@/lib/di'
 
 export const applicationFoundationConfig: VContainerConfig = {
@@ -470,9 +475,9 @@ export function registerIPCHandlers(
 
 ## v3.0 (2026-03-26)
 
-**変更内容:**
+**変更内容（設計方針の決定。実装移行は別タスクで対応）:**
 
-- プロセス別ディレクトリ分離（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
+- プロセス別ディレクトリ分離を設計方針として決定（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
 - メインプロセス側にも Clean Architecture 4層構成を適用
   - presentation: IPC Handler（Controller 相当）
   - application: UseCase（Git 検証、履歴管理ビジネスルール）

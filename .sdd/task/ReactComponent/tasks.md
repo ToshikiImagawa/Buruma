@@ -2,7 +2,7 @@
 id: "task-application-foundation-react"
 title: "アプリケーション基盤 React Component 実装タスク"
 type: "task"
-status: "pending"
+status: "completed"
 created: "2026-03-26"
 updated: "2026-03-26"
 depends-on: ["design-application-foundation"]

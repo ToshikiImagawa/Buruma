@@ -287,19 +287,20 @@ function XxxPanel() {
 - [ ] application 層が infrastructure / presentation に依存していないか
 - [ ] infrastructure 層が presentation に依存していないか
 - [ ] リポジトリインターフェースが application 層に、実装が infrastructure 層に配置されているか
-- [ ] feature ごとに `src/features/{feature-name}/` 配下にまとまっているか
+- [ ] feature ごとに `src/main/features/{feature-name}/` または `src/renderer/features/{feature-name}/` 配下にまとまっているか
 - [ ] feature 間の直接参照が存在しないか
-- [ ] IPC 通信が infrastructure 層に閉じているか
+- [ ] レンダラー側の IPC クライアントが infrastructure 層（Repository 実装）に閉じているか
+- [ ] メインプロセス側の IPC ハンドラーが presentation 層に配置されているか
 - [ ] ViewModel が presentation 層に配置され、React に直接依存していないか
 - [ ] UseCase がステートレスであるか（内部に BehaviorSubject 等の状態を持っていないか）
-- [ ] Service がステートフルな状態管理を担い、UseCase 経由でのみアクセスされているか
+- [ ] Service がステートフルな状態管理を担い、ViewModel からの直接参照は禁止されているか（UseCase 経由）
 - [ ] ViewModel が Service を直接参照せず UseCase のみを参照しているか
 
 **違反例**:
 
 - domain 層で React, Electron, RxJS 等の外部ライブラリをインポートする
 - application 層から infrastructure の具象クラスを直接参照する
-- feature をまたいで domain 層を直接参照する（共有は `src/lib/` 経由）
+- feature をまたいで domain 層を直接参照する（共有は `src/shared/` 経由）
 - React コンポーネント内で直接 IPC を呼び出す
 - ViewModel 内で `useState` や `useEffect` を使用する
 - UseCase 内に BehaviorSubject 等の状態を保持する
@@ -319,7 +320,7 @@ function XxxPanel() {
 
 **原則**: ビジネスロジック（domain 層・application 層）はフレームワーク非依存の純粋な TypeScript で実装する
 
-**適用範囲**: `src/features/*/domain/`、`src/features/*/application/`
+**適用範囲**: `src/shared/domain/`、`src/main/features/*/application/`、`src/renderer/features/*/application/`
 
 **検証方法**:
 
@@ -540,6 +541,21 @@ src/
 - サービス間の依存は VContainer（`shared/lib/di`）を通じて注入する。直接 `new` やグローバル参照による結合を避ける
 - レンダラーでは VContainerProvider を React ツリーのルート付近に配置し、useResolve() でサービスを取得する
 - メインプロセスでは VContainer の container API を直接使用する
+
+**移行状態**:
+
+上記のモジュール構成は目標構造である。現在のコードは以下の暫定構造で実装されており、目標構造への移行は別タスクで実施する。
+
+```
+# 現在の暫定構造（移行前）
+src/
+├── main.ts, preload.ts, renderer.tsx, App.tsx  # エントリーポイント（フラット配置）
+├── features/                                    # プロセス未分離（レンダラー + メインが混在）
+├── di/                                          # 集約エントリーポイント
+├── lib/                                         # shared/lib 相当
+├── types/                                       # shared/types 相当
+└── components/                                  # renderer/components 相当
+```
 
 ## 意思決定フレームワーク
 
