@@ -1,11 +1,29 @@
 import path from 'node:path'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
+import Store from 'electron-store'
+import { registerIPCHandlers } from '@/features/application-foundation/infrastructure/main'
+import { RepositoryMainService } from '@/features/application-foundation/infrastructure/main'
+import { SettingsMainService } from '@/features/application-foundation/infrastructure/main'
+import type { StoreSchema } from '@/features/application-foundation/infrastructure/main'
+import { storeDefaults } from '@/features/application-foundation/infrastructure/main'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit()
 }
+
+// Initialize electron-store
+const store = new Store<StoreSchema>({
+  defaults: storeDefaults,
+}) as unknown as import('./features/application-foundation/infrastructure/main/store-schema').AppStore
+
+// Initialize services
+const repositoryMainService = new RepositoryMainService(store)
+const settingsMainService = new SettingsMainService(store)
+
+// Register IPC handlers
+registerIPCHandlers(repositoryMainService, settingsMainService)
 
 const createWindow = () => {
   // Create the browser window.
