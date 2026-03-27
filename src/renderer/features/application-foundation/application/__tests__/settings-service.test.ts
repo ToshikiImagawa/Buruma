@@ -1,6 +1,6 @@
+import { DEFAULT_SETTINGS } from '@shared/domain'
 import { firstValueFrom } from 'rxjs'
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
 import { SettingsService } from '../settings-service'
 
 describe('SettingsService', () => {

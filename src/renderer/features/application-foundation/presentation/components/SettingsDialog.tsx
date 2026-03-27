@@ -1,9 +1,9 @@
-import type { Theme } from '@/shared/domain'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/renderer/components/ui/dialog'
-import { Input } from '@/renderer/components/ui/input'
-import { Label } from '@/renderer/components/ui/label'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/renderer/components/ui/select'
-import { Separator } from '@/renderer/components/ui/separator'
+import type { Theme } from '@shared/domain'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
+import { Input } from '@renderer/components/ui/input'
+import { Label } from '@renderer/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@renderer/components/ui/select'
+import { Separator } from '@renderer/components/ui/separator'
 import { useSettingsViewModel } from '../use-settings-viewmodel'
 
 interface SettingsDialogProps {

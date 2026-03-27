@@ -1,20 +1,20 @@
-import type { VContainerConfig } from '@/shared/lib/di'
-import Store from 'electron-store'
+import type { VContainerConfig } from '@shared/lib/di'
 import type { AppStore, StoreSchema } from './infrastructure/store-schema'
-import { storeDefaults } from './infrastructure/store-schema'
-import { StoreRepository } from './infrastructure/store-repository'
-import { GitRepositoryValidator } from './infrastructure/git-repository-validator'
-import { DialogService } from './infrastructure/dialog-service'
+import Store from 'electron-store'
 import { RepositoryMainUseCase } from './application/repository-main-usecase'
 import { SettingsMainUseCase } from './application/settings-main-usecase'
-import { registerIPCHandlers } from './presentation/ipc-handlers'
 import {
-  StoreRepositoryToken,
-  GitRepositoryValidatorToken,
   DialogServiceToken,
+  GitRepositoryValidatorToken,
   RepositoryMainUseCaseToken,
   SettingsMainUseCaseToken,
+  StoreRepositoryToken,
 } from './di-tokens'
+import { DialogService } from './infrastructure/dialog-service'
+import { GitRepositoryValidator } from './infrastructure/git-repository-validator'
+import { StoreRepository } from './infrastructure/store-repository'
+import { storeDefaults } from './infrastructure/store-schema'
+import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const applicationFoundationMainConfig: VContainerConfig = {
   register(container) {

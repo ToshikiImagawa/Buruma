@@ -1,15 +1,15 @@
 import { useState } from 'react'
-import { Toaster } from 'sonner'
-import { AppLayout } from '@/renderer/components/layout'
-import { ThemeProvider } from '@/renderer/components/theme-provider'
-import { rendererConfigs } from '@/renderer/di/configs'
+import { AppLayout } from '@renderer/components/layout'
+import { ThemeProvider } from '@renderer/components/theme-provider'
+import { rendererConfigs } from '@renderer/di/configs'
 import {
   ErrorNotificationToast,
   RepositorySelectorDialog,
   SettingsDialog,
-} from '@/renderer/features/application-foundation/presentation/components'
-import { useRepositorySelectorViewModel } from '@/renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
-import { VContainerProvider } from '@/shared/lib/di/v-container-provider'
+} from '@renderer/features/application-foundation/presentation/components'
+import { useRepositorySelectorViewModel } from '@renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
+import { VContainerProvider } from '@shared/lib/di/v-container-provider'
+import { Toaster } from 'sonner'
 
 function AppContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)

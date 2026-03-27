@@ -1,7 +1,7 @@
 import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from './application/repository-interfaces'
 import type { RepositoryMainUseCase } from './application/repository-main-usecase'
 import type { SettingsMainUseCase } from './application/settings-main-usecase'
-import { createToken } from '@/shared/lib/di'
+import { createToken } from '@shared/lib/di'
 
 // --- Infrastructure IF ---
 export const StoreRepositoryToken = createToken<IStoreRepository>('StoreRepository')

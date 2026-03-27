@@ -64,7 +64,7 @@
 - [ ] `src/types/` が存在しない
 - [ ] `src/di/` が存在しない
 - [ ] `src/components/` が存在しない
-- [ ] `src/main.ts`, `src/preload.ts`, `src/renderer.tsx`, `src/App.tsx` が存在しない
+- [ ] `src/main.ts`, `src/preload.ts`, `src/index.tsx`, `src/App.tsx` が存在しない
 
 **検証方法**: `ls src/features src/lib src/types src/di src/components 2>&1` でエラーが出ること
 
@@ -239,7 +239,7 @@
 ### CHK-401 [P1] - Vite ビルド設定
 
 - [ ] `vite.main.config.ts` のエントリーが `src/main/index.ts` を指している
-- [ ] `vite.renderer.config.ts` のエントリーが `src/renderer/renderer.tsx` を指している
+- [ ] `vite.renderer.config.ts` のエントリーが `src/renderer/index.tsx` を指している
 - [ ] `vite.preload.config.ts` のエントリーが `src/preload/index.ts` を指している
 
 **検証方法**: Vite 設定ファイルを確認

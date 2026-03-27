@@ -1,6 +1,6 @@
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
-import path from 'path'
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from './repository-interfaces'
+import path from 'path'
 
 const MAX_RECENT = 20
 

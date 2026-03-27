@@ -1,8 +1,9 @@
-import type { VContainer } from '@/shared/lib/di'
+import type { AppSettings, RecentRepository, RepositoryInfo } from '@shared/domain'
+import type { VContainer } from '@shared/lib/di'
 import type { RepositoryRepository, SettingsRepository } from '../di-tokens'
-import type { AppSettings, RecentRepository, RepositoryInfo } from '@/shared/domain'
+import { DEFAULT_SETTINGS } from '@shared/domain'
+import { createContainer } from '@shared/lib/di'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createContainer } from '@/shared/lib/di'
 import { applicationFoundationConfig } from '../di-config'
 import {
   DismissErrorUseCaseToken,
@@ -20,7 +21,6 @@ import {
   SettingsViewModelToken,
   UpdateSettingsUseCaseToken,
 } from '../di-tokens'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
 
 function createMockRepositoryRepository(): RepositoryRepository {
   return {

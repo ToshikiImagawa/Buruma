@@ -1,4 +1,4 @@
-import type { AppSettings, RecentRepository } from '@/shared/domain'
+import type { AppSettings, RecentRepository } from '@shared/domain'
 import type { IStoreRepository } from '../application/repository-interfaces'
 import type { AppStore } from './store-schema'
 

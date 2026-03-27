@@ -1,3 +1,4 @@
+import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@shared/domain'
 import type {
   IErrorNotificationService,
   IRepositoryService,
@@ -5,10 +6,9 @@ import type {
   RepositoryRepository,
   SettingsRepository,
 } from '../../di-tokens'
-import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@/shared/domain'
+import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
 import { DismissErrorUseCaseImpl } from '../usecases/dismiss-error-usecase'
 import { GetErrorNotificationsUseCaseImpl } from '../usecases/get-error-notifications-usecase'
 import { GetRecentRepositoriesUseCaseImpl } from '../usecases/get-recent-repositories-usecase'

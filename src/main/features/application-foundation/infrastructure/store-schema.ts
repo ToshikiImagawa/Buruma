@@ -1,5 +1,5 @@
-import type { AppSettings, RecentRepository } from '@/shared/domain'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
+import type { AppSettings, RecentRepository } from '@shared/domain'
+import { DEFAULT_SETTINGS } from '@shared/domain'
 
 export interface StoreSchema {
   recentRepositories: RecentRepository[]

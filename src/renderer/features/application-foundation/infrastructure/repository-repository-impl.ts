@@ -1,5 +1,5 @@
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { RepositoryRepository } from '../di-tokens'
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
 
 export class RepositoryRepositoryImpl implements RepositoryRepository {
   async open(): Promise<RepositoryInfo | null> {

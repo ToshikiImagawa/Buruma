@@ -1,3 +1,4 @@
+import type { ErrorNotification } from '@shared/domain'
 import type { Observable } from 'rxjs'
 import type {
   DismissErrorUseCase,
@@ -5,7 +6,6 @@ import type {
   IErrorNotificationViewModel,
   RetryErrorUseCase,
 } from '../di-tokens'
-import type { ErrorNotification } from '@/shared/domain'
 
 export class ErrorNotificationViewModel implements IErrorNotificationViewModel {
   constructor(

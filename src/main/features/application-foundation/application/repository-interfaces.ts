@@ -1,4 +1,4 @@
-import type { AppSettings, RecentRepository } from '@/shared/domain'
+import type { AppSettings, RecentRepository } from '@shared/domain'
 
 /** electron-store のリポジトリ CRUD インターフェース */
 export interface IStoreRepository {

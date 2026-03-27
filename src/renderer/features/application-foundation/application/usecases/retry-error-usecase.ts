@@ -1,4 +1,4 @@
-import type { ConsumerUseCase } from '@/shared/lib/usecase'
+import type { ConsumerUseCase } from '@shared/lib/usecase'
 import type { IErrorNotificationService } from '../../di-tokens'
 
 export class RetryErrorUseCaseImpl implements ConsumerUseCase<string> {

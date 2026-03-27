@@ -1,6 +1,6 @@
+import { Button } from '@renderer/components/ui/button'
+import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Folder, Pin, Trash2 } from 'lucide-react'
-import { Button } from '@/renderer/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/renderer/components/ui/card'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 
 export function RecentRepositoriesList() {

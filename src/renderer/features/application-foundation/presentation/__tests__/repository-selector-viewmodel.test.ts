@@ -1,3 +1,4 @@
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type {
   GetRecentRepositoriesUseCase,
   IRepositoryService,
@@ -6,7 +7,6 @@ import type {
   PinRepositoryUseCase,
   RemoveRecentRepositoryUseCase,
 } from '../../di-tokens'
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 import { RepositorySelectorViewModel } from '../repository-selector-viewmodel'

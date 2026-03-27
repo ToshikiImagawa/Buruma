@@ -1,7 +1,7 @@
-import type { IPCResult } from '@/shared/types/ipc'
-import type { AppSettings, Theme } from '@/shared/domain'
+import type { AppSettings, Theme } from '@shared/domain'
+import type { IPCResult } from '@shared/types/ipc'
 import type { AppStore } from './store-schema'
-import { ipcSuccess } from '@/shared/types/ipc'
+import { ipcSuccess } from '@shared/types/ipc'
 
 export class SettingsMainService {
   constructor(private readonly store: AppStore) {}

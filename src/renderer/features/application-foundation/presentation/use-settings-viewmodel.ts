@@ -1,9 +1,9 @@
 import { useCallback } from 'react'
-import type { AppSettings, Theme } from '@/shared/domain'
-import { useResolve } from '@/shared/lib/di'
-import { useObservable } from '@/shared/lib/hooks'
+import type { AppSettings, Theme } from '@shared/domain'
+import { DEFAULT_SETTINGS } from '@shared/domain'
+import { useResolve } from '@shared/lib/di'
+import { useObservable } from '@shared/lib/hooks'
 import { SettingsViewModelToken } from '../di-tokens'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
 
 export function useSettingsViewModel() {
   const vm = useResolve(SettingsViewModelToken)

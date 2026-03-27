@@ -1,11 +1,11 @@
-import type { IPCResult } from '@/shared/types/ipc'
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
+import type { IPCResult } from '@shared/types/ipc'
 import type { AppStore } from './store-schema'
 import { execFile } from 'child_process'
 import path from 'path'
 import { promisify } from 'util'
+import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { dialog } from 'electron'
-import { ipcFailure, ipcSuccess } from '@/shared/types/ipc'
 
 const execFileAsync = promisify(execFile)
 

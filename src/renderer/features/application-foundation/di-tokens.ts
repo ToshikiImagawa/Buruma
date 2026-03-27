@@ -1,11 +1,16 @@
 /**
  * application-foundation の DI トークン定義
  */
-import type { BaseService, ParameterizedService } from '@/shared/lib/service'
-import type { ConsumerUseCase, ObservableStoreUseCase, ReactivePropertyUseCase, RunnableUseCase } from '@/shared/lib/usecase'
+import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo, Theme } from '@shared/domain'
+import type { BaseService, ParameterizedService } from '@shared/lib/service'
+import type {
+  ConsumerUseCase,
+  ObservableStoreUseCase,
+  ReactivePropertyUseCase,
+  RunnableUseCase,
+} from '@shared/lib/usecase'
 import type { Observable } from 'rxjs'
-import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo, Theme } from '@/shared/domain'
-import { createToken } from '@/shared/lib/di'
+import { createToken } from '@shared/lib/di'
 
 // --- Repository IF ---
 

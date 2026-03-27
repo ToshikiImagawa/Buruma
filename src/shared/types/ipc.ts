@@ -60,9 +60,7 @@ export interface IPCEventMap {
 export interface ElectronAPI {
   repository: {
     open(): Promise<IPCResult<import('../domain').RepositoryInfo | null>>
-    openByPath(
-      path: string,
-    ): Promise<IPCResult<import('../domain').RepositoryInfo | null>>
+    openByPath(path: string): Promise<IPCResult<import('../domain').RepositoryInfo | null>>
     validate(path: string): Promise<IPCResult<boolean>>
     getRecent(): Promise<IPCResult<import('../domain').RecentRepository[]>>
     removeRecent(path: string): Promise<IPCResult<void>>
@@ -74,9 +72,7 @@ export interface ElectronAPI {
     getTheme(): Promise<IPCResult<import('../domain').Theme>>
     setTheme(theme: import('../domain').Theme): Promise<IPCResult<void>>
   }
-  onError(
-    callback: (notification: import('../domain').ErrorNotification) => void,
-  ): () => void
+  onError(callback: (notification: import('../domain').ErrorNotification) => void): () => void
 }
 
 declare global {

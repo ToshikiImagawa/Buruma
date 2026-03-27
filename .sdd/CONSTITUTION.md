@@ -549,7 +549,7 @@ src/
 ```
 # 現在の暫定構造（移行前）
 src/
-├── main.ts, preload.ts, renderer.tsx, App.tsx  # エントリーポイント（フラット配置）
+├── main.ts, preload.ts, index.tsx, App.tsx  # エントリーポイント（フラット配置）
 ├── features/                                    # プロセス未分離（レンダラー + メインが混在）
 ├── di/                                          # 集約エントリーポイント
 ├── lib/                                         # shared/lib 相当

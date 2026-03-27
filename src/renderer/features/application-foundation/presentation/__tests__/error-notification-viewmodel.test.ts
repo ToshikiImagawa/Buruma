@@ -1,5 +1,5 @@
+import type { ErrorNotification } from '@shared/domain'
 import type { DismissErrorUseCase, GetErrorNotificationsUseCase, RetryErrorUseCase } from '../../di-tokens'
-import type { ErrorNotification } from '@/shared/domain'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
 import { ErrorNotificationViewModel } from '../error-notification-viewmodel'

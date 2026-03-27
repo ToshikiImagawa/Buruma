@@ -35,7 +35,7 @@ design.md v3.0 で以下の設計方針が決定された:
 
 ```
 src/
-├── main.ts, preload.ts, renderer.tsx, App.tsx
+├── main.ts, preload.ts, index.tsx, App.tsx
 ├── features/application-foundation/
 │   ├── domain/, application/, infrastructure/ (+ main/), presentation/
 ├── di/
@@ -201,7 +201,7 @@ graph TB
 
 1. `src/renderer/` ディレクトリ構造を作成
 2. 以下を移動:
-   - `src/renderer.tsx` → `src/renderer/renderer.tsx`
+   - `src/index.tsx` → `src/renderer/index.tsx`
    - `src/App.tsx` → `src/renderer/App.tsx`
    - `src/index.css` → `src/renderer/index.css`
    - `src/components/` → `src/renderer/components/`
@@ -372,7 +372,7 @@ graph TB
 1. `forge.config.ts` の VitePlugin エントリーパスを更新:
    - main: `src/main/index.ts`
    - preload: `src/preload/index.ts`
-   - renderer: `src/renderer/renderer.tsx` + `index.html`
+   - renderer: `src/renderer/index.tsx` + `index.html`
 2. `vite.main.config.ts` — resolve.alias を最終確認
 3. `vite.renderer.config.ts` — resolve.alias を最終確認
 4. `vite.preload.config.ts` — resolve.alias を最終確認
@@ -453,7 +453,7 @@ graph TB
    - `src/types/` ディレクトリ
    - `src/components/` ディレクトリ
    - `src/di/` ディレクトリ
-   - `src/main.ts`, `src/preload.ts`, `src/renderer.tsx`, `src/App.tsx`
+   - `src/main.ts`, `src/preload.ts`, `src/index.tsx`, `src/App.tsx`
    - `src/index.css`
 2. tsconfig.json から旧パスエイリアス `@/*` を削除
 3. `npm run typecheck && npm run lint && npm run test` が通ることを確認

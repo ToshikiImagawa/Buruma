@@ -1,5 +1,5 @@
+import type { ErrorNotification } from '@shared/domain'
 import type { IErrorNotificationService } from '../di-tokens'
-import type { ErrorNotification } from '@/shared/domain'
 import { BehaviorSubject, Observable } from 'rxjs'
 
 export class ErrorNotificationService implements IErrorNotificationService {

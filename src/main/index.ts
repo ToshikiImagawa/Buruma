@@ -1,9 +1,9 @@
 import path from 'node:path'
+import { mainConfigs } from '@main/di/configs'
+import { VContainer } from '@shared/lib/di/container'
+import { DisposableStack } from '@shared/lib/di/disposable-stack'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
-import { VContainer } from '@/shared/lib/di/container'
-import { DisposableStack } from '@/shared/lib/di/disposable-stack'
-import { mainConfigs } from '@/main/di/configs'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
@@ -55,9 +55,7 @@ app.on('ready', async () => {
   const sortedPriorities = [...priorityGroups.keys()].sort((a, b) => a - b)
   for (const priority of sortedPriorities) {
     const group = priorityGroups.get(priority)!
-    const tearDowns = await Promise.all(
-      group.map((config) => config.setUp!(container)),
-    )
+    const tearDowns = await Promise.all(group.map((config) => config.setUp!(container)))
     for (const tearDown of tearDowns) {
       if (typeof tearDown === 'function') {
         cleanupStack.defer(tearDown)

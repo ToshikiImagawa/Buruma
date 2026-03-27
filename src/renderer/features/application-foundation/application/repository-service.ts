@@ -1,5 +1,5 @@
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { IRepositoryService } from '../di-tokens'
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
 import { BehaviorSubject, Observable } from 'rxjs'
 
 export class RepositoryService implements IRepositoryService {

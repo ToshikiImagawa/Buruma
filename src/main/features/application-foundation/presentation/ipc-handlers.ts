@@ -1,12 +1,9 @@
 import type { RepositoryMainUseCase } from '../application/repository-main-usecase'
 import type { SettingsMainUseCase } from '../application/settings-main-usecase'
+import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { ipcMain } from 'electron'
-import { ipcFailure, ipcSuccess } from '@/shared/types/ipc'
 
-export function registerIPCHandlers(
-  repoUseCase: RepositoryMainUseCase,
-  settingsUseCase: SettingsMainUseCase,
-): void {
+export function registerIPCHandlers(repoUseCase: RepositoryMainUseCase, settingsUseCase: SettingsMainUseCase): void {
   ipcMain.handle('repository:open', async () => {
     const result = await repoUseCase.openWithDialog()
     return ipcSuccess(result)

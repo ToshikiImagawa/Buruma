@@ -1,4 +1,4 @@
-import type { TearDownable } from '@/shared/lib/di/disposable-stack'
+import type { TearDownable } from '@shared/lib/di/disposable-stack'
 
 /**
  * 引数なしで同期的に初期化するサービス

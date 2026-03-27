@@ -252,7 +252,7 @@ graph TB
    - 詳細表示ボタン（オプション）
    - 閉じるボタン → `dismiss(errorId)` 呼び出し
 
-2. `src/renderer.tsx` または `App.tsx` に `<Toaster />` コンポーネント追加（sonner）
+2. `src/index.tsx` または `App.tsx` に `<Toaster />` コンポーネント追加（sonner）
 
 **完了条件:**
 

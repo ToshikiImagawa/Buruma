@@ -1,7 +1,7 @@
-import type { ReactivePropertyUseCase, ReadOnlyReactiveProperty } from '@/shared/lib/usecase'
+import type { AppSettings } from '@shared/domain'
+import type { ReactivePropertyUseCase, ReadOnlyReactiveProperty } from '@shared/lib/usecase'
 import type { Observable } from 'rxjs'
 import type { ISettingsService } from '../../di-tokens'
-import type { AppSettings } from '@/shared/domain'
 import { BehaviorSubject, map } from 'rxjs'
 
 class SettingsReactiveProperty implements ReadOnlyReactiveProperty<AppSettings> {

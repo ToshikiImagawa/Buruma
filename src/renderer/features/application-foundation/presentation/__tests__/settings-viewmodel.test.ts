@@ -1,8 +1,8 @@
+import type { AppSettings } from '@shared/domain'
 import type { GetSettingsUseCase, UpdateSettingsUseCase } from '../../di-tokens'
-import type { AppSettings } from '@/shared/domain'
+import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { DEFAULT_SETTINGS } from '@/shared/domain'
 import { SettingsViewModel } from '../settings-viewmodel'
 
 function createMocks() {

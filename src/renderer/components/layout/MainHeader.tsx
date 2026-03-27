@@ -1,5 +1,5 @@
+import { Button } from '@renderer/components/ui/button'
 import { Settings } from 'lucide-react'
-import { Button } from '@/renderer/components/ui/button'
 
 interface MainHeaderProps {
   onSettingsClick: () => void

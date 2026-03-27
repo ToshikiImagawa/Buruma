@@ -1,3 +1,4 @@
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { Observable } from 'rxjs'
 import type {
   GetRecentRepositoriesUseCase,
@@ -8,7 +9,6 @@ import type {
   PinRepositoryUseCase,
   RemoveRecentRepositoryUseCase,
 } from '../di-tokens'
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
 
 export class RepositorySelectorViewModel implements IRepositorySelectorViewModel {
   constructor(

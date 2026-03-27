@@ -1,4 +1,4 @@
-import type { ErrorNotification } from '@/shared/domain'
+import type { ErrorNotification } from '@shared/domain'
 import { firstValueFrom } from 'rxjs'
 import { describe, expect, it } from 'vitest'
 import { ErrorNotificationService } from '../error-notification-service'

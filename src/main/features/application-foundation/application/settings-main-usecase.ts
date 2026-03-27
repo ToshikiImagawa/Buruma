@@ -1,4 +1,4 @@
-import type { AppSettings, Theme } from '@/shared/domain'
+import type { AppSettings, Theme } from '@shared/domain'
 import type { IStoreRepository } from './repository-interfaces'
 
 export class SettingsMainUseCase {

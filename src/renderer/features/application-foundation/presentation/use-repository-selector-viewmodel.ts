@@ -1,6 +1,6 @@
 import { useCallback } from 'react'
-import { useResolve } from '@/shared/lib/di'
-import { useObservable } from '@/shared/lib/hooks'
+import { useResolve } from '@shared/lib/di'
+import { useObservable } from '@shared/lib/hooks'
 import { RepositorySelectorViewModelToken } from '../di-tokens'
 
 export function useRepositorySelectorViewModel() {

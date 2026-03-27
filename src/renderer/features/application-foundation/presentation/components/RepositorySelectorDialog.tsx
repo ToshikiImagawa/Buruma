@@ -1,6 +1,6 @@
+import { Button } from '@renderer/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@renderer/components/ui/dialog'
 import { FolderOpen } from 'lucide-react'
-import { Button } from '@/renderer/components/ui/button'
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/renderer/components/ui/dialog'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 import { RecentRepositoriesList } from './RecentRepositoriesList'
 

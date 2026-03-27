@@ -1,4 +1,4 @@
-import type { RecentRepository, RepositoryInfo } from '@/shared/domain'
+import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import { firstValueFrom } from 'rxjs'
 import { describe, expect, it } from 'vitest'
 import { RepositoryService } from '../repository-service'

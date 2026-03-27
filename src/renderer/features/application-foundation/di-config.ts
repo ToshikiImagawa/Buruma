@@ -1,4 +1,4 @@
-import type { VContainerConfig } from '@/shared/lib/di'
+import type { VContainerConfig } from '@shared/lib/di'
 // Services
 import { ErrorNotificationService } from './application/error-notification-service'
 import { RepositoryService } from './application/repository-service'

@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useSettingsViewModel } from '@/renderer/features/application-foundation/presentation/use-settings-viewmodel'
+import { useSettingsViewModel } from '@renderer/features/application-foundation/presentation/use-settings-viewmodel'
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const { settings } = useSettingsViewModel()
