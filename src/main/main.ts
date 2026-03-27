@@ -1,6 +1,7 @@
+import type { BootstrapResult } from '@main/bootstrap'
 import path from 'node:path'
+import { bootstrapContainer } from '@main/bootstrap'
 import { mainConfigs } from '@main/di/configs'
-import { createContainer, createDisposableStack } from '@shared/lib/di'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
 
@@ -9,27 +10,25 @@ if (started) {
   app.quit()
 }
 
-const container = createContainer()
-const cleanupStack = createDisposableStack()
+let bootstrap: BootstrapResult | null = null
 
 const createWindow = () => {
-  // Create the browser window.
   const mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false,
+      contextIsolation: true,
     },
   })
 
-  // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL)
   } else {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`))
   }
 
-  // Open the DevTools in development only.
   if (!app.isPackaged) {
     mainWindow.webContents.openDevTools()
   }
@@ -37,31 +36,7 @@ const createWindow = () => {
 
 app.on('ready', async () => {
   try {
-    // Register all feature configs
-    for (const config of mainConfigs) {
-      config.register?.(container)
-    }
-
-    // Run setUp in priority order
-    const priorityGroups = new Map<number, typeof mainConfigs>()
-    for (const config of mainConfigs) {
-      if (!config.setUp) continue
-      const priority = config.priority ?? 0
-      const group = priorityGroups.get(priority) ?? []
-      group.push(config)
-      priorityGroups.set(priority, group)
-    }
-
-    const sortedPriorities = [...priorityGroups.keys()].sort((a, b) => a - b)
-    for (const priority of sortedPriorities) {
-      const group = priorityGroups.get(priority)!
-      const tearDowns = await Promise.all(group.map((config) => config.setUp!(container)))
-      for (const tearDown of tearDowns) {
-        if (typeof tearDown === 'function') {
-          cleanupStack.defer(tearDown)
-        }
-      }
-    }
+    bootstrap = await bootstrapContainer(mainConfigs)
   } catch (error) {
     console.error('[Main] Container initialization failed:', error)
   }
@@ -70,11 +45,10 @@ app.on('ready', async () => {
 })
 
 app.on('before-quit', () => {
-  cleanupStack.dispose()
-  container.clear()
+  bootstrap?.cleanup.dispose()
+  bootstrap?.container.clear()
 })
 
-// Quit when all windows are closed, except on macOS.
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
     app.quit()
