@@ -15,7 +15,7 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    files: ['src/main.ts', 'src/preload.ts', 'vite.*.config.ts', 'forge.config.ts', 'postcss.config.js'],
+    files: ['src/main/**/*.ts', 'src/preload/**/*.ts', 'vite.*.config.ts', 'forge.config.ts', 'postcss.config.js'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -24,7 +24,7 @@ export default tseslint.config(
   },
 
   {
-    files: ['src/renderer.tsx', 'src/App.tsx', 'src/components/**/*.tsx', 'src/lib/**/*.{ts,tsx}'],
+    files: ['src/renderer/**/*.{ts,tsx}', 'src/shared/lib/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
