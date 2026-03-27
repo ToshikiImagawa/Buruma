@@ -458,6 +458,10 @@ export function registerIPCHandlers(
 | メインプロセスの層構成 | 4層 / infrastructure のみ | **4層構成** | メインプロセスにも Git 検証・履歴管理等のビジネスロジックが存在するため4層構成を適用。IPC Handler = presentation、UseCase = application、electron-store 等 = infrastructure |
 | プロセス別ディレクトリ分離 | feature 内 / プロセス別 | **プロセス別** | `src/main/`, `src/renderer/`, `src/shared/` に分離。ビルド境界と一致し、プロセス間の不正な依存を防止 |
 | ViewModel の DI ライフタイム | singleton / transient | transient | コンポーネント単位でライフサイクルを管理。画面遷移時に自動的に新しいインスタンスが作成される |
+| テーマ切り替え方式 | CSS 変数 / class 切り替え | `<html>` の `class="dark"` 切り替え | Tailwind CSS dark mode が class 戦略を使用。system 連動は `window.matchMedia('prefers-color-scheme: dark')` で検出 |
+| トースト通知の実装方式 | コンポーネント描画 / API 呼び出し | Sonner の `toast()` API を useEffect 内で呼び出し | コンポーネント自体は null を返し、notifications の変更を監視して toast() を発火 |
+| リポジトリリストのソート順 | アクセス日時 / ピン留め優先 | ピン留め優先 → 最終アクセス日時降順 | ピン留めリポジトリを上位表示し、頻繁に使うリポジトリへのアクセス性を向上 |
+| リポジトリ選択ダイアログの初期表示 | 手動オープン / 自動オープン | アプリ起動時に自動オープン（`open={true}`） | currentRepository が null の場合、ユーザーは操作できないためオンボーディングとして表示 |
 
 ## 9.2. 未解決の課題
 
@@ -468,6 +472,8 @@ export function registerIPCHandlers(
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
 | RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
 | IPC ハンドラーの入力バリデーション | 低 | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討 |
+| メインプロセス UseCase のユニットテスト | 中 | RepositoryMainUseCase, SettingsMainUseCase のテストが未作成。Git 検証・履歴管理ロジックのカバレッジが不足 |
+| ドキュメント移行注記の削除 | 低 | design.md, CONSTITUTION.md の「移行状態」注記を実装完了後に削除する必要がある |
 
 ---
 
