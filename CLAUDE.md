@@ -22,12 +22,26 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 
 Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。ソースコードはプロセス別にディレクトリを分離する。
 
-- **Main process** (`src/main/index.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.main.config.ts`
-- **Preload** (`src/preload/index.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
+- **Main process** (`src/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.main.config.ts`
+- **Preload** (`src/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
 - **Renderer** (`src/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.renderer.config.ts`
 - **Shared** (`src/shared/`): プロセス間共有の domain 型、IPC 型定義、DI ライブラリ、ユーティリティ
 
 Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin でセキュリティオプション（RunAsNode: false 等）を適用。
+
+### Electron Forge ビルドエントリーの命名制約
+
+Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/main/main.ts` → `.vite/build/main.js`）。`package.json` の `"main"` フィールドはこの出力パスを参照する。
+
+- **エントリーファイル名はプロセスごとに一意にする**（`index.ts` にしない）。同名ファイルはビルド出力が衝突する
+- `package.json` の `"main"` はメインプロセスのビルド出力（`.vite/build/main.js`）を指す
+- `BrowserWindow` の `preload` オプションは preload のビルド出力（`preload.js`）を指す
+
+| エントリー | ビルド出力 | 参照元 |
+|:---|:---|:---|
+| `src/main/main.ts` | `.vite/build/main.js` | `package.json` の `"main"` |
+| `src/preload/preload.ts` | `.vite/build/preload.js` | `BrowserWindow.webPreferences.preload` |
+| `src/renderer/` | Vite dev server | `forge.config.ts` の `renderer` |
 
 `src/renderer/` と `src/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/shared/` に配置する。
 
@@ -64,7 +78,7 @@ Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（mai
 
 ### DI 統合エントリーポイント
 
-各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/index.ts`, `renderer/App.tsx`）は `di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
+各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/main.ts`, `renderer/App.tsx`）は `di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
 
 ```
 src/main/di/
