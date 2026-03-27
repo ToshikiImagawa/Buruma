@@ -140,9 +140,7 @@ graph TD
 
 ### レンダラー側（Clean Architecture 4層）
 
-> **注**: 配置場所は目標構造（`src/renderer/features/...`）で記載。現在の暫定構造（`src/features/...`）からの移行は別タスクで実施。
-
-| モジュール名 | 層 | 責務 | 配置場所（目標） |
+| モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
 | RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `shared/domain/` |
 | RepositoryRepository (IF) | application | リポジトリアクセス IF | `renderer/features/application-foundation/application/` |
@@ -173,9 +171,7 @@ graph TD
 
 ### メインプロセス側（Clean Architecture 4層構成）
 
-> **注**: 配置場所は目標構造（`src/main/features/...`）で記載。現在の暫定構造（`src/features/.../infrastructure/main/`）からの移行は別タスクで実施。
-
-| モジュール名 | 層 | 責務 | 配置場所（目標） |
+| モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
 | RepositoryInfo, AppSettings 等 | domain | エンティティ（プロセス間共有） | `shared/domain/` |
 | IPC Handlers | presentation | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/` |
@@ -472,8 +468,8 @@ export function registerIPCHandlers(
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
 | RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
 | IPC ハンドラーの入力バリデーション | 低 | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討 |
-| メインプロセス UseCase のユニットテスト | 中 | RepositoryMainUseCase, SettingsMainUseCase のテストが未作成。Git 検証・履歴管理ロジックのカバレッジが不足 |
-| ドキュメント移行注記の削除 | 低 | design.md, CONSTITUTION.md の「移行状態」注記を実装完了後に削除する必要がある |
+| メインプロセス UseCase のユニットテスト | 低 | ✅ 解決済み。RepositoryMainUseCase（13テスト）、SettingsMainUseCase（5テスト）を作成 |
+| ドキュメント移行注記の削除 | 低 | ✅ 解決済み。design.md, CONSTITUTION.md の移行注記を削除 |
 
 ---
 
@@ -481,7 +477,7 @@ export function registerIPCHandlers(
 
 ## v3.0 (2026-03-26)
 
-**変更内容（設計方針の決定。実装移行は別タスクで対応）:**
+**変更内容:**
 
 - プロセス別ディレクトリ分離を設計方針として決定（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
 - メインプロセス側にも Clean Architecture 4層構成を適用

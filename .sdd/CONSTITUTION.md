@@ -542,21 +542,6 @@ src/
 - レンダラーでは VContainerProvider を React ツリーのルート付近に配置し、useResolve() でサービスを取得する
 - メインプロセスでは VContainer の container API を直接使用する
 
-**移行状態**:
-
-上記のモジュール構成は目標構造である。現在のコードは以下の暫定構造で実装されており、目標構造への移行は別タスクで実施する。
-
-```
-# 現在の暫定構造（移行前）
-src/
-├── main.ts, preload.ts, index.tsx, App.tsx  # エントリーポイント（フラット配置）
-├── features/                                    # プロセス未分離（レンダラー + メインが混在）
-├── di/                                          # 集約エントリーポイント
-├── lib/                                         # shared/lib 相当
-├── types/                                       # shared/types 相当
-└── components/                                  # renderer/components 相当
-```
-
 ## 意思決定フレームワーク
 
 技術的トレードオフに直面した場合、以下の順序で優先順位付けします：
