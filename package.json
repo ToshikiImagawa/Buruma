@@ -3,7 +3,7 @@
   "productName": "Buruma",
   "version": "0.1.0",
   "description": "Branch-United Real-time Understanding & Multi-worktree Analyzer",
-  "main": ".vite/build/main.js",
+  "main": ".vite/build/index.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
@@ -20,7 +20,7 @@
   "keywords": [],
   "author": {
     "name": "Toshiki Imagawa",
-    "email": "toshiki.imagawa+dena@dena.com"
+    "email": "shibainusamulai@gmail.com"
   },
   "license": "MIT",
   "devDependencies": {
