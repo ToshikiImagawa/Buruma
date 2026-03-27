@@ -1,7 +1,6 @@
 import path from 'node:path'
 import { mainConfigs } from '@main/di/configs'
-import { VContainer } from '@shared/lib/di/container'
-import { DisposableStack } from '@shared/lib/di/disposable-stack'
+import { createContainer, createDisposableStack } from '@shared/lib/di'
 import { BrowserWindow, app } from 'electron'
 import started from 'electron-squirrel-startup'
 
@@ -10,8 +9,8 @@ if (started) {
   app.quit()
 }
 
-const container = new VContainer()
-const cleanupStack = new DisposableStack()
+const container = createContainer()
+const cleanupStack = createDisposableStack()
 
 const createWindow = () => {
   // Create the browser window.
@@ -37,30 +36,34 @@ const createWindow = () => {
 }
 
 app.on('ready', async () => {
-  // Register all feature configs
-  for (const config of mainConfigs) {
-    config.register?.(container)
-  }
+  try {
+    // Register all feature configs
+    for (const config of mainConfigs) {
+      config.register?.(container)
+    }
 
-  // Run setUp in priority order
-  const priorityGroups = new Map<number, typeof mainConfigs>()
-  for (const config of mainConfigs) {
-    if (!config.setUp) continue
-    const priority = config.priority ?? 0
-    const group = priorityGroups.get(priority) ?? []
-    group.push(config)
-    priorityGroups.set(priority, group)
-  }
+    // Run setUp in priority order
+    const priorityGroups = new Map<number, typeof mainConfigs>()
+    for (const config of mainConfigs) {
+      if (!config.setUp) continue
+      const priority = config.priority ?? 0
+      const group = priorityGroups.get(priority) ?? []
+      group.push(config)
+      priorityGroups.set(priority, group)
+    }
 
-  const sortedPriorities = [...priorityGroups.keys()].sort((a, b) => a - b)
-  for (const priority of sortedPriorities) {
-    const group = priorityGroups.get(priority)!
-    const tearDowns = await Promise.all(group.map((config) => config.setUp!(container)))
-    for (const tearDown of tearDowns) {
-      if (typeof tearDown === 'function') {
-        cleanupStack.defer(tearDown)
+    const sortedPriorities = [...priorityGroups.keys()].sort((a, b) => a - b)
+    for (const priority of sortedPriorities) {
+      const group = priorityGroups.get(priority)!
+      const tearDowns = await Promise.all(group.map((config) => config.setUp!(container)))
+      for (const tearDown of tearDowns) {
+        if (typeof tearDown === 'function') {
+          cleanupStack.defer(tearDown)
+        }
       }
     }
+  } catch (error) {
+    console.error('[Main] Container initialization failed:', error)
   }
 
   createWindow()
