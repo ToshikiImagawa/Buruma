@@ -8,18 +8,16 @@ export class WorktreeService implements IWorktreeService {
   private readonly _selectedWorktreePath$ = new BehaviorSubject<string | null>(null)
   private readonly _sortOrder$ = new BehaviorSubject<WorktreeSortOrder>('name')
 
-  get worktrees$(): Observable<WorktreeInfo[]> {
-    return combineLatest([this._worktrees$, this._sortOrder$]).pipe(
+  readonly worktrees$: Observable<WorktreeInfo[]>
+  readonly selectedWorktreePath$: Observable<string | null>
+  readonly sortOrder$: Observable<WorktreeSortOrder>
+
+  constructor() {
+    this.worktrees$ = combineLatest([this._worktrees$, this._sortOrder$]).pipe(
       map(([worktrees, order]) => this.sortWorktrees(worktrees, order)),
     )
-  }
-
-  get selectedWorktreePath$(): Observable<string | null> {
-    return this._selectedWorktreePath$.asObservable()
-  }
-
-  get sortOrder$(): Observable<WorktreeSortOrder> {
-    return this._sortOrder$.asObservable()
+    this.selectedWorktreePath$ = this._selectedWorktreePath$.asObservable()
+    this.sortOrder$ = this._sortOrder$.asObservable()
   }
 
   setUp(initialWorktrees: WorktreeInfo[]): void {

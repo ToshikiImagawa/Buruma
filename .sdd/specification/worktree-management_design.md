@@ -4,7 +4,7 @@ title: "ワークツリー管理"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-03-27"
 depends-on: ["spec-worktree-management"]
@@ -23,25 +23,25 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装済み
 
 ## 1.1. 実装進捗
 
 | モジュール | プロセス | 層 | ステータス | 備考 |
 |-----------|---------|-----|----------|------|
-| WorktreeMainUseCase | main | application | 🔴 | ワークツリー CRUD オーケストレーション |
-| WorktreeGitService | main | infrastructure | 🔴 | simple-git ラッパー |
-| WorktreeWatcher | main | infrastructure | 🔴 | chokidar ファイルシステム監視 |
-| IPC Handlers (worktree:*) | main | presentation | 🔴 | IPC チャネル登録・ルーティング |
-| DI 設定 (main) | main | — | 🔴 | di-tokens.ts / di-config.ts |
-| WorktreeService | renderer | application | 🔴 | BehaviorSubject 状態管理 |
-| UseCases | renderer | application | 🔴 | List, Create, Delete, Select 等 |
-| WorktreeRepositoryImpl | renderer | infrastructure | 🔴 | IPC クライアント |
-| ViewModels | renderer | presentation | 🔴 | WorktreeList / Detail ViewModel |
-| React Components | renderer | presentation | 🔴 | WorktreeList, Detail, Dialogs |
-| DI 設定 (renderer) | renderer | — | 🔴 | di-tokens.ts / di-config.ts |
-| Worktree domain types | shared | domain | 🔴 | WorktreeInfo, WorktreeStatus 等 |
-| IPC 型拡張 | shared | types | 🔴 | IPCChannelMap, ElectronAPI 拡張 |
+| WorktreeMainUseCase | main | application | 🟢 | ワークツリー CRUD オーケストレーション |
+| WorktreeGitService | main | infrastructure | 🟢 | simple-git ラッパー |
+| WorktreeWatcher | main | infrastructure | 🟢 | chokidar ファイルシステム監視 |
+| IPC Handlers (worktree:*) | main | presentation | 🟢 | IPC チャネル登録・ルーティング |
+| DI 設定 (main) | main | — | 🟢 | di-tokens.ts / di-config.ts |
+| WorktreeService | renderer | application | 🟢 | BehaviorSubject 状態管理 |
+| UseCases | renderer | application | 🟢 | List, Create, Delete, Select 等（9実装） |
+| WorktreeRepositoryImpl | renderer | infrastructure | 🟢 | IPC クライアント |
+| ViewModels | renderer | presentation | 🟢 | WorktreeList / Detail ViewModel |
+| React Components | renderer | presentation | 🟢 | WorktreeList, Detail, Dialogs（5コンポーネント） |
+| DI 設定 (renderer) | renderer | — | 🟢 | di-tokens.ts / di-config.ts |
+| Worktree domain types | shared | domain | 🟢 | WorktreeInfo, WorktreeStatus 等 |
+| IPC 型拡張 | shared | types | 🟢 | IPCChannelMap, ElectronAPI 拡張 |
 
 ---
 
