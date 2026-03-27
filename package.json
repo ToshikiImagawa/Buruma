@@ -3,7 +3,7 @@
   "productName": "Buruma",
   "version": "0.1.0",
   "description": "Branch-United Real-time Understanding & Multi-worktree Analyzer",
-  "main": ".vite/build/index.js",
+  "main": ".vite/build/main.js",
   "private": true,
   "scripts": {
     "start": "electron-forge start",
