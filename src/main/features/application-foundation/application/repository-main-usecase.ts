@@ -1,6 +1,5 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from './repository-interfaces'
-import path from 'path'
 
 const MAX_RECENT = 20
 
@@ -23,7 +22,7 @@ export class RepositoryMainUseCase {
 
     const repoInfo: RepositoryInfo = {
       path: dirPath,
-      name: path.basename(dirPath),
+      name: dirPath.split(/[/\\]/).filter(Boolean).pop() ?? dirPath,
       isValid: true,
     }
 
