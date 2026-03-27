@@ -47,4 +47,8 @@ export class WorktreeMainUseCase {
   async checkDirty(worktreePath: string): Promise<boolean> {
     return this.gitService.isDirty(worktreePath)
   }
+
+  async getDefaultBranch(repoPath: string): Promise<string> {
+    return this.gitService.getDefaultBranch(repoPath)
+  }
 }

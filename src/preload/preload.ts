@@ -37,6 +37,7 @@ const electronAPI: ElectronAPI = {
     suggestPath: (repoPath: string, branch: string) =>
       ipcRenderer.invoke('worktree:suggest-path', { repoPath, branch }),
     checkDirty: (worktreePath: string) => ipcRenderer.invoke('worktree:check-dirty', worktreePath),
+    defaultBranch: (repoPath: string) => ipcRenderer.invoke('worktree:default-branch', repoPath),
     onChanged: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
         callback(data)

@@ -32,8 +32,14 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
       setWorktreePath('')
       setCreateNewBranch(true)
       setStartPoint('')
+      // デフォルトブランチを取得して開始ポイントに設定
+      window.electronAPI.worktree.defaultBranch(repoPath).then((result) => {
+        if (result.success) {
+          setStartPoint(result.data)
+        }
+      })
     }
-  }, [open])
+  }, [open, repoPath])
 
   useEffect(() => {
     if (!branch) return

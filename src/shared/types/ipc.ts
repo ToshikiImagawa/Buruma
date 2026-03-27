@@ -65,6 +65,7 @@ export interface IPCChannelMap {
     result: IPCResult<string>
   }
   'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
+  'worktree:default-branch': { args: [string]; result: IPCResult<string> }
 }
 
 /** main → renderer イベント */
@@ -97,6 +98,7 @@ export interface ElectronAPI {
     delete(params: import('../domain').WorktreeDeleteParams): Promise<IPCResult<void>>
     suggestPath(repoPath: string, branch: string): Promise<IPCResult<string>>
     checkDirty(worktreePath: string): Promise<IPCResult<boolean>>
+    defaultBranch(repoPath: string): Promise<IPCResult<string>>
     onChanged(callback: (event: import('../domain').WorktreeChangeEvent) => void): () => void
   }
 }

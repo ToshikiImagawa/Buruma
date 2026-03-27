@@ -57,14 +57,15 @@ describe('IPC Handlers 結合テスト', () => {
     handlers.clear()
   })
 
-  it('全6チャネルが登録される', () => {
-    expect(handlers.size).toBe(6)
+  it('全7チャネルが登録される', () => {
+    expect(handlers.size).toBe(7)
     expect(handlers.has('worktree:list')).toBe(true)
     expect(handlers.has('worktree:status')).toBe(true)
     expect(handlers.has('worktree:create')).toBe(true)
     expect(handlers.has('worktree:delete')).toBe(true)
     expect(handlers.has('worktree:suggest-path')).toBe(true)
     expect(handlers.has('worktree:check-dirty')).toBe(true)
+    expect(handlers.has('worktree:default-branch')).toBe(true)
   })
 
   describe('worktree:list', () => {

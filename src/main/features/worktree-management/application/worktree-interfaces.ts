@@ -9,6 +9,7 @@ export interface IWorktreeGitService {
   removeWorktree(worktreePath: string, force: boolean): Promise<void>
   isMainWorktree(worktreePath: string): Promise<boolean>
   isDirty(worktreePath: string): Promise<boolean>
+  getDefaultBranch(repoPath: string): Promise<string>
 }
 
 /** ファイルシステム監視の抽象インターフェース */

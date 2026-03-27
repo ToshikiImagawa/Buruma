@@ -32,4 +32,8 @@ export function registerIPCHandlers(useCase: WorktreeMainUseCase): void {
   ipcMain.handle('worktree:check-dirty', (_event, worktreePath: string) =>
     wrapHandler(() => useCase.checkDirty(worktreePath)),
   )
+
+  ipcMain.handle('worktree:default-branch', (_event, repoPath: string) =>
+    wrapHandler(() => useCase.getDefaultBranch(repoPath)),
+  )
 }

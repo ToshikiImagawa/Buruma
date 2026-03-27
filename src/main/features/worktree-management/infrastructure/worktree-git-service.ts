@@ -175,6 +175,28 @@ export class WorktreeGitService implements IWorktreeGitService {
     }
   }
 
+  async getDefaultBranch(repoPath: string): Promise<string> {
+    const git = simpleGit(repoPath)
+    try {
+      // origin/HEAD から追跡するデフォルトブランチを取得
+      const ref = (await git.raw(['symbolic-ref', 'refs/remotes/origin/HEAD'])).trim()
+      return ref.replace('refs/remotes/origin/', '')
+    } catch {
+      // origin/HEAD が未設定の場合、main → master の順でフォールバック
+      try {
+        await git.raw(['rev-parse', '--verify', 'refs/heads/main'])
+        return 'main'
+      } catch {
+        try {
+          await git.raw(['rev-parse', '--verify', 'refs/heads/master'])
+          return 'master'
+        } catch {
+          return 'main'
+        }
+      }
+    }
+  }
+
   async isDirty(worktreePath: string): Promise<boolean> {
     try {
       const git = simpleGit(worktreePath)

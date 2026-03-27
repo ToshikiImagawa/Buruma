@@ -11,6 +11,7 @@ function createMockGitService(): IWorktreeGitService {
     removeWorktree: vi.fn(),
     isMainWorktree: vi.fn(),
     isDirty: vi.fn(),
+    getDefaultBranch: vi.fn(),
   }
 }
 
