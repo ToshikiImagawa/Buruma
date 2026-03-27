@@ -8,6 +8,7 @@ import {
   SettingsDialog,
 } from '@renderer/features/application-foundation/presentation/components'
 import { useRepositorySelectorViewModel } from '@renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
+import { WorktreeList, WorktreeDetail } from '@renderer/features/worktree-management/presentation/components'
 import { VContainerProvider } from '@shared/lib/di/v-container-provider'
 import { Toaster } from 'sonner'
 
@@ -20,11 +21,12 @@ function AppContent() {
     <>
       <AppLayout onSettingsClick={() => setSettingsOpen(true)}>
         {currentRepository ? (
-          <div className="flex h-full items-center justify-center">
-            <div className="text-center">
-              <h2 className="text-2xl font-bold">{currentRepository.name}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">{currentRepository.path}</p>
-              <p className="mt-4 text-muted-foreground">ワークツリー管理画面（今後実装予定）</p>
+          <div className="flex h-full">
+            <aside className="w-64 shrink-0 border-r">
+              <WorktreeList repoPath={currentRepository.path} />
+            </aside>
+            <div className="flex-1 overflow-auto">
+              <WorktreeDetail />
             </div>
           </div>
         ) : (
