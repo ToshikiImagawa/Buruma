@@ -36,7 +36,7 @@ risk: "high"
 | infrastructure 層（メインプロセス側） | 🟢 | IPC ハンドラー + データアクセス |
 | presentation 層（ViewModel） | 🟢 | 純粋 TypeScript クラス |
 | presentation 層（Hook ラッパー） | 🟢 | useXxxViewModel |
-| presentation 層（React コンポーネント） | 🔴 | UI コンポーネント（別 feature で実装予定） |
+| presentation 層（React コンポーネント） | 🟢 | RepositorySelectorDialog, RecentRepositoriesList, SettingsDialog, ErrorNotificationToast, AppLayout, MainHeader, ThemeProvider |
 
 ---
 
@@ -142,35 +142,52 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `features/application-foundation/domain/` |
-| RepositoryRepository (IF) | application | リポジトリアクセス IF | `features/application-foundation/application/` |
-| SettingsRepository (IF) | application | 設定アクセス IF | `features/application-foundation/application/` |
-| RepositoryService | application | リポジトリ状態管理（ステートフル） | `features/application-foundation/application/` |
-| SettingsService | application | 設定状態管理（ステートフル） | `features/application-foundation/application/` |
-| ErrorNotificationService | application | エラー通知状態管理（ステートフル） | `features/application-foundation/application/` |
-| OpenRepositoryUseCase | application | リポジトリオープン（ステートレス） | `features/application-foundation/application/` |
-| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得（ステートレス） | `features/application-foundation/application/` |
-| GetSettingsUseCase | application | 設定取得（ステートレス） | `features/application-foundation/application/` |
-| UpdateSettingsUseCase | application | 設定更新（ステートレス） | `features/application-foundation/application/` |
-| GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `features/application-foundation/application/` |
-| RepositoryRepositoryImpl | infrastructure | IPC 経由のリポジトリ実装 | `features/application-foundation/infrastructure/` |
-| SettingsRepositoryImpl | infrastructure | IPC 経由の設定実装 | `features/application-foundation/infrastructure/` |
-| RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `features/application-foundation/presentation/` |
-| SettingsViewModel | presentation | 設定 ViewModel | `features/application-foundation/presentation/` |
-| ErrorNotificationViewModel | presentation | エラー通知 ViewModel | `features/application-foundation/presentation/` |
-| useRepositorySelectorViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
-| useSettingsViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
-| useErrorNotificationViewModel | presentation | Hook ラッパー | `features/application-foundation/presentation/` |
+| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `shared/domain/` |
+| RepositoryRepository (IF) | application | リポジトリアクセス IF | `renderer/features/application-foundation/application/` |
+| SettingsRepository (IF) | application | 設定アクセス IF | `renderer/features/application-foundation/application/` |
+| RepositoryService | application | リポジトリ状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| SettingsService | application | 設定状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| ErrorNotificationService | application | エラー通知状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
+| OpenRepositoryUseCase | application | リポジトリオープン（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetSettingsUseCase | application | 設定取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| UpdateSettingsUseCase | application | 設定更新（ステートレス） | `renderer/features/application-foundation/application/` |
+| GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| RepositoryRepositoryImpl | infrastructure | IPC 経由のリポジトリ実装 | `renderer/features/application-foundation/infrastructure/` |
+| SettingsRepositoryImpl | infrastructure | IPC 経由の設定実装 | `renderer/features/application-foundation/infrastructure/` |
+| RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `renderer/features/application-foundation/presentation/` |
+| SettingsViewModel | presentation | 設定 ViewModel | `renderer/features/application-foundation/presentation/` |
+| ErrorNotificationViewModel | presentation | エラー通知 ViewModel | `renderer/features/application-foundation/presentation/` |
+| useRepositorySelectorViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| useSettingsViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| useErrorNotificationViewModel | presentation | Hook ラッパー | `renderer/features/application-foundation/presentation/` |
+| RepositorySelectorDialog | presentation | リポジトリ選択ダイアログ（React） | `renderer/features/application-foundation/presentation/components/` |
+| RecentRepositoriesList | presentation | 最近のリポジトリ一覧（React） | `renderer/features/application-foundation/presentation/components/` |
+| SettingsDialog | presentation | 設定ダイアログ（React） | `renderer/features/application-foundation/presentation/components/` |
+| ErrorNotificationToast | presentation | エラー通知トースト（React） | `renderer/features/application-foundation/presentation/components/` |
+| AppLayout | presentation | メインレイアウト（React） | `renderer/components/layout/` |
+| MainHeader | presentation | ヘッダーコンポーネント（React） | `renderer/components/layout/` |
+| ThemeProvider | presentation | テーマ切り替えプロバイダー（React） | `renderer/components/` |
 
-### メインプロセス側（infrastructure 層のみ）
+### メインプロセス側（Clean Architecture 4層構成）
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|---|---|---|---|
+| RepositoryInfo, AppSettings 等 | domain | エンティティ（プロセス間共有） | `shared/domain/` |
+| IPC Handlers | presentation | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/` |
+| RepositoryMainUseCase | application | Git 検証、履歴管理ビジネスルール | `main/features/application-foundation/application/` |
+| SettingsMainUseCase | application | 設定管理オーケストレーション | `main/features/application-foundation/application/` |
+| StoreRepository | infrastructure | electron-store データアクセス | `main/features/application-foundation/infrastructure/` |
+| GitRepositoryValidator | infrastructure | execFile による Git 検証 | `main/features/application-foundation/infrastructure/` |
+| DialogService | infrastructure | Electron dialog API | `main/features/application-foundation/infrastructure/` |
+
+### プロセス間共有
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| IPC Handlers | IPC チャネルの登録・ルーティング | `features/application-foundation/infrastructure/main/` |
-| RepositoryMainService | Git リポジトリ検証・履歴管理 | `features/application-foundation/infrastructure/main/` |
-| SettingsMainService | 設定の読み書き（electron-store） | `features/application-foundation/infrastructure/main/` |
-| IPC 型定義 | IPC チャネルの型定義（共有） | `src/types/ipc.ts` |
-| Preload API | contextBridge による API 公開 | `src/preload.ts` |
+| Domain 型 | エンティティ（RepositoryInfo, AppSettings 等） | `shared/domain/` |
+| IPC 型定義 | IPC チャネルの型定義 | `shared/types/ipc.ts` |
+| Preload API | contextBridge による API 公開 | `preload/index.ts` |
 
 ---
 
@@ -201,7 +218,7 @@ const storeDefaults: StoreSchema = {
 ## 6.1. DI コンテナ登録
 
 ```typescript
-// src/features/application-foundation/di.ts
+// src/renderer/features/application-foundation/di-config.ts（目標パス）
 import type { VContainerConfig } from '@/lib/di'
 
 export const applicationFoundationConfig: VContainerConfig = {
@@ -434,22 +451,59 @@ export function registerIPCHandlers(
 | トースト通知ライブラリ | react-hot-toast / react-toastify / Sonner | Sonner | Shadcn/ui 推奨。Tailwind CSS との親和性が高い（原則 A-002） |
 | テーマ管理 | CSS 変数 / Tailwind dark mode / next-themes | Tailwind CSS dark mode + CSS 変数 | Shadcn/ui のテーマ機構と統合。system テーマは `prefers-color-scheme` メディアクエリ |
 | IPC チャネル命名 | フラット / 名前空間 | 名前空間方式 (`domain:action`) | チャネル数増加時の管理性。ドメインごとのグルーピング |
-| メインプロセスの層構成 | 4層 / infrastructure のみ | infrastructure のみ | メインプロセス側はビジネスロジックを持たず、IPC ハンドラー + データアクセスのみ。4層にする必要がない |
+| メインプロセスの層構成 | 4層 / infrastructure のみ | **4層構成** | メインプロセスにも Git 検証・履歴管理等のビジネスロジックが存在するため4層構成を適用。IPC Handler = presentation、UseCase = application、electron-store 等 = infrastructure |
+| プロセス別ディレクトリ分離 | feature 内 / プロセス別 | **プロセス別** | `src/main/`, `src/renderer/`, `src/shared/` に分離。ビルド境界と一致し、プロセス間の不正な依存を防止 |
 | ViewModel の DI ライフタイム | singleton / transient | transient | コンポーネント単位でライフサイクルを管理。画面遷移時に自動的に新しいインスタンスが作成される |
+| テーマ切り替え方式 | CSS 変数 / class 切り替え | `<html>` の `class="dark"` 切り替え | Tailwind CSS dark mode が class 戦略を使用。system 連動は `window.matchMedia('prefers-color-scheme: dark')` で検出 |
+| トースト通知の実装方式 | コンポーネント描画 / API 呼び出し | Sonner の `toast()` API を useEffect 内で呼び出し | コンポーネント自体は null を返し、notifications の変更を監視して toast() を発火 |
+| リポジトリリストのソート順 | アクセス日時 / ピン留め優先 | ピン留め優先 → 最終アクセス日時降順 | ピン留めリポジトリを上位表示し、頻繁に使うリポジトリへのアクセス性を向上 |
+| リポジトリ選択ダイアログの初期表示 | 手動オープン / 自動オープン | アプリ起動時に自動オープン（`open={true}`） | currentRepository が null の場合、ユーザーは操作できないためオンボーディングとして表示 |
 
 ## 9.2. 未解決の課題
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
-| electron-store の Vite 5 との ESM 互換性 | 中 | 実装時に検証。問題がある場合は conf ライブラリを代替案とする |
+| electron-store の Vite 5 との ESM 互換性 | 低 | ✅ 検証済み。Vite 5 + Electron Forge 環境で正常動作を確認 |
 | 大量の IPC チャネル定義の管理方法 | 低 | 初期は手動定義。チャネル数が増えた段階でコード生成を検討 |
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
 | RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
 | IPC ハンドラーの入力バリデーション | 低 | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討 |
+| メインプロセス UseCase のユニットテスト | 低 | ✅ 解決済み。RepositoryMainUseCase（13テスト）、SettingsMainUseCase（5テスト）を作成 |
+| ドキュメント移行注記の削除 | 低 | ✅ 解決済み。design.md, CONSTITUTION.md の移行注記を削除 |
 
 ---
 
 # 10. 変更履歴
+
+## v3.0 (2026-03-26)
+
+**変更内容:**
+
+- プロセス別ディレクトリ分離を設計方針として決定（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
+- メインプロセス側にも Clean Architecture 4層構成を適用
+  - presentation: IPC Handler（Controller 相当）
+  - application: UseCase（Git 検証、履歴管理ビジネスルール）
+  - infrastructure: electron-store, execFile, dialog
+  - domain: shared/ から参照
+- メインプロセスでも VContainer を使用（container API）
+- IPC の層の位置づけを明確化（レンダラー側 = infrastructure、メインプロセス側 = presentation）
+- 設計判断「メインプロセスは infrastructure のみ」を「4層構成」に変更
+
+## v2.1 (2026-03-26)
+
+**変更内容:**
+
+- React コンポーネント実装完了（presentation 層）
+  - RepositorySelectorDialog: リポジトリ選択ダイアログ
+  - RecentRepositoriesList: 最近開いたリポジトリ一覧
+  - SettingsDialog: 設定ダイアログ（テーマ、Git パス、デフォルトディレクトリ）
+  - ErrorNotificationToast: エラー通知トースト（Sonner）
+  - AppLayout: メインレイアウト
+  - MainHeader: ヘッダーコンポーネント
+  - ThemeProvider: テーマ切り替え（light/dark/system）
+- コンポーネントテスト追加（186 テスト全てパス）
+- アクセシビリティ対応（ARIA 属性、キーボードナビゲーション）
+- electron-store の ESM 互換性を検証・確認
 
 ## v2.0
 
