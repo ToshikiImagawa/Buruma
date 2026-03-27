@@ -1,0 +1,61 @@
+import { BehaviorSubject, combineLatest, type Observable } from 'rxjs'
+import { map } from 'rxjs/operators'
+import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
+import type { IWorktreeService } from '../di-tokens'
+
+export class WorktreeService implements IWorktreeService {
+  private readonly _worktrees$ = new BehaviorSubject<WorktreeInfo[]>([])
+  private readonly _selectedWorktreePath$ = new BehaviorSubject<string | null>(null)
+  private readonly _sortOrder$ = new BehaviorSubject<WorktreeSortOrder>('name')
+
+  get worktrees$(): Observable<WorktreeInfo[]> {
+    return combineLatest([this._worktrees$, this._sortOrder$]).pipe(
+      map(([worktrees, order]) => this.sortWorktrees(worktrees, order)),
+    )
+  }
+
+  get selectedWorktreePath$(): Observable<string | null> {
+    return this._selectedWorktreePath$.asObservable()
+  }
+
+  get sortOrder$(): Observable<WorktreeSortOrder> {
+    return this._sortOrder$.asObservable()
+  }
+
+  setUp(initialWorktrees: WorktreeInfo[]): void {
+    this._worktrees$.next(initialWorktrees)
+  }
+
+  tearDown(): void {
+    this._worktrees$.complete()
+    this._selectedWorktreePath$.complete()
+    this._sortOrder$.complete()
+  }
+
+  updateWorktrees(worktrees: WorktreeInfo[]): void {
+    this._worktrees$.next(worktrees)
+  }
+
+  setSelectedWorktree(path: string | null): void {
+    this._selectedWorktreePath$.next(path)
+  }
+
+  setSortOrder(order: WorktreeSortOrder): void {
+    this._sortOrder$.next(order)
+  }
+
+  private sortWorktrees(worktrees: WorktreeInfo[], order: WorktreeSortOrder): WorktreeInfo[] {
+    const sorted = [...worktrees]
+    if (order === 'name') {
+      sorted.sort((a, b) => {
+        const nameA = a.path.split('/').pop() ?? ''
+        const nameB = b.path.split('/').pop() ?? ''
+        return nameA.localeCompare(nameB)
+      })
+    }
+    // 'last-updated' は headMessage/head ベースでのソートが必要だが、
+    // WorktreeInfo に author date がないため、現時点では name ソートのみ実装
+    // 将来的に WorktreeInfo に lastUpdated フィールドを追加して対応
+    return sorted
+  }
+}
