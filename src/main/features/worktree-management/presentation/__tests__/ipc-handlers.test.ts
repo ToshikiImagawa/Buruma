@@ -148,7 +148,11 @@ describe('IPC Handlers 結合テスト', () => {
   })
 
   describe('worktree:suggest-path', () => {
-    it('パスを提案する', async () => {
+    it('メインワークツリーをベースにパスを提案する', async () => {
+      vi.mocked(gitService.listWorktrees).mockResolvedValue([
+        createWorktreeInfo({ path: '/home/user/myrepo', isMain: true }),
+      ])
+
       const handler = handlers.get('worktree:suggest-path')!
       const result = (await handler(
         {},

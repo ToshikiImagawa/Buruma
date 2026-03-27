@@ -117,13 +117,22 @@ describe('WorktreeMainUseCase', () => {
   })
 
   describe('suggestPath', () => {
-    it('親ディレクトリ + リポ名 + ブランチ名でパスを提案する', async () => {
-      const result = await useCase.suggestPath('/home/user/myrepo', 'feature/foo')
+    it('メインワークツリーのパスをベースにパスを提案する', async () => {
+      vi.mocked(gitService.listWorktrees).mockResolvedValue([
+        createWorktreeInfo({ path: '/home/user/myrepo', isMain: true }),
+        createWorktreeInfo({ path: '/home/user/myrepo+other', isMain: false }),
+      ])
+
+      const result = await useCase.suggestPath('/home/user/myrepo+other', 'feature/foo')
 
       expect(result).toBe('/home/user/myrepo+feature-foo')
     })
 
     it('特殊文字をサニタイズする', async () => {
+      vi.mocked(gitService.listWorktrees).mockResolvedValue([
+        createWorktreeInfo({ path: '/home/user/myrepo', isMain: true }),
+      ])
+
       const result = await useCase.suggestPath('/home/user/myrepo', 'feat:bar*baz')
 
       expect(result).toBe('/home/user/myrepo+feat-bar-baz')

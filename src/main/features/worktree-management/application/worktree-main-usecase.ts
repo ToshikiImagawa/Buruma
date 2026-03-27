@@ -33,8 +33,13 @@ export class WorktreeMainUseCase {
   }
 
   async suggestPath(repoPath: string, branch: string): Promise<string> {
-    const parentDir = path.dirname(repoPath)
-    const repoName = path.basename(repoPath)
+    // メインワークツリーのパスをベースにする
+    const worktrees = await this.gitService.listWorktrees(repoPath)
+    const mainWorktree = worktrees.find((wt) => wt.isMain)
+    const basePath = mainWorktree?.path ?? repoPath
+
+    const parentDir = path.dirname(basePath)
+    const repoName = path.basename(basePath)
     const sanitizedBranch = branch.replace(/[/\\:*?"<>|]/g, '-')
     return path.join(parentDir, `${repoName}+${sanitizedBranch}`)
   }

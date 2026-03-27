@@ -36,11 +36,16 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
   }, [open])
 
   useEffect(() => {
-    if (branch) {
-      const sanitized = branch.replace(/[/\\:*?"<>|]/g, '-')
-      const repoName = repoPath.split('/').pop() ?? 'repo'
-      const parent = repoPath.split('/').slice(0, -1).join('/')
-      setWorktreePath(`${parent}/${repoName}+${sanitized}`)
+    if (!branch) return
+    let cancelled = false
+    window.electronAPI.worktree.suggestPath(repoPath, branch).then((result) => {
+      if (cancelled) return
+      if (result.success) {
+        setWorktreePath(result.data)
+      }
+    })
+    return () => {
+      cancelled = true
     }
   }, [branch, repoPath])
 
