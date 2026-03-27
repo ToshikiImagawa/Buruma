@@ -48,3 +48,58 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gitPath: null,
   defaultWorkDir: null,
 }
+
+// --- ワークツリー管理 ---
+
+/** ワークツリー情報（git worktree list --porcelain のパース結果） */
+export interface WorktreeInfo {
+  path: string
+  branch: string | null // detached HEAD の場合 null
+  head: string // HEAD コミット SHA（短縮形）
+  headMessage: string // HEAD コミットメッセージ（1行目）
+  isMain: boolean
+  isDirty: boolean
+}
+
+/** ワークツリー詳細ステータス */
+export interface WorktreeStatus {
+  worktree: WorktreeInfo
+  staged: FileChange[]
+  unstaged: FileChange[]
+  untracked: string[]
+}
+
+/** ファイル変更情報 */
+export interface FileChange {
+  path: string
+  status: FileChangeStatus
+}
+
+/** ファイル変更ステータス */
+export type FileChangeStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied'
+
+/** ワークツリー作成パラメータ */
+export interface WorktreeCreateParams {
+  repoPath: string
+  worktreePath: string
+  branch: string
+  createNewBranch: boolean
+  startPoint?: string
+}
+
+/** ワークツリー削除パラメータ */
+export interface WorktreeDeleteParams {
+  repoPath: string
+  worktreePath: string
+  force: boolean
+}
+
+/** ワークツリー状態変化イベント */
+export interface WorktreeChangeEvent {
+  repoPath: string
+  type: 'added' | 'removed' | 'modified'
+  worktreePath: string
+}
+
+/** ワークツリー一覧の並び替えオプション */
+export type WorktreeSortOrder = 'name' | 'last-updated'
