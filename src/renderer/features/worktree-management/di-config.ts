@@ -1,33 +1,33 @@
-import type { VContainerConfig } from '@shared/lib/di'
 import type { WorktreeInfo } from '@shared/domain'
-import {
-  WorktreeRepositoryToken,
-  WorktreeServiceToken,
-  ListWorktreesUseCaseToken,
-  SelectWorktreeUseCaseToken,
-  CreateWorktreeUseCaseToken,
-  DeleteWorktreeUseCaseToken,
-  RefreshWorktreesUseCaseToken,
-  SuggestPathUseCaseToken,
-  CheckDirtyUseCaseToken,
-  GetSelectedWorktreeUseCaseToken,
-  GetWorktreeStatusUseCaseToken,
-  WorktreeListViewModelToken,
-  WorktreeDetailViewModelToken,
-} from './di-tokens'
-import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-impl'
-import { WorktreeService } from './application/worktree-service'
-import { ListWorktreesUseCaseImpl } from './application/usecases/list-worktrees-usecase'
-import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
+import type { VContainerConfig } from '@shared/lib/di'
+import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeUseCaseImpl } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeUseCaseImpl } from './application/usecases/delete-worktree-usecase'
-import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-worktrees-usecase'
-import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
-import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { GetSelectedWorktreeUseCaseImpl } from './application/usecases/get-selected-worktree-usecase'
 import { GetWorktreeStatusUseCaseImpl } from './application/usecases/get-worktree-status-usecase'
-import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
+import { ListWorktreesUseCaseImpl } from './application/usecases/list-worktrees-usecase'
+import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-worktrees-usecase'
+import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
+import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
+import { WorktreeService } from './application/worktree-service'
+import {
+  CheckDirtyUseCaseToken,
+  CreateWorktreeUseCaseToken,
+  DeleteWorktreeUseCaseToken,
+  GetSelectedWorktreeUseCaseToken,
+  GetWorktreeStatusUseCaseToken,
+  ListWorktreesUseCaseToken,
+  RefreshWorktreesUseCaseToken,
+  SelectWorktreeUseCaseToken,
+  SuggestPathUseCaseToken,
+  WorktreeDetailViewModelToken,
+  WorktreeListViewModelToken,
+  WorktreeRepositoryToken,
+  WorktreeServiceToken,
+} from './di-tokens'
+import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-impl'
 import { WorktreeDetailViewModel } from './presentation/worktree-detail-viewmodel'
+import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
 
 export const worktreeManagementConfig: VContainerConfig = {
   register(container) {

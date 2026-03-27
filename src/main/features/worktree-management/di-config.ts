@@ -1,8 +1,8 @@
 import type { VContainerConfig } from '@shared/lib/di'
-import { WorktreeGitServiceToken, WorktreeWatcherToken, WorktreeMainUseCaseToken } from './di-tokens'
+import { WorktreeMainUseCase } from './application/worktree-main-usecase'
+import { WorktreeGitServiceToken, WorktreeMainUseCaseToken, WorktreeWatcherToken } from './di-tokens'
 import { WorktreeGitService } from './infrastructure/worktree-git-service'
 import { WorktreeWatcher } from './infrastructure/worktree-watcher'
-import { WorktreeMainUseCase } from './application/worktree-main-usecase'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const worktreeManagementMainConfig: VContainerConfig = {

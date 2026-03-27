@@ -1,11 +1,6 @@
-import path from 'node:path'
+import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 import type { IWorktreeGitService } from './worktree-interfaces'
-import type {
-  WorktreeInfo,
-  WorktreeStatus,
-  WorktreeCreateParams,
-  WorktreeDeleteParams,
-} from '@shared/domain'
+import path from 'node:path'
 
 export class WorktreeMainUseCase {
   constructor(private readonly gitService: IWorktreeGitService) {}

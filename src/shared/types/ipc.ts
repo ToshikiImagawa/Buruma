@@ -92,13 +92,8 @@ export interface ElectronAPI {
   onError(callback: (notification: import('../domain').ErrorNotification) => void): () => void
   worktree: {
     list(repoPath: string): Promise<IPCResult<import('../domain').WorktreeInfo[]>>
-    status(
-      repoPath: string,
-      worktreePath: string,
-    ): Promise<IPCResult<import('../domain').WorktreeStatus>>
-    create(
-      params: import('../domain').WorktreeCreateParams,
-    ): Promise<IPCResult<import('../domain').WorktreeInfo>>
+    status(repoPath: string, worktreePath: string): Promise<IPCResult<import('../domain').WorktreeStatus>>
+    create(params: import('../domain').WorktreeCreateParams): Promise<IPCResult<import('../domain').WorktreeInfo>>
     delete(params: import('../domain').WorktreeDeleteParams): Promise<IPCResult<void>>
     suggestPath(repoPath: string, branch: string): Promise<IPCResult<string>>
     checkDirty(worktreePath: string): Promise<IPCResult<boolean>>

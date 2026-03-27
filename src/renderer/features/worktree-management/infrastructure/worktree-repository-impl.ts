@@ -1,9 +1,9 @@
 import type {
-  WorktreeInfo,
-  WorktreeStatus,
+  WorktreeChangeEvent,
   WorktreeCreateParams,
   WorktreeDeleteParams,
-  WorktreeChangeEvent,
+  WorktreeInfo,
+  WorktreeStatus,
 } from '@shared/domain'
 import type { WorktreeRepository } from '../di-tokens'
 

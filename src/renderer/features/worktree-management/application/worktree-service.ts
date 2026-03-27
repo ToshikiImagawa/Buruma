@@ -1,7 +1,8 @@
-import { BehaviorSubject, combineLatest, type Observable } from 'rxjs'
-import { map } from 'rxjs/operators'
 import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
+import type { Observable } from 'rxjs'
 import type { IWorktreeService } from '../di-tokens'
+import { BehaviorSubject, combineLatest } from 'rxjs'
+import { map } from 'rxjs/operators'
 
 export class WorktreeService implements IWorktreeService {
   private readonly _worktrees$ = new BehaviorSubject<WorktreeInfo[]>([])

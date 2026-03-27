@@ -8,7 +8,7 @@ import {
   SettingsDialog,
 } from '@renderer/features/application-foundation/presentation/components'
 import { useRepositorySelectorViewModel } from '@renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
-import { WorktreeList, WorktreeDetail } from '@renderer/features/worktree-management/presentation/components'
+import { WorktreeDetail, WorktreeList } from '@renderer/features/worktree-management/presentation/components'
 import { VContainerProvider } from '@shared/lib/di/v-container-provider'
 import { Toaster } from 'sonner'
 

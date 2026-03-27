@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { firstValueFrom } from 'rxjs'
-import { WorktreeService } from '../worktree-service'
 import type { WorktreeInfo } from '@shared/domain'
+import { firstValueFrom } from 'rxjs'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { WorktreeService } from '../worktree-service'
 
 function createWorktreeInfo(overrides: Partial<WorktreeInfo> = {}): WorktreeInfo {
   return {
@@ -88,11 +88,7 @@ describe('WorktreeService', () => {
       service.setSortOrder('name')
 
       const result = await firstValueFrom(service.worktrees$)
-      expect(result.map((w) => w.path)).toEqual([
-        '/repo+a-feature',
-        '/repo+m-feature',
-        '/repo+z-feature',
-      ])
+      expect(result.map((w) => w.path)).toEqual(['/repo+a-feature', '/repo+m-feature', '/repo+z-feature'])
     })
   })
 })

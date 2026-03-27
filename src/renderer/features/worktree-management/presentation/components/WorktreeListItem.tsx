@@ -1,6 +1,6 @@
-import { GitBranch, Circle } from 'lucide-react'
-import { cn } from '@shared/lib/utils'
 import type { WorktreeInfo } from '@shared/domain'
+import { cn } from '@shared/lib/utils'
+import { Circle, GitBranch } from 'lucide-react'
 
 interface WorktreeListItemProps {
   worktree: WorktreeInfo
@@ -26,13 +26,9 @@ export function WorktreeListItem({ worktree, selected, onSelect }: WorktreeListI
         <div className="flex items-center gap-2">
           <span className="truncate font-medium">{worktree.branch ?? worktree.head}</span>
           {worktree.isMain && (
-            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">
-              main
-            </span>
+            <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-xs text-primary">main</span>
           )}
-          {worktree.isDirty && (
-            <Circle className="h-2 w-2 shrink-0 fill-orange-500 text-orange-500" />
-          )}
+          {worktree.isDirty && <Circle className="h-2 w-2 shrink-0 fill-orange-500 text-orange-500" />}
         </div>
         <p className="truncate text-xs text-muted-foreground">{displayName}</p>
       </div>

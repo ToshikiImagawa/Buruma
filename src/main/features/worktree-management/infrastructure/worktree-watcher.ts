@@ -1,8 +1,9 @@
-import path from 'node:path'
-import chokidar, { type FSWatcher } from 'chokidar'
+import type { WorktreeChangeEvent } from '@shared/domain'
+import type { FSWatcher } from 'chokidar'
 import type { BrowserWindow } from 'electron'
 import type { IWorktreeWatcher } from '../application/worktree-interfaces'
-import type { WorktreeChangeEvent } from '@shared/domain'
+import path from 'node:path'
+import chokidar from 'chokidar'
 
 export class WorktreeWatcher implements IWorktreeWatcher {
   private watcher: FSWatcher | null = null

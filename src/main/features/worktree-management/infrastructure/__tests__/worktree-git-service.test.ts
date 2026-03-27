@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, expect, it } from 'vitest'
 import { parsePorcelainOutput } from '../worktree-git-service'
 
 describe('parsePorcelainOutput', () => {
@@ -57,12 +57,7 @@ describe('parsePorcelainOutput', () => {
   })
 
   it('bare リポジトリエントリをパースする', () => {
-    const raw = [
-      'worktree /home/user/bare.git',
-      'HEAD ddd4444444444444444444444444444444444444',
-      'bare',
-      '',
-    ].join('\n')
+    const raw = ['worktree /home/user/bare.git', 'HEAD ddd4444444444444444444444444444444444444', 'bare', ''].join('\n')
 
     const result = parsePorcelainOutput(raw)
 

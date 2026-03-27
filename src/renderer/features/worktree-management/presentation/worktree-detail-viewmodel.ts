@@ -1,10 +1,7 @@
-import { BehaviorSubject, type Observable } from 'rxjs'
 import type { WorktreeInfo, WorktreeStatus } from '@shared/domain'
-import type {
-  IWorktreeDetailViewModel,
-  GetSelectedWorktreeUseCase,
-  GetWorktreeStatusUseCase,
-} from '../di-tokens'
+import type { Observable } from 'rxjs'
+import type { GetSelectedWorktreeUseCase, GetWorktreeStatusUseCase, IWorktreeDetailViewModel } from '../di-tokens'
+import { BehaviorSubject } from 'rxjs'
 
 export class WorktreeDetailViewModel implements IWorktreeDetailViewModel {
   private readonly _worktreeStatus$ = new BehaviorSubject<WorktreeStatus | null>(null)

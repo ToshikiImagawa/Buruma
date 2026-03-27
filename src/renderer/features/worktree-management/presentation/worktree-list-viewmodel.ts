@@ -1,13 +1,13 @@
+import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
 import type { Observable } from 'rxjs'
-import type { WorktreeInfo, WorktreeCreateParams, WorktreeDeleteParams, WorktreeSortOrder } from '@shared/domain'
 import type {
-  IWorktreeListViewModel,
-  ListWorktreesUseCase,
-  SelectWorktreeUseCase,
   CreateWorktreeUseCase,
   DeleteWorktreeUseCase,
-  RefreshWorktreesUseCase,
+  IWorktreeListViewModel,
   IWorktreeService,
+  ListWorktreesUseCase,
+  RefreshWorktreesUseCase,
+  SelectWorktreeUseCase,
 } from '../di-tokens'
 
 export class WorktreeListViewModel implements IWorktreeListViewModel {

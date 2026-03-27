@@ -1,20 +1,20 @@
-import { createToken } from '@shared/lib/di'
-import type { Observable } from 'rxjs'
 import type {
-  WorktreeInfo,
-  WorktreeStatus,
+  WorktreeChangeEvent,
   WorktreeCreateParams,
   WorktreeDeleteParams,
-  WorktreeChangeEvent,
+  WorktreeInfo,
   WorktreeSortOrder,
+  WorktreeStatus,
 } from '@shared/domain'
+import type { ParameterizedService } from '@shared/lib/service'
 import type {
   ConsumerUseCase,
-  RunnableUseCase,
   FunctionUseCase,
   ObservableStoreUseCase,
+  RunnableUseCase,
 } from '@shared/lib/usecase/types'
-import type { ParameterizedService } from '@shared/lib/service'
+import type { Observable } from 'rxjs'
+import { createToken } from '@shared/lib/di'
 
 // --- Repository IF ---
 export interface WorktreeRepository {
@@ -60,10 +60,7 @@ export type SelectWorktreeUseCase = ConsumerUseCase<string | null>
 export type CreateWorktreeUseCase = ConsumerUseCase<WorktreeCreateParams>
 export type DeleteWorktreeUseCase = ConsumerUseCase<WorktreeDeleteParams>
 export type RefreshWorktreesUseCase = RunnableUseCase
-export type SuggestPathUseCase = FunctionUseCase<
-  { repoPath: string; branch: string },
-  Promise<string>
->
+export type SuggestPathUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
 export type CheckDirtyUseCase = FunctionUseCase<string, Promise<boolean>>
 export type GetSelectedWorktreeUseCase = ObservableStoreUseCase<WorktreeInfo | null>
 export type GetWorktreeStatusUseCase = FunctionUseCase<
@@ -76,22 +73,14 @@ export const WorktreeRepositoryToken = createToken<WorktreeRepository>('Worktree
 export const WorktreeServiceToken = createToken<IWorktreeService>('WorktreeService')
 
 export const ListWorktreesUseCaseToken = createToken<ListWorktreesUseCase>('ListWorktreesUseCase')
-export const SelectWorktreeUseCaseToken =
-  createToken<SelectWorktreeUseCase>('SelectWorktreeUseCase')
-export const CreateWorktreeUseCaseToken =
-  createToken<CreateWorktreeUseCase>('CreateWorktreeUseCase')
-export const DeleteWorktreeUseCaseToken =
-  createToken<DeleteWorktreeUseCase>('DeleteWorktreeUseCase')
-export const RefreshWorktreesUseCaseToken =
-  createToken<RefreshWorktreesUseCase>('RefreshWorktreesUseCase')
+export const SelectWorktreeUseCaseToken = createToken<SelectWorktreeUseCase>('SelectWorktreeUseCase')
+export const CreateWorktreeUseCaseToken = createToken<CreateWorktreeUseCase>('CreateWorktreeUseCase')
+export const DeleteWorktreeUseCaseToken = createToken<DeleteWorktreeUseCase>('DeleteWorktreeUseCase')
+export const RefreshWorktreesUseCaseToken = createToken<RefreshWorktreesUseCase>('RefreshWorktreesUseCase')
 export const SuggestPathUseCaseToken = createToken<SuggestPathUseCase>('SuggestPathUseCase')
 export const CheckDirtyUseCaseToken = createToken<CheckDirtyUseCase>('CheckDirtyUseCase')
-export const GetSelectedWorktreeUseCaseToken =
-  createToken<GetSelectedWorktreeUseCase>('GetSelectedWorktreeUseCase')
-export const GetWorktreeStatusUseCaseToken =
-  createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
+export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUseCase>('GetSelectedWorktreeUseCase')
+export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
 
-export const WorktreeListViewModelToken =
-  createToken<IWorktreeListViewModel>('WorktreeListViewModel')
-export const WorktreeDetailViewModelToken =
-  createToken<IWorktreeDetailViewModel>('WorktreeDetailViewModel')
+export const WorktreeListViewModelToken = createToken<IWorktreeListViewModel>('WorktreeListViewModel')
+export const WorktreeDetailViewModelToken = createToken<IWorktreeDetailViewModel>('WorktreeDetailViewModel')

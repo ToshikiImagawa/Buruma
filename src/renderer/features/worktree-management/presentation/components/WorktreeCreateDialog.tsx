@@ -1,4 +1,6 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+import type { WorktreeCreateParams } from '@shared/domain'
+import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -7,11 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
-import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { Switch } from '@renderer/components/ui/switch'
-import type { WorktreeCreateParams } from '@shared/domain'
 
 interface WorktreeCreateDialogProps {
   open: boolean
@@ -20,12 +20,7 @@ interface WorktreeCreateDialogProps {
   onSubmit: (params: WorktreeCreateParams) => void
 }
 
-export function WorktreeCreateDialog({
-  open,
-  onOpenChange,
-  repoPath,
-  onSubmit,
-}: WorktreeCreateDialogProps) {
+export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }: WorktreeCreateDialogProps) {
   const [branch, setBranch] = useState('')
   const [worktreePath, setWorktreePath] = useState('')
   const [createNewBranch, setCreateNewBranch] = useState(true)
@@ -93,11 +88,7 @@ export function WorktreeCreateDialog({
 
           <div className="flex items-center justify-between">
             <Label htmlFor="wt-new-branch">新しいブランチを作成</Label>
-            <Switch
-              id="wt-new-branch"
-              checked={createNewBranch}
-              onCheckedChange={setCreateNewBranch}
-            />
+            <Switch id="wt-new-branch" checked={createNewBranch} onCheckedChange={setCreateNewBranch} />
           </div>
 
           {createNewBranch && (

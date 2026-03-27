@@ -1,9 +1,5 @@
+import type { WorktreeCreateParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 import type { BrowserWindow } from 'electron'
-import type {
-  WorktreeInfo,
-  WorktreeStatus,
-  WorktreeCreateParams,
-} from '@shared/domain'
 
 /** Git worktree 操作の抽象インターフェース */
 export interface IWorktreeGitService {

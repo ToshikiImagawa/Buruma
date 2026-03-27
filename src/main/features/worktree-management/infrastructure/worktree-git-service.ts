@@ -1,12 +1,6 @@
-import simpleGit from 'simple-git'
+import type { FileChange, FileChangeStatus, WorktreeCreateParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 import type { IWorktreeGitService } from '../application/worktree-interfaces'
-import type {
-  WorktreeInfo,
-  WorktreeStatus,
-  WorktreeCreateParams,
-  FileChange,
-  FileChangeStatus,
-} from '@shared/domain'
+import simpleGit from 'simple-git'
 
 /** git worktree list --porcelain 出力の1エントリ */
 interface PorcelainEntry {

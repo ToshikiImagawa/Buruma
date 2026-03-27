@@ -1,9 +1,9 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { ipcMain } from 'electron'
-import { WorktreeMainUseCase } from '../../application/worktree-main-usecase'
-import type { IWorktreeGitService } from '../../application/worktree-interfaces'
-import { registerIPCHandlers } from '../ipc-handlers'
 import type { WorktreeInfo } from '@shared/domain'
+import type { IWorktreeGitService } from '../../application/worktree-interfaces'
+import { ipcMain } from 'electron'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { WorktreeMainUseCase } from '../../application/worktree-main-usecase'
+import { registerIPCHandlers } from '../ipc-handlers'
 
 // ipcMain.handle をモック
 vi.mock('electron', () => ({
@@ -116,11 +116,14 @@ describe('IPC Handlers 結合テスト', () => {
       vi.mocked(gitService.isMainWorktree).mockResolvedValue(true)
 
       const handler = handlers.get('worktree:delete')!
-      const result = (await handler({}, {
-        repoPath: '/repo',
-        worktreePath: '/repo',
-        force: false,
-      })) as { success: boolean; error?: { message: string } }
+      const result = (await handler(
+        {},
+        {
+          repoPath: '/repo',
+          worktreePath: '/repo',
+          force: false,
+        },
+      )) as { success: boolean; error?: { message: string } }
 
       expect(result.success).toBe(false)
       expect(result.error?.message).toContain('メインワークツリー')
@@ -131,11 +134,14 @@ describe('IPC Handlers 結合テスト', () => {
       vi.mocked(gitService.removeWorktree).mockResolvedValue(undefined)
 
       const handler = handlers.get('worktree:delete')!
-      const result = await handler({}, {
-        repoPath: '/repo',
-        worktreePath: '/repo+feat',
-        force: false,
-      })
+      const result = await handler(
+        {},
+        {
+          repoPath: '/repo',
+          worktreePath: '/repo+feat',
+          force: false,
+        },
+      )
 
       expect(result).toEqual({ success: true, data: undefined })
     })
@@ -144,10 +150,13 @@ describe('IPC Handlers 結合テスト', () => {
   describe('worktree:suggest-path', () => {
     it('パスを提案する', async () => {
       const handler = handlers.get('worktree:suggest-path')!
-      const result = (await handler({}, {
-        repoPath: '/home/user/myrepo',
-        branch: 'feature/foo',
-      })) as { success: boolean; data: string }
+      const result = (await handler(
+        {},
+        {
+          repoPath: '/home/user/myrepo',
+          branch: 'feature/foo',
+        },
+      )) as { success: boolean; data: string }
 
       expect(result.success).toBe(true)
       expect(result.data).toBe('/home/user/myrepo+feature-foo')

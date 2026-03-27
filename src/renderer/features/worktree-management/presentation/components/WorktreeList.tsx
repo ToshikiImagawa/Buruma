@@ -1,25 +1,19 @@
 import { useState } from 'react'
-import { Plus, RefreshCw } from 'lucide-react'
+import type { WorktreeInfo } from '@shared/domain'
 import { Button } from '@renderer/components/ui/button'
+import { Plus, RefreshCw } from 'lucide-react'
 import { useWorktreeListViewModel } from '../use-worktree-list-viewmodel'
-import { WorktreeListItem } from './WorktreeListItem'
 import { WorktreeCreateDialog } from './WorktreeCreateDialog'
 import { WorktreeDeleteDialog } from './WorktreeDeleteDialog'
-import type { WorktreeInfo } from '@shared/domain'
+import { WorktreeListItem } from './WorktreeListItem'
 
 interface WorktreeListProps {
   repoPath: string
 }
 
 export function WorktreeList({ repoPath }: WorktreeListProps) {
-  const {
-    worktrees,
-    selectedPath,
-    selectWorktree,
-    createWorktree,
-    deleteWorktree,
-    refreshWorktrees,
-  } = useWorktreeListViewModel()
+  const { worktrees, selectedPath, selectWorktree, createWorktree, deleteWorktree, refreshWorktrees } =
+    useWorktreeListViewModel()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
@@ -29,13 +23,7 @@ export function WorktreeList({ repoPath }: WorktreeListProps) {
       <div className="flex items-center justify-between border-b px-3 py-2">
         <h2 className="text-sm font-semibold">ワークツリー</h2>
         <div className="flex gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7"
-            onClick={refreshWorktrees}
-            aria-label="更新"
-          >
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={refreshWorktrees} aria-label="更新">
             <RefreshCw className="h-3.5 w-3.5" />
           </Button>
           <Button
@@ -52,9 +40,7 @@ export function WorktreeList({ repoPath }: WorktreeListProps) {
 
       <div className="flex-1 overflow-auto p-2">
         {worktrees.length === 0 ? (
-          <p className="px-3 py-4 text-center text-sm text-muted-foreground">
-            ワークツリーがありません
-          </p>
+          <p className="px-3 py-4 text-center text-sm text-muted-foreground">ワークツリーがありません</p>
         ) : (
           <div className="space-y-0.5">
             {worktrees.map((wt) => (

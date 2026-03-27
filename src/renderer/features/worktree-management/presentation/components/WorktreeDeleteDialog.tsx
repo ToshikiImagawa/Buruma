@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { AlertTriangle } from 'lucide-react'
+import type { WorktreeDeleteParams, WorktreeInfo } from '@shared/domain'
+import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -8,10 +9,9 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@renderer/components/ui/dialog'
-import { Button } from '@renderer/components/ui/button'
-import { Switch } from '@renderer/components/ui/switch'
 import { Label } from '@renderer/components/ui/label'
-import type { WorktreeInfo, WorktreeDeleteParams } from '@shared/domain'
+import { Switch } from '@renderer/components/ui/switch'
+import { AlertTriangle } from 'lucide-react'
 
 interface WorktreeDeleteDialogProps {
   open: boolean
@@ -21,13 +21,7 @@ interface WorktreeDeleteDialogProps {
   onConfirm: (params: WorktreeDeleteParams) => void
 }
 
-export function WorktreeDeleteDialog({
-  open,
-  onOpenChange,
-  worktree,
-  repoPath,
-  onConfirm,
-}: WorktreeDeleteDialogProps) {
+export function WorktreeDeleteDialog({ open, onOpenChange, worktree, repoPath, onConfirm }: WorktreeDeleteDialogProps) {
   const [force, setForce] = useState(false)
   const displayName = worktree.path.split('/').pop() ?? worktree.path
 
@@ -77,12 +71,7 @@ export function WorktreeDeleteDialog({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             キャンセル
           </Button>
-          <Button
-            variant="destructive"
-            onClick={() =>
-              onConfirm({ repoPath, worktreePath: worktree.path, force })
-            }
-          >
+          <Button variant="destructive" onClick={() => onConfirm({ repoPath, worktreePath: worktree.path, force })}>
             削除
           </Button>
         </DialogFooter>

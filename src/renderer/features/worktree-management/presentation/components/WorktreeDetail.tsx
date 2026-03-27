@@ -1,6 +1,6 @@
-import { GitBranch, GitCommit, FolderOpen, Circle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Separator } from '@renderer/components/ui/separator'
+import { Circle, FolderOpen, GitBranch, GitCommit } from 'lucide-react'
 import { useWorktreeDetailViewModel } from '../use-worktree-detail-viewmodel'
 
 export function WorktreeDetail() {
@@ -35,9 +35,7 @@ export function WorktreeDetail() {
           </CardHeader>
           <CardContent>
             <p className="text-sm font-medium">
-              {selectedWorktree.branch ?? (
-                <span className="text-muted-foreground">detached HEAD</span>
-              )}
+              {selectedWorktree.branch ?? <span className="text-muted-foreground">detached HEAD</span>}
             </p>
           </CardContent>
         </Card>
@@ -76,9 +74,7 @@ export function WorktreeDetail() {
                 </>
               )}
             </div>
-            {selectedWorktree.isMain && (
-              <p className="mt-2 text-xs text-muted-foreground">メインワークツリー</p>
-            )}
+            {selectedWorktree.isMain && <p className="mt-2 text-xs text-muted-foreground">メインワークツリー</p>}
           </CardContent>
         </Card>
       </div>

@@ -1,7 +1,7 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { WorktreeMainUseCase } from '../worktree-main-usecase'
-import type { IWorktreeGitService } from '../worktree-interfaces'
 import type { WorktreeInfo, WorktreeStatus } from '@shared/domain'
+import type { IWorktreeGitService } from '../worktree-interfaces'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { WorktreeMainUseCase } from '../worktree-main-usecase'
 
 function createMockGitService(): IWorktreeGitService {
   return {
@@ -40,9 +40,7 @@ describe('WorktreeMainUseCase', () => {
       const wt1 = createWorktreeInfo({ path: '/repo', isMain: true })
       const wt2 = createWorktreeInfo({ path: '/repo+feat', branch: 'feat', isMain: false })
       vi.mocked(gitService.listWorktrees).mockResolvedValue([wt1, wt2])
-      vi.mocked(gitService.isDirty).mockImplementation(async (p) =>
-        p === '/repo+feat' ? true : false,
-      )
+      vi.mocked(gitService.isDirty).mockImplementation(async (p) => (p === '/repo+feat' ? true : false))
 
       const result = await useCase.list('/repo')
 
@@ -101,9 +99,9 @@ describe('WorktreeMainUseCase', () => {
     it('メインワークツリーの削除を防止する', async () => {
       vi.mocked(gitService.isMainWorktree).mockResolvedValue(true)
 
-      await expect(
-        useCase.delete({ repoPath: '/repo', worktreePath: '/repo', force: false }),
-      ).rejects.toThrow('メインワークツリーは削除できません')
+      await expect(useCase.delete({ repoPath: '/repo', worktreePath: '/repo', force: false })).rejects.toThrow(
+        'メインワークツリーは削除できません',
+      )
 
       expect(gitService.removeWorktree).not.toHaveBeenCalled()
     })
