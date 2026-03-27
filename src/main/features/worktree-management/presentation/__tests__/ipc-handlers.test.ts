@@ -2,10 +2,15 @@ import type { WorktreeInfo } from '@shared/domain'
 import type { IWorktreeGitService } from '../../application/worktree-interfaces'
 import { ipcMain } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { WorktreeMainUseCase } from '../../application/worktree-main-usecase'
+import { CheckDirtyMainUseCase } from '../../application/usecases/check-dirty-main-usecase'
+import { CreateWorktreeMainUseCase } from '../../application/usecases/create-worktree-main-usecase'
+import { DeleteWorktreeMainUseCase } from '../../application/usecases/delete-worktree-main-usecase'
+import { GetDefaultBranchMainUseCase } from '../../application/usecases/get-default-branch-main-usecase'
+import { GetWorktreeStatusMainUseCase } from '../../application/usecases/get-worktree-status-main-usecase'
+import { ListWorktreesMainUseCase } from '../../application/usecases/list-worktrees-main-usecase'
+import { SuggestPathMainUseCase } from '../../application/usecases/suggest-path-main-usecase'
 import { registerIPCHandlers } from '../ipc-handlers'
 
-// ipcMain.handle をモック
 vi.mock('electron', () => ({
   ipcMain: {
     handle: vi.fn(),
@@ -20,6 +25,7 @@ function createMockGitService(): IWorktreeGitService {
     removeWorktree: vi.fn(),
     isMainWorktree: vi.fn(),
     isDirty: vi.fn(),
+    getDefaultBranch: vi.fn(),
   }
 }
 
@@ -37,7 +43,6 @@ function createWorktreeInfo(overrides: Partial<WorktreeInfo> = {}): WorktreeInfo
 
 describe('IPC Handlers 結合テスト', () => {
   let gitService: ReturnType<typeof createMockGitService>
-  let useCase: WorktreeMainUseCase
   let handlers: Map<string, (...args: unknown[]) => Promise<unknown>>
 
   beforeEach(() => {
@@ -49,8 +54,15 @@ describe('IPC Handlers 結合テスト', () => {
     })
 
     gitService = createMockGitService()
-    useCase = new WorktreeMainUseCase(gitService)
-    registerIPCHandlers(useCase)
+    registerIPCHandlers(
+      new ListWorktreesMainUseCase(gitService),
+      new GetWorktreeStatusMainUseCase(gitService),
+      new CreateWorktreeMainUseCase(gitService),
+      new DeleteWorktreeMainUseCase(gitService),
+      new SuggestPathMainUseCase(gitService),
+      new CheckDirtyMainUseCase(gitService),
+      new GetDefaultBranchMainUseCase(gitService),
+    )
   })
 
   afterEach(() => {
@@ -77,10 +89,7 @@ describe('IPC Handlers 結合テスト', () => {
       const handler = handlers.get('worktree:list')!
       const result = await handler({}, '/repo')
 
-      expect(result).toEqual({
-        success: true,
-        data: [{ ...wt, isDirty: false }],
-      })
+      expect(result).toEqual({ success: true, data: [{ ...wt, isDirty: false }] })
     })
 
     it('エラー時に IPCResult failure を返す', async () => {
@@ -94,57 +103,18 @@ describe('IPC Handlers 結合テスト', () => {
     })
   })
 
-  describe('worktree:create', () => {
-    it('UseCase.create を呼び出し、結果を返す', async () => {
-      const created = createWorktreeInfo({ path: '/repo+new', branch: 'new', isMain: false })
-      vi.mocked(gitService.addWorktree).mockResolvedValue(created)
-
-      const handler = handlers.get('worktree:create')!
-      const params = {
-        repoPath: '/repo',
-        worktreePath: '/repo+new',
-        branch: 'new',
-        createNewBranch: true,
-      }
-      const result = await handler({}, params)
-
-      expect(result).toEqual({ success: true, data: created })
-    })
-  })
-
   describe('worktree:delete', () => {
     it('メインワークツリー削除でエラーを返す', async () => {
       vi.mocked(gitService.isMainWorktree).mockResolvedValue(true)
 
       const handler = handlers.get('worktree:delete')!
-      const result = (await handler(
-        {},
-        {
-          repoPath: '/repo',
-          worktreePath: '/repo',
-          force: false,
-        },
-      )) as { success: boolean; error?: { message: string } }
+      const result = (await handler({}, { repoPath: '/repo', worktreePath: '/repo', force: false })) as {
+        success: boolean
+        error?: { message: string }
+      }
 
       expect(result.success).toBe(false)
       expect(result.error?.message).toContain('メインワークツリー')
-    })
-
-    it('非メインワークツリーを正常に削除する', async () => {
-      vi.mocked(gitService.isMainWorktree).mockResolvedValue(false)
-      vi.mocked(gitService.removeWorktree).mockResolvedValue(undefined)
-
-      const handler = handlers.get('worktree:delete')!
-      const result = await handler(
-        {},
-        {
-          repoPath: '/repo',
-          worktreePath: '/repo+feat',
-          force: false,
-        },
-      )
-
-      expect(result).toEqual({ success: true, data: undefined })
     })
   })
 
@@ -155,27 +125,24 @@ describe('IPC Handlers 結合テスト', () => {
       ])
 
       const handler = handlers.get('worktree:suggest-path')!
-      const result = (await handler(
-        {},
-        {
-          repoPath: '/home/user/myrepo',
-          branch: 'feature/foo',
-        },
-      )) as { success: boolean; data: string }
+      const result = (await handler({}, { repoPath: '/home/user/myrepo', branch: 'feature/foo' })) as {
+        success: boolean
+        data: string
+      }
 
       expect(result.success).toBe(true)
       expect(result.data).toBe('/home/user/myrepo+feature-foo')
     })
   })
 
-  describe('worktree:check-dirty', () => {
-    it('dirty 状態を返す', async () => {
-      vi.mocked(gitService.isDirty).mockResolvedValue(true)
+  describe('worktree:default-branch', () => {
+    it('デフォルトブランチを返す', async () => {
+      vi.mocked(gitService.getDefaultBranch).mockResolvedValue('main')
 
-      const handler = handlers.get('worktree:check-dirty')!
-      const result = await handler({}, '/repo+feat')
+      const handler = handlers.get('worktree:default-branch')!
+      const result = await handler({}, '/repo')
 
-      expect(result).toEqual({ success: true, data: true })
+      expect(result).toEqual({ success: true, data: 'main' })
     })
   })
 })

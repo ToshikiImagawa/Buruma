@@ -1,6 +1,12 @@
 import type { WorktreeCreateParams, WorktreeDeleteParams } from '@shared/domain'
 import type { IPCResult } from '@shared/types/ipc'
-import type { WorktreeMainUseCase } from '../application/worktree-main-usecase'
+import type { CheckDirtyMainUseCase } from '../application/usecases/check-dirty-main-usecase'
+import type { CreateWorktreeMainUseCase } from '../application/usecases/create-worktree-main-usecase'
+import type { DeleteWorktreeMainUseCase } from '../application/usecases/delete-worktree-main-usecase'
+import type { GetDefaultBranchMainUseCase } from '../application/usecases/get-default-branch-main-usecase'
+import type { GetWorktreeStatusMainUseCase } from '../application/usecases/get-worktree-status-main-usecase'
+import type { ListWorktreesMainUseCase } from '../application/usecases/list-worktrees-main-usecase'
+import type { SuggestPathMainUseCase } from '../application/usecases/suggest-path-main-usecase'
 import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { ipcMain } from 'electron'
 
@@ -14,26 +20,38 @@ function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaite
     })
 }
 
-export function registerIPCHandlers(useCase: WorktreeMainUseCase): void {
-  ipcMain.handle('worktree:list', (_event, repoPath: string) => wrapHandler(() => useCase.list(repoPath)))
+export function registerIPCHandlers(
+  listUseCase: ListWorktreesMainUseCase,
+  getStatusUseCase: GetWorktreeStatusMainUseCase,
+  createUseCase: CreateWorktreeMainUseCase,
+  deleteUseCase: DeleteWorktreeMainUseCase,
+  suggestPathUseCase: SuggestPathMainUseCase,
+  checkDirtyUseCase: CheckDirtyMainUseCase,
+  getDefaultBranchUseCase: GetDefaultBranchMainUseCase,
+): void {
+  ipcMain.handle('worktree:list', (_event, repoPath: string) => wrapHandler(() => listUseCase.invoke(repoPath)))
 
   ipcMain.handle('worktree:status', (_event, params: { repoPath: string; worktreePath: string }) =>
-    wrapHandler(() => useCase.getStatus(params.repoPath, params.worktreePath)),
+    wrapHandler(() => getStatusUseCase.invoke(params)),
   )
 
-  ipcMain.handle('worktree:create', (_event, params: WorktreeCreateParams) => wrapHandler(() => useCase.create(params)))
+  ipcMain.handle('worktree:create', (_event, params: WorktreeCreateParams) =>
+    wrapHandler(() => createUseCase.invoke(params)),
+  )
 
-  ipcMain.handle('worktree:delete', (_event, params: WorktreeDeleteParams) => wrapHandler(() => useCase.delete(params)))
+  ipcMain.handle('worktree:delete', (_event, params: WorktreeDeleteParams) =>
+    wrapHandler(() => deleteUseCase.invoke(params)),
+  )
 
   ipcMain.handle('worktree:suggest-path', (_event, params: { repoPath: string; branch: string }) =>
-    wrapHandler(() => useCase.suggestPath(params.repoPath, params.branch)),
+    wrapHandler(() => suggestPathUseCase.invoke(params)),
   )
 
   ipcMain.handle('worktree:check-dirty', (_event, worktreePath: string) =>
-    wrapHandler(() => useCase.checkDirty(worktreePath)),
+    wrapHandler(() => checkDirtyUseCase.invoke(worktreePath)),
   )
 
   ipcMain.handle('worktree:default-branch', (_event, repoPath: string) =>
-    wrapHandler(() => useCase.getDefaultBranch(repoPath)),
+    wrapHandler(() => getDefaultBranchUseCase.invoke(repoPath)),
   )
 }

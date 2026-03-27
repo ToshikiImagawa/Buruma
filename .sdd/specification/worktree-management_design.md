@@ -29,7 +29,13 @@ risk: "high"
 
 | モジュール | プロセス | 層 | ステータス | 備考 |
 |-----------|---------|-----|----------|------|
-| WorktreeMainUseCase | main | application | 🟢 | ワークツリー CRUD オーケストレーション |
+| ListWorktreesMainUseCase | main | application | 🟢 | ワークツリー一覧取得 + dirty 並列チェック |
+| GetWorktreeStatusMainUseCase | main | application | 🟢 | ワークツリーステータス取得 |
+| CreateWorktreeMainUseCase | main | application | 🟢 | ワークツリー作成 |
+| DeleteWorktreeMainUseCase | main | application | 🟢 | ワークツリー削除（メイン WT 保護付き） |
+| SuggestPathMainUseCase | main | application | 🟢 | パス提案（メイン WT パス解決） |
+| CheckDirtyMainUseCase | main | application | 🟢 | dirty チェック |
+| GetDefaultBranchMainUseCase | main | application | 🟢 | デフォルトブランチ検出 |
 | WorktreeGitService | main | infrastructure | 🟢 | simple-git ラッパー |
 | WorktreeWatcher | main | infrastructure | 🟢 | chokidar ファイルシステム監視 |
 | IPC Handlers (worktree:*) | main | presentation | 🟢 | IPC チャネル登録・ルーティング |
@@ -119,7 +125,7 @@ graph TD
             IPCHandlers["IPC Handlers<br/>(wrapHandler + ipcMain.handle)"]
         end
         subgraph "Application 層 (Main)"
-            MUC["WorktreeMainUseCase"]
+            MUC["UseCases<br/>(List, Status, Create, Delete,<br/>SuggestPath, CheckDirty, DefaultBranch)"]
             MGitIF["IWorktreeGitService IF"]
             MWatcherIF["IWorktreeWatcher IF"]
             IPCHandlers --> MUC
@@ -154,7 +160,13 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| WorktreeMainUseCase | application | ワークツリー CRUD オーケストレーション、バリデーション | `src/main/features/worktree-management/application/worktree-main-usecase.ts` |
+| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts` |
+| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src/main/features/worktree-management/application/usecases/get-worktree-status-main-usecase.ts` |
+| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src/main/features/worktree-management/application/usecases/create-worktree-main-usecase.ts` |
+| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts` |
+| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts` |
+| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src/main/features/worktree-management/application/usecases/check-dirty-main-usecase.ts` |
+| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src/main/features/worktree-management/application/usecases/get-default-branch-main-usecase.ts` |
 | IWorktreeGitService IF | application | Git 操作の抽象インターフェース | `src/main/features/worktree-management/application/worktree-interfaces.ts` |
 | IWorktreeWatcher IF | application | ファイル監視の抽象インターフェース | `src/main/features/worktree-management/application/worktree-interfaces.ts` |
 | WorktreeGitService | infrastructure | simple-git ラッパー（list, add, remove, status） | `src/main/features/worktree-management/infrastructure/worktree-git-service.ts` |
@@ -195,14 +207,33 @@ graph TD
 // src/main/features/worktree-management/di-tokens.ts
 import { createToken } from '@shared/lib/di'
 import type { IWorktreeGitService, IWorktreeWatcher } from './application/worktree-interfaces'
-import type { WorktreeMainUseCase } from './application/worktree-main-usecase'
+import type { ListWorktreesMainUseCase } from './application/usecases/list-worktrees-main-usecase'
+import type { GetWorktreeStatusMainUseCase } from './application/usecases/get-worktree-status-main-usecase'
+import type { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
+import type { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
+import type { SuggestPathMainUseCase } from './application/usecases/suggest-path-main-usecase'
+import type { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
+import type { GetDefaultBranchMainUseCase } from './application/usecases/get-default-branch-main-usecase'
 
 // Infrastructure IF
 export const WorktreeGitServiceToken = createToken<IWorktreeGitService>('WorktreeGitService')
 export const WorktreeWatcherToken = createToken<IWorktreeWatcher>('WorktreeWatcher')
 
-// Application UseCase
-export const WorktreeMainUseCaseToken = createToken<WorktreeMainUseCase>('WorktreeMainUseCase')
+// Application UseCases
+export const ListWorktreesMainUseCaseToken =
+  createToken<ListWorktreesMainUseCase>('ListWorktreesMainUseCase')
+export const GetWorktreeStatusMainUseCaseToken =
+  createToken<GetWorktreeStatusMainUseCase>('GetWorktreeStatusMainUseCase')
+export const CreateWorktreeMainUseCaseToken =
+  createToken<CreateWorktreeMainUseCase>('CreateWorktreeMainUseCase')
+export const DeleteWorktreeMainUseCaseToken =
+  createToken<DeleteWorktreeMainUseCase>('DeleteWorktreeMainUseCase')
+export const SuggestPathMainUseCaseToken =
+  createToken<SuggestPathMainUseCase>('SuggestPathMainUseCase')
+export const CheckDirtyMainUseCaseToken =
+  createToken<CheckDirtyMainUseCase>('CheckDirtyMainUseCase')
+export const GetDefaultBranchMainUseCaseToken =
+  createToken<GetDefaultBranchMainUseCase>('GetDefaultBranchMainUseCase')
 ```
 
 ### メインプロセス側 DI Config
@@ -210,10 +241,26 @@ export const WorktreeMainUseCaseToken = createToken<WorktreeMainUseCase>('Worktr
 ```typescript
 // src/main/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@shared/lib/di'
-import { WorktreeGitServiceToken, WorktreeWatcherToken, WorktreeMainUseCaseToken } from './di-tokens'
+import {
+  WorktreeGitServiceToken,
+  WorktreeWatcherToken,
+  ListWorktreesMainUseCaseToken,
+  GetWorktreeStatusMainUseCaseToken,
+  CreateWorktreeMainUseCaseToken,
+  DeleteWorktreeMainUseCaseToken,
+  SuggestPathMainUseCaseToken,
+  CheckDirtyMainUseCaseToken,
+  GetDefaultBranchMainUseCaseToken,
+} from './di-tokens'
 import { WorktreeGitService } from './infrastructure/worktree-git-service'
 import { WorktreeWatcher } from './infrastructure/worktree-watcher'
-import { WorktreeMainUseCase } from './application/worktree-main-usecase'
+import { ListWorktreesMainUseCase } from './application/usecases/list-worktrees-main-usecase'
+import { GetWorktreeStatusMainUseCase } from './application/usecases/get-worktree-status-main-usecase'
+import { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
+import { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
+import { SuggestPathMainUseCase } from './application/usecases/suggest-path-main-usecase'
+import { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
+import { GetDefaultBranchMainUseCase } from './application/usecases/get-default-branch-main-usecase'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const worktreeManagementMainConfig: VContainerConfig = {
@@ -223,21 +270,31 @@ export const worktreeManagementMainConfig: VContainerConfig = {
       .registerSingleton(WorktreeGitServiceToken, () => new WorktreeGitService())
       .registerSingleton(WorktreeWatcherToken, () => new WorktreeWatcher())
 
-    // Application UseCase (singleton)
-    container.registerSingleton(
-      WorktreeMainUseCaseToken,
-      () => new WorktreeMainUseCase(
-        container.resolve(WorktreeGitServiceToken),
-      ),
-    )
+    // Application UseCases (singleton)
+    const resolveGit = () => container.resolve(WorktreeGitServiceToken)
+    container
+      .registerSingleton(ListWorktreesMainUseCaseToken, () => new ListWorktreesMainUseCase(resolveGit()))
+      .registerSingleton(GetWorktreeStatusMainUseCaseToken, () => new GetWorktreeStatusMainUseCase(resolveGit()))
+      .registerSingleton(CreateWorktreeMainUseCaseToken, () => new CreateWorktreeMainUseCase(resolveGit()))
+      .registerSingleton(DeleteWorktreeMainUseCaseToken, () => new DeleteWorktreeMainUseCase(resolveGit()))
+      .registerSingleton(SuggestPathMainUseCaseToken, () => new SuggestPathMainUseCase(resolveGit()))
+      .registerSingleton(CheckDirtyMainUseCaseToken, () => new CheckDirtyMainUseCase(resolveGit()))
+      .registerSingleton(GetDefaultBranchMainUseCaseToken, () => new GetDefaultBranchMainUseCase(resolveGit()))
   },
 
   setUp: async (container) => {
-    const useCase = container.resolve(WorktreeMainUseCaseToken)
     const watcher = container.resolve(WorktreeWatcherToken)
 
-    // IPC ハンドラー登録
-    registerIPCHandlers(useCase)
+    // IPC ハンドラー登録（7つの個別 UseCase を渡す）
+    registerIPCHandlers(
+      container.resolve(ListWorktreesMainUseCaseToken),
+      container.resolve(GetWorktreeStatusMainUseCaseToken),
+      container.resolve(CreateWorktreeMainUseCaseToken),
+      container.resolve(DeleteWorktreeMainUseCaseToken),
+      container.resolve(SuggestPathMainUseCaseToken),
+      container.resolve(CheckDirtyMainUseCaseToken),
+      container.resolve(GetDefaultBranchMainUseCaseToken),
+    )
 
     // tearDown: watcher 停止
     return () => {
@@ -345,6 +402,7 @@ export const WorktreeDetailViewModelToken = createToken<IWorktreeDetailViewModel
 ```typescript
 // src/renderer/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@shared/lib/di'
+import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
 import {
   WorktreeRepositoryToken,
   WorktreeServiceToken,
@@ -398,11 +456,19 @@ export const worktreeManagementConfig: VContainerConfig = {
           container.resolve(WorktreeRepositoryToken),
           container.resolve(WorktreeServiceToken),
         ))
-      .registerSingleton(RefreshWorktreesUseCaseToken, () =>
-        new RefreshWorktreesUseCaseImpl(
+      .registerSingleton(RefreshWorktreesUseCaseToken, () => {
+        // RepositoryService から currentRepository$ を購読し、repoPath を取得するコールバックを渡す
+        const repoService = container.resolve(RepositoryServiceToken)
+        let currentRepoPath: string | null = null
+        repoService.currentRepository$.subscribe((repo) => {
+          currentRepoPath = repo?.path ?? null
+        })
+        return new RefreshWorktreesUseCaseImpl(
           container.resolve(WorktreeRepositoryToken),
           container.resolve(WorktreeServiceToken),
-        ))
+          () => currentRepoPath,
+        )
+      })
       .registerSingleton(SuggestPathUseCaseToken, () =>
         new SuggestPathUseCaseImpl(container.resolve(WorktreeRepositoryToken)))
       .registerSingleton(CheckDirtyUseCaseToken, () =>
@@ -421,6 +487,7 @@ export const worktreeManagementConfig: VContainerConfig = {
           container.resolve(CreateWorktreeUseCaseToken),
           container.resolve(DeleteWorktreeUseCaseToken),
           container.resolve(RefreshWorktreesUseCaseToken),
+          container.resolve(WorktreeServiceToken),
         ))
       .registerTransient(WorktreeDetailViewModelToken, () =>
         new WorktreeDetailViewModel(
@@ -432,20 +499,31 @@ export const worktreeManagementConfig: VContainerConfig = {
   setUp: async (container) => {
     const repo = container.resolve(WorktreeRepositoryToken)
     const service = container.resolve(WorktreeServiceToken)
+    const repoService = container.resolve(RepositoryServiceToken)
 
-    // 現在のリポジトリのワークツリー一覧を初期読み込み
-    // ※ リポジトリが未選択の場合は空配列で初期化
-    const initialWorktrees: WorktreeInfo[] = []
-    service.setUp(initialWorktrees)
+    service.setUp([])
+
+    // リポジトリ変更時にワークツリー一覧を読み込む
+    const repoSubscription = repoService.currentRepository$.subscribe((currentRepo) => {
+      if (currentRepo) {
+        repo
+          .list(currentRepo.path)
+          .then((worktrees) => service.updateWorktrees(worktrees))
+          .catch(() => service.updateWorktrees([]))
+      } else {
+        service.updateWorktrees([])
+      }
+    })
 
     // worktree:changed イベントの購読（リアルタイム更新）
-    const unsubscribe = repo.onChanged(() => {
+    const unsubscribeChanged = repo.onChanged(() => {
       const refreshUseCase = container.resolve(RefreshWorktreesUseCaseToken)
       refreshUseCase.invoke()
     })
 
     return () => {
-      unsubscribe()
+      repoSubscription.unsubscribe()
+      unsubscribeChanged()
       service.tearDown()
     }
   },
@@ -616,6 +694,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
     private readonly createUseCase: CreateWorktreeUseCase,
     private readonly deleteUseCase: DeleteWorktreeUseCase,
     private readonly refreshUseCase: RefreshWorktreesUseCase,
+    private readonly service: IWorktreeService,
   ) {}
 
   get worktrees$(): Observable<WorktreeInfo[]> {
@@ -623,7 +702,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   get selectedPath$(): Observable<string | null> {
-    // SelectWorktreeUseCase 経由で Service の selectedWorktreePath$ を参照
+    return this.service.selectedWorktreePath$
   }
 
   selectWorktree(path: string | null): void {
@@ -643,7 +722,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   setSortOrder(order: WorktreeSortOrder): void {
-    // Service の setSortOrder を呼び出し
+    this.service.setSortOrder(order)
   }
 }
 ```
@@ -782,12 +861,18 @@ export type WorktreeSortOrder = 'name' | 'last-updated';
 
 ## 6.1. IPC ハンドラー（メインプロセス presentation 層）
 
-`wrapHandler<T>()` ユーティリティを使い、UseCase の戻り値を `IPCResult<T>` に統一する。ハンドラーは `WorktreeMainUseCase` を受け取り、UseCase メソッドを呼び出す（WorktreeService を直接参照しない）。
+`wrapHandler<T>()` ユーティリティを使い、UseCase の戻り値を `IPCResult<T>` に統一する。ハンドラーは7つの個別 UseCase を受け取り、各 UseCase の `invoke()` メソッドを呼び出す。
 
 ```typescript
 // src/main/features/worktree-management/presentation/ipc-handlers.ts
 import { ipcMain } from 'electron'
-import type { WorktreeMainUseCase } from '../application/worktree-main-usecase'
+import type { ListWorktreesMainUseCase } from '../application/usecases/list-worktrees-main-usecase'
+import type { GetWorktreeStatusMainUseCase } from '../application/usecases/get-worktree-status-main-usecase'
+import type { CreateWorktreeMainUseCase } from '../application/usecases/create-worktree-main-usecase'
+import type { DeleteWorktreeMainUseCase } from '../application/usecases/delete-worktree-main-usecase'
+import type { SuggestPathMainUseCase } from '../application/usecases/suggest-path-main-usecase'
+import type { CheckDirtyMainUseCase } from '../application/usecases/check-dirty-main-usecase'
+import type { GetDefaultBranchMainUseCase } from '../application/usecases/get-default-branch-main-usecase'
 
 // wrapHandler は application-foundation と共通のユーティリティ
 // UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に変換する
@@ -801,48 +886,73 @@ function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaite
     })
 }
 
-export function registerIPCHandlers(useCase: WorktreeMainUseCase): void {
+export function registerIPCHandlers(
+  listUseCase: ListWorktreesMainUseCase,
+  getStatusUseCase: GetWorktreeStatusMainUseCase,
+  createUseCase: CreateWorktreeMainUseCase,
+  deleteUseCase: DeleteWorktreeMainUseCase,
+  suggestPathUseCase: SuggestPathMainUseCase,
+  checkDirtyUseCase: CheckDirtyMainUseCase,
+  getDefaultBranchUseCase: GetDefaultBranchMainUseCase,
+): void {
   ipcMain.handle('worktree:list', (_event, repoPath: string) =>
-    wrapHandler(() => useCase.list(repoPath)),
+    wrapHandler(() => listUseCase.invoke(repoPath)),
   )
 
   ipcMain.handle('worktree:status', (_event, params: { repoPath: string; worktreePath: string }) =>
-    wrapHandler(() => useCase.getStatus(params.repoPath, params.worktreePath)),
+    wrapHandler(() => getStatusUseCase.invoke(params)),
   )
 
   ipcMain.handle('worktree:create', (_event, params: WorktreeCreateParams) =>
-    wrapHandler(() => useCase.create(params)),
+    wrapHandler(() => createUseCase.invoke(params)),
   )
 
   ipcMain.handle('worktree:delete', (_event, params: WorktreeDeleteParams) =>
-    wrapHandler(() => useCase.delete(params)),
+    wrapHandler(() => deleteUseCase.invoke(params)),
   )
 
   ipcMain.handle('worktree:suggest-path', (_event, params: { repoPath: string; branch: string }) =>
-    wrapHandler(() => useCase.suggestPath(params.repoPath, params.branch)),
+    wrapHandler(() => suggestPathUseCase.invoke(params)),
   )
 
   ipcMain.handle('worktree:check-dirty', (_event, worktreePath: string) =>
-    wrapHandler(() => useCase.checkDirty(worktreePath)),
+    wrapHandler(() => checkDirtyUseCase.invoke(worktreePath)),
+  )
+
+  ipcMain.handle('worktree:default-branch', (_event, repoPath: string) =>
+    wrapHandler(() => getDefaultBranchUseCase.invoke(repoPath)),
   )
 }
 ```
 
 ## 6.2. メインプロセス Application 層
 
-### WorktreeMainUseCase
+### 個別 UseCase クラス（7つ）
 
-ワークツリー操作のオーケストレーション。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。
+各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `IWorktreeGitService` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src/main/features/worktree-management/application/usecases/` ディレクトリ。
+
+| UseCase クラス | 型パラメータ | 責務 |
+|---------------|------------|------|
+| ListWorktreesMainUseCase | `FunctionUseCase<string, Promise<WorktreeInfo[]>>` | ワークツリー一覧取得 + dirty 並列チェック |
+| GetWorktreeStatusMainUseCase | `FunctionUseCase<{repoPath, worktreePath}, Promise<WorktreeStatus>>` | ワークツリーステータス取得 |
+| CreateWorktreeMainUseCase | `FunctionUseCase<WorktreeCreateParams, Promise<WorktreeInfo>>` | ワークツリー作成 |
+| DeleteWorktreeMainUseCase | `FunctionUseCase<WorktreeDeleteParams, Promise<void>>` | ワークツリー削除（メイン WT 保護付き） |
+| SuggestPathMainUseCase | `FunctionUseCase<{repoPath, branch}, Promise<string>>` | パス提案（メイン WT パス解決） |
+| CheckDirtyMainUseCase | `FunctionUseCase<string, Promise<boolean>>` | dirty チェック |
+| GetDefaultBranchMainUseCase | `FunctionUseCase<string, Promise<string>>` | デフォルトブランチ検出 |
+
+代表的な実装例:
 
 ```typescript
-// src/main/features/worktree-management/application/worktree-main-usecase.ts
-import type { IWorktreeGitService } from './worktree-interfaces'
-import type { WorktreeInfo, WorktreeStatus, WorktreeCreateParams, WorktreeDeleteParams } from '@shared/domain'
+// src/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts
+import type { WorktreeInfo } from '@shared/domain'
+import type { FunctionUseCase } from '@shared/lib/usecase/types'
+import type { IWorktreeGitService } from '../worktree-interfaces'
 
-export class WorktreeMainUseCase {
+export class ListWorktreesMainUseCase implements FunctionUseCase<string, Promise<WorktreeInfo[]>> {
   constructor(private readonly gitService: IWorktreeGitService) {}
 
-  async list(repoPath: string): Promise<WorktreeInfo[]> {
+  async invoke(repoPath: string): Promise<WorktreeInfo[]> {
     const worktrees = await this.gitService.listWorktrees(repoPath)
     // 各ワークツリーの dirty チェックを並列実行
     const results = await Promise.all(
@@ -853,16 +963,19 @@ export class WorktreeMainUseCase {
     )
     return results
   }
+}
 
-  async getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus> {
-    return this.gitService.getStatus(worktreePath)
-  }
+// src/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts
+import type { WorktreeDeleteParams } from '@shared/domain'
+import type { FunctionUseCase } from '@shared/lib/usecase/types'
+import type { IWorktreeGitService } from '../worktree-interfaces'
 
-  async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    return this.gitService.addWorktree(params)
-  }
+export class DeleteWorktreeMainUseCase
+  implements FunctionUseCase<WorktreeDeleteParams, Promise<void>>
+{
+  constructor(private readonly gitService: IWorktreeGitService) {}
 
-  async delete(params: WorktreeDeleteParams): Promise<void> {
+  async invoke(params: WorktreeDeleteParams): Promise<void> {
     // メインワークツリー削除防止（サービス層チェック）
     const isMain = await this.gitService.isMainWorktree(params.worktreePath)
     if (isMain) {
@@ -870,13 +983,28 @@ export class WorktreeMainUseCase {
     }
     await this.gitService.removeWorktree(params.worktreePath, params.force)
   }
+}
 
-  async suggestPath(repoPath: string, branch: string): Promise<string> {
-    // 親ディレクトリ + ブランチ名のサニタイズ
-  }
+// src/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts
+import type { FunctionUseCase } from '@shared/lib/usecase/types'
+import type { IWorktreeGitService } from '../worktree-interfaces'
+import path from 'node:path'
 
-  async checkDirty(worktreePath: string): Promise<boolean> {
-    return this.gitService.isDirty(worktreePath)
+export class SuggestPathMainUseCase
+  implements FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
+{
+  constructor(private readonly gitService: IWorktreeGitService) {}
+
+  async invoke(params: { repoPath: string; branch: string }): Promise<string> {
+    // メインワークツリーのパスを基準にする
+    const worktrees = await this.gitService.listWorktrees(params.repoPath)
+    const mainWorktree = worktrees.find((wt) => wt.isMain)
+    const basePath = mainWorktree?.path ?? params.repoPath
+
+    const parentDir = path.dirname(basePath)
+    const repoName = path.basename(basePath)
+    const sanitizedBranch = params.branch.replace(/[/\\:*?"<>|]/g, '-')
+    return path.join(parentDir, `${repoName}+${sanitizedBranch}`)
   }
 }
 ```
@@ -895,6 +1023,7 @@ export interface IWorktreeGitService {
   removeWorktree(worktreePath: string, force: boolean): Promise<void>
   isMainWorktree(worktreePath: string): Promise<boolean>
   isDirty(worktreePath: string): Promise<boolean>
+  getDefaultBranch(repoPath: string): Promise<string>
 }
 
 export interface IWorktreeWatcher {
@@ -996,6 +1125,8 @@ worktree: {
     ipcRenderer.invoke('worktree:suggest-path', { repoPath, branch }),
   checkDirty: (worktreePath: string) =>
     ipcRenderer.invoke('worktree:check-dirty', worktreePath),
+  defaultBranch: (repoPath: string) =>
+    ipcRenderer.invoke('worktree:default-branch', repoPath),
   onChanged: (callback: (event: WorktreeChangeEvent) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: WorktreeChangeEvent) => {
       callback(data)
@@ -1020,6 +1151,7 @@ worktree: {
 'worktree:delete': { args: [WorktreeDeleteParams]; result: IPCResult<void> }
 'worktree:suggest-path': { args: [{ repoPath: string; branch: string }]; result: IPCResult<string> }
 'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
+'worktree:default-branch': { args: [string]; result: IPCResult<string> }
 
 // IPCEventMap に追加
 'worktree:changed': WorktreeChangeEvent
@@ -1032,6 +1164,7 @@ worktree: {
   delete(params: WorktreeDeleteParams): Promise<IPCResult<void>>
   suggestPath(repoPath: string, branch: string): Promise<IPCResult<string>>
   checkDirty(worktreePath: string): Promise<IPCResult<boolean>>
+  defaultBranch(repoPath: string): Promise<IPCResult<string>>
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
 }
 ```
@@ -1056,7 +1189,7 @@ worktree: {
 
 | テストレベル | 対象 | プロセス | 層 | カバレッジ目標 |
 |------------|------|---------|-----|------------|
-| ユニットテスト | WorktreeMainUseCase（list, create, delete, suggestPath, checkDirty） | main | application | ≥ 80% |
+| ユニットテスト | 個別 UseCase（List, Status, Create, Delete, SuggestPath, CheckDirty, DefaultBranch） | main | application | ≥ 80% |
 | ユニットテスト | WorktreeGitService — `git worktree list --porcelain` 出力パース | main | infrastructure | ≥ 90% |
 | ユニットテスト | WorktreeCreateParams / WorktreeDeleteParams バリデーション | main | application | ≥ 80% |
 | ユニットテスト | WorktreeService（BehaviorSubject 状態管理、ソート処理） | renderer | application | ≥ 80% |
@@ -1064,7 +1197,7 @@ worktree: {
 | ユニットテスト | ViewModels（Observable 公開、メソッド委譲） | renderer | presentation | ≥ 80% |
 | コンポーネントテスト | WorktreeList, WorktreeListItem の描画・選択・イベント | renderer | presentation | ≥ 60% |
 | コンポーネントテスト | WorktreeCreateDialog, WorktreeDeleteDialog のフォーム操作 | renderer | presentation | ≥ 60% |
-| 結合テスト | IPC Handlers → WorktreeMainUseCase → WorktreeGitService 連携 | main | 全層 | 主要フロー |
+| 結合テスト | IPC Handlers → 個別 UseCase → WorktreeGitService 連携 | main | 全層 | 主要フロー |
 | E2Eテスト | ワークツリーの作成→一覧表示→選択→削除のフルフロー | 全体 | — | 主要ユースケース |
 
 **テスト環境の注意事項:**
@@ -1108,6 +1241,23 @@ worktree: {
 ---
 
 # 10. 変更履歴
+
+## v1.2 (2026-03-27)
+
+**変更内容:**
+
+- [FIX-011] メインプロセス側 WorktreeMainUseCase を7つの個別 UseCase クラスに分割（FunctionUseCase パターン統一）
+- [FIX-012] メインプロセス側 DI Tokens を7つの個別 UseCase Token に更新
+- [FIX-013] メインプロセス側 DI Config を7つの個別 UseCase 登録に更新
+- [FIX-014] IPC Handlers を7つの個別 UseCase パラメータ受け取りに更新、各ハンドラーで `useCase.invoke()` 呼び出しに統一
+- [FIX-015] `worktree:default-branch` IPC チャネルを追加（GetDefaultBranchMainUseCase）
+- [FIX-016] IWorktreeGitService に `getDefaultBranch()` メソッドを追加
+- [FIX-017] Preload API / IPCChannelMap / ElectronAPI に `defaultBranch` を追加
+- [FIX-018] レンダラー側 DI Config に RepositoryService.currentRepository$ 購読パターンを追加（リポジトリ変更時の自動読み込み）
+- [FIX-019] RefreshWorktreesUseCase に `getRepoPath` コールバック（RepositoryService 連携）を追加
+- [FIX-020] WorktreeListViewModel のコンストラクタに IWorktreeService パラメータを追加（setSortOrder, selectedPath$ 用）
+- [FIX-021] システム構成図のメインプロセス Application 層を個別 UseCase 表記に更新
+- [FIX-022] 実装進捗テーブルを7つの個別 UseCase に更新
 
 ## v1.1 (2026-03-27)
 
