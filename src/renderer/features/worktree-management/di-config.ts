@@ -1,5 +1,5 @@
-import type { WorktreeInfo } from '@shared/domain'
 import type { VContainerConfig } from '@shared/lib/di'
+import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
 import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeUseCaseImpl } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeUseCaseImpl } from './application/usecases/delete-worktree-usecase'
@@ -63,15 +63,18 @@ export const worktreeManagementConfig: VContainerConfig = {
             container.resolve(WorktreeServiceToken),
           ),
       )
-      .registerSingleton(
-        RefreshWorktreesUseCaseToken,
-        () =>
-          new RefreshWorktreesUseCaseImpl(
-            container.resolve(WorktreeRepositoryToken),
-            container.resolve(WorktreeServiceToken),
-            () => null, // TODO: application-foundation の RepositoryService から repoPath を取得
-          ),
-      )
+      .registerSingleton(RefreshWorktreesUseCaseToken, () => {
+        const repoService = container.resolve(RepositoryServiceToken)
+        let currentRepoPath: string | null = null
+        repoService.currentRepository$.subscribe((repo) => {
+          currentRepoPath = repo?.path ?? null
+        })
+        return new RefreshWorktreesUseCaseImpl(
+          container.resolve(WorktreeRepositoryToken),
+          container.resolve(WorktreeServiceToken),
+          () => currentRepoPath,
+        )
+      })
       .registerSingleton(
         SuggestPathUseCaseToken,
         () => new SuggestPathUseCaseImpl(container.resolve(WorktreeRepositoryToken)),
@@ -116,17 +119,31 @@ export const worktreeManagementConfig: VContainerConfig = {
   setUp: async (container) => {
     const repo = container.resolve(WorktreeRepositoryToken)
     const service = container.resolve(WorktreeServiceToken)
+    const repoService = container.resolve(RepositoryServiceToken)
 
-    const initialWorktrees: WorktreeInfo[] = []
-    service.setUp(initialWorktrees)
+    service.setUp([])
 
-    const unsubscribe = repo.onChanged(() => {
+    // リポジトリ変更時にワークツリー一覧を読み込む
+    const repoSubscription = repoService.currentRepository$.subscribe((currentRepo) => {
+      if (currentRepo) {
+        repo
+          .list(currentRepo.path)
+          .then((worktrees) => service.updateWorktrees(worktrees))
+          .catch(() => service.updateWorktrees([]))
+      } else {
+        service.updateWorktrees([])
+      }
+    })
+
+    // worktree:changed イベントの購読（リアルタイム更新）
+    const unsubscribeChanged = repo.onChanged(() => {
       const refreshUseCase = container.resolve(RefreshWorktreesUseCaseToken)
       refreshUseCase.invoke()
     })
 
     return () => {
-      unsubscribe()
+      repoSubscription.unsubscribe()
+      unsubscribeChanged()
       service.tearDown()
     }
   },
