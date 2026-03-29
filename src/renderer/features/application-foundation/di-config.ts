@@ -59,78 +59,58 @@ export const applicationFoundationConfig: VContainerConfig = {
       .registerSingleton(SettingsServiceToken, SettingsService)
       .registerSingleton(ErrorNotificationServiceToken, ErrorNotificationService)
 
-    // UseCases (singleton)
+    // UseCases (singleton, useClass + deps)
     container
-      .registerSingleton(OpenRepositoryUseCaseToken, () => {
-        const repo = container.resolve(RepositoryRepositoryToken)
-        const service = container.resolve(RepositoryServiceToken)
-        const errorService = container.resolve(ErrorNotificationServiceToken)
-        return new OpenRepositoryUseCaseImpl(repo, service, errorService)
-      })
-      .registerSingleton(OpenRepositoryByPathUseCaseToken, () => {
-        const repo = container.resolve(RepositoryRepositoryToken)
-        const service = container.resolve(RepositoryServiceToken)
-        const errorService = container.resolve(ErrorNotificationServiceToken)
-        return new OpenRepositoryByPathUseCaseImpl(repo, service, errorService)
-      })
-      .registerSingleton(GetRecentRepositoriesUseCaseToken, () => {
-        const service = container.resolve(RepositoryServiceToken)
-        return new GetRecentRepositoriesUseCaseImpl(service)
-      })
-      .registerSingleton(RemoveRecentRepositoryUseCaseToken, () => {
-        const repo = container.resolve(RepositoryRepositoryToken)
-        const service = container.resolve(RepositoryServiceToken)
-        return new RemoveRecentRepositoryUseCaseImpl(repo, service)
-      })
-      .registerSingleton(PinRepositoryUseCaseToken, () => {
-        const repo = container.resolve(RepositoryRepositoryToken)
-        const service = container.resolve(RepositoryServiceToken)
-        return new PinRepositoryUseCaseImpl(repo, service)
-      })
-      .registerSingleton(GetSettingsUseCaseToken, () => {
-        const service = container.resolve(SettingsServiceToken)
-        return new GetSettingsUseCaseImpl(service)
-      })
-      .registerSingleton(UpdateSettingsUseCaseToken, () => {
-        const repo = container.resolve(SettingsRepositoryToken)
-        const service = container.resolve(SettingsServiceToken)
-        return new UpdateSettingsUseCaseImpl(repo, service)
-      })
-      .registerSingleton(GetErrorNotificationsUseCaseToken, () => {
-        const service = container.resolve(ErrorNotificationServiceToken)
-        return new GetErrorNotificationsUseCaseImpl(service)
-      })
-      .registerSingleton(DismissErrorUseCaseToken, () => {
-        const service = container.resolve(ErrorNotificationServiceToken)
-        return new DismissErrorUseCaseImpl(service)
-      })
-      .registerSingleton(RetryErrorUseCaseToken, () => {
-        const service = container.resolve(ErrorNotificationServiceToken)
-        return new RetryErrorUseCaseImpl(service)
-      })
+      .registerSingleton(OpenRepositoryUseCaseToken, OpenRepositoryUseCaseImpl, [
+        RepositoryRepositoryToken,
+        RepositoryServiceToken,
+        ErrorNotificationServiceToken,
+      ])
+      .registerSingleton(OpenRepositoryByPathUseCaseToken, OpenRepositoryByPathUseCaseImpl, [
+        RepositoryRepositoryToken,
+        RepositoryServiceToken,
+        ErrorNotificationServiceToken,
+      ])
+      .registerSingleton(GetRecentRepositoriesUseCaseToken, GetRecentRepositoriesUseCaseImpl, [RepositoryServiceToken])
+      .registerSingleton(RemoveRecentRepositoryUseCaseToken, RemoveRecentRepositoryUseCaseImpl, [
+        RepositoryRepositoryToken,
+        RepositoryServiceToken,
+      ])
+      .registerSingleton(PinRepositoryUseCaseToken, PinRepositoryUseCaseImpl, [
+        RepositoryRepositoryToken,
+        RepositoryServiceToken,
+      ])
+      .registerSingleton(GetSettingsUseCaseToken, GetSettingsUseCaseImpl, [SettingsServiceToken])
+      .registerSingleton(UpdateSettingsUseCaseToken, UpdateSettingsUseCaseImpl, [
+        SettingsRepositoryToken,
+        SettingsServiceToken,
+      ])
+      .registerSingleton(GetErrorNotificationsUseCaseToken, GetErrorNotificationsUseCaseImpl, [
+        ErrorNotificationServiceToken,
+      ])
+      .registerSingleton(DismissErrorUseCaseToken, DismissErrorUseCaseImpl, [ErrorNotificationServiceToken])
+      .registerSingleton(RetryErrorUseCaseToken, RetryErrorUseCaseImpl, [ErrorNotificationServiceToken])
 
-    // ViewModels (transient)
+    // ViewModels (transient, useClass + deps)
+    // ※ RepositorySelectorViewModel は Service 直参照あり（後続 PR で UseCase 経由に修正予定）
     container
-      .registerTransient(RepositorySelectorViewModelToken, () => {
-        const openRepo = container.resolve(OpenRepositoryUseCaseToken)
-        const openByPath = container.resolve(OpenRepositoryByPathUseCaseToken)
-        const getRecent = container.resolve(GetRecentRepositoriesUseCaseToken)
-        const removeRecent = container.resolve(RemoveRecentRepositoryUseCaseToken)
-        const pin = container.resolve(PinRepositoryUseCaseToken)
-        const repoService = container.resolve(RepositoryServiceToken)
-        return new RepositorySelectorViewModel(openRepo, openByPath, getRecent, removeRecent, pin, repoService)
-      })
-      .registerTransient(SettingsViewModelToken, () => {
-        const getSettings = container.resolve(GetSettingsUseCaseToken)
-        const updateSettings = container.resolve(UpdateSettingsUseCaseToken)
-        return new SettingsViewModel(getSettings, updateSettings)
-      })
-      .registerTransient(ErrorNotificationViewModelToken, () => {
-        const getNotifications = container.resolve(GetErrorNotificationsUseCaseToken)
-        const dismiss = container.resolve(DismissErrorUseCaseToken)
-        const retry = container.resolve(RetryErrorUseCaseToken)
-        return new ErrorNotificationViewModel(getNotifications, dismiss, retry)
-      })
+      .registerTransient(RepositorySelectorViewModelToken, RepositorySelectorViewModel, [
+        OpenRepositoryUseCaseToken,
+        OpenRepositoryByPathUseCaseToken,
+        GetRecentRepositoriesUseCaseToken,
+        RemoveRecentRepositoryUseCaseToken,
+        PinRepositoryUseCaseToken,
+        RepositoryServiceToken,
+      ])
+      .registerTransient(SettingsViewModelToken, SettingsViewModel, [
+        GetSettingsUseCaseToken,
+        UpdateSettingsUseCaseToken,
+      ])
+      .registerTransient(ErrorNotificationViewModelToken, ErrorNotificationViewModel, [
+        GetErrorNotificationsUseCaseToken,
+        DismissErrorUseCaseToken,
+        RetryErrorUseCaseToken,
+      ])
   },
 
   setUp: async (container) => {

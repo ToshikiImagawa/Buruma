@@ -41,32 +41,19 @@ export const worktreeManagementConfig: VContainerConfig = {
     // 2. Services (singleton)
     container.registerSingleton(WorktreeServiceToken, WorktreeService)
 
-    // 3. UseCases (singleton)
+    // 3. UseCases (singleton, useClass + deps)
     container
-      .registerSingleton(
-        ListWorktreesUseCaseToken,
-        () => new ListWorktreesUseCaseImpl(container.resolve(WorktreeServiceToken)),
-      )
-      .registerSingleton(
-        SelectWorktreeUseCaseToken,
-        () => new SelectWorktreeUseCaseImpl(container.resolve(WorktreeServiceToken)),
-      )
-      .registerSingleton(
-        CreateWorktreeUseCaseToken,
-        () =>
-          new CreateWorktreeUseCaseImpl(
-            container.resolve(WorktreeRepositoryToken),
-            container.resolve(WorktreeServiceToken),
-          ),
-      )
-      .registerSingleton(
-        DeleteWorktreeUseCaseToken,
-        () =>
-          new DeleteWorktreeUseCaseImpl(
-            container.resolve(WorktreeRepositoryToken),
-            container.resolve(WorktreeServiceToken),
-          ),
-      )
+      .registerSingleton(ListWorktreesUseCaseToken, ListWorktreesUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(SelectWorktreeUseCaseToken, SelectWorktreeUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(CreateWorktreeUseCaseToken, CreateWorktreeUseCaseImpl, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+      ])
+      .registerSingleton(DeleteWorktreeUseCaseToken, DeleteWorktreeUseCaseImpl, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+      ])
+      // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
       .registerSingleton(RefreshWorktreesUseCaseToken, () => {
         const repoService = container.resolve(RepositoryServiceToken)
         let currentRepoPath: string | null = null
@@ -79,50 +66,25 @@ export const worktreeManagementConfig: VContainerConfig = {
           () => currentRepoPath,
         )
       })
-      .registerSingleton(
-        SuggestPathUseCaseToken,
-        () => new SuggestPathUseCaseImpl(container.resolve(WorktreeRepositoryToken)),
-      )
-      .registerSingleton(
-        CheckDirtyUseCaseToken,
-        () => new CheckDirtyUseCaseImpl(container.resolve(WorktreeRepositoryToken)),
-      )
-      .registerSingleton(
-        GetSelectedWorktreeUseCaseToken,
-        () => new GetSelectedWorktreeUseCaseImpl(container.resolve(WorktreeServiceToken)),
-      )
-      .registerSingleton(
-        GetSelectedPathUseCaseToken,
-        () => new GetSelectedPathUseCaseImpl(container.resolve(WorktreeServiceToken)),
-      )
-      .registerSingleton(
-        SetSortOrderUseCaseToken,
-        () => new SetSortOrderUseCaseImpl(container.resolve(WorktreeServiceToken)),
-      )
-      .registerSingleton(
-        GetWorktreeStatusUseCaseToken,
-        () => new GetWorktreeStatusUseCaseImpl(container.resolve(WorktreeRepositoryToken)),
-      )
+      .registerSingleton(SuggestPathUseCaseToken, SuggestPathUseCaseImpl, [WorktreeRepositoryToken])
+      .registerSingleton(CheckDirtyUseCaseToken, CheckDirtyUseCaseImpl, [WorktreeRepositoryToken])
+      .registerSingleton(GetSelectedWorktreeUseCaseToken, GetSelectedWorktreeUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(GetSelectedPathUseCaseToken, GetSelectedPathUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusUseCaseImpl, [WorktreeRepositoryToken])
 
-    // 4. ViewModels (transient)
+    // 4. ViewModels (transient, useClass + deps)
     container
-      .registerTransient(
-        WorktreeListViewModelToken,
-        () =>
-          new WorktreeListViewModel(
-            container.resolve(ListWorktreesUseCaseToken),
-            container.resolve(SelectWorktreeUseCaseToken),
-            container.resolve(CreateWorktreeUseCaseToken),
-            container.resolve(DeleteWorktreeUseCaseToken),
-            container.resolve(RefreshWorktreesUseCaseToken),
-            container.resolve(GetSelectedPathUseCaseToken),
-            container.resolve(SetSortOrderUseCaseToken),
-          ),
-      )
-      .registerTransient(
-        WorktreeDetailViewModelToken,
-        () => new WorktreeDetailViewModel(container.resolve(GetSelectedWorktreeUseCaseToken)),
-      )
+      .registerTransient(WorktreeListViewModelToken, WorktreeListViewModel, [
+        ListWorktreesUseCaseToken,
+        SelectWorktreeUseCaseToken,
+        CreateWorktreeUseCaseToken,
+        DeleteWorktreeUseCaseToken,
+        RefreshWorktreesUseCaseToken,
+        GetSelectedPathUseCaseToken,
+        SetSortOrderUseCaseToken,
+      ])
+      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailViewModel, [GetSelectedWorktreeUseCaseToken])
   },
 
   setUp: async (container) => {
