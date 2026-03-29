@@ -6,8 +6,10 @@ import { BehaviorSubject, Observable } from 'rxjs'
 export class SettingsService implements ISettingsService {
   private readonly _settings$ = new BehaviorSubject<AppSettings>(DEFAULT_SETTINGS)
 
-  get settings$(): Observable<AppSettings> {
-    return this._settings$.asObservable()
+  readonly settings$: Observable<AppSettings>
+
+  constructor() {
+    this.settings$ = this._settings$.asObservable()
   }
 
   setUp(settings: AppSettings): void {

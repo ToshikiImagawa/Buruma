@@ -3,11 +3,12 @@ import type { Observable } from 'rxjs'
 import type {
   CreateWorktreeUseCase,
   DeleteWorktreeUseCase,
+  GetSelectedPathUseCase,
   IWorktreeListViewModel,
-  IWorktreeService,
   ListWorktreesUseCase,
   RefreshWorktreesUseCase,
   SelectWorktreeUseCase,
+  SetSortOrderUseCase,
 } from '../di-tokens'
 
 export class WorktreeListViewModel implements IWorktreeListViewModel {
@@ -17,7 +18,8 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
     private readonly createUseCase: CreateWorktreeUseCase,
     private readonly deleteUseCase: DeleteWorktreeUseCase,
     private readonly refreshUseCase: RefreshWorktreesUseCase,
-    private readonly service: IWorktreeService,
+    private readonly getSelectedPathUseCase: GetSelectedPathUseCase,
+    private readonly setSortOrderUseCase: SetSortOrderUseCase,
   ) {}
 
   get worktrees$(): Observable<WorktreeInfo[]> {
@@ -25,7 +27,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   get selectedPath$(): Observable<string | null> {
-    return this.service.selectedWorktreePath$
+    return this.getSelectedPathUseCase.store
   }
 
   selectWorktree(path: string | null): void {
@@ -45,6 +47,6 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   setSortOrder(order: WorktreeSortOrder): void {
-    this.service.setSortOrder(order)
+    this.setSortOrderUseCase.invoke(order)
   }
 }

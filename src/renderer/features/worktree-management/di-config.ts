@@ -3,22 +3,26 @@ import { RepositoryServiceToken } from '@renderer/features/application-foundatio
 import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeUseCaseImpl } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeUseCaseImpl } from './application/usecases/delete-worktree-usecase'
+import { GetSelectedPathUseCaseImpl } from './application/usecases/get-selected-path-usecase'
 import { GetSelectedWorktreeUseCaseImpl } from './application/usecases/get-selected-worktree-usecase'
 import { GetWorktreeStatusUseCaseImpl } from './application/usecases/get-worktree-status-usecase'
 import { ListWorktreesUseCaseImpl } from './application/usecases/list-worktrees-usecase'
 import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-worktrees-usecase'
 import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
+import { SetSortOrderUseCaseImpl } from './application/usecases/set-sort-order-usecase'
 import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
 import { WorktreeService } from './application/worktree-service'
 import {
   CheckDirtyUseCaseToken,
   CreateWorktreeUseCaseToken,
   DeleteWorktreeUseCaseToken,
+  GetSelectedPathUseCaseToken,
   GetSelectedWorktreeUseCaseToken,
   GetWorktreeStatusUseCaseToken,
   ListWorktreesUseCaseToken,
   RefreshWorktreesUseCaseToken,
   SelectWorktreeUseCaseToken,
+  SetSortOrderUseCaseToken,
   SuggestPathUseCaseToken,
   WorktreeDetailViewModelToken,
   WorktreeListViewModelToken,
@@ -88,6 +92,14 @@ export const worktreeManagementConfig: VContainerConfig = {
         () => new GetSelectedWorktreeUseCaseImpl(container.resolve(WorktreeServiceToken)),
       )
       .registerSingleton(
+        GetSelectedPathUseCaseToken,
+        () => new GetSelectedPathUseCaseImpl(container.resolve(WorktreeServiceToken)),
+      )
+      .registerSingleton(
+        SetSortOrderUseCaseToken,
+        () => new SetSortOrderUseCaseImpl(container.resolve(WorktreeServiceToken)),
+      )
+      .registerSingleton(
         GetWorktreeStatusUseCaseToken,
         () => new GetWorktreeStatusUseCaseImpl(container.resolve(WorktreeRepositoryToken)),
       )
@@ -103,16 +115,13 @@ export const worktreeManagementConfig: VContainerConfig = {
             container.resolve(CreateWorktreeUseCaseToken),
             container.resolve(DeleteWorktreeUseCaseToken),
             container.resolve(RefreshWorktreesUseCaseToken),
-            container.resolve(WorktreeServiceToken),
+            container.resolve(GetSelectedPathUseCaseToken),
+            container.resolve(SetSortOrderUseCaseToken),
           ),
       )
       .registerTransient(
         WorktreeDetailViewModelToken,
-        () =>
-          new WorktreeDetailViewModel(
-            container.resolve(GetSelectedWorktreeUseCaseToken),
-            container.resolve(GetWorktreeStatusUseCaseToken),
-          ),
+        () => new WorktreeDetailViewModel(container.resolve(GetSelectedWorktreeUseCaseToken)),
       )
   },
 

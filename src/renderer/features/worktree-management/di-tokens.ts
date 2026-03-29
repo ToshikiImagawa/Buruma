@@ -50,8 +50,6 @@ export interface IWorktreeListViewModel {
 
 export interface IWorktreeDetailViewModel {
   readonly selectedWorktree$: Observable<WorktreeInfo | null>
-  readonly worktreeStatus$: Observable<WorktreeStatus | null>
-  refreshStatus(): void
 }
 
 // --- UseCase 型 ---
@@ -63,6 +61,8 @@ export type RefreshWorktreesUseCase = RunnableUseCase
 export type SuggestPathUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
 export type CheckDirtyUseCase = FunctionUseCase<string, Promise<boolean>>
 export type GetSelectedWorktreeUseCase = ObservableStoreUseCase<WorktreeInfo | null>
+export type GetSelectedPathUseCase = ObservableStoreUseCase<string | null>
+export type SetSortOrderUseCase = ConsumerUseCase<WorktreeSortOrder>
 export type GetWorktreeStatusUseCase = FunctionUseCase<
   { repoPath: string; worktreePath: string },
   Promise<WorktreeStatus>
@@ -80,6 +80,8 @@ export const RefreshWorktreesUseCaseToken = createToken<RefreshWorktreesUseCase>
 export const SuggestPathUseCaseToken = createToken<SuggestPathUseCase>('SuggestPathUseCase')
 export const CheckDirtyUseCaseToken = createToken<CheckDirtyUseCase>('CheckDirtyUseCase')
 export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUseCase>('GetSelectedWorktreeUseCase')
+export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('GetSelectedPathUseCase')
+export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
 export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
 
 export const WorktreeListViewModelToken = createToken<IWorktreeListViewModel>('WorktreeListViewModel')
