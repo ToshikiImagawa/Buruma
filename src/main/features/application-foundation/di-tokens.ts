@@ -1,6 +1,6 @@
 import type { AppSettings, RecentRepository, RepositoryInfo, Theme } from '@shared/domain'
 import type { ConsumerUseCase, FunctionUseCase, SupplierUseCase } from '@shared/lib/usecase/types'
-import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from './application/repository-interfaces'
+import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from './application/repositories/types'
 import { createToken } from '@shared/lib/di'
 
 // --- Repository IF ---

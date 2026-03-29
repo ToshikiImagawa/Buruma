@@ -1,5 +1,5 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IStoreRepository } from '../repository-interfaces'
+import type { IStoreRepository } from '../repositories/types'
 
 export class RemoveRecentRepositoryMainUseCase implements ConsumerUseCase<string> {
   constructor(private readonly store: IStoreRepository) {}

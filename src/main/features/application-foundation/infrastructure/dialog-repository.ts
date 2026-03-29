@@ -1,4 +1,4 @@
-import type { IDialogRepository } from '../application/repository-interfaces'
+import type { IDialogRepository } from '../application/repositories/types'
 import { dialog } from 'electron'
 
 export class ElectronDialogRepository implements IDialogRepository {

@@ -1,5 +1,5 @@
 import type { RecentRepository } from '@shared/domain'
-import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repository-interfaces'
+import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repositories/types'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { describe, expect, it, vi } from 'vitest'
 import { GetRecentRepositoriesMainUseCase } from '../usecases/get-recent-repositories-main-usecase'

@@ -1,4 +1,4 @@
-import type { IGitValidationRepository } from '../application/repository-interfaces'
+import type { IGitValidationRepository } from '../application/repositories/types'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 

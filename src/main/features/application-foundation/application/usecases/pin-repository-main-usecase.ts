@@ -1,5 +1,5 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IStoreRepository } from '../repository-interfaces'
+import type { IStoreRepository } from '../repositories/types'
 
 export class PinRepositoryMainUseCase implements ConsumerUseCase<{ path: string; pinned: boolean }> {
   constructor(private readonly store: IStoreRepository) {}

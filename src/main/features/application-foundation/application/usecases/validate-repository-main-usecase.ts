@@ -1,5 +1,5 @@
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IGitValidationRepository } from '../repository-interfaces'
+import type { IGitValidationRepository } from '../repositories/types'
 
 export class ValidateRepositoryMainUseCase implements FunctionUseCase<string, Promise<boolean>> {
   constructor(private readonly gitValidator: IGitValidationRepository) {}

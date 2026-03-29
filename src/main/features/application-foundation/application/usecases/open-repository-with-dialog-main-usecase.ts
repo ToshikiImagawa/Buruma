@@ -1,6 +1,6 @@
 import type { RepositoryInfo } from '@shared/domain'
 import type { SupplierUseCase } from '@shared/lib/usecase/types'
-import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repository-interfaces'
+import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repositories/types'
 import { addToRecent } from './recent-repository-helper'
 
 export class OpenRepositoryWithDialogMainUseCase implements SupplierUseCase<Promise<RepositoryInfo | null>> {

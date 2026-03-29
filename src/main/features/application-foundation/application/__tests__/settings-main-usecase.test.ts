@@ -1,5 +1,5 @@
 import type { AppSettings } from '@shared/domain'
-import type { IStoreRepository } from '../repository-interfaces'
+import type { IStoreRepository } from '../repositories/types'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { describe, expect, it, vi } from 'vitest'
 import { GetSettingsMainUseCase } from '../usecases/get-settings-main-usecase'
