@@ -12,11 +12,11 @@ import { SetThemeMainUseCase } from './application/usecases/set-theme-main-useca
 import { UpdateSettingsMainUseCase } from './application/usecases/update-settings-main-usecase'
 import { ValidateRepositoryMainUseCase } from './application/usecases/validate-repository-main-usecase'
 import {
-  DialogServiceToken,
+  DialogRepositoryToken,
   GetRecentRepositoriesMainUseCaseToken,
   GetSettingsMainUseCaseToken,
   GetThemeMainUseCaseToken,
-  GitRepositoryValidatorToken,
+  GitValidationRepositoryToken,
   OpenRepositoryByPathMainUseCaseToken,
   OpenRepositoryWithDialogMainUseCaseToken,
   PinRepositoryMainUseCaseToken,
@@ -26,37 +26,37 @@ import {
   UpdateSettingsMainUseCaseToken,
   ValidateRepositoryMainUseCaseToken,
 } from './di-tokens'
-import { DialogService } from './infrastructure/dialog-service'
-import { GitRepositoryValidator } from './infrastructure/git-repository-validator'
+import { ElectronDialogRepository } from './infrastructure/dialog-repository'
+import { GitValidationRepository } from './infrastructure/git-validation-repository'
 import { StoreRepository } from './infrastructure/store-repository'
 import { storeDefaults } from './infrastructure/store-schema'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const applicationFoundationMainConfig: VContainerConfig = {
   register(container) {
-    // Infrastructure
+    // Repositories
     const store = new Store<StoreSchema>({
       defaults: storeDefaults,
     }) as unknown as AppStore
 
     container
       .registerSingleton(StoreRepositoryToken, () => new StoreRepository(store))
-      .registerSingleton(GitRepositoryValidatorToken, GitRepositoryValidator)
-      .registerSingleton(DialogServiceToken, DialogService)
+      .registerSingleton(GitValidationRepositoryToken, GitValidationRepository)
+      .registerSingleton(DialogRepositoryToken, ElectronDialogRepository)
 
     // Application UseCases (useClass + deps)
     container
       .registerSingleton(OpenRepositoryWithDialogMainUseCaseToken, OpenRepositoryWithDialogMainUseCase, [
         StoreRepositoryToken,
-        GitRepositoryValidatorToken,
-        DialogServiceToken,
+        GitValidationRepositoryToken,
+        DialogRepositoryToken,
       ])
       .registerSingleton(OpenRepositoryByPathMainUseCaseToken, OpenRepositoryByPathMainUseCase, [
         StoreRepositoryToken,
-        GitRepositoryValidatorToken,
+        GitValidationRepositoryToken,
       ])
       .registerSingleton(ValidateRepositoryMainUseCaseToken, ValidateRepositoryMainUseCase, [
-        GitRepositoryValidatorToken,
+        GitValidationRepositoryToken,
       ])
       .registerSingleton(GetRecentRepositoriesMainUseCaseToken, GetRecentRepositoriesMainUseCase, [
         StoreRepositoryToken,

@@ -8,12 +8,12 @@ export interface IStoreRepository {
   setSettings(settings: AppSettings): void
 }
 
-/** Git リポジトリ検証インターフェース */
-export interface IGitRepositoryValidator {
+/** Git リポジトリ検証リポジトリインターフェース */
+export interface IGitValidationRepository {
   isGitRepository(dirPath: string): Promise<boolean>
 }
 
-/** Electron ダイアログインターフェース */
-export interface IDialogService {
+/** Electron ダイアログリポジトリインターフェース */
+export interface IDialogRepository {
   showOpenDirectoryDialog(): Promise<string | null>
 }

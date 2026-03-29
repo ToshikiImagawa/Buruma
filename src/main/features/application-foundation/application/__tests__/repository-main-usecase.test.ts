@@ -1,5 +1,5 @@
 import type { RecentRepository } from '@shared/domain'
-import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from '../repository-interfaces'
+import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repository-interfaces'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { describe, expect, it, vi } from 'vitest'
 import { GetRecentRepositoriesMainUseCase } from '../usecases/get-recent-repositories-main-usecase'
@@ -19,14 +19,14 @@ function createMockStore(overrides: Partial<IStoreRepository> = {}): IStoreRepos
   }
 }
 
-function createMockGitValidator(overrides: Partial<IGitRepositoryValidator> = {}): IGitRepositoryValidator {
+function createMockGitValidator(overrides: Partial<IGitValidationRepository> = {}): IGitValidationRepository {
   return {
     isGitRepository: vi.fn().mockResolvedValue(true),
     ...overrides,
   }
 }
 
-function createMockDialogService(overrides: Partial<IDialogService> = {}): IDialogService {
+function createMockDialogRepository(overrides: Partial<IDialogRepository> = {}): IDialogRepository {
   return {
     showOpenDirectoryDialog: vi.fn().mockResolvedValue(null),
     ...overrides,
@@ -38,7 +38,7 @@ describe('OpenRepositoryWithDialogMainUseCase', () => {
     const useCase = new OpenRepositoryWithDialogMainUseCase(
       createMockStore(),
       createMockGitValidator(),
-      createMockDialogService({ showOpenDirectoryDialog: vi.fn().mockResolvedValue(null) }),
+      createMockDialogRepository({ showOpenDirectoryDialog: vi.fn().mockResolvedValue(null) }),
     )
     expect(await useCase.invoke()).toBeNull()
   })
@@ -47,7 +47,7 @@ describe('OpenRepositoryWithDialogMainUseCase', () => {
     const useCase = new OpenRepositoryWithDialogMainUseCase(
       createMockStore(),
       createMockGitValidator({ isGitRepository: vi.fn().mockResolvedValue(true) }),
-      createMockDialogService({ showOpenDirectoryDialog: vi.fn().mockResolvedValue('/path/to/repo') }),
+      createMockDialogRepository({ showOpenDirectoryDialog: vi.fn().mockResolvedValue('/path/to/repo') }),
     )
     expect(await useCase.invoke()).toEqual({ path: '/path/to/repo', name: 'repo', isValid: true })
   })
@@ -56,7 +56,7 @@ describe('OpenRepositoryWithDialogMainUseCase', () => {
     const useCase = new OpenRepositoryWithDialogMainUseCase(
       createMockStore(),
       createMockGitValidator({ isGitRepository: vi.fn().mockResolvedValue(false) }),
-      createMockDialogService({ showOpenDirectoryDialog: vi.fn().mockResolvedValue('/path/to/not-a-repo') }),
+      createMockDialogRepository({ showOpenDirectoryDialog: vi.fn().mockResolvedValue('/path/to/not-a-repo') }),
     )
     expect(await useCase.invoke()).toBeNull()
   })

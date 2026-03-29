@@ -1,12 +1,12 @@
 import type { AppSettings, RecentRepository, RepositoryInfo, Theme } from '@shared/domain'
 import type { ConsumerUseCase, FunctionUseCase, SupplierUseCase } from '@shared/lib/usecase/types'
-import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from './application/repository-interfaces'
+import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from './application/repository-interfaces'
 import { createToken } from '@shared/lib/di'
 
-// --- Infrastructure IF ---
+// --- Repository IF ---
 export const StoreRepositoryToken = createToken<IStoreRepository>('StoreRepository')
-export const GitRepositoryValidatorToken = createToken<IGitRepositoryValidator>('GitRepositoryValidator')
-export const DialogServiceToken = createToken<IDialogService>('DialogService')
+export const GitValidationRepositoryToken = createToken<IGitValidationRepository>('GitValidationRepository')
+export const DialogRepositoryToken = createToken<IDialogRepository>('DialogRepository')
 
 // --- Application UseCase 型 ---
 export type OpenRepositoryWithDialogMainUseCase = SupplierUseCase<Promise<RepositoryInfo | null>>
