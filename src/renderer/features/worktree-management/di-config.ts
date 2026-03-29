@@ -1,5 +1,6 @@
 import type { VContainerConfig } from '@shared/lib/di'
 import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
+import { WorktreeService } from './application/services/worktree-service'
 import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeUseCaseImpl } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeUseCaseImpl } from './application/usecases/delete-worktree-usecase'
@@ -11,7 +12,6 @@ import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-work
 import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
 import { SetSortOrderUseCaseImpl } from './application/usecases/set-sort-order-usecase'
 import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
-import { WorktreeService } from './application/worktree-service'
 import {
   CheckDirtyUseCaseToken,
   CreateWorktreeUseCaseToken,

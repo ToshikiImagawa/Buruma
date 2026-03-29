@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-03-27"
+updated: "2026-03-29"
 depends-on: ["spec-worktree-management"]
 tags: ["worktree", "core", "ui"]
 category: "core"
@@ -205,35 +205,36 @@ graph TD
 
 ```typescript
 // src/main/features/worktree-management/di-tokens.ts
-import { createToken } from '@shared/lib/di'
+import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
+import type { FunctionUseCase } from '@shared/lib/usecase/types'
 import type { IWorktreeGitService, IWorktreeWatcher } from './application/worktree-interfaces'
-import type { ListWorktreesMainUseCase } from './application/usecases/list-worktrees-main-usecase'
-import type { GetWorktreeStatusMainUseCase } from './application/usecases/get-worktree-status-main-usecase'
-import type { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
-import type { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
-import type { SuggestPathMainUseCase } from './application/usecases/suggest-path-main-usecase'
-import type { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
-import type { GetDefaultBranchMainUseCase } from './application/usecases/get-default-branch-main-usecase'
+import { createToken } from '@shared/lib/di'
 
 // Infrastructure IF
 export const WorktreeGitServiceToken = createToken<IWorktreeGitService>('WorktreeGitService')
 export const WorktreeWatcherToken = createToken<IWorktreeWatcher>('WorktreeWatcher')
 
-// Application UseCases
-export const ListWorktreesMainUseCaseToken =
-  createToken<ListWorktreesMainUseCase>('ListWorktreesMainUseCase')
+// Application UseCase 型
+export type ListWorktreesMainUseCase = FunctionUseCase<string, Promise<WorktreeInfo[]>>
+export type GetWorktreeStatusMainUseCase = FunctionUseCase<
+  { repoPath: string; worktreePath: string },
+  Promise<WorktreeStatus>
+>
+export type CreateWorktreeMainUseCase = FunctionUseCase<WorktreeCreateParams, Promise<WorktreeInfo>>
+export type DeleteWorktreeMainUseCase = FunctionUseCase<WorktreeDeleteParams, Promise<void>>
+export type SuggestPathMainUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
+export type CheckDirtyMainUseCase = FunctionUseCase<string, Promise<boolean>>
+export type GetDefaultBranchMainUseCase = FunctionUseCase<string, Promise<string>>
+
+// Application UseCase Tokens
+export const ListWorktreesMainUseCaseToken = createToken<ListWorktreesMainUseCase>('ListWorktreesMainUseCase')
 export const GetWorktreeStatusMainUseCaseToken =
   createToken<GetWorktreeStatusMainUseCase>('GetWorktreeStatusMainUseCase')
-export const CreateWorktreeMainUseCaseToken =
-  createToken<CreateWorktreeMainUseCase>('CreateWorktreeMainUseCase')
-export const DeleteWorktreeMainUseCaseToken =
-  createToken<DeleteWorktreeMainUseCase>('DeleteWorktreeMainUseCase')
-export const SuggestPathMainUseCaseToken =
-  createToken<SuggestPathMainUseCase>('SuggestPathMainUseCase')
-export const CheckDirtyMainUseCaseToken =
-  createToken<CheckDirtyMainUseCase>('CheckDirtyMainUseCase')
-export const GetDefaultBranchMainUseCaseToken =
-  createToken<GetDefaultBranchMainUseCase>('GetDefaultBranchMainUseCase')
+export const CreateWorktreeMainUseCaseToken = createToken<CreateWorktreeMainUseCase>('CreateWorktreeMainUseCase')
+export const DeleteWorktreeMainUseCaseToken = createToken<DeleteWorktreeMainUseCase>('DeleteWorktreeMainUseCase')
+export const SuggestPathMainUseCaseToken = createToken<SuggestPathMainUseCase>('SuggestPathMainUseCase')
+export const CheckDirtyMainUseCaseToken = createToken<CheckDirtyMainUseCase>('CheckDirtyMainUseCase')
+export const GetDefaultBranchMainUseCaseToken = createToken<GetDefaultBranchMainUseCase>('GetDefaultBranchMainUseCase')
 ```
 
 ### メインプロセス側 DI Config
@@ -241,51 +242,49 @@ export const GetDefaultBranchMainUseCaseToken =
 ```typescript
 // src/main/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@shared/lib/di'
+import { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
+import { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
+import { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
+import { GetDefaultBranchMainUseCase } from './application/usecases/get-default-branch-main-usecase'
+import { GetWorktreeStatusMainUseCase } from './application/usecases/get-worktree-status-main-usecase'
+import { ListWorktreesMainUseCase } from './application/usecases/list-worktrees-main-usecase'
+import { SuggestPathMainUseCase } from './application/usecases/suggest-path-main-usecase'
 import {
-  WorktreeGitServiceToken,
-  WorktreeWatcherToken,
-  ListWorktreesMainUseCaseToken,
-  GetWorktreeStatusMainUseCaseToken,
+  CheckDirtyMainUseCaseToken,
   CreateWorktreeMainUseCaseToken,
   DeleteWorktreeMainUseCaseToken,
-  SuggestPathMainUseCaseToken,
-  CheckDirtyMainUseCaseToken,
   GetDefaultBranchMainUseCaseToken,
+  GetWorktreeStatusMainUseCaseToken,
+  ListWorktreesMainUseCaseToken,
+  SuggestPathMainUseCaseToken,
+  WorktreeGitServiceToken,
+  WorktreeWatcherToken,
 } from './di-tokens'
 import { WorktreeGitService } from './infrastructure/worktree-git-service'
 import { WorktreeWatcher } from './infrastructure/worktree-watcher'
-import { ListWorktreesMainUseCase } from './application/usecases/list-worktrees-main-usecase'
-import { GetWorktreeStatusMainUseCase } from './application/usecases/get-worktree-status-main-usecase'
-import { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
-import { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
-import { SuggestPathMainUseCase } from './application/usecases/suggest-path-main-usecase'
-import { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
-import { GetDefaultBranchMainUseCase } from './application/usecases/get-default-branch-main-usecase'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const worktreeManagementMainConfig: VContainerConfig = {
   register(container) {
     // Infrastructure (singleton)
     container
-      .registerSingleton(WorktreeGitServiceToken, () => new WorktreeGitService())
-      .registerSingleton(WorktreeWatcherToken, () => new WorktreeWatcher())
+      .registerSingleton(WorktreeGitServiceToken, WorktreeGitService)
+      .registerSingleton(WorktreeWatcherToken, WorktreeWatcher)
 
-    // Application UseCases (singleton)
-    const resolveGit = () => container.resolve(WorktreeGitServiceToken)
+    // Application UseCases (singleton, deps で依存関係を宣言)
     container
-      .registerSingleton(ListWorktreesMainUseCaseToken, () => new ListWorktreesMainUseCase(resolveGit()))
-      .registerSingleton(GetWorktreeStatusMainUseCaseToken, () => new GetWorktreeStatusMainUseCase(resolveGit()))
-      .registerSingleton(CreateWorktreeMainUseCaseToken, () => new CreateWorktreeMainUseCase(resolveGit()))
-      .registerSingleton(DeleteWorktreeMainUseCaseToken, () => new DeleteWorktreeMainUseCase(resolveGit()))
-      .registerSingleton(SuggestPathMainUseCaseToken, () => new SuggestPathMainUseCase(resolveGit()))
-      .registerSingleton(CheckDirtyMainUseCaseToken, () => new CheckDirtyMainUseCase(resolveGit()))
-      .registerSingleton(GetDefaultBranchMainUseCaseToken, () => new GetDefaultBranchMainUseCase(resolveGit()))
+      .registerSingleton(ListWorktreesMainUseCaseToken, ListWorktreesMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(GetWorktreeStatusMainUseCaseToken, GetWorktreeStatusMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(CreateWorktreeMainUseCaseToken, CreateWorktreeMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(DeleteWorktreeMainUseCaseToken, DeleteWorktreeMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(SuggestPathMainUseCaseToken, SuggestPathMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(CheckDirtyMainUseCaseToken, CheckDirtyMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(GetDefaultBranchMainUseCaseToken, GetDefaultBranchMainUseCase, [WorktreeGitServiceToken])
   },
 
   setUp: async (container) => {
     const watcher = container.resolve(WorktreeWatcherToken)
 
-    // IPC ハンドラー登録（7つの個別 UseCase を渡す）
     registerIPCHandlers(
       container.resolve(ListWorktreesMainUseCaseToken),
       container.resolve(GetWorktreeStatusMainUseCaseToken),
@@ -296,7 +295,6 @@ export const worktreeManagementMainConfig: VContainerConfig = {
       container.resolve(GetDefaultBranchMainUseCaseToken),
     )
 
-    // tearDown: watcher 停止
     return () => {
       watcher.stop()
     }
@@ -405,34 +403,38 @@ export const WorktreeDetailViewModelToken = createToken<IWorktreeDetailViewModel
 // src/renderer/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@shared/lib/di'
 import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
-import {
-  WorktreeRepositoryToken,
-  WorktreeServiceToken,
-  ListWorktreesUseCaseToken,
-  SelectWorktreeUseCaseToken,
-  CreateWorktreeUseCaseToken,
-  DeleteWorktreeUseCaseToken,
-  RefreshWorktreesUseCaseToken,
-  SuggestPathUseCaseToken,
-  CheckDirtyUseCaseToken,
-  GetSelectedWorktreeUseCaseToken,
-  GetWorktreeStatusUseCaseToken,
-  WorktreeListViewModelToken,
-  WorktreeDetailViewModelToken,
-} from './di-tokens'
-import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-impl'
-import { WorktreeService } from './application/worktree-service'
-import { ListWorktreesUseCaseImpl } from './application/usecases/list-worktrees-usecase'
-import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
+import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeUseCaseImpl } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeUseCaseImpl } from './application/usecases/delete-worktree-usecase'
-import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-worktrees-usecase'
-import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
-import { CheckDirtyUseCaseImpl } from './application/usecases/check-dirty-usecase'
+import { GetSelectedPathUseCaseImpl } from './application/usecases/get-selected-path-usecase'
 import { GetSelectedWorktreeUseCaseImpl } from './application/usecases/get-selected-worktree-usecase'
 import { GetWorktreeStatusUseCaseImpl } from './application/usecases/get-worktree-status-usecase'
-import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
+import { ListWorktreesUseCaseImpl } from './application/usecases/list-worktrees-usecase'
+import { RefreshWorktreesUseCaseImpl } from './application/usecases/refresh-worktrees-usecase'
+import { SelectWorktreeUseCaseImpl } from './application/usecases/select-worktree-usecase'
+import { SetSortOrderUseCaseImpl } from './application/usecases/set-sort-order-usecase'
+import { SuggestPathUseCaseImpl } from './application/usecases/suggest-path-usecase'
+import { WorktreeService } from './application/services/worktree-service'
+import {
+  CheckDirtyUseCaseToken,
+  CreateWorktreeUseCaseToken,
+  DeleteWorktreeUseCaseToken,
+  GetSelectedPathUseCaseToken,
+  GetSelectedWorktreeUseCaseToken,
+  GetWorktreeStatusUseCaseToken,
+  ListWorktreesUseCaseToken,
+  RefreshWorktreesUseCaseToken,
+  SelectWorktreeUseCaseToken,
+  SetSortOrderUseCaseToken,
+  SuggestPathUseCaseToken,
+  WorktreeDetailViewModelToken,
+  WorktreeListViewModelToken,
+  WorktreeRepositoryToken,
+  WorktreeServiceToken,
+} from './di-tokens'
+import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-impl'
 import { WorktreeDetailViewModel } from './presentation/worktree-detail-viewmodel'
+import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
 
 export const worktreeManagementConfig: VContainerConfig = {
   register(container) {
@@ -442,24 +444,20 @@ export const worktreeManagementConfig: VContainerConfig = {
     // 2. Services (singleton)
     container.registerSingleton(WorktreeServiceToken, WorktreeService)
 
-    // 3. UseCases (singleton)
+    // 3. UseCases (singleton, useClass + deps)
     container
-      .registerSingleton(ListWorktreesUseCaseToken, () =>
-        new ListWorktreesUseCaseImpl(container.resolve(WorktreeServiceToken)))
-      .registerSingleton(SelectWorktreeUseCaseToken, () =>
-        new SelectWorktreeUseCaseImpl(container.resolve(WorktreeServiceToken)))
-      .registerSingleton(CreateWorktreeUseCaseToken, () =>
-        new CreateWorktreeUseCaseImpl(
-          container.resolve(WorktreeRepositoryToken),
-          container.resolve(WorktreeServiceToken),
-        ))
-      .registerSingleton(DeleteWorktreeUseCaseToken, () =>
-        new DeleteWorktreeUseCaseImpl(
-          container.resolve(WorktreeRepositoryToken),
-          container.resolve(WorktreeServiceToken),
-        ))
+      .registerSingleton(ListWorktreesUseCaseToken, ListWorktreesUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(SelectWorktreeUseCaseToken, SelectWorktreeUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(CreateWorktreeUseCaseToken, CreateWorktreeUseCaseImpl, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+      ])
+      .registerSingleton(DeleteWorktreeUseCaseToken, DeleteWorktreeUseCaseImpl, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+      ])
+      // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
       .registerSingleton(RefreshWorktreesUseCaseToken, () => {
-        // RepositoryService から currentRepository$ を購読し、repoPath を取得するコールバックを渡す
         const repoService = container.resolve(RepositoryServiceToken)
         let currentRepoPath: string | null = null
         repoService.currentRepository$.subscribe((repo) => {
@@ -471,31 +469,25 @@ export const worktreeManagementConfig: VContainerConfig = {
           () => currentRepoPath,
         )
       })
-      .registerSingleton(SuggestPathUseCaseToken, () =>
-        new SuggestPathUseCaseImpl(container.resolve(WorktreeRepositoryToken)))
-      .registerSingleton(CheckDirtyUseCaseToken, () =>
-        new CheckDirtyUseCaseImpl(container.resolve(WorktreeRepositoryToken)))
-      .registerSingleton(GetSelectedWorktreeUseCaseToken, () =>
-        new GetSelectedWorktreeUseCaseImpl(container.resolve(WorktreeServiceToken)))
-      .registerSingleton(GetWorktreeStatusUseCaseToken, () =>
-        new GetWorktreeStatusUseCaseImpl(container.resolve(WorktreeRepositoryToken)))
+      .registerSingleton(SuggestPathUseCaseToken, SuggestPathUseCaseImpl, [WorktreeRepositoryToken])
+      .registerSingleton(CheckDirtyUseCaseToken, CheckDirtyUseCaseImpl, [WorktreeRepositoryToken])
+      .registerSingleton(GetSelectedWorktreeUseCaseToken, GetSelectedWorktreeUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(GetSelectedPathUseCaseToken, GetSelectedPathUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderUseCaseImpl, [WorktreeServiceToken])
+      .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusUseCaseImpl, [WorktreeRepositoryToken])
 
-    // 4. ViewModels (transient — Hook 呼び出しごとに新規インスタンス)
+    // 4. ViewModels (transient, useClass + deps)
     container
-      .registerTransient(WorktreeListViewModelToken, () =>
-        new WorktreeListViewModel(
-          container.resolve(ListWorktreesUseCaseToken),
-          container.resolve(SelectWorktreeUseCaseToken),
-          container.resolve(CreateWorktreeUseCaseToken),
-          container.resolve(DeleteWorktreeUseCaseToken),
-          container.resolve(RefreshWorktreesUseCaseToken),
-          container.resolve(WorktreeServiceToken),
-        ))
-      .registerTransient(WorktreeDetailViewModelToken, () =>
-        new WorktreeDetailViewModel(
-          container.resolve(GetSelectedWorktreeUseCaseToken),
-          container.resolve(GetWorktreeStatusUseCaseToken),
-        ))
+      .registerTransient(WorktreeListViewModelToken, WorktreeListViewModel, [
+        ListWorktreesUseCaseToken,
+        SelectWorktreeUseCaseToken,
+        CreateWorktreeUseCaseToken,
+        DeleteWorktreeUseCaseToken,
+        RefreshWorktreesUseCaseToken,
+        GetSelectedPathUseCaseToken,
+        SetSortOrderUseCaseToken,
+      ])
+      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailViewModel, [GetSelectedWorktreeUseCaseToken])
   },
 
   setUp: async (container) => {
@@ -547,29 +539,27 @@ export const worktreeManagementConfig: VContainerConfig = {
 BehaviorSubject でワークツリーの状態を管理するステートフルサービス。`ParameterizedService<WorktreeInfo[]>` を extends する。
 
 ```typescript
-// src/renderer/features/worktree-management/application/worktree-service.ts
+// src/renderer/features/worktree-management/application/services/worktree-service.ts
 import { BehaviorSubject, combineLatest, type Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
-import type { IWorktreeService } from '../di-tokens'
+import type { IWorktreeService } from '../../di-tokens'
 
 export class WorktreeService implements IWorktreeService {
   private readonly _worktrees$ = new BehaviorSubject<WorktreeInfo[]>([])
   private readonly _selectedWorktreePath$ = new BehaviorSubject<string | null>(null)
   private readonly _sortOrder$ = new BehaviorSubject<WorktreeSortOrder>('name')
 
-  get worktrees$(): Observable<WorktreeInfo[]> {
-    return combineLatest([this._worktrees$, this._sortOrder$]).pipe(
+  readonly worktrees$: Observable<WorktreeInfo[]>
+  readonly selectedWorktreePath$: Observable<string | null>
+  readonly sortOrder$: Observable<WorktreeSortOrder>
+
+  constructor() {
+    this.worktrees$ = combineLatest([this._worktrees$, this._sortOrder$]).pipe(
       map(([worktrees, order]) => this.sortWorktrees(worktrees, order)),
     )
-  }
-
-  get selectedWorktreePath$(): Observable<string | null> {
-    return this._selectedWorktreePath$.asObservable()
-  }
-
-  get sortOrder$(): Observable<WorktreeSortOrder> {
-    return this._sortOrder$.asObservable()
+    this.selectedWorktreePath$ = this._selectedWorktreePath$.asObservable()
+    this.sortOrder$ = this._sortOrder$.asObservable()
   }
 
   setUp(initialWorktrees: WorktreeInfo[]): void {
@@ -868,17 +858,21 @@ export type WorktreeSortOrder = 'name' | 'last-updated';
 
 ```typescript
 // src/main/features/worktree-management/presentation/ipc-handlers.ts
+import type { WorktreeCreateParams, WorktreeDeleteParams } from '@shared/domain'
+import type { IPCResult } from '@shared/types/ipc'
+import type {
+  CheckDirtyMainUseCase,
+  CreateWorktreeMainUseCase,
+  DeleteWorktreeMainUseCase,
+  GetDefaultBranchMainUseCase,
+  GetWorktreeStatusMainUseCase,
+  ListWorktreesMainUseCase,
+  SuggestPathMainUseCase,
+} from '../di-tokens'
+import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { ipcMain } from 'electron'
-import type { ListWorktreesMainUseCase } from '../application/usecases/list-worktrees-main-usecase'
-import type { GetWorktreeStatusMainUseCase } from '../application/usecases/get-worktree-status-main-usecase'
-import type { CreateWorktreeMainUseCase } from '../application/usecases/create-worktree-main-usecase'
-import type { DeleteWorktreeMainUseCase } from '../application/usecases/delete-worktree-main-usecase'
-import type { SuggestPathMainUseCase } from '../application/usecases/suggest-path-main-usecase'
-import type { CheckDirtyMainUseCase } from '../application/usecases/check-dirty-main-usecase'
-import type { GetDefaultBranchMainUseCase } from '../application/usecases/get-default-branch-main-usecase'
 
-// wrapHandler は application-foundation と共通のユーティリティ
-// UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に変換する
+// wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に���換する
 function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaited<T>>> {
   return Promise.resolve()
     .then(() => handler())
@@ -1244,6 +1238,19 @@ worktree: {
 ---
 
 # 10. 変更履歴
+
+## v1.3 (2026-03-29)
+
+**変更内容:**
+
+- [FIX-023] メインプロセス側 di-tokens で UseCase IF 型を `FunctionUseCase` の型エイリアスとして定義（具象クラスからの import を排除）
+- [FIX-024] メインプ��セス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
+- [FIX-025] レンダラー側 DI Config を `useClass + deps` パターンに統一（RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数を維持）
+- [FIX-026] ViewModel から Service 直参照を排除（GetSelectedPathUseCase, SetSortOrderUseCase を追加し UseCase 経由に統一）
+- [FIX-027] IWorktreeDetailViewModel 簡素化（worktreeStatus$/refreshStatus() を削除、selectedWorktree$ のみ）
+- [FIX-028] WorktreeService の Observable 公開方法を getter から constructor フィールド化に変更（参照安定性のため）
+- [FIX-029] IPC Handlers の import を具象 UseCase ファイルから `di-tokens` の型エイリアスに変更
+- [FIX-030] WorktreeService の配置パスを `application/worktree-service.ts` から `application/services/worktree-service.ts` に修正
 
 ## v1.2 (2026-03-27)
 

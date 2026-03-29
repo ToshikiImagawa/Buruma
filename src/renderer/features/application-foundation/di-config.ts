@@ -1,8 +1,8 @@
 import type { VContainerConfig } from '@shared/lib/di'
 // Services
-import { ErrorNotificationService } from './application/error-notification-service'
-import { RepositoryService } from './application/repository-service'
-import { SettingsService } from './application/settings-service'
+import { ErrorNotificationService } from './application/services/error-notification-service'
+import { RepositoryService } from './application/services/repository-service'
+import { SettingsService } from './application/services/settings-service'
 import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
 import { GetCurrentRepositoryUseCaseImpl } from './application/usecases/get-current-repository-usecase'
 import { GetErrorNotificationsUseCaseImpl } from './application/usecases/get-error-notifications-usecase'
