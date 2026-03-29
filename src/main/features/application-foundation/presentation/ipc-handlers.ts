@@ -1,15 +1,17 @@
 import type { AppSettings, Theme } from '@shared/domain'
 import type { IPCResult } from '@shared/types/ipc'
-import type { GetRecentRepositoriesMainUseCase } from '../application/usecases/get-recent-repositories-main-usecase'
-import type { GetSettingsMainUseCase } from '../application/usecases/get-settings-main-usecase'
-import type { GetThemeMainUseCase } from '../application/usecases/get-theme-main-usecase'
-import type { OpenRepositoryByPathMainUseCase } from '../application/usecases/open-repository-by-path-main-usecase'
-import type { OpenRepositoryWithDialogMainUseCase } from '../application/usecases/open-repository-with-dialog-main-usecase'
-import type { PinRepositoryMainUseCase } from '../application/usecases/pin-repository-main-usecase'
-import type { RemoveRecentRepositoryMainUseCase } from '../application/usecases/remove-recent-repository-main-usecase'
-import type { SetThemeMainUseCase } from '../application/usecases/set-theme-main-usecase'
-import type { UpdateSettingsMainUseCase } from '../application/usecases/update-settings-main-usecase'
-import type { ValidateRepositoryMainUseCase } from '../application/usecases/validate-repository-main-usecase'
+import type {
+  GetRecentRepositoriesMainUseCase,
+  GetSettingsMainUseCase,
+  GetThemeMainUseCase,
+  OpenRepositoryByPathMainUseCase,
+  OpenRepositoryWithDialogMainUseCase,
+  PinRepositoryMainUseCase,
+  RemoveRecentRepositoryMainUseCase,
+  SetThemeMainUseCase,
+  UpdateSettingsMainUseCase,
+  ValidateRepositoryMainUseCase,
+} from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { ipcMain } from 'electron'
 

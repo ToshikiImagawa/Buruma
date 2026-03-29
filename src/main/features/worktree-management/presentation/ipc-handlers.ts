@@ -1,12 +1,14 @@
 import type { WorktreeCreateParams, WorktreeDeleteParams } from '@shared/domain'
 import type { IPCResult } from '@shared/types/ipc'
-import type { CheckDirtyMainUseCase } from '../application/usecases/check-dirty-main-usecase'
-import type { CreateWorktreeMainUseCase } from '../application/usecases/create-worktree-main-usecase'
-import type { DeleteWorktreeMainUseCase } from '../application/usecases/delete-worktree-main-usecase'
-import type { GetDefaultBranchMainUseCase } from '../application/usecases/get-default-branch-main-usecase'
-import type { GetWorktreeStatusMainUseCase } from '../application/usecases/get-worktree-status-main-usecase'
-import type { ListWorktreesMainUseCase } from '../application/usecases/list-worktrees-main-usecase'
-import type { SuggestPathMainUseCase } from '../application/usecases/suggest-path-main-usecase'
+import type {
+  CheckDirtyMainUseCase,
+  CreateWorktreeMainUseCase,
+  DeleteWorktreeMainUseCase,
+  GetDefaultBranchMainUseCase,
+  GetWorktreeStatusMainUseCase,
+  ListWorktreesMainUseCase,
+  SuggestPathMainUseCase,
+} from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
 import { ipcMain } from 'electron'
 

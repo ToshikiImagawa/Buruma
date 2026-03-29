@@ -1,14 +1,6 @@
+import type { AppSettings, RecentRepository, RepositoryInfo, Theme } from '@shared/domain'
+import type { ConsumerUseCase, FunctionUseCase, SupplierUseCase } from '@shared/lib/usecase/types'
 import type { IDialogService, IGitRepositoryValidator, IStoreRepository } from './application/repository-interfaces'
-import type { GetRecentRepositoriesMainUseCase } from './application/usecases/get-recent-repositories-main-usecase'
-import type { GetSettingsMainUseCase } from './application/usecases/get-settings-main-usecase'
-import type { GetThemeMainUseCase } from './application/usecases/get-theme-main-usecase'
-import type { OpenRepositoryByPathMainUseCase } from './application/usecases/open-repository-by-path-main-usecase'
-import type { OpenRepositoryWithDialogMainUseCase } from './application/usecases/open-repository-with-dialog-main-usecase'
-import type { PinRepositoryMainUseCase } from './application/usecases/pin-repository-main-usecase'
-import type { RemoveRecentRepositoryMainUseCase } from './application/usecases/remove-recent-repository-main-usecase'
-import type { SetThemeMainUseCase } from './application/usecases/set-theme-main-usecase'
-import type { UpdateSettingsMainUseCase } from './application/usecases/update-settings-main-usecase'
-import type { ValidateRepositoryMainUseCase } from './application/usecases/validate-repository-main-usecase'
 import { createToken } from '@shared/lib/di'
 
 // --- Infrastructure IF ---
@@ -16,7 +8,19 @@ export const StoreRepositoryToken = createToken<IStoreRepository>('StoreReposito
 export const GitRepositoryValidatorToken = createToken<IGitRepositoryValidator>('GitRepositoryValidator')
 export const DialogServiceToken = createToken<IDialogService>('DialogService')
 
-// --- Application UseCases ---
+// --- Application UseCase 型 ---
+export type OpenRepositoryWithDialogMainUseCase = SupplierUseCase<Promise<RepositoryInfo | null>>
+export type OpenRepositoryByPathMainUseCase = FunctionUseCase<string, Promise<RepositoryInfo | null>>
+export type ValidateRepositoryMainUseCase = FunctionUseCase<string, Promise<boolean>>
+export type GetRecentRepositoriesMainUseCase = SupplierUseCase<RecentRepository[]>
+export type RemoveRecentRepositoryMainUseCase = ConsumerUseCase<string>
+export type PinRepositoryMainUseCase = ConsumerUseCase<{ path: string; pinned: boolean }>
+export type GetSettingsMainUseCase = SupplierUseCase<AppSettings>
+export type UpdateSettingsMainUseCase = ConsumerUseCase<Partial<AppSettings>>
+export type GetThemeMainUseCase = SupplierUseCase<Theme>
+export type SetThemeMainUseCase = ConsumerUseCase<Theme>
+
+// --- Application UseCase Tokens ---
 export const OpenRepositoryWithDialogMainUseCaseToken = createToken<OpenRepositoryWithDialogMainUseCase>(
   'OpenRepositoryWithDialogMainUseCase',
 )
