@@ -360,8 +360,6 @@ export interface IWorktreeListViewModel {
 
 export interface IWorktreeDetailViewModel {
   readonly selectedWorktree$: Observable<WorktreeInfo | null>
-  readonly worktreeStatus$: Observable<WorktreeStatus | null>
-  refreshStatus(): void
 }
 
 // --- Detail 用 UseCase 型 ---
@@ -376,6 +374,8 @@ export type DeleteWorktreeUseCase = ConsumerUseCase<WorktreeDeleteParams>
 export type RefreshWorktreesUseCase = RunnableUseCase
 export type SuggestPathUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
 export type CheckDirtyUseCase = FunctionUseCase<string, Promise<boolean>>
+export type GetSelectedPathUseCase = ObservableStoreUseCase<string | null>
+export type SetSortOrderUseCase = ConsumerUseCase<WorktreeSortOrder>
 
 // --- Token 定義 ---
 // Repository
@@ -392,6 +392,8 @@ export const SuggestPathUseCaseToken = createToken<SuggestPathUseCase>('SuggestP
 export const CheckDirtyUseCaseToken = createToken<CheckDirtyUseCase>('CheckDirtyUseCase')
 export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUseCase>('GetSelectedWorktreeUseCase')
 export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
+export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('GetSelectedPathUseCase')
+export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
 // ViewModels
 export const WorktreeListViewModelToken = createToken<IWorktreeListViewModel>('WorktreeListViewModel')
 export const WorktreeDetailViewModelToken = createToken<IWorktreeDetailViewModel>('WorktreeDetailViewModel')
@@ -694,7 +696,8 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
     private readonly createUseCase: CreateWorktreeUseCase,
     private readonly deleteUseCase: DeleteWorktreeUseCase,
     private readonly refreshUseCase: RefreshWorktreesUseCase,
-    private readonly service: IWorktreeService,
+    private readonly getSelectedPathUseCase: GetSelectedPathUseCase,
+    private readonly setSortOrderUseCase: SetSortOrderUseCase,
   ) {}
 
   get worktrees$(): Observable<WorktreeInfo[]> {
@@ -702,7 +705,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   get selectedPath$(): Observable<string | null> {
-    return this.service.selectedWorktreePath$
+    return this.getSelectedPathUseCase.store
   }
 
   selectWorktree(path: string | null): void {
@@ -722,7 +725,7 @@ export class WorktreeListViewModel implements IWorktreeListViewModel {
   }
 
   setSortOrder(order: WorktreeSortOrder): void {
-    this.service.setSortOrder(order)
+    this.setSortOrderUseCase.invoke(order)
   }
 }
 ```

@@ -87,6 +87,7 @@ export type UpdateSettingsUseCase = ConsumerUseCase<Partial<AppSettings>>
 export type GetErrorNotificationsUseCase = ObservableStoreUseCase<ErrorNotification[]>
 export type DismissErrorUseCase = ConsumerUseCase<string>
 export type RetryErrorUseCase = ConsumerUseCase<string>
+export type GetCurrentRepositoryUseCase = ObservableStoreUseCase<RepositoryInfo | null>
 
 // --- DI Tokens ---
 
@@ -114,6 +115,7 @@ export const GetErrorNotificationsUseCaseToken =
   createToken<GetErrorNotificationsUseCase>('GetErrorNotificationsUseCase')
 export const DismissErrorUseCaseToken = createToken<DismissErrorUseCase>('DismissErrorUseCase')
 export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryErrorUseCase')
+export const GetCurrentRepositoryUseCaseToken = createToken<GetCurrentRepositoryUseCase>('GetCurrentRepositoryUseCase')
 
 // ViewModels
 export const RepositorySelectorViewModelToken = createToken<IRepositorySelectorViewModel>('RepositorySelectorViewModel')

@@ -4,6 +4,7 @@ import { ErrorNotificationService } from './application/error-notification-servi
 import { RepositoryService } from './application/repository-service'
 import { SettingsService } from './application/settings-service'
 import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
+import { GetCurrentRepositoryUseCaseImpl } from './application/usecases/get-current-repository-usecase'
 import { GetErrorNotificationsUseCaseImpl } from './application/usecases/get-error-notifications-usecase'
 import { GetRecentRepositoriesUseCaseImpl } from './application/usecases/get-recent-repositories-usecase'
 import { GetSettingsUseCaseImpl } from './application/usecases/get-settings-usecase'
@@ -18,6 +19,7 @@ import {
   DismissErrorUseCaseToken,
   ErrorNotificationServiceToken,
   ErrorNotificationViewModelToken,
+  GetCurrentRepositoryUseCaseToken,
   GetErrorNotificationsUseCaseToken,
   GetRecentRepositoriesUseCaseToken,
   GetSettingsUseCaseToken,
@@ -90,9 +92,9 @@ export const applicationFoundationConfig: VContainerConfig = {
       ])
       .registerSingleton(DismissErrorUseCaseToken, DismissErrorUseCaseImpl, [ErrorNotificationServiceToken])
       .registerSingleton(RetryErrorUseCaseToken, RetryErrorUseCaseImpl, [ErrorNotificationServiceToken])
+      .registerSingleton(GetCurrentRepositoryUseCaseToken, GetCurrentRepositoryUseCaseImpl, [RepositoryServiceToken])
 
     // ViewModels (transient, useClass + deps)
-    // ※ RepositorySelectorViewModel は Service 直参照あり（後続 PR で UseCase 経由に修正予定）
     container
       .registerTransient(RepositorySelectorViewModelToken, RepositorySelectorViewModel, [
         OpenRepositoryUseCaseToken,
@@ -100,7 +102,7 @@ export const applicationFoundationConfig: VContainerConfig = {
         GetRecentRepositoriesUseCaseToken,
         RemoveRecentRepositoryUseCaseToken,
         PinRepositoryUseCaseToken,
-        RepositoryServiceToken,
+        GetCurrentRepositoryUseCaseToken,
       ])
       .registerTransient(SettingsViewModelToken, SettingsViewModel, [
         GetSettingsUseCaseToken,
