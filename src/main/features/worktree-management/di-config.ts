@@ -25,19 +25,18 @@ export const worktreeManagementMainConfig: VContainerConfig = {
   register(container) {
     // Infrastructure (singleton)
     container
-      .registerSingleton(WorktreeGitServiceToken, () => new WorktreeGitService())
-      .registerSingleton(WorktreeWatcherToken, () => new WorktreeWatcher())
+      .registerSingleton(WorktreeGitServiceToken, WorktreeGitService)
+      .registerSingleton(WorktreeWatcherToken, WorktreeWatcher)
 
-    // Application UseCases (singleton)
-    const resolveGit = () => container.resolve(WorktreeGitServiceToken)
+    // Application UseCases (singleton, deps で依存関係を宣言)
     container
-      .registerSingleton(ListWorktreesMainUseCaseToken, () => new ListWorktreesMainUseCase(resolveGit()))
-      .registerSingleton(GetWorktreeStatusMainUseCaseToken, () => new GetWorktreeStatusMainUseCase(resolveGit()))
-      .registerSingleton(CreateWorktreeMainUseCaseToken, () => new CreateWorktreeMainUseCase(resolveGit()))
-      .registerSingleton(DeleteWorktreeMainUseCaseToken, () => new DeleteWorktreeMainUseCase(resolveGit()))
-      .registerSingleton(SuggestPathMainUseCaseToken, () => new SuggestPathMainUseCase(resolveGit()))
-      .registerSingleton(CheckDirtyMainUseCaseToken, () => new CheckDirtyMainUseCase(resolveGit()))
-      .registerSingleton(GetDefaultBranchMainUseCaseToken, () => new GetDefaultBranchMainUseCase(resolveGit()))
+      .registerSingleton(ListWorktreesMainUseCaseToken, ListWorktreesMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(GetWorktreeStatusMainUseCaseToken, GetWorktreeStatusMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(CreateWorktreeMainUseCaseToken, CreateWorktreeMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(DeleteWorktreeMainUseCaseToken, DeleteWorktreeMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(SuggestPathMainUseCaseToken, SuggestPathMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(CheckDirtyMainUseCaseToken, CheckDirtyMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(GetDefaultBranchMainUseCaseToken, GetDefaultBranchMainUseCase, [WorktreeGitServiceToken])
   },
 
   setUp: async (container) => {

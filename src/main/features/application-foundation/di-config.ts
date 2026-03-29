@@ -39,41 +39,36 @@ export const applicationFoundationMainConfig: VContainerConfig = {
       defaults: storeDefaults,
     }) as unknown as AppStore
 
-    container.registerSingleton(StoreRepositoryToken, () => new StoreRepository(store))
-    container.registerSingleton(GitRepositoryValidatorToken, () => new GitRepositoryValidator())
-    container.registerSingleton(DialogServiceToken, () => new DialogService())
-
-    // Application UseCases
-    const resolveStore = () => container.resolve(StoreRepositoryToken)
-    const resolveValidator = () => container.resolve(GitRepositoryValidatorToken)
-    const resolveDialog = () => container.resolve(DialogServiceToken)
-
     container
-      .registerSingleton(
-        OpenRepositoryWithDialogMainUseCaseToken,
-        () => new OpenRepositoryWithDialogMainUseCase(resolveStore(), resolveValidator(), resolveDialog()),
-      )
-      .registerSingleton(
-        OpenRepositoryByPathMainUseCaseToken,
-        () => new OpenRepositoryByPathMainUseCase(resolveStore(), resolveValidator()),
-      )
-      .registerSingleton(
-        ValidateRepositoryMainUseCaseToken,
-        () => new ValidateRepositoryMainUseCase(resolveValidator()),
-      )
-      .registerSingleton(
-        GetRecentRepositoriesMainUseCaseToken,
-        () => new GetRecentRepositoriesMainUseCase(resolveStore()),
-      )
-      .registerSingleton(
-        RemoveRecentRepositoryMainUseCaseToken,
-        () => new RemoveRecentRepositoryMainUseCase(resolveStore()),
-      )
-      .registerSingleton(PinRepositoryMainUseCaseToken, () => new PinRepositoryMainUseCase(resolveStore()))
-      .registerSingleton(GetSettingsMainUseCaseToken, () => new GetSettingsMainUseCase(resolveStore()))
-      .registerSingleton(UpdateSettingsMainUseCaseToken, () => new UpdateSettingsMainUseCase(resolveStore()))
-      .registerSingleton(GetThemeMainUseCaseToken, () => new GetThemeMainUseCase(resolveStore()))
-      .registerSingleton(SetThemeMainUseCaseToken, () => new SetThemeMainUseCase(resolveStore()))
+      .registerSingleton(StoreRepositoryToken, () => new StoreRepository(store))
+      .registerSingleton(GitRepositoryValidatorToken, GitRepositoryValidator)
+      .registerSingleton(DialogServiceToken, DialogService)
+
+    // Application UseCases (useClass + deps)
+    container
+      .registerSingleton(OpenRepositoryWithDialogMainUseCaseToken, OpenRepositoryWithDialogMainUseCase, [
+        StoreRepositoryToken,
+        GitRepositoryValidatorToken,
+        DialogServiceToken,
+      ])
+      .registerSingleton(OpenRepositoryByPathMainUseCaseToken, OpenRepositoryByPathMainUseCase, [
+        StoreRepositoryToken,
+        GitRepositoryValidatorToken,
+      ])
+      .registerSingleton(ValidateRepositoryMainUseCaseToken, ValidateRepositoryMainUseCase, [
+        GitRepositoryValidatorToken,
+      ])
+      .registerSingleton(GetRecentRepositoriesMainUseCaseToken, GetRecentRepositoriesMainUseCase, [
+        StoreRepositoryToken,
+      ])
+      .registerSingleton(RemoveRecentRepositoryMainUseCaseToken, RemoveRecentRepositoryMainUseCase, [
+        StoreRepositoryToken,
+      ])
+      .registerSingleton(PinRepositoryMainUseCaseToken, PinRepositoryMainUseCase, [StoreRepositoryToken])
+      .registerSingleton(GetSettingsMainUseCaseToken, GetSettingsMainUseCase, [StoreRepositoryToken])
+      .registerSingleton(UpdateSettingsMainUseCaseToken, UpdateSettingsMainUseCase, [StoreRepositoryToken])
+      .registerSingleton(GetThemeMainUseCaseToken, GetThemeMainUseCase, [StoreRepositoryToken])
+      .registerSingleton(SetThemeMainUseCaseToken, SetThemeMainUseCase, [StoreRepositoryToken])
   },
   setUp: async (container) => {
     registerIPCHandlers(
