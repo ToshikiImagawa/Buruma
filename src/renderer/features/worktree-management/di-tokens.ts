@@ -1,56 +1,25 @@
 import type {
-  WorktreeChangeEvent,
   WorktreeCreateParams,
   WorktreeDeleteParams,
   WorktreeInfo,
   WorktreeSortOrder,
   WorktreeStatus,
 } from '@shared/domain'
-import type { ParameterizedService } from '@shared/lib/service'
 import type {
   ConsumerUseCase,
   FunctionUseCase,
   ObservableStoreUseCase,
   RunnableUseCase,
 } from '@shared/lib/usecase/types'
-import type { Observable } from 'rxjs'
+import type { WorktreeRepository } from './application/repositories/worktree-repository'
+import type { IWorktreeService } from './application/services/worktree-service-interface'
+import type { IWorktreeDetailViewModel, IWorktreeListViewModel } from './presentation/viewmodel-interfaces'
 import { createToken } from '@shared/lib/di'
 
-// --- Repository IF ---
-export interface WorktreeRepository {
-  list(repoPath: string): Promise<WorktreeInfo[]>
-  getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus>
-  create(params: WorktreeCreateParams): Promise<WorktreeInfo>
-  delete(params: WorktreeDeleteParams): Promise<void>
-  suggestPath(repoPath: string, branch: string): Promise<string>
-  checkDirty(worktreePath: string): Promise<boolean>
-  onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
-}
-
-// --- Service IF ---
-export interface IWorktreeService extends ParameterizedService<WorktreeInfo[]> {
-  readonly worktrees$: Observable<WorktreeInfo[]>
-  readonly selectedWorktreePath$: Observable<string | null>
-  readonly sortOrder$: Observable<WorktreeSortOrder>
-  updateWorktrees(worktrees: WorktreeInfo[]): void
-  setSelectedWorktree(path: string | null): void
-  setSortOrder(order: WorktreeSortOrder): void
-}
-
-// --- ViewModel IF ---
-export interface IWorktreeListViewModel {
-  readonly worktrees$: Observable<WorktreeInfo[]>
-  readonly selectedPath$: Observable<string | null>
-  selectWorktree(path: string | null): void
-  createWorktree(params: WorktreeCreateParams): void
-  deleteWorktree(params: WorktreeDeleteParams): void
-  refreshWorktrees(): void
-  setSortOrder(order: WorktreeSortOrder): void
-}
-
-export interface IWorktreeDetailViewModel {
-  readonly selectedWorktree$: Observable<WorktreeInfo | null>
-}
+// re-export for convenience
+export type { WorktreeRepository } from './application/repositories/worktree-repository'
+export type { IWorktreeService } from './application/services/worktree-service-interface'
+export type { IWorktreeListViewModel, IWorktreeDetailViewModel } from './presentation/viewmodel-interfaces'
 
 // --- UseCase 型 ---
 export type ListWorktreesUseCase = ObservableStoreUseCase<WorktreeInfo[]>

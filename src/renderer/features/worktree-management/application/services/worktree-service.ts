@@ -1,6 +1,6 @@
 import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
 import type { Observable } from 'rxjs'
-import type { IWorktreeService } from '../../di-tokens'
+import type { IWorktreeService } from './worktree-service-interface'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 

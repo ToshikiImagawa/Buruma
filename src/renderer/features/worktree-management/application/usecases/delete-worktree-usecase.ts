@@ -1,6 +1,7 @@
 import type { WorktreeDeleteParams } from '@shared/domain'
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeService, WorktreeRepository } from '../../di-tokens'
+import type { WorktreeRepository } from '../repositories/worktree-repository'
+import type { IWorktreeService } from '../services/worktree-service-interface'
 
 export class DeleteWorktreeUseCaseImpl implements ConsumerUseCase<WorktreeDeleteParams> {
   constructor(

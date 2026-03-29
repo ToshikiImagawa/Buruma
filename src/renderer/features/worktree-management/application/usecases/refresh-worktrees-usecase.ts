@@ -1,5 +1,6 @@
 import type { RunnableUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeService, WorktreeRepository } from '../../di-tokens'
+import type { WorktreeRepository } from '../repositories/worktree-repository'
+import type { IWorktreeService } from '../services/worktree-service-interface'
 
 export class RefreshWorktreesUseCaseImpl implements RunnableUseCase {
   constructor(

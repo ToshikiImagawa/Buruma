@@ -4,12 +4,12 @@ import type {
   CreateWorktreeUseCase,
   DeleteWorktreeUseCase,
   GetSelectedPathUseCase,
-  IWorktreeListViewModel,
   ListWorktreesUseCase,
   RefreshWorktreesUseCase,
   SelectWorktreeUseCase,
   SetSortOrderUseCase,
 } from '../di-tokens'
+import type { IWorktreeListViewModel } from './viewmodel-interfaces'
 
 export class WorktreeListViewModel implements IWorktreeListViewModel {
   constructor(

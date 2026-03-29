@@ -1,6 +1,7 @@
 import type { WorktreeInfo } from '@shared/domain'
 import type { Observable } from 'rxjs'
-import type { GetSelectedWorktreeUseCase, IWorktreeDetailViewModel } from '../di-tokens'
+import type { GetSelectedWorktreeUseCase } from '../di-tokens'
+import type { IWorktreeDetailViewModel } from './viewmodel-interfaces'
 
 export class WorktreeDetailViewModel implements IWorktreeDetailViewModel {
   constructor(private readonly getSelectedUseCase: GetSelectedWorktreeUseCase) {}

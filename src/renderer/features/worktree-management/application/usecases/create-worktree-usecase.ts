@@ -1,6 +1,7 @@
 import type { WorktreeCreateParams } from '@shared/domain'
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeService, WorktreeRepository } from '../../di-tokens'
+import type { WorktreeRepository } from '../repositories/worktree-repository'
+import type { IWorktreeService } from '../services/worktree-service-interface'
 
 export class CreateWorktreeUseCaseImpl implements ConsumerUseCase<WorktreeCreateParams> {
   constructor(

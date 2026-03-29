@@ -1,7 +1,7 @@
 import type { WorktreeInfo } from '@shared/domain'
 import type { ObservableStoreUseCase } from '@shared/lib/usecase/types'
 import type { Observable } from 'rxjs'
-import type { IWorktreeService } from '../../di-tokens'
+import type { IWorktreeService } from '../services/worktree-service-interface'
 import { combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 

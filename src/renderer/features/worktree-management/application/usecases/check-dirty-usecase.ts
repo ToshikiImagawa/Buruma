@@ -1,5 +1,5 @@
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { WorktreeRepository } from '../../di-tokens'
+import type { WorktreeRepository } from '../repositories/worktree-repository'
 
 export class CheckDirtyUseCaseImpl implements FunctionUseCase<string, Promise<boolean>> {
   constructor(private readonly repo: WorktreeRepository) {}
