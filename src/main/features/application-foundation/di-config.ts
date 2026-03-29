@@ -1,14 +1,30 @@
 import type { VContainerConfig } from '@shared/lib/di'
 import type { AppStore, StoreSchema } from './infrastructure/store-schema'
 import Store from 'electron-store'
-import { RepositoryMainUseCase } from './application/repository-main-usecase'
-import { SettingsMainUseCase } from './application/settings-main-usecase'
+import { GetRecentRepositoriesMainUseCase } from './application/usecases/get-recent-repositories-main-usecase'
+import { GetSettingsMainUseCase } from './application/usecases/get-settings-main-usecase'
+import { GetThemeMainUseCase } from './application/usecases/get-theme-main-usecase'
+import { OpenRepositoryByPathMainUseCase } from './application/usecases/open-repository-by-path-main-usecase'
+import { OpenRepositoryWithDialogMainUseCase } from './application/usecases/open-repository-with-dialog-main-usecase'
+import { PinRepositoryMainUseCase } from './application/usecases/pin-repository-main-usecase'
+import { RemoveRecentRepositoryMainUseCase } from './application/usecases/remove-recent-repository-main-usecase'
+import { SetThemeMainUseCase } from './application/usecases/set-theme-main-usecase'
+import { UpdateSettingsMainUseCase } from './application/usecases/update-settings-main-usecase'
+import { ValidateRepositoryMainUseCase } from './application/usecases/validate-repository-main-usecase'
 import {
   DialogServiceToken,
+  GetRecentRepositoriesMainUseCaseToken,
+  GetSettingsMainUseCaseToken,
+  GetThemeMainUseCaseToken,
   GitRepositoryValidatorToken,
-  RepositoryMainUseCaseToken,
-  SettingsMainUseCaseToken,
+  OpenRepositoryByPathMainUseCaseToken,
+  OpenRepositoryWithDialogMainUseCaseToken,
+  PinRepositoryMainUseCaseToken,
+  RemoveRecentRepositoryMainUseCaseToken,
+  SetThemeMainUseCaseToken,
   StoreRepositoryToken,
+  UpdateSettingsMainUseCaseToken,
+  ValidateRepositoryMainUseCaseToken,
 } from './di-tokens'
 import { DialogService } from './infrastructure/dialog-service'
 import { GitRepositoryValidator } from './infrastructure/git-repository-validator'
@@ -27,30 +43,52 @@ export const applicationFoundationMainConfig: VContainerConfig = {
     container.registerSingleton(GitRepositoryValidatorToken, () => new GitRepositoryValidator())
     container.registerSingleton(DialogServiceToken, () => new DialogService())
 
-    // Application
-    container.registerSingleton(
-      RepositoryMainUseCaseToken,
-      () =>
-        new RepositoryMainUseCase(
-          container.resolve(StoreRepositoryToken),
-          container.resolve(GitRepositoryValidatorToken),
-          container.resolve(DialogServiceToken),
-        ),
-    )
-    container.registerSingleton(
-      SettingsMainUseCaseToken,
-      () => new SettingsMainUseCase(container.resolve(StoreRepositoryToken)),
-    )
+    // Application UseCases
+    const resolveStore = () => container.resolve(StoreRepositoryToken)
+    const resolveValidator = () => container.resolve(GitRepositoryValidatorToken)
+    const resolveDialog = () => container.resolve(DialogServiceToken)
+
+    container
+      .registerSingleton(
+        OpenRepositoryWithDialogMainUseCaseToken,
+        () => new OpenRepositoryWithDialogMainUseCase(resolveStore(), resolveValidator(), resolveDialog()),
+      )
+      .registerSingleton(
+        OpenRepositoryByPathMainUseCaseToken,
+        () => new OpenRepositoryByPathMainUseCase(resolveStore(), resolveValidator()),
+      )
+      .registerSingleton(
+        ValidateRepositoryMainUseCaseToken,
+        () => new ValidateRepositoryMainUseCase(resolveValidator()),
+      )
+      .registerSingleton(
+        GetRecentRepositoriesMainUseCaseToken,
+        () => new GetRecentRepositoriesMainUseCase(resolveStore()),
+      )
+      .registerSingleton(
+        RemoveRecentRepositoryMainUseCaseToken,
+        () => new RemoveRecentRepositoryMainUseCase(resolveStore()),
+      )
+      .registerSingleton(PinRepositoryMainUseCaseToken, () => new PinRepositoryMainUseCase(resolveStore()))
+      .registerSingleton(GetSettingsMainUseCaseToken, () => new GetSettingsMainUseCase(resolveStore()))
+      .registerSingleton(UpdateSettingsMainUseCaseToken, () => new UpdateSettingsMainUseCase(resolveStore()))
+      .registerSingleton(GetThemeMainUseCaseToken, () => new GetThemeMainUseCase(resolveStore()))
+      .registerSingleton(SetThemeMainUseCaseToken, () => new SetThemeMainUseCase(resolveStore()))
   },
   setUp: async (container) => {
-    // Presentation: IPC Handler 登録
-    const repoUseCase = container.resolve(RepositoryMainUseCaseToken)
-    const settingsUseCase = container.resolve(SettingsMainUseCaseToken)
-    registerIPCHandlers(repoUseCase, settingsUseCase)
+    registerIPCHandlers(
+      container.resolve(OpenRepositoryWithDialogMainUseCaseToken),
+      container.resolve(OpenRepositoryByPathMainUseCaseToken),
+      container.resolve(ValidateRepositoryMainUseCaseToken),
+      container.resolve(GetRecentRepositoriesMainUseCaseToken),
+      container.resolve(RemoveRecentRepositoryMainUseCaseToken),
+      container.resolve(PinRepositoryMainUseCaseToken),
+      container.resolve(GetSettingsMainUseCaseToken),
+      container.resolve(UpdateSettingsMainUseCaseToken),
+      container.resolve(GetThemeMainUseCaseToken),
+      container.resolve(SetThemeMainUseCaseToken),
+    )
 
-    // tearDown
-    return () => {
-      // 将来的に ipcMain.removeHandler() を呼ぶ場合はここに追加
-    }
+    return () => {}
   },
 }
