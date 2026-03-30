@@ -3,12 +3,12 @@ import type { Observable } from 'rxjs'
 import type {
   GetCurrentRepositoryUseCase,
   GetRecentRepositoriesUseCase,
-  IRepositorySelectorViewModel,
   OpenRepositoryByPathUseCase,
   OpenRepositoryUseCase,
   PinRepositoryUseCase,
   RemoveRecentRepositoryUseCase,
 } from '../di-tokens'
+import type { IRepositorySelectorViewModel } from './viewmodel-interfaces'
 
 export class RepositorySelectorViewModel implements IRepositorySelectorViewModel {
   constructor(

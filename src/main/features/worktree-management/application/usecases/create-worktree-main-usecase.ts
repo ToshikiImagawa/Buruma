@@ -1,11 +1,11 @@
 import type { WorktreeCreateParams, WorktreeInfo } from '@shared/domain'
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeGitService } from '../worktree-interfaces'
+import type { IWorktreeGitRepository } from '../repositories/worktree-git-repository'
 
 export class CreateWorktreeMainUseCase implements FunctionUseCase<WorktreeCreateParams, Promise<WorktreeInfo>> {
-  constructor(private readonly gitService: IWorktreeGitService) {}
+  constructor(private readonly gitRepository: IWorktreeGitRepository) {}
 
   async invoke(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    return this.gitService.addWorktree(params)
+    return this.gitRepository.addWorktree(params)
   }
 }

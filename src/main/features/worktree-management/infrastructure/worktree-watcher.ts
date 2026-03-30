@@ -1,7 +1,6 @@
 import type { WorktreeChangeEvent } from '@shared/domain'
 import type { FSWatcher } from 'chokidar'
-import type { BrowserWindow } from 'electron'
-import type { IWorktreeWatcher } from '../application/worktree-interfaces'
+import type { IWorktreeWatcher, WorktreeWatcherParams } from '../application/repositories/worktree-watcher'
 import path from 'node:path'
 import chokidar from 'chokidar'
 
@@ -9,10 +8,10 @@ export class WorktreeWatcher implements IWorktreeWatcher {
   private watcher: FSWatcher | null = null
   private debounceTimer: NodeJS.Timeout | null = null
 
-  start(repoPath: string, window: BrowserWindow): void {
-    this.stop()
+  setUp(params: WorktreeWatcherParams): void {
+    this.tearDown()
 
-    const watchPath = path.join(repoPath, '.git', 'worktrees')
+    const watchPath = path.join(params.repoPath, '.git', 'worktrees')
 
     this.watcher = chokidar.watch(watchPath, {
       ignoreInitial: true,
@@ -22,13 +21,13 @@ export class WorktreeWatcher implements IWorktreeWatcher {
     const notify = () => {
       if (this.debounceTimer) clearTimeout(this.debounceTimer)
       this.debounceTimer = setTimeout(() => {
-        if (!window.isDestroyed()) {
+        if (!params.window.isDestroyed()) {
           const event: WorktreeChangeEvent = {
-            repoPath,
+            repoPath: params.repoPath,
             type: 'modified',
-            worktreePath: repoPath,
+            worktreePath: params.repoPath,
           }
-          window.webContents.send('worktree:changed', event)
+          params.window.webContents.send('worktree:changed', event)
         }
       }, 300)
     }
@@ -40,7 +39,7 @@ export class WorktreeWatcher implements IWorktreeWatcher {
     this.watcher.on('unlinkDir', notify)
   }
 
-  stop(): void {
+  tearDown(): void {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer)
       this.debounceTimer = null

@@ -1,5 +1,5 @@
 import type { AppSettings } from '@shared/domain'
-import type { ISettingsService } from '../../di-tokens'
+import type { ISettingsService } from './settings-service-interface'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject, Observable } from 'rxjs'
 

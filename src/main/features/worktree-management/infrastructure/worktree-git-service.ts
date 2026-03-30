@@ -1,5 +1,5 @@
 import type { FileChange, FileChangeStatus, WorktreeCreateParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
-import type { IWorktreeGitService } from '../application/worktree-interfaces'
+import type { IWorktreeGitRepository } from '../application/repositories/worktree-git-repository'
 import simpleGit from 'simple-git'
 
 /** git worktree list --porcelain 出力の1エントリ */
@@ -74,7 +74,7 @@ function toFileChangeStatus(code: string): FileChangeStatus {
   }
 }
 
-export class WorktreeGitService implements IWorktreeGitService {
+export class WorktreeGitService implements IWorktreeGitRepository {
   async listWorktrees(repoPath: string): Promise<WorktreeInfo[]> {
     const git = simpleGit(repoPath)
     const raw = await git.raw(['worktree', 'list', '--porcelain'])

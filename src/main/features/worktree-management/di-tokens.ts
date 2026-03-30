@@ -1,10 +1,11 @@
 import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeGitService, IWorktreeWatcher } from './application/worktree-interfaces'
+import type { IWorktreeGitRepository } from './application/repositories/worktree-git-repository'
+import type { IWorktreeWatcher } from './application/repositories/worktree-watcher'
 import { createToken } from '@shared/lib/di'
 
 // Infrastructure IF
-export const WorktreeGitServiceToken = createToken<IWorktreeGitService>('WorktreeGitService')
+export const WorktreeGitRepositoryToken = createToken<IWorktreeGitRepository>('WorktreeGitRepository')
 export const WorktreeWatcherToken = createToken<IWorktreeWatcher>('WorktreeWatcher')
 
 // Application UseCase 型

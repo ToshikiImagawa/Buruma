@@ -1,5 +1,7 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase'
-import type { IErrorNotificationService, IRepositoryService, RepositoryRepository } from '../../di-tokens'
+import type { RepositoryRepository } from '../repositories/repository-repository'
+import type { IErrorNotificationService } from '../services/error-notification-service-interface'
+import type { IRepositoryService } from '../services/repository-service-interface'
 
 export class OpenRepositoryByPathUseCaseImpl implements ConsumerUseCase<string> {
   constructor(

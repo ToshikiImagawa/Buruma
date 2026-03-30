@@ -1,15 +1,15 @@
 import type { WorktreeDeleteParams } from '@shared/domain'
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeGitService } from '../worktree-interfaces'
+import type { IWorktreeGitRepository } from '../repositories/worktree-git-repository'
 
 export class DeleteWorktreeMainUseCase implements FunctionUseCase<WorktreeDeleteParams, Promise<void>> {
-  constructor(private readonly gitService: IWorktreeGitService) {}
+  constructor(private readonly gitRepository: IWorktreeGitRepository) {}
 
   async invoke(params: WorktreeDeleteParams): Promise<void> {
-    const isMain = await this.gitService.isMainWorktree(params.worktreePath)
+    const isMain = await this.gitRepository.isMainWorktree(params.worktreePath)
     if (isMain) {
       throw new Error('メインワークツリーは削除できません')
     }
-    await this.gitService.removeWorktree(params.worktreePath, params.force)
+    await this.gitRepository.removeWorktree(params.worktreePath, params.force)
   }
 }

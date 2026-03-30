@@ -1,5 +1,5 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase'
-import type { IErrorNotificationService } from '../../di-tokens'
+import type { IErrorNotificationService } from '../services/error-notification-service-interface'
 
 export class DismissErrorUseCaseImpl implements ConsumerUseCase<string> {
   constructor(private readonly service: IErrorNotificationService) {}

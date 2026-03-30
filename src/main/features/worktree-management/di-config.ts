@@ -14,7 +14,7 @@ import {
   GetWorktreeStatusMainUseCaseToken,
   ListWorktreesMainUseCaseToken,
   SuggestPathMainUseCaseToken,
-  WorktreeGitServiceToken,
+  WorktreeGitRepositoryToken,
   WorktreeWatcherToken,
 } from './di-tokens'
 import { WorktreeGitService } from './infrastructure/worktree-git-service'
@@ -23,20 +23,20 @@ import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const worktreeManagementMainConfig: VContainerConfig = {
   register(container) {
-    // Infrastructure (singleton)
+    // Repositories (singleton)
     container
-      .registerSingleton(WorktreeGitServiceToken, WorktreeGitService)
+      .registerSingleton(WorktreeGitRepositoryToken, WorktreeGitService)
       .registerSingleton(WorktreeWatcherToken, WorktreeWatcher)
 
     // Application UseCases (singleton, deps で依存関係を宣言)
     container
-      .registerSingleton(ListWorktreesMainUseCaseToken, ListWorktreesMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(GetWorktreeStatusMainUseCaseToken, GetWorktreeStatusMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(CreateWorktreeMainUseCaseToken, CreateWorktreeMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(DeleteWorktreeMainUseCaseToken, DeleteWorktreeMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(SuggestPathMainUseCaseToken, SuggestPathMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(CheckDirtyMainUseCaseToken, CheckDirtyMainUseCase, [WorktreeGitServiceToken])
-      .registerSingleton(GetDefaultBranchMainUseCaseToken, GetDefaultBranchMainUseCase, [WorktreeGitServiceToken])
+      .registerSingleton(ListWorktreesMainUseCaseToken, ListWorktreesMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(GetWorktreeStatusMainUseCaseToken, GetWorktreeStatusMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(CreateWorktreeMainUseCaseToken, CreateWorktreeMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(DeleteWorktreeMainUseCaseToken, DeleteWorktreeMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(SuggestPathMainUseCaseToken, SuggestPathMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(CheckDirtyMainUseCaseToken, CheckDirtyMainUseCase, [WorktreeGitRepositoryToken])
+      .registerSingleton(GetDefaultBranchMainUseCaseToken, GetDefaultBranchMainUseCase, [WorktreeGitRepositoryToken])
   },
 
   setUp: async (container) => {
@@ -53,7 +53,7 @@ export const worktreeManagementMainConfig: VContainerConfig = {
     )
 
     return () => {
-      watcher.stop()
+      watcher.tearDown()
     }
   },
 }
