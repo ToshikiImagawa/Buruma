@@ -26,9 +26,9 @@ import {
   UpdateSettingsMainUseCaseToken,
   ValidateRepositoryMainUseCaseToken,
 } from './di-tokens'
-import { ElectronDialogRepository } from './infrastructure/dialog-repository'
-import { GitValidationRepository } from './infrastructure/git-validation-repository'
-import { StoreRepository } from './infrastructure/store-repository'
+import { ElectronDialogRepository } from './infrastructure/repositories/dialog-repository'
+import { GitValidationRepository } from './infrastructure/repositories/git-validation-repository'
+import { StoreRepository } from './infrastructure/repositories/store-repository'
 import { storeDefaults } from './infrastructure/store-schema'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 

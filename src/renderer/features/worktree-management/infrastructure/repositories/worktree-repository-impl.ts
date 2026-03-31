@@ -5,7 +5,7 @@ import type {
   WorktreeInfo,
   WorktreeStatus,
 } from '@shared/domain'
-import type { WorktreeRepository } from '../application/repositories/worktree-repository'
+import type { WorktreeRepository } from '../../application/repositories/worktree-repository'
 
 export class WorktreeRepositoryImpl implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {

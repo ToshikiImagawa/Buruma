@@ -29,7 +29,7 @@ import {
   WorktreeRepositoryToken,
   WorktreeServiceToken,
 } from './di-tokens'
-import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-impl'
+import { WorktreeRepositoryImpl } from './infrastructure/repositories/worktree-repository-impl'
 import { WorktreeDetailViewModel } from './presentation/worktree-detail-viewmodel'
 import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
 

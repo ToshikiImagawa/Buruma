@@ -41,8 +41,8 @@ import {
   UpdateSettingsUseCaseToken,
 } from './di-tokens'
 // Infrastructure (renderer-side)
-import { RepositoryRepositoryImpl } from './infrastructure/repository-repository-impl'
-import { SettingsRepositoryImpl } from './infrastructure/settings-repository-impl'
+import { RepositoryRepositoryImpl } from './infrastructure/repositories/repository-repository-impl'
+import { SettingsRepositoryImpl } from './infrastructure/repositories/settings-repository-impl'
 import { ErrorNotificationViewModel } from './presentation/error-notification-viewmodel'
 // ViewModels
 import { RepositorySelectorViewModel } from './presentation/repository-selector-viewmodel'
