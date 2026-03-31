@@ -1,10 +1,10 @@
 import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
 import type { Observable } from 'rxjs'
-import type { IWorktreeService } from './worktree-service-interface'
+import type { WorktreeService } from './worktree-service-interface'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 
-export class WorktreeService implements IWorktreeService {
+export class WorktreeDefaultService implements WorktreeService {
   private readonly _worktrees$ = new BehaviorSubject<WorktreeInfo[]>([])
   private readonly _selectedWorktreePath$ = new BehaviorSubject<string | null>(null)
   private readonly _sortOrder$ = new BehaviorSubject<WorktreeSortOrder>('name')

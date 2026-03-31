@@ -1,11 +1,11 @@
 import type { RunnableUseCase } from '@shared/lib/usecase/types'
 import type { WorktreeRepository } from '../repositories/worktree-repository'
-import type { IWorktreeService } from '../services/worktree-service-interface'
+import type { WorktreeService } from '../services/worktree-service-interface'
 
-export class RefreshWorktreesUseCaseImpl implements RunnableUseCase {
+export class RefreshWorktreesDefaultUseCase implements RunnableUseCase {
   constructor(
     private readonly repo: WorktreeRepository,
-    private readonly service: IWorktreeService,
+    private readonly service: WorktreeService,
     private readonly getRepoPath: () => string | null,
   ) {}
 

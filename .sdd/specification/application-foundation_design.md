@@ -107,10 +107,10 @@ graph TD
             Entities[Entities<br/>RepositoryInfo, AppSettings 等]
         end
         subgraph "infrastructure (renderer)"
-            RepoImpl[Repository Impl]
+            RepoDefault[Repository Default]
             IPCClient["IPC Client<br/>window.electronAPI"]
-            RepoIF -.->|DI| RepoImpl
-            RepoImpl --> IPCClient
+            RepoIF -.->|DI| RepoDefault
+            RepoDefault --> IPCClient
         end
         UseCases --> Entities
         Services --> Entities
@@ -153,8 +153,8 @@ graph TD
 | GetSettingsUseCase | application | 設定取得（ステートレス） | `renderer/features/application-foundation/application/` |
 | UpdateSettingsUseCase | application | 設定更新（ステートレス） | `renderer/features/application-foundation/application/` |
 | GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `renderer/features/application-foundation/application/` |
-| RepositoryRepositoryImpl | infrastructure | IPC 経由のリポジトリ実装 | `renderer/features/application-foundation/infrastructure/` |
-| SettingsRepositoryImpl | infrastructure | IPC 経由の設定実装 | `renderer/features/application-foundation/infrastructure/` |
+| RepositoryDefaultRepository | infrastructure | IPC 経由のリポジトリ実装 | `renderer/features/application-foundation/infrastructure/` |
+| SettingsDefaultRepository | infrastructure | IPC 経由の設定実装 | `renderer/features/application-foundation/infrastructure/` |
 | RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `renderer/features/application-foundation/presentation/` |
 | SettingsViewModel | presentation | 設定 ViewModel | `renderer/features/application-foundation/presentation/` |
 | ErrorNotificationViewModel | presentation | エラー通知 ViewModel | `renderer/features/application-foundation/presentation/` |
@@ -229,40 +229,40 @@ export const applicationFoundationConfig: VContainerConfig = {
     container.registerSingleton(ErrorNotificationServiceToken, ErrorNotificationService)
 
     // Repository 実装（infrastructure → application IF を DI）
-    container.registerSingleton(RepositoryRepositoryToken, RepositoryRepositoryImpl)
-    container.registerSingleton(SettingsRepositoryToken, SettingsRepositoryImpl)
+    container.registerSingleton(RepositoryRepositoryToken, RepositoryDefaultRepository)
+    container.registerSingleton(SettingsRepositoryToken, SettingsDefaultRepository)
 
     // UseCase（ステートレス）
     container.registerSingleton(
       OpenRepositoryUseCaseToken,
-      OpenRepositoryUseCaseImpl,
+      OpenRepositoryDefaultUseCase,
       [RepositoryRepositoryToken, RepositoryServiceToken],
     )
     container.registerSingleton(
       GetRecentRepositoriesUseCaseToken,
-      GetRecentRepositoriesUseCaseImpl,
+      GetRecentRepositoriesDefaultUseCase,
       [RepositoryServiceToken],
     )
     container.registerSingleton(
       GetSettingsUseCaseToken,
-      GetSettingsUseCaseImpl,
+      GetSettingsDefaultUseCase,
       [SettingsServiceToken],
     )
     container.registerSingleton(
       UpdateSettingsUseCaseToken,
-      UpdateSettingsUseCaseImpl,
+      UpdateSettingsDefaultUseCase,
       [SettingsRepositoryToken, SettingsServiceToken],
     )
 
     // ViewModel（transient: コンポーネント単位でライフサイクル管理）
     container.registerTransient(
       RepositorySelectorViewModelToken,
-      RepositorySelectorViewModelImpl,
+      RepositorySelectorDefaultViewModel,
       [OpenRepositoryUseCaseToken, GetRecentRepositoriesUseCaseToken],
     )
     container.registerTransient(
       SettingsViewModelToken,
-      SettingsViewModelImpl,
+      SettingsDefaultViewModel,
       [GetSettingsUseCaseToken, UpdateSettingsUseCaseToken],
     )
   },
@@ -309,7 +309,7 @@ class RepositoryService {
 }
 
 // UseCase（ステートレス）— application 層
-class OpenRepositoryUseCaseImpl implements RunnableUseCase {
+class OpenRepositoryDefaultUseCase implements RunnableUseCase {
   constructor(
     private readonly repo: RepositoryRepository,
     private readonly service: RepositoryService,
@@ -329,7 +329,7 @@ class OpenRepositoryUseCaseImpl implements RunnableUseCase {
 }
 
 // UseCase（ステートレス、Observable 公開）— application 層
-class GetRecentRepositoriesUseCaseImpl implements ObservableStoreUseCase<RecentRepository[]> {
+class GetRecentRepositoriesDefaultUseCase implements ObservableStoreUseCase<RecentRepository[]> {
   constructor(private readonly service: RepositoryService) {}
 
   get store(): Observable<RecentRepository[]> {
@@ -342,7 +342,7 @@ class GetRecentRepositoriesUseCaseImpl implements ObservableStoreUseCase<RecentR
 
 ```typescript
 // ViewModel（純粋 TypeScript、React 非依存）— presentation 層
-class RepositorySelectorViewModelImpl implements RepositorySelectorViewModel {
+class RepositorySelectorDefaultViewModel implements RepositorySelectorViewModel {
   constructor(
     private readonly openRepoUseCase: OpenRepositoryUseCase,
     private readonly getRecentUseCase: GetRecentRepositoriesUseCase,
@@ -373,7 +373,7 @@ function useRepositorySelectorViewModel() {
 
 ```typescript
 // Repository 実装（infrastructure 層、レンダラー側）
-class RepositoryRepositoryImpl implements RepositoryRepository {
+class RepositoryDefaultRepository implements RepositoryRepository {
   async open(): Promise<RepositoryInfo | null> {
     const result = await window.electronAPI.repository.open()
     if (!result.success) throw new Error(result.error.message)
@@ -427,7 +427,7 @@ export function registerIPCHandlers(
 |------------|------|---|------------|
 | ユニットテスト | UseCase, Service | application | ≥ 80% |
 | ユニットテスト | ViewModel（Observable テスト） | presentation | ≥ 80% |
-| ユニットテスト | Repository Impl（モック IPC） | infrastructure | ≥ 80% |
+| ユニットテスト | Repository Default（モック IPC） | infrastructure | ≥ 80% |
 | 結合テスト | ViewModel + UseCase + モック Repository | application + presentation | 主要フロー |
 | E2Eテスト | 画面操作フロー | 全層 | 主要ユースケース |
 
@@ -466,7 +466,7 @@ export function registerIPCHandlers(
 | electron-store の Vite 5 との ESM 互換性 | 低 | ✅ 検証済み。Vite 5 + Electron Forge 環境で正常動作を確認 |
 | 大量の IPC チャネル定義の管理方法 | 低 | 初期は手動定義。チャネル数が増えた段階でコード生成を検討 |
 | RxJS Subscription のメモリリーク防止 | 中 | VContainerProvider の tearDown + DisposableStack で一括管理 |
-| RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が IRepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
+| RepositorySelectorViewModel の Service 直接参照 | 低 | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が RepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
 | IPC ハンドラーの入力バリデーション | 低 | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討 |
 | メインプロセス UseCase のユニットテスト | 低 | ✅ 解決済み。RepositoryMainUseCase（13テスト）、SettingsMainUseCase（5テスト）を作成 |
 | ドキュメント移行注記の削除 | 低 | ✅ 解決済み。design.md, CONSTITUTION.md の移行注記を削除 |

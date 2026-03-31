@@ -1,9 +1,9 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
-import type { IStoreRepository } from '../repositories/types'
+import type { StoreRepository } from '../repositories/types'
 
 const MAX_RECENT = 20
 
-export function addToRecent(store: IStoreRepository, repo: RepositoryInfo): void {
+export function addToRecent(store: StoreRepository, repo: RepositoryInfo): void {
   const recent = store.getRecentRepositories()
   const filtered = recent.filter((r: RecentRepository) => r.path !== repo.path)
   const entry: RecentRepository = {

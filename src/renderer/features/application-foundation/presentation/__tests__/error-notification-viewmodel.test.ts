@@ -2,7 +2,7 @@ import type { ErrorNotification } from '@shared/domain'
 import type { DismissErrorUseCase, GetErrorNotificationsUseCase, RetryErrorUseCase } from '../../di-tokens'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { ErrorNotificationViewModel } from '../error-notification-viewmodel'
+import { ErrorNotificationDefaultViewModel } from '../error-notification-viewmodel'
 
 function createMocks() {
   const notificationsSubject = new BehaviorSubject<ErrorNotification[]>([])
@@ -13,7 +13,7 @@ function createMocks() {
   const dismissUseCase: DismissErrorUseCase = { invoke: vi.fn() }
   const retryUseCase: RetryErrorUseCase = { invoke: vi.fn() }
 
-  const vm = new ErrorNotificationViewModel(getNotificationsUseCase, dismissUseCase, retryUseCase)
+  const vm = new ErrorNotificationDefaultViewModel(getNotificationsUseCase, dismissUseCase, retryUseCase)
 
   return { vm, dismissUseCase, retryUseCase, notificationsSubject }
 }

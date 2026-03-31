@@ -1,9 +1,9 @@
 import type { AppSettings } from '@shared/domain'
-import type { ISettingsService } from './settings-service-interface'
+import type { SettingsService } from './settings-service-interface'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject, Observable } from 'rxjs'
 
-export class SettingsService implements ISettingsService {
+export class SettingsDefaultService implements SettingsService {
   private readonly _settings$ = new BehaviorSubject<AppSettings>(DEFAULT_SETTINGS)
 
   readonly settings$: Observable<AppSettings>

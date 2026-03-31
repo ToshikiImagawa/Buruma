@@ -1,7 +1,7 @@
 import type { AppSettings, Theme } from '@shared/domain'
 import type { SettingsRepository } from '../../application/repositories/settings-repository'
 
-export class SettingsRepositoryImpl implements SettingsRepository {
+export class SettingsDefaultRepository implements SettingsRepository {
   async get(): Promise<AppSettings> {
     const result = await window.electronAPI.settings.get()
     if (result.success === false) throw new Error(result.error.message)

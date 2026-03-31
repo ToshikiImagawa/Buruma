@@ -1,8 +1,8 @@
 import type { AppSettings, RecentRepository } from '@shared/domain'
-import type { IStoreRepository } from '../../application/repositories/types'
+import type { StoreRepository } from '../../application/repositories/types'
 import type { AppStore } from '../store-schema'
 
-export class StoreRepository implements IStoreRepository {
+export class StoreDefaultRepository implements StoreRepository {
   constructor(private readonly store: AppStore) {}
 
   getRecentRepositories(): RecentRepository[] {

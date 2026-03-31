@@ -8,9 +8,9 @@ import type {
   PinRepositoryUseCase,
   RemoveRecentRepositoryUseCase,
 } from '../di-tokens'
-import type { IRepositorySelectorViewModel } from './viewmodel-interfaces'
+import type { RepositorySelectorViewModel } from './viewmodel-interfaces'
 
-export class RepositorySelectorViewModel implements IRepositorySelectorViewModel {
+export class RepositorySelectorDefaultViewModel implements RepositorySelectorViewModel {
   constructor(
     private readonly openRepoUseCase: OpenRepositoryUseCase,
     private readonly openByPathUseCase: OpenRepositoryByPathUseCase,

@@ -2,7 +2,7 @@ import type { WorktreeStatus } from '@shared/domain'
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
 import type { WorktreeRepository } from '../repositories/worktree-repository'
 
-export class GetWorktreeStatusUseCaseImpl implements FunctionUseCase<
+export class GetWorktreeStatusDefaultUseCase implements FunctionUseCase<
   { repoPath: string; worktreePath: string },
   Promise<WorktreeStatus>
 > {

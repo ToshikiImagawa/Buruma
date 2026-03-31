@@ -3,7 +3,7 @@ import type { GetSettingsUseCase, UpdateSettingsUseCase } from '../../di-tokens'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { SettingsViewModel } from '../settings-viewmodel'
+import { SettingsDefaultViewModel } from '../settings-viewmodel'
 
 function createMocks() {
   const settingsSubject = new BehaviorSubject<AppSettings>(DEFAULT_SETTINGS)
@@ -16,7 +16,7 @@ function createMocks() {
   }
   const updateSettingsUseCase: UpdateSettingsUseCase = { invoke: vi.fn() }
 
-  const vm = new SettingsViewModel(getSettingsUseCase, updateSettingsUseCase)
+  const vm = new SettingsDefaultViewModel(getSettingsUseCase, updateSettingsUseCase)
 
   return { vm, updateSettingsUseCase, settingsSubject }
 }

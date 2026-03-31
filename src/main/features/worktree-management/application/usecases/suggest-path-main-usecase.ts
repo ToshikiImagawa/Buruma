@@ -1,9 +1,9 @@
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeGitRepository } from '../repositories/worktree-git-repository'
+import type { WorktreeGitRepository } from '../repositories/worktree-git-repository'
 import path from 'node:path'
 
 export class SuggestPathMainUseCase implements FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>> {
-  constructor(private readonly gitRepository: IWorktreeGitRepository) {}
+  constructor(private readonly gitRepository: WorktreeGitRepository) {}
 
   async invoke(params: { repoPath: string; branch: string }): Promise<string> {
     const worktrees = await this.gitRepository.listWorktrees(params.repoPath)

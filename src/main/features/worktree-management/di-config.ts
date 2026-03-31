@@ -17,16 +17,16 @@ import {
   WorktreeGitRepositoryToken,
   WorktreeWatcherToken,
 } from './di-tokens'
-import { WorktreeGitRepository } from './infrastructure/repositories/worktree-git-repository'
-import { WorktreeWatcher } from './infrastructure/worktree-watcher'
+import { WorktreeGitDefaultRepository } from './infrastructure/repositories/worktree-git-default-repository'
+import { WorktreeDefaultWatcher } from './infrastructure/worktree-default-watcher'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
 export const worktreeManagementMainConfig: VContainerConfig = {
   register(container) {
     // Repositories (singleton)
     container
-      .registerSingleton(WorktreeGitRepositoryToken, WorktreeGitRepository)
-      .registerSingleton(WorktreeWatcherToken, WorktreeWatcher)
+      .registerSingleton(WorktreeGitRepositoryToken, WorktreeGitDefaultRepository)
+      .registerSingleton(WorktreeWatcherToken, WorktreeDefaultWatcher)
 
     // Application UseCases (singleton, deps で依存関係を宣言)
     container

@@ -1,5 +1,5 @@
 import type { WorktreeInfo } from '@shared/domain'
-import type { IWorktreeGitRepository } from '../../application/repositories/worktree-git-repository'
+import type { WorktreeGitRepository } from '../../application/repositories/worktree-git-repository'
 import { ipcMain } from 'electron'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CheckDirtyMainUseCase } from '../../application/usecases/check-dirty-main-usecase'
@@ -17,7 +17,7 @@ vi.mock('electron', () => ({
   },
 }))
 
-function createMockGitRepository(): IWorktreeGitRepository {
+function createMockGitRepository(): WorktreeGitRepository {
   return {
     listWorktrees: vi.fn(),
     getStatus: vi.fn(),

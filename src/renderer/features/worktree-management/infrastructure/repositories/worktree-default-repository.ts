@@ -7,7 +7,7 @@ import type {
 } from '@shared/domain'
 import type { WorktreeRepository } from '../../application/repositories/worktree-repository'
 
-export class WorktreeRepositoryImpl implements WorktreeRepository {
+export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {
     const result = await window.electronAPI.worktree.list(repoPath)
     if (result.success === false) throw new Error(result.error.message)

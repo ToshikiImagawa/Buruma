@@ -7,4 +7,4 @@ export interface WorktreeWatcherParams {
 }
 
 /** ファイルシステム監視サービスインターフェース */
-export type IWorktreeWatcher = ParameterizedService<WorktreeWatcherParams>
+export type WorktreeWatcher = ParameterizedService<WorktreeWatcherParams>

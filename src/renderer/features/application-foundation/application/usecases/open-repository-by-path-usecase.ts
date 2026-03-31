@@ -1,13 +1,13 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase'
 import type { RepositoryRepository } from '../repositories/repository-repository'
-import type { IErrorNotificationService } from '../services/error-notification-service-interface'
-import type { IRepositoryService } from '../services/repository-service-interface'
+import type { ErrorNotificationService } from '../services/error-notification-service-interface'
+import type { RepositoryService } from '../services/repository-service-interface'
 
-export class OpenRepositoryByPathUseCaseImpl implements ConsumerUseCase<string> {
+export class OpenRepositoryByPathDefaultUseCase implements ConsumerUseCase<string> {
   constructor(
     private readonly repo: RepositoryRepository,
-    private readonly service: IRepositoryService,
-    private readonly errorService: IErrorNotificationService,
+    private readonly service: RepositoryService,
+    private readonly errorService: ErrorNotificationService,
   ) {}
 
   invoke(path: string): void {

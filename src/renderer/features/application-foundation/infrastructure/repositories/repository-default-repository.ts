@@ -1,7 +1,7 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { RepositoryRepository } from '../../application/repositories/repository-repository'
 
-export class RepositoryRepositoryImpl implements RepositoryRepository {
+export class RepositoryDefaultRepository implements RepositoryRepository {
   async open(): Promise<RepositoryInfo | null> {
     const result = await window.electronAPI.repository.open()
     if (result.success === false) throw new Error(result.error.message)

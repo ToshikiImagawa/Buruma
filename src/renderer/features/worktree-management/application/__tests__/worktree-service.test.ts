@@ -1,7 +1,7 @@
 import type { WorktreeInfo } from '@shared/domain'
 import { firstValueFrom } from 'rxjs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { WorktreeService } from '../services/worktree-service'
+import { WorktreeDefaultService } from '../services/worktree-service'
 
 function createWorktreeInfo(overrides: Partial<WorktreeInfo> = {}): WorktreeInfo {
   return {
@@ -19,7 +19,7 @@ describe('WorktreeService', () => {
   let service: WorktreeService
 
   beforeEach(() => {
-    service = new WorktreeService()
+    service = new WorktreeDefaultService()
   })
 
   afterEach(() => {

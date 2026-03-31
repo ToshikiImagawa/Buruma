@@ -1,13 +1,13 @@
 import type { RunnableUseCase } from '@shared/lib/usecase'
 import type { RepositoryRepository } from '../repositories/repository-repository'
-import type { IErrorNotificationService } from '../services/error-notification-service-interface'
-import type { IRepositoryService } from '../services/repository-service-interface'
+import type { ErrorNotificationService } from '../services/error-notification-service-interface'
+import type { RepositoryService } from '../services/repository-service-interface'
 
-export class OpenRepositoryUseCaseImpl implements RunnableUseCase {
+export class OpenRepositoryDefaultUseCase implements RunnableUseCase {
   constructor(
     private readonly repo: RepositoryRepository,
-    private readonly service: IRepositoryService,
-    private readonly errorService: IErrorNotificationService,
+    private readonly service: RepositoryService,
+    private readonly errorService: ErrorNotificationService,
   ) {}
 
   invoke(): void {

@@ -26,9 +26,9 @@ import {
   UpdateSettingsMainUseCaseToken,
   ValidateRepositoryMainUseCaseToken,
 } from './di-tokens'
-import { ElectronDialogRepository } from './infrastructure/repositories/dialog-repository'
-import { GitValidationRepository } from './infrastructure/repositories/git-validation-repository'
-import { StoreRepository } from './infrastructure/repositories/store-repository'
+import { DialogDefaultRepository } from './infrastructure/repositories/dialog-default-repository'
+import { GitValidationDefaultRepository } from './infrastructure/repositories/git-validation-default-repository'
+import { StoreDefaultRepository } from './infrastructure/repositories/store-default-repository'
 import { storeDefaults } from './infrastructure/store-schema'
 import { registerIPCHandlers } from './presentation/ipc-handlers'
 
@@ -40,9 +40,9 @@ export const applicationFoundationMainConfig: VContainerConfig = {
     }) as unknown as AppStore
 
     container
-      .registerSingleton(StoreRepositoryToken, () => new StoreRepository(store))
-      .registerSingleton(GitValidationRepositoryToken, GitValidationRepository)
-      .registerSingleton(DialogRepositoryToken, ElectronDialogRepository)
+      .registerSingleton(StoreRepositoryToken, () => new StoreDefaultRepository(store))
+      .registerSingleton(GitValidationRepositoryToken, GitValidationDefaultRepository)
+      .registerSingleton(DialogRepositoryToken, DialogDefaultRepository)
 
     // Application UseCases (useClass + deps)
     container

@@ -1,7 +1,7 @@
 // ViewModel
-export { RepositorySelectorViewModel } from './repository-selector-viewmodel'
-export { SettingsViewModel } from './settings-viewmodel'
-export { ErrorNotificationViewModel } from './error-notification-viewmodel'
+export { RepositorySelectorDefaultViewModel } from './repository-selector-viewmodel'
+export { SettingsDefaultViewModel } from './settings-viewmodel'
+export { ErrorNotificationDefaultViewModel } from './error-notification-viewmodel'
 
 // Hook ラッパー
 export { useRepositorySelectorViewModel } from './use-repository-selector-viewmodel'

@@ -1,7 +1,7 @@
 import type { AppSettings, RecentRepository } from '@shared/domain'
 
 /** electron-store のリポジトリ CRUD インターフェース */
-export interface IStoreRepository {
+export interface StoreRepository {
   getRecentRepositories(): RecentRepository[]
   setRecentRepositories(repos: RecentRepository[]): void
   getSettings(): AppSettings
@@ -9,11 +9,11 @@ export interface IStoreRepository {
 }
 
 /** Git リポジトリ検証リポジトリインターフェース */
-export interface IGitValidationRepository {
+export interface GitValidationRepository {
   isGitRepository(dirPath: string): Promise<boolean>
 }
 
 /** Electron ダイアログリポジトリインターフェース */
-export interface IDialogRepository {
+export interface DialogRepository {
   showOpenDirectoryDialog(): Promise<string | null>
 }

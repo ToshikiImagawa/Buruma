@@ -10,26 +10,26 @@ import type {
 } from '@shared/lib/usecase'
 import type { RepositoryRepository } from './application/repositories/repository-repository'
 import type { SettingsRepository } from './application/repositories/settings-repository'
-import type { IErrorNotificationService } from './application/services/error-notification-service-interface'
-import type { IRepositoryService } from './application/services/repository-service-interface'
-import type { ISettingsService } from './application/services/settings-service-interface'
+import type { ErrorNotificationService } from './application/services/error-notification-service-interface'
+import type { RepositoryService } from './application/services/repository-service-interface'
+import type { SettingsService } from './application/services/settings-service-interface'
 import type {
-  IErrorNotificationViewModel,
-  IRepositorySelectorViewModel,
-  ISettingsViewModel,
+  ErrorNotificationViewModel,
+  RepositorySelectorViewModel,
+  SettingsViewModel,
 } from './presentation/viewmodel-interfaces'
 import { createToken } from '@shared/lib/di'
 
 // re-export for convenience
 export type { RepositoryRepository } from './application/repositories/repository-repository'
 export type { SettingsRepository } from './application/repositories/settings-repository'
-export type { IRepositoryService } from './application/services/repository-service-interface'
-export type { ISettingsService } from './application/services/settings-service-interface'
-export type { IErrorNotificationService } from './application/services/error-notification-service-interface'
+export type { RepositoryService } from './application/services/repository-service-interface'
+export type { SettingsService } from './application/services/settings-service-interface'
+export type { ErrorNotificationService } from './application/services/error-notification-service-interface'
 export type {
-  IRepositorySelectorViewModel,
-  ISettingsViewModel,
-  IErrorNotificationViewModel,
+  RepositorySelectorViewModel,
+  SettingsViewModel,
+  ErrorNotificationViewModel,
 } from './presentation/viewmodel-interfaces'
 
 // --- UseCase types ---
@@ -48,9 +48,9 @@ export type GetCurrentRepositoryUseCase = ObservableStoreUseCase<RepositoryInfo 
 // --- DI Tokens ---
 
 // Services
-export const RepositoryServiceToken = createToken<IRepositoryService>('RepositoryService')
-export const SettingsServiceToken = createToken<ISettingsService>('SettingsService')
-export const ErrorNotificationServiceToken = createToken<IErrorNotificationService>('ErrorNotificationService')
+export const RepositoryServiceToken = createToken<RepositoryService>('RepositoryService')
+export const SettingsServiceToken = createToken<SettingsService>('SettingsService')
+export const ErrorNotificationServiceToken = createToken<ErrorNotificationService>('ErrorNotificationService')
 
 // Repositories
 export const RepositoryRepositoryToken = createToken<RepositoryRepository>('RepositoryRepository')
@@ -74,6 +74,6 @@ export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryError
 export const GetCurrentRepositoryUseCaseToken = createToken<GetCurrentRepositoryUseCase>('GetCurrentRepositoryUseCase')
 
 // ViewModels
-export const RepositorySelectorViewModelToken = createToken<IRepositorySelectorViewModel>('RepositorySelectorViewModel')
-export const SettingsViewModelToken = createToken<ISettingsViewModel>('SettingsViewModel')
-export const ErrorNotificationViewModelToken = createToken<IErrorNotificationViewModel>('ErrorNotificationViewModel')
+export const RepositorySelectorViewModelToken = createToken<RepositorySelectorViewModel>('RepositorySelectorViewModel')
+export const SettingsViewModelToken = createToken<SettingsViewModel>('SettingsViewModel')
+export const ErrorNotificationViewModelToken = createToken<ErrorNotificationViewModel>('ErrorNotificationViewModel')

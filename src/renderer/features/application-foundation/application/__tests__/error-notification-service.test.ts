@@ -1,7 +1,7 @@
 import type { ErrorNotification } from '@shared/domain'
 import { firstValueFrom } from 'rxjs'
 import { describe, expect, it } from 'vitest'
-import { ErrorNotificationService } from '../services/error-notification-service'
+import { ErrorNotificationDefaultService } from '../services/error-notification-service'
 
 const createNotification = (id: string): ErrorNotification => ({
   id,
@@ -14,13 +14,13 @@ const createNotification = (id: string): ErrorNotification => ({
 
 describe('ErrorNotificationService', () => {
   it('初期値は空配列', async () => {
-    const service = new ErrorNotificationService()
+    const service = new ErrorNotificationDefaultService()
     const value = await firstValueFrom(service.notifications$)
     expect(value).toEqual([])
   })
 
   it('addNotification で通知が追加される', async () => {
-    const service = new ErrorNotificationService()
+    const service = new ErrorNotificationDefaultService()
     const notification = createNotification('1')
     service.addNotification(notification)
     const value = await firstValueFrom(service.notifications$)
@@ -28,7 +28,7 @@ describe('ErrorNotificationService', () => {
   })
 
   it('removeNotification で指定IDの通知が削除される', async () => {
-    const service = new ErrorNotificationService()
+    const service = new ErrorNotificationDefaultService()
     service.addNotification(createNotification('1'))
     service.addNotification(createNotification('2'))
     service.removeNotification('1')
@@ -38,7 +38,7 @@ describe('ErrorNotificationService', () => {
   })
 
   it('clear で全通知が削除される', async () => {
-    const service = new ErrorNotificationService()
+    const service = new ErrorNotificationDefaultService()
     service.addNotification(createNotification('1'))
     service.addNotification(createNotification('2'))
     service.clear()
@@ -47,7 +47,7 @@ describe('ErrorNotificationService', () => {
   })
 
   it('dispose で BehaviorSubject が complete される', () => {
-    const service = new ErrorNotificationService()
+    const service = new ErrorNotificationDefaultService()
     let completed = false
     service.notifications$.subscribe({ complete: () => (completed = true) })
     service.tearDown()

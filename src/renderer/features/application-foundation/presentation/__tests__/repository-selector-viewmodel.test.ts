@@ -9,7 +9,7 @@ import type {
 } from '../../di-tokens'
 import { BehaviorSubject } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { RepositorySelectorViewModel } from '../repository-selector-viewmodel'
+import { RepositorySelectorDefaultViewModel } from '../repository-selector-viewmodel'
 
 function createMocks() {
   const recentSubject = new BehaviorSubject<RecentRepository[]>([])
@@ -22,7 +22,7 @@ function createMocks() {
   const pinUseCase: PinRepositoryUseCase = { invoke: vi.fn() }
   const getCurrentRepoUseCase: GetCurrentRepositoryUseCase = { store: currentRepoSubject.asObservable() }
 
-  const vm = new RepositorySelectorViewModel(
+  const vm = new RepositorySelectorDefaultViewModel(
     openRepoUseCase,
     openByPathUseCase,
     getRecentUseCase,

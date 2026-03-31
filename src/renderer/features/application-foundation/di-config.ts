@@ -1,20 +1,20 @@
 import type { VContainerConfig } from '@shared/lib/di'
 // Services
-import { ErrorNotificationService } from './application/services/error-notification-service'
-import { RepositoryService } from './application/services/repository-service'
-import { SettingsService } from './application/services/settings-service'
-import { DismissErrorUseCaseImpl } from './application/usecases/dismiss-error-usecase'
-import { GetCurrentRepositoryUseCaseImpl } from './application/usecases/get-current-repository-usecase'
-import { GetErrorNotificationsUseCaseImpl } from './application/usecases/get-error-notifications-usecase'
-import { GetRecentRepositoriesUseCaseImpl } from './application/usecases/get-recent-repositories-usecase'
-import { GetSettingsUseCaseImpl } from './application/usecases/get-settings-usecase'
-import { OpenRepositoryByPathUseCaseImpl } from './application/usecases/open-repository-by-path-usecase'
+import { ErrorNotificationDefaultService } from './application/services/error-notification-service'
+import { RepositoryDefaultService } from './application/services/repository-service'
+import { SettingsDefaultService } from './application/services/settings-service'
+import { DismissErrorDefaultUseCase } from './application/usecases/dismiss-error-usecase'
+import { GetCurrentRepositoryDefaultUseCase } from './application/usecases/get-current-repository-usecase'
+import { GetErrorNotificationsDefaultUseCase } from './application/usecases/get-error-notifications-usecase'
+import { GetRecentRepositoriesDefaultUseCase } from './application/usecases/get-recent-repositories-usecase'
+import { GetSettingsDefaultUseCase } from './application/usecases/get-settings-usecase'
+import { OpenRepositoryByPathDefaultUseCase } from './application/usecases/open-repository-by-path-usecase'
 // UseCases
-import { OpenRepositoryUseCaseImpl } from './application/usecases/open-repository-usecase'
-import { PinRepositoryUseCaseImpl } from './application/usecases/pin-repository-usecase'
-import { RemoveRecentRepositoryUseCaseImpl } from './application/usecases/remove-recent-repository-usecase'
-import { RetryErrorUseCaseImpl } from './application/usecases/retry-error-usecase'
-import { UpdateSettingsUseCaseImpl } from './application/usecases/update-settings-usecase'
+import { OpenRepositoryDefaultUseCase } from './application/usecases/open-repository-usecase'
+import { PinRepositoryDefaultUseCase } from './application/usecases/pin-repository-usecase'
+import { RemoveRecentRepositoryDefaultUseCase } from './application/usecases/remove-recent-repository-usecase'
+import { RetryErrorDefaultUseCase } from './application/usecases/retry-error-usecase'
+import { UpdateSettingsDefaultUseCase } from './application/usecases/update-settings-usecase'
 import {
   DismissErrorUseCaseToken,
   ErrorNotificationServiceToken,
@@ -41,62 +41,62 @@ import {
   UpdateSettingsUseCaseToken,
 } from './di-tokens'
 // Infrastructure (renderer-side)
-import { RepositoryRepositoryImpl } from './infrastructure/repositories/repository-repository-impl'
-import { SettingsRepositoryImpl } from './infrastructure/repositories/settings-repository-impl'
-import { ErrorNotificationViewModel } from './presentation/error-notification-viewmodel'
+import { RepositoryDefaultRepository } from './infrastructure/repositories/repository-default-repository'
+import { SettingsDefaultRepository } from './infrastructure/repositories/settings-default-repository'
+import { ErrorNotificationDefaultViewModel } from './presentation/error-notification-viewmodel'
 // ViewModels
-import { RepositorySelectorViewModel } from './presentation/repository-selector-viewmodel'
-import { SettingsViewModel } from './presentation/settings-viewmodel'
+import { RepositorySelectorDefaultViewModel } from './presentation/repository-selector-viewmodel'
+import { SettingsDefaultViewModel } from './presentation/settings-viewmodel'
 
 export const applicationFoundationConfig: VContainerConfig = {
   register: (container) => {
     // Repositories (singleton)
     container
-      .registerSingleton(RepositoryRepositoryToken, RepositoryRepositoryImpl)
-      .registerSingleton(SettingsRepositoryToken, SettingsRepositoryImpl)
+      .registerSingleton(RepositoryRepositoryToken, RepositoryDefaultRepository)
+      .registerSingleton(SettingsRepositoryToken, SettingsDefaultRepository)
 
     // Services (singleton)
     container
-      .registerSingleton(RepositoryServiceToken, RepositoryService)
-      .registerSingleton(SettingsServiceToken, SettingsService)
-      .registerSingleton(ErrorNotificationServiceToken, ErrorNotificationService)
+      .registerSingleton(RepositoryServiceToken, RepositoryDefaultService)
+      .registerSingleton(SettingsServiceToken, SettingsDefaultService)
+      .registerSingleton(ErrorNotificationServiceToken, ErrorNotificationDefaultService)
 
     // UseCases (singleton, useClass + deps)
     container
-      .registerSingleton(OpenRepositoryUseCaseToken, OpenRepositoryUseCaseImpl, [
+      .registerSingleton(OpenRepositoryUseCaseToken, OpenRepositoryDefaultUseCase, [
         RepositoryRepositoryToken,
         RepositoryServiceToken,
         ErrorNotificationServiceToken,
       ])
-      .registerSingleton(OpenRepositoryByPathUseCaseToken, OpenRepositoryByPathUseCaseImpl, [
+      .registerSingleton(OpenRepositoryByPathUseCaseToken, OpenRepositoryByPathDefaultUseCase, [
         RepositoryRepositoryToken,
         RepositoryServiceToken,
         ErrorNotificationServiceToken,
       ])
-      .registerSingleton(GetRecentRepositoriesUseCaseToken, GetRecentRepositoriesUseCaseImpl, [RepositoryServiceToken])
-      .registerSingleton(RemoveRecentRepositoryUseCaseToken, RemoveRecentRepositoryUseCaseImpl, [
+      .registerSingleton(GetRecentRepositoriesUseCaseToken, GetRecentRepositoriesDefaultUseCase, [RepositoryServiceToken])
+      .registerSingleton(RemoveRecentRepositoryUseCaseToken, RemoveRecentRepositoryDefaultUseCase, [
         RepositoryRepositoryToken,
         RepositoryServiceToken,
       ])
-      .registerSingleton(PinRepositoryUseCaseToken, PinRepositoryUseCaseImpl, [
+      .registerSingleton(PinRepositoryUseCaseToken, PinRepositoryDefaultUseCase, [
         RepositoryRepositoryToken,
         RepositoryServiceToken,
       ])
-      .registerSingleton(GetSettingsUseCaseToken, GetSettingsUseCaseImpl, [SettingsServiceToken])
-      .registerSingleton(UpdateSettingsUseCaseToken, UpdateSettingsUseCaseImpl, [
+      .registerSingleton(GetSettingsUseCaseToken, GetSettingsDefaultUseCase, [SettingsServiceToken])
+      .registerSingleton(UpdateSettingsUseCaseToken, UpdateSettingsDefaultUseCase, [
         SettingsRepositoryToken,
         SettingsServiceToken,
       ])
-      .registerSingleton(GetErrorNotificationsUseCaseToken, GetErrorNotificationsUseCaseImpl, [
+      .registerSingleton(GetErrorNotificationsUseCaseToken, GetErrorNotificationsDefaultUseCase, [
         ErrorNotificationServiceToken,
       ])
-      .registerSingleton(DismissErrorUseCaseToken, DismissErrorUseCaseImpl, [ErrorNotificationServiceToken])
-      .registerSingleton(RetryErrorUseCaseToken, RetryErrorUseCaseImpl, [ErrorNotificationServiceToken])
-      .registerSingleton(GetCurrentRepositoryUseCaseToken, GetCurrentRepositoryUseCaseImpl, [RepositoryServiceToken])
+      .registerSingleton(DismissErrorUseCaseToken, DismissErrorDefaultUseCase, [ErrorNotificationServiceToken])
+      .registerSingleton(RetryErrorUseCaseToken, RetryErrorDefaultUseCase, [ErrorNotificationServiceToken])
+      .registerSingleton(GetCurrentRepositoryUseCaseToken, GetCurrentRepositoryDefaultUseCase, [RepositoryServiceToken])
 
     // ViewModels (transient, useClass + deps)
     container
-      .registerTransient(RepositorySelectorViewModelToken, RepositorySelectorViewModel, [
+      .registerTransient(RepositorySelectorViewModelToken, RepositorySelectorDefaultViewModel, [
         OpenRepositoryUseCaseToken,
         OpenRepositoryByPathUseCaseToken,
         GetRecentRepositoriesUseCaseToken,
@@ -104,11 +104,11 @@ export const applicationFoundationConfig: VContainerConfig = {
         PinRepositoryUseCaseToken,
         GetCurrentRepositoryUseCaseToken,
       ])
-      .registerTransient(SettingsViewModelToken, SettingsViewModel, [
+      .registerTransient(SettingsViewModelToken, SettingsDefaultViewModel, [
         GetSettingsUseCaseToken,
         UpdateSettingsUseCaseToken,
       ])
-      .registerTransient(ErrorNotificationViewModelToken, ErrorNotificationViewModel, [
+      .registerTransient(ErrorNotificationViewModelToken, ErrorNotificationDefaultViewModel, [
         GetErrorNotificationsUseCaseToken,
         DismissErrorUseCaseToken,
         RetryErrorUseCaseToken,

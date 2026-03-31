@@ -1,7 +1,7 @@
 import type { WorktreeCreateParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 
 /** Git worktree 操作のリポジトリインターフェース */
-export interface IWorktreeGitRepository {
+export interface WorktreeGitRepository {
   listWorktrees(repoPath: string): Promise<WorktreeInfo[]>
   getStatus(worktreePath: string): Promise<WorktreeStatus>
   addWorktree(params: WorktreeCreateParams): Promise<WorktreeInfo>

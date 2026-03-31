@@ -1,12 +1,12 @@
 import type { RepositoryInfo } from '@shared/domain'
 import type { FunctionUseCase } from '@shared/lib/usecase/types'
-import type { IGitValidationRepository, IStoreRepository } from '../repositories/types'
+import type { GitValidationRepository, StoreRepository } from '../repositories/types'
 import { addToRecent } from './recent-repository-helper'
 
 export class OpenRepositoryByPathMainUseCase implements FunctionUseCase<string, Promise<RepositoryInfo | null>> {
   constructor(
-    private readonly store: IStoreRepository,
-    private readonly gitValidator: IGitValidationRepository,
+    private readonly store: StoreRepository,
+    private readonly gitValidator: GitValidationRepository,
   ) {}
 
   async invoke(dirPath: string): Promise<RepositoryInfo | null> {

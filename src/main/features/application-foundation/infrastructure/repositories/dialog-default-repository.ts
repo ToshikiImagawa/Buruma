@@ -1,7 +1,7 @@
-import type { IDialogRepository } from '../../application/repositories/types'
+import type { DialogRepository } from '../../application/repositories/types'
 import { dialog } from 'electron'
 
-export class ElectronDialogRepository implements IDialogRepository {
+export class DialogDefaultRepository implements DialogRepository {
   async showOpenDirectoryDialog(): Promise<string | null> {
     const result = await dialog.showOpenDialog({
       properties: ['openDirectory'],

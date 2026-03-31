@@ -1,12 +1,12 @@
 import type { AppSettings } from '@shared/domain'
 import type { ConsumerUseCase } from '@shared/lib/usecase'
 import type { SettingsRepository } from '../repositories/settings-repository'
-import type { ISettingsService } from '../services/settings-service-interface'
+import type { SettingsService } from '../services/settings-service-interface'
 
-export class UpdateSettingsUseCaseImpl implements ConsumerUseCase<Partial<AppSettings>> {
+export class UpdateSettingsDefaultUseCase implements ConsumerUseCase<Partial<AppSettings>> {
   constructor(
     private readonly repo: SettingsRepository,
-    private readonly service: ISettingsService,
+    private readonly service: SettingsService,
   ) {}
 
   invoke(settings: Partial<AppSettings>): void {

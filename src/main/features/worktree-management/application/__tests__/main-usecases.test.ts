@@ -1,5 +1,5 @@
 import type { WorktreeInfo, WorktreeStatus } from '@shared/domain'
-import type { IWorktreeGitRepository } from '../repositories/worktree-git-repository'
+import type { WorktreeGitRepository } from '../repositories/worktree-git-repository'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { CheckDirtyMainUseCase } from '../usecases/check-dirty-main-usecase'
 import { CreateWorktreeMainUseCase } from '../usecases/create-worktree-main-usecase'
@@ -9,7 +9,7 @@ import { GetWorktreeStatusMainUseCase } from '../usecases/get-worktree-status-ma
 import { ListWorktreesMainUseCase } from '../usecases/list-worktrees-main-usecase'
 import { SuggestPathMainUseCase } from '../usecases/suggest-path-main-usecase'
 
-function createMockGitRepository(): IWorktreeGitRepository {
+function createMockGitRepository(): WorktreeGitRepository {
   return {
     listWorktrees: vi.fn(),
     getStatus: vi.fn(),
@@ -46,7 +46,7 @@ describe('ListWorktreesMainUseCase', () => {
     const wt1 = createWorktreeInfo({ path: '/repo', isMain: true })
     const wt2 = createWorktreeInfo({ path: '/repo+feat', branch: 'feat', isMain: false })
     vi.mocked(gitRepository.listWorktrees).mockResolvedValue([wt1, wt2])
-    vi.mocked(gitRepository.isDirty).mockImplementation(async (p) => (p === '/repo+feat' ? true : false))
+    vi.mocked(gitRepository.isDirty).mockImplementation(async (p) => (p === '/repo+feat'))
 
     const result = await useCase.invoke('/repo')
 

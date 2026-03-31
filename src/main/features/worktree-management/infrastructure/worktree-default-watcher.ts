@@ -1,10 +1,10 @@
 import type { WorktreeChangeEvent } from '@shared/domain'
 import type { FSWatcher } from 'chokidar'
-import type { IWorktreeWatcher, WorktreeWatcherParams } from '../application/repositories/worktree-watcher'
+import type { WorktreeWatcher, WorktreeWatcherParams } from '../application/repositories/worktree-watcher'
 import path from 'node:path'
 import chokidar from 'chokidar'
 
-export class WorktreeWatcher implements IWorktreeWatcher {
+export class WorktreeDefaultWatcher implements WorktreeWatcher {
   private watcher: FSWatcher | null = null
   private debounceTimer: NodeJS.Timeout | null = null
 

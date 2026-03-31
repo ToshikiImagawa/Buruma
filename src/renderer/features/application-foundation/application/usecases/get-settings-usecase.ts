@@ -1,7 +1,7 @@
 import type { AppSettings } from '@shared/domain'
 import type { ReactivePropertyUseCase, ReadOnlyReactiveProperty } from '@shared/lib/usecase'
 import type { Observable } from 'rxjs'
-import type { ISettingsService } from '../services/settings-service-interface'
+import type { SettingsService } from '../services/settings-service-interface'
 import { BehaviorSubject, map } from 'rxjs'
 
 class SettingsReactiveProperty implements ReadOnlyReactiveProperty<AppSettings> {
@@ -24,10 +24,10 @@ class SettingsReactiveProperty implements ReadOnlyReactiveProperty<AppSettings> 
   }
 }
 
-export class GetSettingsUseCaseImpl implements ReactivePropertyUseCase<AppSettings> {
+export class GetSettingsDefaultUseCase implements ReactivePropertyUseCase<AppSettings> {
   readonly property: ReadOnlyReactiveProperty<AppSettings>
 
-  constructor(private readonly service: ISettingsService) {
+  constructor(private readonly service: SettingsService) {
     // BehaviorSubject から同期的に初期値を取得
     let initialValue: AppSettings | undefined
     const sub = this.service.settings$.subscribe((v) => (initialValue = v))

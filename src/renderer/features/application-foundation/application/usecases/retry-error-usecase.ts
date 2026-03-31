@@ -1,8 +1,8 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase'
-import type { IErrorNotificationService } from '../services/error-notification-service-interface'
+import type { ErrorNotificationService } from '../services/error-notification-service-interface'
 
-export class RetryErrorUseCaseImpl implements ConsumerUseCase<string> {
-  constructor(private readonly service: IErrorNotificationService) {}
+export class RetryErrorDefaultUseCase implements ConsumerUseCase<string> {
+  constructor(private readonly service: ErrorNotificationService) {}
 
   invoke(errorId: string): void {
     // リトライ対象のエラーを削除（リトライアクションの実行は呼び出し元に委譲）

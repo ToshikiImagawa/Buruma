@@ -2,7 +2,7 @@ import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, Worktree
 import type { Observable } from 'rxjs'
 
 /** ワークツリー一覧 ViewModel インターフェース */
-export interface IWorktreeListViewModel {
+export interface WorktreeListViewModel {
   readonly worktrees$: Observable<WorktreeInfo[]>
   readonly selectedPath$: Observable<string | null>
   selectWorktree(path: string | null): void
@@ -13,6 +13,6 @@ export interface IWorktreeListViewModel {
 }
 
 /** ワークツリー詳細 ViewModel インターフェース */
-export interface IWorktreeDetailViewModel {
+export interface WorktreeDetailViewModel {
   readonly selectedWorktree$: Observable<WorktreeInfo | null>
 }

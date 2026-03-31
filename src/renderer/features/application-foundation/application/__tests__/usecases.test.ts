@@ -1,24 +1,24 @@
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@shared/domain'
 import type {
-  IErrorNotificationService,
-  IRepositoryService,
-  ISettingsService,
+  ErrorNotificationService,
+  RepositoryService,
+  SettingsService,
   RepositoryRepository,
   SettingsRepository,
 } from '../../di-tokens'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { describe, expect, it, vi } from 'vitest'
-import { DismissErrorUseCaseImpl } from '../usecases/dismiss-error-usecase'
-import { GetErrorNotificationsUseCaseImpl } from '../usecases/get-error-notifications-usecase'
-import { GetRecentRepositoriesUseCaseImpl } from '../usecases/get-recent-repositories-usecase'
-import { GetSettingsUseCaseImpl } from '../usecases/get-settings-usecase'
-import { OpenRepositoryByPathUseCaseImpl } from '../usecases/open-repository-by-path-usecase'
-import { OpenRepositoryUseCaseImpl } from '../usecases/open-repository-usecase'
-import { PinRepositoryUseCaseImpl } from '../usecases/pin-repository-usecase'
-import { RemoveRecentRepositoryUseCaseImpl } from '../usecases/remove-recent-repository-usecase'
-import { RetryErrorUseCaseImpl } from '../usecases/retry-error-usecase'
-import { UpdateSettingsUseCaseImpl } from '../usecases/update-settings-usecase'
+import { DismissErrorDefaultUseCase } from '../usecases/dismiss-error-usecase'
+import { GetErrorNotificationsDefaultUseCase } from '../usecases/get-error-notifications-usecase'
+import { GetRecentRepositoriesDefaultUseCase } from '../usecases/get-recent-repositories-usecase'
+import { GetSettingsDefaultUseCase } from '../usecases/get-settings-usecase'
+import { OpenRepositoryByPathDefaultUseCase } from '../usecases/open-repository-by-path-usecase'
+import { OpenRepositoryDefaultUseCase } from '../usecases/open-repository-usecase'
+import { PinRepositoryDefaultUseCase } from '../usecases/pin-repository-usecase'
+import { RemoveRecentRepositoryDefaultUseCase } from '../usecases/remove-recent-repository-usecase'
+import { RetryErrorDefaultUseCase } from '../usecases/retry-error-usecase'
+import { UpdateSettingsDefaultUseCase } from '../usecases/update-settings-usecase'
 
 // --- Mock factories ---
 
@@ -34,7 +34,7 @@ function createMockRepositoryRepo(overrides: Partial<RepositoryRepository> = {})
   }
 }
 
-function createMockRepoService(): IRepositoryService {
+function createMockRepoService(): RepositoryService {
   const currentRepo$ = new BehaviorSubject<RepositoryInfo | null>(null)
   const recentRepos$ = new BehaviorSubject<RecentRepository[]>([])
   return {
@@ -45,7 +45,7 @@ function createMockRepoService(): IRepositoryService {
   }
 }
 
-function createMockSettingsService(): ISettingsService {
+function createMockSettingsService(): SettingsService {
   const settings$ = new BehaviorSubject<AppSettings>(DEFAULT_SETTINGS)
   return {
     settings$: settings$.asObservable(),
@@ -63,7 +63,7 @@ function createMockSettingsRepo(): SettingsRepository {
   }
 }
 
-function createMockErrorService(): IErrorNotificationService {
+function createMockErrorService(): ErrorNotificationService {
   const notifications$ = new BehaviorSubject<ErrorNotification[]>([])
   return {
     notifications$: notifications$.asObservable(),
@@ -78,7 +78,7 @@ function createMockErrorService(): IErrorNotificationService {
 describe('GetRecentRepositoriesUseCase', () => {
   it('service の recentRepositories$ を公開する', async () => {
     const service = createMockRepoService()
-    const useCase = new GetRecentRepositoriesUseCaseImpl(service)
+    const useCase = new GetRecentRepositoriesDefaultUseCase(service)
     const value = await firstValueFrom(useCase.store)
     expect(value).toEqual([])
   })
@@ -94,7 +94,7 @@ describe('OpenRepositoryUseCase', () => {
     })
     const service = createMockRepoService()
     const errorService = createMockErrorService()
-    const useCase = new OpenRepositoryUseCaseImpl(repo, service, errorService)
+    const useCase = new OpenRepositoryDefaultUseCase(repo, service, errorService)
 
     useCase.invoke()
     await vi.waitFor(() => {
@@ -111,7 +111,7 @@ describe('OpenRepositoryUseCase', () => {
     })
     const service = createMockRepoService()
     const errorService = createMockErrorService()
-    const useCase = new OpenRepositoryUseCaseImpl(repo, service, errorService)
+    const useCase = new OpenRepositoryDefaultUseCase(repo, service, errorService)
 
     useCase.invoke()
     await vi.waitFor(() => {
@@ -129,7 +129,7 @@ describe('OpenRepositoryByPathUseCase', () => {
     })
     const service = createMockRepoService()
     const errorService = createMockErrorService()
-    const useCase = new OpenRepositoryByPathUseCaseImpl(repo, service, errorService)
+    const useCase = new OpenRepositoryByPathDefaultUseCase(repo, service, errorService)
 
     useCase.invoke('/test')
     await vi.waitFor(() => {
@@ -145,7 +145,7 @@ describe('RemoveRecentRepositoryUseCase', () => {
       getRecent: vi.fn().mockResolvedValue([]),
     })
     const service = createMockRepoService()
-    const useCase = new RemoveRecentRepositoryUseCaseImpl(repo, service)
+    const useCase = new RemoveRecentRepositoryDefaultUseCase(repo, service)
 
     useCase.invoke('/test')
     await vi.waitFor(() => {
@@ -162,7 +162,7 @@ describe('PinRepositoryUseCase', () => {
       getRecent: vi.fn().mockResolvedValue([]),
     })
     const service = createMockRepoService()
-    const useCase = new PinRepositoryUseCaseImpl(repo, service)
+    const useCase = new PinRepositoryDefaultUseCase(repo, service)
 
     useCase.invoke({ path: '/test', pinned: true })
     await vi.waitFor(() => {
@@ -174,7 +174,7 @@ describe('PinRepositoryUseCase', () => {
 describe('GetSettingsUseCase', () => {
   it('service の settings$ を ReactiveProperty として公開する', async () => {
     const service = createMockSettingsService()
-    const useCase = new GetSettingsUseCaseImpl(service)
+    const useCase = new GetSettingsDefaultUseCase(service)
     expect(useCase.property.value).toEqual(DEFAULT_SETTINGS)
   })
 })
@@ -183,7 +183,7 @@ describe('UpdateSettingsUseCase', () => {
   it('repo.update → service に反映', async () => {
     const repo = createMockSettingsRepo()
     const service = createMockSettingsService()
-    const useCase = new UpdateSettingsUseCaseImpl(repo, service)
+    const useCase = new UpdateSettingsDefaultUseCase(repo, service)
 
     useCase.invoke({ theme: 'dark' })
     await vi.waitFor(() => {
@@ -196,7 +196,7 @@ describe('UpdateSettingsUseCase', () => {
 describe('GetErrorNotificationsUseCase', () => {
   it('service の notifications$ を公開する', async () => {
     const service = createMockErrorService()
-    const useCase = new GetErrorNotificationsUseCaseImpl(service)
+    const useCase = new GetErrorNotificationsDefaultUseCase(service)
     const value = await firstValueFrom(useCase.store)
     expect(value).toEqual([])
   })
@@ -205,7 +205,7 @@ describe('GetErrorNotificationsUseCase', () => {
 describe('DismissErrorUseCase', () => {
   it('service.removeNotification を呼ぶ', () => {
     const service = createMockErrorService()
-    const useCase = new DismissErrorUseCaseImpl(service)
+    const useCase = new DismissErrorDefaultUseCase(service)
     useCase.invoke('error-1')
     expect(service.removeNotification).toHaveBeenCalledWith('error-1')
   })
@@ -214,7 +214,7 @@ describe('DismissErrorUseCase', () => {
 describe('RetryErrorUseCase', () => {
   it('service.removeNotification を呼ぶ', () => {
     const service = createMockErrorService()
-    const useCase = new RetryErrorUseCaseImpl(service)
+    const useCase = new RetryErrorDefaultUseCase(service)
     useCase.invoke('error-1')
     expect(service.removeNotification).toHaveBeenCalledWith('error-1')
   })

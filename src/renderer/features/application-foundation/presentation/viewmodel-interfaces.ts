@@ -1,7 +1,7 @@
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo, Theme } from '@shared/domain'
 import type { Observable } from 'rxjs'
 
-export interface IRepositorySelectorViewModel {
+export interface RepositorySelectorViewModel {
   readonly recentRepositories$: Observable<RecentRepository[]>
   readonly currentRepository$: Observable<RepositoryInfo | null>
   openWithDialog(): void
@@ -10,13 +10,13 @@ export interface IRepositorySelectorViewModel {
   pin(path: string, pinned: boolean): void
 }
 
-export interface ISettingsViewModel {
+export interface SettingsViewModel {
   readonly settings$: Observable<AppSettings>
   updateSettings(settings: Partial<AppSettings>): void
   setTheme(theme: Theme): void
 }
 
-export interface IErrorNotificationViewModel {
+export interface ErrorNotificationViewModel {
   readonly notifications$: Observable<ErrorNotification[]>
   dismiss(errorId: string): void
   retry(errorId: string): void

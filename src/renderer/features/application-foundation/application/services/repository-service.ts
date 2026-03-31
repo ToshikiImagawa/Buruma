@@ -1,8 +1,8 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
-import type { IRepositoryService } from './repository-service-interface'
+import type { RepositoryService } from './repository-service-interface'
 import { BehaviorSubject, Observable } from 'rxjs'
 
-export class RepositoryService implements IRepositoryService {
+export class RepositoryDefaultService implements RepositoryService {
   private readonly _currentRepository$ = new BehaviorSubject<RepositoryInfo | null>(null)
   private readonly _recentRepositories$ = new BehaviorSubject<RecentRepository[]>([])
 

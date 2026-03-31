@@ -1,5 +1,5 @@
 import type { AppSettings } from '@shared/domain'
-import type { IStoreRepository } from '../repositories/types'
+import type { StoreRepository } from '../repositories/types'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { describe, expect, it, vi } from 'vitest'
 import { GetSettingsMainUseCase } from '../usecases/get-settings-main-usecase'
@@ -7,7 +7,7 @@ import { GetThemeMainUseCase } from '../usecases/get-theme-main-usecase'
 import { SetThemeMainUseCase } from '../usecases/set-theme-main-usecase'
 import { UpdateSettingsMainUseCase } from '../usecases/update-settings-main-usecase'
 
-function createMockStore(overrides: Partial<IStoreRepository> = {}): IStoreRepository {
+function createMockStore(overrides: Partial<StoreRepository> = {}): StoreRepository {
   return {
     getRecentRepositories: vi.fn().mockReturnValue([]),
     setRecentRepositories: vi.fn(),

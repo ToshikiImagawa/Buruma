@@ -12,14 +12,14 @@ import type {
   RunnableUseCase,
 } from '@shared/lib/usecase/types'
 import type { WorktreeRepository } from './application/repositories/worktree-repository'
-import type { IWorktreeService } from './application/services/worktree-service-interface'
-import type { IWorktreeDetailViewModel, IWorktreeListViewModel } from './presentation/viewmodel-interfaces'
+import type { WorktreeService } from './application/services/worktree-service-interface'
+import type { WorktreeDetailViewModel, WorktreeListViewModel } from './presentation/viewmodel-interfaces'
 import { createToken } from '@shared/lib/di'
 
 // re-export for convenience
 export type { WorktreeRepository } from './application/repositories/worktree-repository'
-export type { IWorktreeService } from './application/services/worktree-service-interface'
-export type { IWorktreeListViewModel, IWorktreeDetailViewModel } from './presentation/viewmodel-interfaces'
+export type { WorktreeService } from './application/services/worktree-service-interface'
+export type { WorktreeListViewModel, WorktreeDetailViewModel } from './presentation/viewmodel-interfaces'
 
 // --- UseCase 型 ---
 export type ListWorktreesUseCase = ObservableStoreUseCase<WorktreeInfo[]>
@@ -39,7 +39,7 @@ export type GetWorktreeStatusUseCase = FunctionUseCase<
 
 // --- Token 定義 ---
 export const WorktreeRepositoryToken = createToken<WorktreeRepository>('WorktreeRepository')
-export const WorktreeServiceToken = createToken<IWorktreeService>('WorktreeService')
+export const WorktreeServiceToken = createToken<WorktreeService>('WorktreeService')
 
 export const ListWorktreesUseCaseToken = createToken<ListWorktreesUseCase>('ListWorktreesUseCase')
 export const SelectWorktreeUseCaseToken = createToken<SelectWorktreeUseCase>('SelectWorktreeUseCase')
@@ -53,5 +53,5 @@ export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('
 export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
 export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
 
-export const WorktreeListViewModelToken = createToken<IWorktreeListViewModel>('WorktreeListViewModel')
-export const WorktreeDetailViewModelToken = createToken<IWorktreeDetailViewModel>('WorktreeDetailViewModel')
+export const WorktreeListViewModelToken = createToken<WorktreeListViewModel>('WorktreeListViewModel')
+export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>('WorktreeDetailViewModel')

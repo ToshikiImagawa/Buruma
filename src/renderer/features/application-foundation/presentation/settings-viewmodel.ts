@@ -1,9 +1,9 @@
 import type { AppSettings, Theme } from '@shared/domain'
 import type { Observable } from 'rxjs'
 import type { GetSettingsUseCase, UpdateSettingsUseCase } from '../di-tokens'
-import type { ISettingsViewModel } from './viewmodel-interfaces'
+import type { SettingsViewModel } from './viewmodel-interfaces'
 
-export class SettingsViewModel implements ISettingsViewModel {
+export class SettingsDefaultViewModel implements SettingsViewModel {
   constructor(
     private readonly getSettingsUseCase: GetSettingsUseCase,
     private readonly updateSettingsUseCase: UpdateSettingsUseCase,

@@ -1,12 +1,12 @@
 import type { WorktreeInfo } from '@shared/domain'
 import type { ObservableStoreUseCase } from '@shared/lib/usecase/types'
 import type { Observable } from 'rxjs'
-import type { IWorktreeService } from '../services/worktree-service-interface'
+import type { WorktreeService } from '../services/worktree-service-interface'
 import { combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 
-export class GetSelectedWorktreeUseCaseImpl implements ObservableStoreUseCase<WorktreeInfo | null> {
-  constructor(private readonly service: IWorktreeService) {}
+export class GetSelectedWorktreeDefaultUseCase implements ObservableStoreUseCase<WorktreeInfo | null> {
+  constructor(private readonly service: WorktreeService) {}
 
   get store(): Observable<WorktreeInfo | null> {
     return combineLatest([this.service.worktrees$, this.service.selectedWorktreePath$]).pipe(

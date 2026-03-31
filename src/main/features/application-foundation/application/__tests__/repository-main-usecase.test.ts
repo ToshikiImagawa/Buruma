@@ -1,5 +1,5 @@
 import type { RecentRepository } from '@shared/domain'
-import type { IDialogRepository, IGitValidationRepository, IStoreRepository } from '../repositories/types'
+import type { DialogRepository, GitValidationRepository, StoreRepository } from '../repositories/types'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { describe, expect, it, vi } from 'vitest'
 import { GetRecentRepositoriesMainUseCase } from '../usecases/get-recent-repositories-main-usecase'
@@ -9,7 +9,7 @@ import { PinRepositoryMainUseCase } from '../usecases/pin-repository-main-usecas
 import { RemoveRecentRepositoryMainUseCase } from '../usecases/remove-recent-repository-main-usecase'
 import { ValidateRepositoryMainUseCase } from '../usecases/validate-repository-main-usecase'
 
-function createMockStore(overrides: Partial<IStoreRepository> = {}): IStoreRepository {
+function createMockStore(overrides: Partial<StoreRepository> = {}): StoreRepository {
   return {
     getRecentRepositories: vi.fn().mockReturnValue([]),
     setRecentRepositories: vi.fn(),
@@ -19,14 +19,14 @@ function createMockStore(overrides: Partial<IStoreRepository> = {}): IStoreRepos
   }
 }
 
-function createMockGitValidator(overrides: Partial<IGitValidationRepository> = {}): IGitValidationRepository {
+function createMockGitValidator(overrides: Partial<GitValidationRepository> = {}): GitValidationRepository {
   return {
     isGitRepository: vi.fn().mockResolvedValue(true),
     ...overrides,
   }
 }
 
-function createMockDialogRepository(overrides: Partial<IDialogRepository> = {}): IDialogRepository {
+function createMockDialogRepository(overrides: Partial<DialogRepository> = {}): DialogRepository {
   return {
     showOpenDirectoryDialog: vi.fn().mockResolvedValue(null),
     ...overrides,

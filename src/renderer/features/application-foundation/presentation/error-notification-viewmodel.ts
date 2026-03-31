@@ -1,9 +1,9 @@
 import type { ErrorNotification } from '@shared/domain'
 import type { Observable } from 'rxjs'
 import type { DismissErrorUseCase, GetErrorNotificationsUseCase, RetryErrorUseCase } from '../di-tokens'
-import type { IErrorNotificationViewModel } from './viewmodel-interfaces'
+import type { ErrorNotificationViewModel } from './viewmodel-interfaces'
 
-export class ErrorNotificationViewModel implements IErrorNotificationViewModel {
+export class ErrorNotificationDefaultViewModel implements ErrorNotificationViewModel {
   constructor(
     private readonly getNotificationsUseCase: GetErrorNotificationsUseCase,
     private readonly dismissUseCase: DismissErrorUseCase,

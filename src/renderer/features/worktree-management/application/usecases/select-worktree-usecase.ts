@@ -1,8 +1,8 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IWorktreeService } from '../services/worktree-service-interface'
+import type { WorktreeService } from '../services/worktree-service-interface'
 
-export class SelectWorktreeUseCaseImpl implements ConsumerUseCase<string | null> {
-  constructor(private readonly service: IWorktreeService) {}
+export class SelectWorktreeDefaultUseCase implements ConsumerUseCase<string | null> {
+  constructor(private readonly service: WorktreeService) {}
 
   invoke(path: string | null): void {
     this.service.setSelectedWorktree(path)

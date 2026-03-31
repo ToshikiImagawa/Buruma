@@ -22,15 +22,15 @@ class CounterService {
 }
 
 // 依存関係のあるサービスクラス
-interface ILogger {
+interface Logger {
   log(message: string): void
 }
 
-interface IDatabase {
+interface Database {
   query(sql: string): string
 }
 
-class Logger implements ILogger {
+class DefaultLogger implements Logger {
   private logs: string[] = []
 
   log(message: string): void {
@@ -42,8 +42,8 @@ class Logger implements ILogger {
   }
 }
 
-class Database implements IDatabase {
-  constructor(private logger: ILogger) {}
+class DefaultDatabase implements Database {
+  constructor(private logger: Logger) {}
 
   query(sql: string): string {
     this.logger.log(`Executing query: ${sql}`)
@@ -53,8 +53,8 @@ class Database implements IDatabase {
 
 class UserService {
   constructor(
-    private database: IDatabase,
-    private logger: ILogger,
+    private database: Database,
+    private logger: Logger,
   ) {}
 
   getUser(id: string): string {
@@ -67,8 +67,8 @@ class UserService {
 const TestServiceToken = createToken<TestService>('TestService')
 const CounterToken = createToken<CounterService>('CounterService')
 const ValueToken = createToken<string>('ValueToken')
-const LoggerToken = createToken<ILogger>('Logger')
-const DatabaseToken = createToken<IDatabase>('Database')
+const LoggerToken = createToken<Logger>('Logger')
+const DatabaseToken = createToken<Database>('Database')
 const UserServiceToken = createToken<UserService>('UserService')
 
 describe('VContainer', () => {
@@ -250,13 +250,13 @@ describe('VContainer', () => {
       // 依存関係を順番に登録
       container.register({
         token: LoggerToken,
-        useClass: Logger,
+        useClass: DefaultLogger,
         lifetime: 'singleton',
       })
 
       container.register({
         token: DatabaseToken,
-        useFactory: () => new Database(container.resolve(LoggerToken)),
+        useFactory: () => new DefaultDatabase(container.resolve(LoggerToken)),
         lifetime: 'singleton',
       })
 
@@ -272,7 +272,7 @@ describe('VContainer', () => {
       expect(result).toBe('query result')
 
       // ログが記録されていることを確認
-      const logger = container.resolve(LoggerToken) as Logger
+      const logger = container.resolve(LoggerToken) as DefaultLogger
       const logs = logger.getLogs()
       expect(logs).toContain('Getting user 123')
       expect(logs).toContain('Executing query: SELECT * FROM users WHERE id = 123')
@@ -287,12 +287,12 @@ describe('VContainer', () => {
       })
 
       // HTTPクライアント（設定に依存）
-      interface IHttpClient {
+      interface HttpClient {
         get(path: string): string
       }
-      const httpClientToken = createToken<IHttpClient>('HttpClient')
+      const httpClientToken = createToken<HttpClient>('HttpClient')
 
-      class HttpClient implements IHttpClient {
+      class DefaultHttpClient implements HttpClient {
         constructor(private config: { apiUrl: string }) {}
         get(path: string): string {
           return `${this.config.apiUrl}${path}`
@@ -301,7 +301,7 @@ describe('VContainer', () => {
 
       container.register({
         token: httpClientToken,
-        useFactory: () => new HttpClient(container.resolve(configToken)),
+        useFactory: () => new DefaultHttpClient(container.resolve(configToken)),
         lifetime: 'singleton',
       })
 
@@ -312,7 +312,7 @@ describe('VContainer', () => {
 
       container.register({
         token: LoggerToken,
-        useClass: Logger,
+        useClass: DefaultLogger,
         lifetime: 'singleton',
       })
 
@@ -334,18 +334,18 @@ describe('VContainer', () => {
 
       expect(result).toBe('https://api.example.com/users/456')
 
-      const logger = container.resolve(LoggerToken) as Logger
+      const logger = container.resolve(LoggerToken) as DefaultLogger
       expect(logger.getLogs()).toContain('Fetching user 456')
     })
 
     it('循環依存を避けるパターン', () => {
       // EventBusパターンで循環依存を避ける
-      interface IEventBus {
+      interface EventBus {
         emit(event: string, data: unknown): void
         on(event: string, handler: (data: unknown) => void): void
       }
 
-      class EventBus implements IEventBus {
+      class DefaultEventBus implements EventBus {
         private handlers = new Map<string, ((data: unknown) => void)[]>()
 
         emit(event: string, data: unknown): void {
@@ -361,11 +361,11 @@ describe('VContainer', () => {
         }
       }
 
-      const eventBusToken = createToken<IEventBus>('EventBus')
+      const eventBusToken = createToken<EventBus>('EventBus')
 
       container.register({
         token: eventBusToken,
-        useClass: EventBus,
+        useClass: DefaultEventBus,
         lifetime: 'singleton',
       })
 
@@ -727,7 +727,7 @@ describe('VContainer', () => {
       getName(): string
     }
 
-    class SimpleServiceImpl implements SimpleService {
+    class SimpleDefaultService implements SimpleService {
       getName() {
         return 'simple-service'
       }
@@ -738,7 +738,7 @@ describe('VContainer', () => {
     beforeEach(() => {
       container.register({
         token: SimpleToken,
-        useClass: SimpleServiceImpl,
+        useClass: SimpleDefaultService,
       })
     })
 
@@ -755,7 +755,7 @@ describe('VContainer', () => {
       const NewToken = createToken<SimpleService>('NewService')
       register({
         token: NewToken,
-        useClass: SimpleServiceImpl,
+        useClass: SimpleDefaultService,
       })
 
       const service = resolve(NewToken)
@@ -766,7 +766,7 @@ describe('VContainer', () => {
       const { registerSingleton, resolve } = container
 
       const NewToken = createToken<SimpleService>('SingletonService')
-      registerSingleton(NewToken, SimpleServiceImpl)
+      registerSingleton(NewToken, SimpleDefaultService)
 
       const service1 = resolve(NewToken)
       const service2 = resolve(NewToken)
@@ -778,7 +778,7 @@ describe('VContainer', () => {
       const { registerTransient, resolve } = container
 
       const NewToken = createToken<SimpleService>('TransientService')
-      registerTransient(NewToken, SimpleServiceImpl)
+      registerTransient(NewToken, SimpleDefaultService)
 
       const service1 = resolve(NewToken)
       const service2 = resolve(NewToken)
@@ -803,8 +803,8 @@ describe('VContainer', () => {
       const Token1 = createToken<SimpleService>('Service1')
       const Token2 = createToken<SimpleService>('Service2')
 
-      container.register({ token: Token1, useClass: SimpleServiceImpl })
-      container.register({ token: Token2, useClass: SimpleServiceImpl })
+      container.register({ token: Token1, useClass: SimpleDefaultService })
+      container.register({ token: Token2, useClass: SimpleDefaultService })
 
       const [service1, service2] = resolveAll([Token1, Token2])
 
@@ -849,7 +849,7 @@ describe('VContainer', () => {
 
       register({
         token: MultiToken,
-        useClass: SimpleServiceImpl,
+        useClass: SimpleDefaultService,
       })
 
       expect(has(MultiToken)).toBe(true)

@@ -1,9 +1,9 @@
 import type { ObservableStoreUseCase } from '@shared/lib/usecase/types'
 import type { Observable } from 'rxjs'
-import type { IWorktreeService } from '../services/worktree-service-interface'
+import type { WorktreeService } from '../services/worktree-service-interface'
 
-export class GetSelectedPathUseCaseImpl implements ObservableStoreUseCase<string | null> {
-  constructor(private readonly service: IWorktreeService) {}
+export class GetSelectedPathDefaultUseCase implements ObservableStoreUseCase<string | null> {
+  constructor(private readonly service: WorktreeService) {}
 
   get store(): Observable<string | null> {
     return this.service.selectedWorktreePath$

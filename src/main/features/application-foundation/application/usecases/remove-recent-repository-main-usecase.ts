@@ -1,8 +1,8 @@
 import type { ConsumerUseCase } from '@shared/lib/usecase/types'
-import type { IStoreRepository } from '../repositories/types'
+import type { StoreRepository } from '../repositories/types'
 
 export class RemoveRecentRepositoryMainUseCase implements ConsumerUseCase<string> {
-  constructor(private readonly store: IStoreRepository) {}
+  constructor(private readonly store: StoreRepository) {}
 
   invoke(repoPath: string): void {
     const recent = this.store.getRecentRepositories()

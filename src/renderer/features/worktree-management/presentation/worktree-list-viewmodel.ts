@@ -9,9 +9,9 @@ import type {
   SelectWorktreeUseCase,
   SetSortOrderUseCase,
 } from '../di-tokens'
-import type { IWorktreeListViewModel } from './viewmodel-interfaces'
+import type { WorktreeListViewModel } from './viewmodel-interfaces'
 
-export class WorktreeListViewModel implements IWorktreeListViewModel {
+export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
   constructor(
     private readonly listUseCase: ListWorktreesUseCase,
     private readonly selectUseCase: SelectWorktreeUseCase,
