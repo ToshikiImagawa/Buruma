@@ -1,7 +1,7 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type {
+  GetCurrentRepositoryUseCase,
   GetRecentRepositoriesUseCase,
-  IRepositoryService,
   OpenRepositoryByPathUseCase,
   OpenRepositoryUseCase,
   PinRepositoryUseCase,
@@ -20,12 +20,7 @@ function createMocks() {
   const getRecentUseCase: GetRecentRepositoriesUseCase = { store: recentSubject.asObservable() }
   const removeRecentUseCase: RemoveRecentRepositoryUseCase = { invoke: vi.fn() }
   const pinUseCase: PinRepositoryUseCase = { invoke: vi.fn() }
-  const repositoryService: IRepositoryService = {
-    currentRepository$: currentRepoSubject.asObservable(),
-    recentRepositories$: recentSubject.asObservable(),
-    setCurrentRepository: vi.fn(),
-    updateRecentRepositories: vi.fn(),
-  }
+  const getCurrentRepoUseCase: GetCurrentRepositoryUseCase = { store: currentRepoSubject.asObservable() }
 
   const vm = new RepositorySelectorViewModel(
     openRepoUseCase,
@@ -33,7 +28,7 @@ function createMocks() {
     getRecentUseCase,
     removeRecentUseCase,
     pinUseCase,
-    repositoryService,
+    getCurrentRepoUseCase,
   )
 
   return { vm, openRepoUseCase, openByPathUseCase, removeRecentUseCase, pinUseCase, recentSubject, currentRepoSubject }
@@ -52,7 +47,7 @@ describe('RepositorySelectorViewModel', () => {
     expect(values[1][0].path).toBe('/repo')
   })
 
-  it('currentRepository$ が Service の Observable を返す', () => {
+  it('currentRepository$ が UseCase の store を返す', () => {
     const { vm, currentRepoSubject } = createMocks()
     const values: (RepositoryInfo | null)[] = []
     vm.currentRepository$.subscribe((v) => values.push(v))

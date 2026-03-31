@@ -1,12 +1,14 @@
 import type { ErrorNotification } from '@shared/domain'
-import type { IErrorNotificationService } from '../di-tokens'
+import type { IErrorNotificationService } from './error-notification-service-interface'
 import { BehaviorSubject, Observable } from 'rxjs'
 
 export class ErrorNotificationService implements IErrorNotificationService {
   private readonly _notifications$ = new BehaviorSubject<ErrorNotification[]>([])
 
-  get notifications$(): Observable<ErrorNotification[]> {
-    return this._notifications$.asObservable()
+  readonly notifications$: Observable<ErrorNotification[]>
+
+  constructor() {
+    this.notifications$ = this._notifications$.asObservable()
   }
 
   setUp(): void {

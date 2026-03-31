@@ -1,5 +1,5 @@
 import type { AppSettings, RecentRepository } from '@shared/domain'
-import type { IStoreRepository } from '../application/repository-interfaces'
+import type { IStoreRepository } from '../application/repositories/types'
 import type { AppStore } from './store-schema'
 
 export class StoreRepository implements IStoreRepository {

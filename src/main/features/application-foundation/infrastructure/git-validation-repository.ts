@@ -1,10 +1,10 @@
-import type { IGitRepositoryValidator } from '../application/repository-interfaces'
+import type { IGitValidationRepository } from '../application/repositories/types'
 import { execFile } from 'child_process'
 import { promisify } from 'util'
 
 const execFileAsync = promisify(execFile)
 
-export class GitRepositoryValidator implements IGitRepositoryValidator {
+export class GitValidationRepository implements IGitValidationRepository {
   async isGitRepository(dirPath: string): Promise<boolean> {
     try {
       await execFileAsync('git', ['rev-parse', '--is-inside-work-tree'], { cwd: dirPath })

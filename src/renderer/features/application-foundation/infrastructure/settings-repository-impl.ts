@@ -1,5 +1,5 @@
 import type { AppSettings, Theme } from '@shared/domain'
-import type { SettingsRepository } from '../di-tokens'
+import type { SettingsRepository } from '../application/repositories/settings-repository'
 
 export class SettingsRepositoryImpl implements SettingsRepository {
   async get(): Promise<AppSettings> {

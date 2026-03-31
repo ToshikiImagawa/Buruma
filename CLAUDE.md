@@ -98,13 +98,24 @@ src/renderer/di/
 
 ### Composition Root（依存関係の組み立て）
 
-各 feature は Composition Root として `di-config.ts` を持つ（`VContainerConfig` を実装）。infrastructure 層の具象クラスへの依存はこのファイルに閉じ込める。
+各 feature は Composition Root として `di-config.ts` と `di-tokens.ts` を持つ。
 
-- レンダラー側: `src/renderer/features/{name}/di-config.ts`
-- メインプロセス側: `src/main/features/{name}/di-config.ts`
+- レンダラー側: `src/renderer/features/{name}/di-config.ts`, `di-tokens.ts`
+- メインプロセス側: `src/main/features/{name}/di-config.ts`, `di-tokens.ts`
 - 両プロセスとも `VContainerConfig`（register + setUp）パターンで統一
 
 **エントリーポイントが infrastructure 層の具象クラスを直接参照してはならない。**
+
+**di-tokens.ts の責務**:
+- DI Token 定義（`createToken<IF>('Name')`）
+- UseCase 型エイリアス定義（`type XxxUseCase = FunctionUseCase<T, R>`）
+- 各層のインターフェースファイルからの re-export
+- **インターフェース定義を直接記述しない**（各層の専用ファイルに配置）
+
+**DI 登録パターン**:
+- `registerSingleton(Token, Class, [deps])` の **useClass + deps** パターンを優先する
+- deps 配列はコンストラクタ引数の順序と一致させる
+- DI Token 以外の引数（外部インスタンス、コールバック等）が必要な場合のみファクトリー関数を使用する
 
 ### ViewModel + Hook パターン
 
@@ -132,6 +143,12 @@ function useXxxViewModel() {
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
 - `ObservableStoreUseCase<T>` / `ReactivePropertyUseCase<T>` — RxJS Observable でリアクティブデータを公開
 
+**UseCase 実装ルール**:
+- **1クラス = 1操作**: 複数のメソッドを持つ UseCase クラスを作らない
+- 必ず上記のインターフェースを `implements` する
+- ステートレス: 内部に BehaviorSubject 等の状態を持たない
+- UseCase 型エイリアスは `di-tokens.ts` に定義（例: `type XxxUseCase = FunctionUseCase<T, R>`）
+
 ### Service 型定義
 
 `src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
@@ -147,6 +164,12 @@ function useXxxViewModel() {
 - Service IF は必ず上記の共通インターフェースを extends する（`dispose()` ではなく `tearDown()` に統一）
 - `setUp()` で初期データの注入を行い、`tearDown()` でリソースを解放する
 - DI コンテナの setUp/tearDown から Service の setUp/tearDown をインターフェース経由で呼び出す（具象クラスへのキャスト不要）
+- Observable プロパティは **constructor でフィールドとして1回だけ生成**する（getter で都度生成しない）
+
+**命名ルール**:
+- **Service**: ステートフルな状態管理を行うクラスのみ「Service」と命名する
+- **Repository**: ステートレスな外部 API ラッパー（IPC クライアント、Git CLI、ダイアログ、ファイルシステム等）は「Repository」と命名する
+- ステートレスなクラスに「Service」という名前を付けてはならない
 
 ### Clean Architecture（4層構成）
 
@@ -155,17 +178,30 @@ feature 単位で Clean Architecture を採用。依存方向は `domain ← app
 **レンダラー側**:
 ```
 src/renderer/features/{feature-name}/
-├── application/     # ユースケース、Service、リポジトリIF（純粋 TypeScript + RxJS Observable）
-├── infrastructure/  # リポジトリ実装（IPC クライアント経由）
-└── presentation/    # React コンポーネント、ViewModel、Hook ラッパー
+├── application/
+│   ├── repositories/    # リポジトリ IF 定義
+│   ├── services/        # Service IF 定義（*-interface.ts）+ Service 実装
+│   └── usecases/        # UseCase 実装（1クラス1操作）
+├── infrastructure/      # リポジトリ実装（IPC クライアント経由）
+├── presentation/
+│   ├── viewmodel-interfaces.ts  # ViewModel IF 定義
+│   ├── components/      # React コンポーネント
+│   ├── *-viewmodel.ts   # ViewModel 実装
+│   └── use-*-viewmodel.ts  # Hook ラッパー
+├── di-tokens.ts         # Token + UseCase 型エイリアス + re-export
+└── di-config.ts         # VContainerConfig（useClass + deps パターン）
 ```
 
 **メインプロセス側**:
 ```
 src/main/features/{feature-name}/
-├── application/     # ユースケース（ビジネスルール、オーケストレーション）
-├── infrastructure/  # electron-store、execFile、dialog 等のネイティブ API
-└── presentation/    # IPC Handler（リクエスト受付・ルーティング）
+├── application/
+│   ├── repositories/    # リポジトリ IF 定義（Git操作等の外部API抽象）
+│   └── usecases/        # UseCase 実装（1クラス1操作）
+├── infrastructure/      # リポジトリ実装（simple-git、electron-store 等）
+├── presentation/        # IPC Handler（リクエスト受付・ルーティング）
+├── di-tokens.ts         # Token + UseCase 型エイリアス
+└── di-config.ts         # VContainerConfig（useClass + deps パターン）
 ```
 
 **共有 domain 型**:

@@ -1,17 +1,17 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
-import type { IRepositoryService } from '../di-tokens'
+import type { IRepositoryService } from './repository-service-interface'
 import { BehaviorSubject, Observable } from 'rxjs'
 
 export class RepositoryService implements IRepositoryService {
   private readonly _currentRepository$ = new BehaviorSubject<RepositoryInfo | null>(null)
   private readonly _recentRepositories$ = new BehaviorSubject<RecentRepository[]>([])
 
-  get currentRepository$(): Observable<RepositoryInfo | null> {
-    return this._currentRepository$.asObservable()
-  }
+  readonly currentRepository$: Observable<RepositoryInfo | null>
+  readonly recentRepositories$: Observable<RecentRepository[]>
 
-  get recentRepositories$(): Observable<RecentRepository[]> {
-    return this._recentRepositories$.asObservable()
+  constructor() {
+    this.currentRepository$ = this._currentRepository$.asObservable()
+    this.recentRepositories$ = this._recentRepositories$.asObservable()
   }
 
   setUp(repos: RecentRepository[]): void {

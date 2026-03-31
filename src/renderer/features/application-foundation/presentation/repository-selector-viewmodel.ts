@@ -1,14 +1,14 @@
 import type { RecentRepository, RepositoryInfo } from '@shared/domain'
 import type { Observable } from 'rxjs'
 import type {
+  GetCurrentRepositoryUseCase,
   GetRecentRepositoriesUseCase,
-  IRepositorySelectorViewModel,
-  IRepositoryService,
   OpenRepositoryByPathUseCase,
   OpenRepositoryUseCase,
   PinRepositoryUseCase,
   RemoveRecentRepositoryUseCase,
 } from '../di-tokens'
+import type { IRepositorySelectorViewModel } from './viewmodel-interfaces'
 
 export class RepositorySelectorViewModel implements IRepositorySelectorViewModel {
   constructor(
@@ -17,7 +17,7 @@ export class RepositorySelectorViewModel implements IRepositorySelectorViewModel
     private readonly getRecentUseCase: GetRecentRepositoriesUseCase,
     private readonly removeRecentUseCase: RemoveRecentRepositoryUseCase,
     private readonly pinUseCase: PinRepositoryUseCase,
-    private readonly repositoryService: IRepositoryService,
+    private readonly getCurrentRepoUseCase: GetCurrentRepositoryUseCase,
   ) {}
 
   get recentRepositories$(): Observable<RecentRepository[]> {
@@ -25,7 +25,7 @@ export class RepositorySelectorViewModel implements IRepositorySelectorViewModel
   }
 
   get currentRepository$(): Observable<RepositoryInfo | null> {
-    return this.repositoryService.currentRepository$
+    return this.getCurrentRepoUseCase.store
   }
 
   openWithDialog(): void {

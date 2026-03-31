@@ -49,11 +49,29 @@ export interface IPCChannelMap {
   }
   'settings:get-theme': { args: []; result: IPCResult<import('../domain').Theme> }
   'settings:set-theme': { args: [import('../domain').Theme]; result: IPCResult<void> }
+  // worktree channels
+  'worktree:list': { args: [string]; result: IPCResult<import('../domain').WorktreeInfo[]> }
+  'worktree:status': {
+    args: [{ repoPath: string; worktreePath: string }]
+    result: IPCResult<import('../domain').WorktreeStatus>
+  }
+  'worktree:create': {
+    args: [import('../domain').WorktreeCreateParams]
+    result: IPCResult<import('../domain').WorktreeInfo>
+  }
+  'worktree:delete': { args: [import('../domain').WorktreeDeleteParams]; result: IPCResult<void> }
+  'worktree:suggest-path': {
+    args: [{ repoPath: string; branch: string }]
+    result: IPCResult<string>
+  }
+  'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
+  'worktree:default-branch': { args: [string]; result: IPCResult<string> }
 }
 
 /** main → renderer イベント */
 export interface IPCEventMap {
   'error:notify': import('../domain').ErrorNotification
+  'worktree:changed': import('../domain').WorktreeChangeEvent
 }
 
 /** Preload API 型（contextBridge 経由で公開） */
@@ -73,6 +91,16 @@ export interface ElectronAPI {
     setTheme(theme: import('../domain').Theme): Promise<IPCResult<void>>
   }
   onError(callback: (notification: import('../domain').ErrorNotification) => void): () => void
+  worktree: {
+    list(repoPath: string): Promise<IPCResult<import('../domain').WorktreeInfo[]>>
+    status(repoPath: string, worktreePath: string): Promise<IPCResult<import('../domain').WorktreeStatus>>
+    create(params: import('../domain').WorktreeCreateParams): Promise<IPCResult<import('../domain').WorktreeInfo>>
+    delete(params: import('../domain').WorktreeDeleteParams): Promise<IPCResult<void>>
+    suggestPath(repoPath: string, branch: string): Promise<IPCResult<string>>
+    checkDirty(worktreePath: string): Promise<IPCResult<boolean>>
+    defaultBranch(repoPath: string): Promise<IPCResult<string>>
+    onChanged(callback: (event: import('../domain').WorktreeChangeEvent) => void): () => void
+  }
 }
 
 declare global {

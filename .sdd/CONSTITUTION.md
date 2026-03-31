@@ -221,16 +221,35 @@ domain ← application ← infrastructure
 | **infrastructure** | `main/features/*/infrastructure/` | electron-store、execFile、dialog 等のネイティブ API | domain, application, Node.js, Electron |
 | **presentation** | `main/features/*/presentation/` | IPC Handler（リクエスト受付・ルーティング） | domain, application, Electron (ipcMain) |
 
-**application 層の UseCase / Service 分離**:
+**application 層の UseCase / Service / Repository 分離**:
 
-- **UseCase（ステートレス）**: `src/lib/usecase/` の型を継承し、単一の操作・変換・ストリーム提供を担う。内部に状態を持たない
-- **Service（ステートフル）**: BehaviorSubject 等で状態を保持・管理する。UseCase から利用される
-- ViewModel は UseCase のみを参照し、Service を直接参照しない
+- **UseCase（ステートレス）**: `src/shared/lib/usecase/types.ts` の型（`ConsumerUseCase`, `FunctionUseCase`, `SupplierUseCase`, `RunnableUseCase`, `ObservableStoreUseCase` 等）を implements し、**1クラス = 1操作**を担う。内部に状態を持たない
+- **Service（ステートフル）**: `src/shared/lib/service/` の型（`BaseService`, `ParameterizedService` 等）を extends し、BehaviorSubject 等で状態を保持・管理する。必ず `setUp()` / `tearDown()` を実装する
+- **Repository（ステートレス）**: 外部リソースへのアクセスを抽象化するインターフェース。データ永続化、IPC クライアント、Git CLI ラッパー、Electron ダイアログ等が該当する。ステートレスな外部 API ラッパーは「Repository」と命名し、「Service」と命名しない
+- ViewModel は UseCase のみを参照し、Service / Repository を直接参照しない
 
 ```
 ViewModel → UseCase（ステートレス） → Service（ステートフル）
                                    → リポジトリIF → infrastructure 実装
 ```
+
+**インターフェース定義の配置ルール**:
+
+- Repository IF: `application/repositories/` に配置
+- Service IF: `application/services/` に配置（`*-interface.ts`）
+- ViewModel IF: `presentation/viewmodel-interfaces.ts` に配置
+- **di-tokens.ts にインターフェース定義を直接記述しない**。di-tokens.ts は Token 定義 + UseCase 型エイリアス（`src/shared/lib/usecase/types` の具体化）+ re-export のみとする
+
+**DI 登録パターン**:
+
+- `registerSingleton(Token, Class, [deps])` の **useClass + deps** パターンを優先する
+- deps 配列はコンストラクタ引数の順序と一致させる
+- DI Token 以外の引数（外部インスタンス、コールバック等）が必要な場合のみファクトリー関数を使用する
+
+**Observable 公開ルール**:
+
+- Service の Observable プロパティは **constructor でフィールドとして1回だけ生成**する（getter で都度生成しない）
+- getter で `combineLatest()` 等を返すと `useObservable` Hook が毎回新しい参照を検出し無限ループを引き起こす
 
 **feature 間依存ルール**:
 
@@ -293,8 +312,15 @@ function XxxPanel() {
 - [ ] メインプロセス側の IPC ハンドラーが presentation 層に配置されているか
 - [ ] ViewModel が presentation 層に配置され、React に直接依存していないか
 - [ ] UseCase がステートレスであるか（内部に BehaviorSubject 等の状態を持っていないか）
+- [ ] UseCase が `src/shared/lib/usecase/types.ts` の型を implements しているか
+- [ ] UseCase が1クラス1操作になっているか（複数メソッドの UseCase がないか）
+- [ ] Service IF が `BaseService` / `ParameterizedService` 等を extends しているか
 - [ ] Service がステートフルな状態管理を担い、ViewModel からの直接参照は禁止されているか（UseCase 経由）
-- [ ] ViewModel が Service を直接参照せず UseCase のみを参照しているか
+- [ ] ViewModel が Service / Repository を直接参照せず UseCase のみを参照しているか
+- [ ] Repository IF / Service IF / ViewModel IF が各層の専用ファイルに定義されているか（di-tokens.ts に定義していないか）
+- [ ] DI 登録が useClass + deps パターンになっているか（不要なファクトリー関数がないか）
+- [ ] Observable が getter ではなく constructor フィールドで公開されているか
+- [ ] ステートレスな外部 API ラッパーが「Service」ではなく「Repository」と命名されているか
 
 **違反例**:
 
@@ -304,7 +330,13 @@ function XxxPanel() {
 - React コンポーネント内で直接 IPC を呼び出す
 - ViewModel 内で `useState` や `useEffect` を使用する
 - UseCase 内に BehaviorSubject 等の状態を保持する
-- ViewModel が Service を直接参照する
+- UseCase が `src/shared/lib/usecase/types.ts` の型を implements していない
+- 1つの UseCase クラスに複数の操作メソッドを持たせる
+- ViewModel が Service / Repository を直接参照する
+- di-tokens.ts にインターフェース定義を直接記述する
+- ステートレスな外部 API ラッパーを「Service」と命名する
+- Service の Observable を getter で公開する（毎回新しい Observable を生成する）
+- DI 登録でファクトリー関数を不要に使用する（useClass + deps で済む場合）
 
 **準拠例**:
 

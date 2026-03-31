@@ -1,6 +1,7 @@
 import type { AppSettings } from '@shared/domain'
 import type { ConsumerUseCase } from '@shared/lib/usecase'
-import type { ISettingsService, SettingsRepository } from '../../di-tokens'
+import type { SettingsRepository } from '../repositories/settings-repository'
+import type { ISettingsService } from '../services/settings-service-interface'
 
 export class UpdateSettingsUseCaseImpl implements ConsumerUseCase<Partial<AppSettings>> {
   constructor(
