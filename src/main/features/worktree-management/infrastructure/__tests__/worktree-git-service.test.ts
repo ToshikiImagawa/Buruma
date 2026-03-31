@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parsePorcelainOutput } from '../worktree-git-service'
+import { parsePorcelainOutput } from '../repositories/worktree-git-repository'
 
 describe('parsePorcelainOutput', () => {
   it('通常のワークツリーエントリをパースする', () => {
