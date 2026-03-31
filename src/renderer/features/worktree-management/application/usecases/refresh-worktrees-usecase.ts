@@ -16,8 +16,8 @@ export class RefreshWorktreesUseCaseImpl implements RunnableUseCase {
     this.repo
       .list(repoPath)
       .then((worktrees) => this.service.updateWorktrees(worktrees))
-      .catch(() => {
-        // エラーは ErrorNotificationService 経由でハンドリング（将来実装）
+      .catch((error: unknown) => {
+        console.error('[worktree]', error)
       })
   }
 }

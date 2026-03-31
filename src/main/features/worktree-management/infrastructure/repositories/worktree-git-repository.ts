@@ -1,5 +1,6 @@
 import type { FileChange, FileChangeStatus, WorktreeCreateParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
 import type { IWorktreeGitRepository } from '../../application/repositories/worktree-git-repository'
+import path from 'node:path'
 import simpleGit from 'simple-git'
 
 /** git worktree list --porcelain 出力の1エントリ */
@@ -18,7 +19,7 @@ export function parsePorcelainOutput(raw: string): PorcelainEntry[] {
 
   for (const line of raw.split('\n')) {
     if (line === '') {
-      if (current.worktree) {
+      if (current.worktree && current.HEAD) {
         entries.push(current as PorcelainEntry)
       }
       current = {}
@@ -40,7 +41,7 @@ export function parsePorcelainOutput(raw: string): PorcelainEntry[] {
     }
   }
   // 末尾に空行がない場合への対処
-  if (current.worktree) {
+  if (current.worktree && current.HEAD) {
     entries.push(current as PorcelainEntry)
   }
 
@@ -83,7 +84,7 @@ export class WorktreeGitRepository implements IWorktreeGitRepository {
     const worktrees: WorktreeInfo[] = await Promise.all(
       entries
         .filter((e) => !e.bare)
-        .map(async (entry, index) => {
+        .map(async (entry) => {
           let headMessage = ''
           try {
             const wtGit = simpleGit(entry.worktree)
@@ -92,12 +93,14 @@ export class WorktreeGitRepository implements IWorktreeGitRepository {
             // HEAD が無い場合等
           }
 
+          const isMain = await this.isMainWorktree(entry.worktree)
+
           return {
             path: entry.worktree,
             branch: entry.branch ?? null,
-            head: entry.HEAD.slice(0, 7),
+            head: entry.HEAD?.slice(0, 7) ?? '',
             headMessage,
-            isMain: index === 0,
+            isMain,
             isDirty: false, // UseCase 側で並列チェックされる
           }
         }),
@@ -152,10 +155,11 @@ export class WorktreeGitRepository implements IWorktreeGitRepository {
   }
 
   async removeWorktree(worktreePath: string, force: boolean): Promise<void> {
-    // worktree のリポジトリルートを取得
+    // worktree のリポジトリルートを取得（相対パスが返る場合があるため resolve する）
     const wtGit = simpleGit(worktreePath)
-    const repoRoot = (await wtGit.raw(['rev-parse', '--git-common-dir'])).trim()
-    const git = simpleGit(repoRoot.replace(/\/\.git$/, ''))
+    const rawCommonDir = (await wtGit.raw(['rev-parse', '--git-common-dir'])).trim()
+    const commonDir = path.resolve(worktreePath, rawCommonDir)
+    const git = simpleGit(commonDir.replace(/[/\\]\.git$/, ''))
 
     const args = ['worktree', 'remove']
     if (force) args.push('--force')

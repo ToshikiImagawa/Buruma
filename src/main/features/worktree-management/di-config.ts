@@ -42,7 +42,7 @@ export const worktreeManagementMainConfig: VContainerConfig = {
   setUp: async (container) => {
     const watcher = container.resolve(WorktreeWatcherToken)
 
-    registerIPCHandlers(
+    const unregisterHandlers = registerIPCHandlers(
       container.resolve(ListWorktreesMainUseCaseToken),
       container.resolve(GetWorktreeStatusMainUseCaseToken),
       container.resolve(CreateWorktreeMainUseCaseToken),
@@ -53,6 +53,7 @@ export const worktreeManagementMainConfig: VContainerConfig = {
     )
 
     return () => {
+      unregisterHandlers()
       watcher.tearDown()
     }
   },

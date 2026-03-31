@@ -33,6 +33,8 @@ import { WorktreeRepositoryImpl } from './infrastructure/worktree-repository-imp
 import { WorktreeDetailViewModel } from './presentation/worktree-detail-viewmodel'
 import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
 
+let currentRepoPath: string | null = null
+
 export const worktreeManagementConfig: VContainerConfig = {
   register(container) {
     // 1. Infrastructure (singleton)
@@ -54,18 +56,15 @@ export const worktreeManagementConfig: VContainerConfig = {
         WorktreeServiceToken,
       ])
       // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
-      .registerSingleton(RefreshWorktreesUseCaseToken, () => {
-        const repoService = container.resolve(RepositoryServiceToken)
-        let currentRepoPath: string | null = null
-        repoService.currentRepository$.subscribe((repo) => {
-          currentRepoPath = repo?.path ?? null
-        })
-        return new RefreshWorktreesUseCaseImpl(
-          container.resolve(WorktreeRepositoryToken),
-          container.resolve(WorktreeServiceToken),
-          () => currentRepoPath,
-        )
-      })
+      .registerSingleton(
+        RefreshWorktreesUseCaseToken,
+        () =>
+          new RefreshWorktreesUseCaseImpl(
+            container.resolve(WorktreeRepositoryToken),
+            container.resolve(WorktreeServiceToken),
+            () => currentRepoPath,
+          ),
+      )
       .registerSingleton(SuggestPathUseCaseToken, SuggestPathUseCaseImpl, [WorktreeRepositoryToken])
       .registerSingleton(CheckDirtyUseCaseToken, CheckDirtyUseCaseImpl, [WorktreeRepositoryToken])
       .registerSingleton(GetSelectedWorktreeUseCaseToken, GetSelectedWorktreeUseCaseImpl, [WorktreeServiceToken])
@@ -94,6 +93,11 @@ export const worktreeManagementConfig: VContainerConfig = {
 
     service.setUp([])
 
+    // RefreshWorktreesUseCase 用の repoPath 追跡
+    const repoPathSubscription = repoService.currentRepository$.subscribe((repo) => {
+      currentRepoPath = repo?.path ?? null
+    })
+
     // リポジトリ変更時にワークツリー一覧を読み込む
     const repoSubscription = repoService.currentRepository$.subscribe((currentRepo) => {
       if (currentRepo) {
@@ -113,8 +117,10 @@ export const worktreeManagementConfig: VContainerConfig = {
     })
 
     return () => {
+      repoPathSubscription.unsubscribe()
       repoSubscription.unsubscribe()
       unsubscribeChanged()
+      currentRepoPath = null
       service.tearDown()
     }
   },

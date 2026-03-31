@@ -14,8 +14,8 @@ export class DeleteWorktreeUseCaseImpl implements ConsumerUseCase<WorktreeDelete
       .delete(params)
       .then(() => this.repo.list(params.repoPath))
       .then((worktrees) => this.service.updateWorktrees(worktrees))
-      .catch(() => {
-        // エラーは ErrorNotificationService 経由でハンドリング（将来実装）
+      .catch((error: unknown) => {
+        console.error('[worktree]', error)
       })
   }
 }

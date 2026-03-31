@@ -22,6 +22,16 @@ function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaite
     })
 }
 
+const CHANNELS = [
+  'worktree:list',
+  'worktree:status',
+  'worktree:create',
+  'worktree:delete',
+  'worktree:suggest-path',
+  'worktree:check-dirty',
+  'worktree:default-branch',
+] as const
+
 export function registerIPCHandlers(
   listUseCase: ListWorktreesMainUseCase,
   getStatusUseCase: GetWorktreeStatusMainUseCase,
@@ -30,7 +40,7 @@ export function registerIPCHandlers(
   suggestPathUseCase: SuggestPathMainUseCase,
   checkDirtyUseCase: CheckDirtyMainUseCase,
   getDefaultBranchUseCase: GetDefaultBranchMainUseCase,
-): void {
+): () => void {
   ipcMain.handle('worktree:list', (_event, repoPath: string) => wrapHandler(() => listUseCase.invoke(repoPath)))
 
   ipcMain.handle('worktree:status', (_event, params: { repoPath: string; worktreePath: string }) =>
@@ -56,4 +66,10 @@ export function registerIPCHandlers(
   ipcMain.handle('worktree:default-branch', (_event, repoPath: string) =>
     wrapHandler(() => getDefaultBranchUseCase.invoke(repoPath)),
   )
+
+  return () => {
+    for (const channel of CHANNELS) {
+      ipcMain.removeHandler(channel)
+    }
+  }
 }
