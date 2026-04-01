@@ -5,7 +5,10 @@ import { DiffView } from '../DiffView'
 // Mock @monaco-editor/react
 vi.mock('@monaco-editor/react', () => ({
   DiffEditor: (props: Record<string, unknown>) => (
-    <div data-testid="monaco-diff-editor" data-side-by-side={String(props.options && (props.options as Record<string, unknown>).renderSideBySide)} />
+    <div
+      data-testid="monaco-diff-editor"
+      data-side-by-side={String(props.options && (props.options as Record<string, unknown>).renderSideBySide)}
+    />
   ),
 }))
 

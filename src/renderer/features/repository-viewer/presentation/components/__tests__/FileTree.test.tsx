@@ -37,9 +37,7 @@ describe('FileTree', () => {
             name: 'src',
             path: 'src',
             type: 'directory',
-            children: [
-              { name: 'main.ts', path: 'src/main.ts', type: 'file' },
-            ],
+            children: [{ name: 'main.ts', path: 'src/main.ts', type: 'file' }],
           },
           { name: 'README.md', path: 'README.md', type: 'file' },
         ],
@@ -60,9 +58,7 @@ describe('FileTree', () => {
         name: 'root',
         path: '',
         type: 'directory',
-        children: [
-          { name: 'README.md', path: 'README.md', type: 'file' },
-        ],
+        children: [{ name: 'README.md', path: 'README.md', type: 'file' }],
       },
       loading: false,
       loadTree: mockLoadTree,
@@ -85,9 +81,7 @@ describe('FileTree', () => {
             name: 'src',
             path: 'src',
             type: 'directory',
-            children: [
-              { name: 'main.ts', path: 'src/main.ts', type: 'file' },
-            ],
+            children: [{ name: 'main.ts', path: 'src/main.ts', type: 'file' }],
           },
         ],
       },

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DiffDisplayMode, FileContents } from '@shared/domain'
-import { Button } from '@renderer/components/ui/button'
-import { DiffEditor } from '@monaco-editor/react'
 import type { editor } from 'monaco-editor'
+import { DiffEditor } from '@monaco-editor/react'
+import { Button } from '@renderer/components/ui/button'
 
 interface DiffViewProps {
   worktreePath: string

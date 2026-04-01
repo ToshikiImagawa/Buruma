@@ -33,9 +33,7 @@ describe('BranchList', () => {
           { name: 'main', hash: 'abc', isHead: true },
           { name: 'feature', hash: 'def', isHead: false },
         ],
-        remote: [
-          { name: 'origin/main', hash: 'abc', isHead: false },
-        ],
+        remote: [{ name: 'origin/main', hash: 'abc', isHead: false }],
       },
       loading: false,
       search: '',

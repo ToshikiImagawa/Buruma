@@ -1,7 +1,7 @@
 import { useState } from 'react'
-import { Button } from '@renderer/components/ui/button'
 import { AppLayout } from '@renderer/components/layout'
 import { ThemeProvider } from '@renderer/components/theme-provider'
+import { Button } from '@renderer/components/ui/button'
 import { rendererConfigs } from '@renderer/di/configs'
 import {
   ErrorNotificationToast,
