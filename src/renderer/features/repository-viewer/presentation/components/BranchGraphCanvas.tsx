@@ -76,15 +76,13 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
           ctx.moveTo(fromX, nodeY)
           ctx.lineTo(toX, parentY)
         } else {
-          // 異なるレーン: 子のレーンに沿って直線で下り、親の近くで曲線で合流
-          const curveStartY = Math.max(parentY - rowHeight, nodeY)
+          // 異なるレーン: 子のレーンに沿って直線、1行手前で斜め線で合流
+          const joinY = Math.max(parentY - rowHeight, nodeY)
           ctx.moveTo(fromX, nodeY)
-          // 子のレーンに沿った直線部分
-          if (curveStartY > nodeY) {
-            ctx.lineTo(fromX, curveStartY)
+          if (joinY > nodeY) {
+            ctx.lineTo(fromX, joinY)
           }
-          // 親のレーンへ曲線で合流
-          ctx.quadraticCurveTo(fromX, curveStartY + (parentY - curveStartY) * 0.6, toX, parentY)
+          ctx.lineTo(toX, parentY)
         }
         ctx.stroke()
       }
