@@ -8,7 +8,8 @@ import {
   SettingsDialog,
 } from '@renderer/features/application-foundation/presentation/components'
 import { useRepositorySelectorViewModel } from '@renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
-import { WorktreeDetail, WorktreeList } from '@renderer/features/worktree-management/presentation/components'
+import { RepositoryDetailPanel } from '@renderer/features/repository-viewer/presentation/components'
+import { WorktreeList } from '@renderer/features/worktree-management/presentation/components'
 import { VContainerProvider } from '@shared/lib/di/v-container-provider'
 import { Toaster } from 'sonner'
 
@@ -25,8 +26,8 @@ function AppContent() {
             <aside className="w-64 shrink-0 border-r">
               <WorktreeList repoPath={currentRepository.path} />
             </aside>
-            <div className="flex-1 overflow-auto">
-              <WorktreeDetail />
+            <div className="flex-1 overflow-hidden">
+              <RepositoryDetailPanel />
             </div>
           </div>
         ) : (

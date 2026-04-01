@@ -4,7 +4,7 @@ title: "リポジトリ閲覧"
 type: "design"
 status: "draft"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-03-25"
 depends-on: ["spec-repository-viewer"]
@@ -23,25 +23,25 @@ risk: "medium"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装済み
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| GitService（ステータス） | 🔴 | simple-git による status 取得 |
-| GitService（ログ） | 🔴 | simple-git による log 取得・ページネーション |
-| GitService（差分） | 🔴 | simple-git による diff 取得・パース |
-| GitService（ブランチ） | 🔴 | simple-git による branch 一覧取得 |
-| GitService（ファイルツリー） | 🔴 | simple-git による ls-tree 取得 |
-| IPC ハンドラー（git:*） | 🔴 | git: 名前空間の IPC チャネル登録 |
-| Preload API（git.*） | 🔴 | contextBridge による git API 公開 |
-| StatusView コンポーネント | 🔴 | ステータス分類表示 UI |
-| CommitLog コンポーネント | 🔴 | コミットログ一覧 UI（仮想スクロール） |
-| CommitDetailView コンポーネント | 🔴 | コミット詳細表示 UI |
-| DiffView コンポーネント | 🔴 | Monaco Editor による差分表示 |
-| BranchList コンポーネント | 🔴 | ブランチ一覧 UI |
-| FileTree コンポーネント | 🔴 | ファイルツリー UI |
+| GitReadRepository（ステータス） | 🟢 | simple-git による status 取得 |
+| GitReadRepository（ログ） | 🟢 | simple-git による log 取得・ページネーション |
+| GitReadRepository（差分） | 🟢 | simple-git による diff 取得・パース |
+| GitReadRepository（ブランチ） | 🟢 | simple-git による branch 一覧取得 |
+| GitReadRepository（ファイルツリー） | 🟢 | simple-git による ls-tree 取得 |
+| IPC ハンドラー（git:*） | 🟢 | git: 名前空間の IPC チャネル登録 |
+| Preload API（git.*） | 🟢 | contextBridge による git API 公開 |
+| StatusView コンポーネント | 🟢 | ステータス分類表示 UI |
+| CommitLog コンポーネント | 🟢 | コミットログ一覧 UI（スクロールページネーション） |
+| CommitDetailView コンポーネント | 🟢 | コミット詳細表示 UI |
+| DiffView コンポーネント | 🟢 | コードベース差分表示（Monaco 統合予定） |
+| BranchList コンポーネント | 🟢 | ブランチ一覧 UI |
+| FileTree コンポーネント | 🟢 | ファイルツリー UI |
 
 ---
 

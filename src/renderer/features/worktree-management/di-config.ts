@@ -83,7 +83,9 @@ export const worktreeManagementConfig: VContainerConfig = {
         GetSelectedPathUseCaseToken,
         SetSortOrderUseCaseToken,
       ])
-      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [GetSelectedWorktreeUseCaseToken])
+      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [
+        GetSelectedWorktreeUseCaseToken,
+      ])
   },
 
   setUp: async (container) => {

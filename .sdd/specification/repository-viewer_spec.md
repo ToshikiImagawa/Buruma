@@ -135,11 +135,11 @@ interface GitStatus {
 
 interface FileChange {
   path: string;
-  type: FileChangeType;
+  status: FileChangeStatus;
   oldPath?: string; // リネーム時の元パス
 }
 
-type FileChangeType = 'added' | 'modified' | 'deleted' | 'renamed';
+type FileChangeStatus = 'added' | 'modified' | 'deleted' | 'renamed' | 'copied';
 
 // コミットログ
 interface GitLogQuery {
@@ -178,7 +178,7 @@ interface CommitDetail {
 
 interface CommitFileChange {
   path: string;
-  type: FileChangeType;
+  status: FileChangeStatus;
   additions: number;
   deletions: number;
 }
@@ -192,7 +192,7 @@ interface GitDiffQuery {
 interface FileDiff {
   filePath: string;
   oldFilePath?: string; // リネーム時
-  type: FileChangeType;
+  status: FileChangeStatus;
   hunks: DiffHunk[];
   isBinary: boolean;
 }
@@ -235,7 +235,7 @@ interface FileTreeNode {
   path: string;
   type: 'file' | 'directory';
   children?: FileTreeNode[];
-  changeType?: FileChangeType;    // 変更ファイルのマーキング用
+  changeStatus?: FileChangeStatus;    // 変更ファイルのマーキング用
 }
 
 // コンポーネント Props

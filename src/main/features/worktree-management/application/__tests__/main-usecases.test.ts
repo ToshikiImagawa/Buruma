@@ -46,7 +46,7 @@ describe('ListWorktreesMainUseCase', () => {
     const wt1 = createWorktreeInfo({ path: '/repo', isMain: true })
     const wt2 = createWorktreeInfo({ path: '/repo+feat', branch: 'feat', isMain: false })
     vi.mocked(gitRepository.listWorktrees).mockResolvedValue([wt1, wt2])
-    vi.mocked(gitRepository.isDirty).mockImplementation(async (p) => (p === '/repo+feat'))
+    vi.mocked(gitRepository.isDirty).mockImplementation(async (p) => p === '/repo+feat')
 
     const result = await useCase.invoke('/repo')
 

@@ -1,10 +1,10 @@
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@shared/domain'
 import type {
   ErrorNotificationService,
-  RepositoryService,
-  SettingsService,
   RepositoryRepository,
+  RepositoryService,
   SettingsRepository,
+  SettingsService,
 } from '../../di-tokens'
 import { DEFAULT_SETTINGS } from '@shared/domain'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'

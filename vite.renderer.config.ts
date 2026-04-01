@@ -11,4 +11,10 @@ export default defineConfig({
       '@renderer': path.resolve(__dirname, './src/renderer'),
     },
   },
+  optimizeDeps: {
+    include: ['monaco-editor'],
+  },
+  worker: {
+    format: 'es',
+  },
 })
