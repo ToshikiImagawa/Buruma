@@ -54,9 +54,10 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         const parentHash = node.parents[p]
         const parentIdx = layout.hashToIndex.get(parentHash)
 
-        // 親の実際のレーンを参照（parentLanes ではなく）
+        // 親の実際のレーンを参照
         const actualParentLane = parentIdx !== undefined ? nodes[parentIdx].lane : node.lane
-        const parentRow = parentIdx !== undefined ? parentIdx : i + 1
+        // 親が未読み込み（ページネーション外）の場合、リスト最下部まで延長
+        const parentRow = parentIdx !== undefined ? parentIdx : nodes.length
         const parentY = parentRow * rowHeight + rowHeight / 2 - scrollTop
 
         // 可視範囲外の線は完全にスキップ
@@ -75,14 +76,15 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
           ctx.moveTo(fromX, nodeY)
           ctx.lineTo(toX, parentY)
         } else {
-          // 異なるレーン: 曲線で接続
-          const curveEndY = Math.min(nodeY + rowHeight, parentY)
+          // 異なるレーン: 子のレーンに沿って直線で下り、親の近くで曲線で合流
+          const curveStartY = Math.max(parentY - rowHeight, nodeY)
           ctx.moveTo(fromX, nodeY)
-          ctx.quadraticCurveTo(fromX, nodeY + rowHeight * 0.6, toX, curveEndY)
-          // 残りは直線
-          if (parentY > curveEndY) {
-            ctx.lineTo(toX, parentY)
+          // 子のレーンに沿った直線部分
+          if (curveStartY > nodeY) {
+            ctx.lineTo(fromX, curveStartY)
           }
+          // 親のレーンへ曲線で合流
+          ctx.quadraticCurveTo(fromX, curveStartY + (parentY - curveStartY) * 0.6, toX, parentY)
         }
         ctx.stroke()
       }
