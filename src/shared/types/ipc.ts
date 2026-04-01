@@ -66,6 +66,47 @@ export interface IPCChannelMap {
   }
   'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
   'worktree:default-branch': { args: [string]; result: IPCResult<string> }
+  // git channels (repository-viewer)
+  'git:status': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('../domain').GitStatus>
+  }
+  'git:log': {
+    args: [import('../domain').GitLogQuery]
+    result: IPCResult<import('../domain').GitLogResult>
+  }
+  'git:commit-detail': {
+    args: [{ worktreePath: string; hash: string }]
+    result: IPCResult<import('../domain').CommitDetail>
+  }
+  'git:diff': {
+    args: [import('../domain').GitDiffQuery]
+    result: IPCResult<import('../domain').FileDiff[]>
+  }
+  'git:diff-staged': {
+    args: [import('../domain').GitDiffQuery]
+    result: IPCResult<import('../domain').FileDiff[]>
+  }
+  'git:diff-commit': {
+    args: [{ worktreePath: string; hash: string; filePath?: string }]
+    result: IPCResult<import('../domain').FileDiff[]>
+  }
+  'git:branches': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('../domain').BranchList>
+  }
+  'git:file-tree': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('../domain').FileTreeNode>
+  }
+  'git:file-contents': {
+    args: [{ worktreePath: string; filePath: string; staged?: boolean }]
+    result: IPCResult<import('../domain').FileContents>
+  }
+  'git:file-contents-commit': {
+    args: [{ worktreePath: string; hash: string; filePath: string }]
+    result: IPCResult<import('../domain').FileContents>
+  }
 }
 
 /** main → renderer イベント */
@@ -100,6 +141,30 @@ export interface ElectronAPI {
     checkDirty(worktreePath: string): Promise<IPCResult<boolean>>
     defaultBranch(repoPath: string): Promise<IPCResult<string>>
     onChanged(callback: (event: import('../domain').WorktreeChangeEvent) => void): () => void
+  }
+  git: {
+    status(args: { worktreePath: string }): Promise<IPCResult<import('../domain').GitStatus>>
+    log(query: import('../domain').GitLogQuery): Promise<IPCResult<import('../domain').GitLogResult>>
+    commitDetail(args: { worktreePath: string; hash: string }): Promise<IPCResult<import('../domain').CommitDetail>>
+    diff(query: import('../domain').GitDiffQuery): Promise<IPCResult<import('../domain').FileDiff[]>>
+    diffStaged(query: import('../domain').GitDiffQuery): Promise<IPCResult<import('../domain').FileDiff[]>>
+    diffCommit(args: {
+      worktreePath: string
+      hash: string
+      filePath?: string
+    }): Promise<IPCResult<import('../domain').FileDiff[]>>
+    branches(args: { worktreePath: string }): Promise<IPCResult<import('../domain').BranchList>>
+    fileTree(args: { worktreePath: string }): Promise<IPCResult<import('../domain').FileTreeNode>>
+    fileContents(args: {
+      worktreePath: string
+      filePath: string
+      staged?: boolean
+    }): Promise<IPCResult<import('../domain').FileContents>>
+    fileContentsCommit(args: {
+      worktreePath: string
+      hash: string
+      filePath: string
+    }): Promise<IPCResult<import('../domain').FileContents>>
   }
 }
 

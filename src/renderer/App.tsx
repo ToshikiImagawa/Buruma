@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { AppLayout } from '@renderer/components/layout'
 import { ThemeProvider } from '@renderer/components/theme-provider'
+import { Button } from '@renderer/components/ui/button'
 import { rendererConfigs } from '@renderer/di/configs'
 import {
   ErrorNotificationToast,
@@ -8,7 +9,8 @@ import {
   SettingsDialog,
 } from '@renderer/features/application-foundation/presentation/components'
 import { useRepositorySelectorViewModel } from '@renderer/features/application-foundation/presentation/use-repository-selector-viewmodel'
-import { WorktreeDetail, WorktreeList } from '@renderer/features/worktree-management/presentation/components'
+import { RepositoryDetailPanel } from '@renderer/features/repository-viewer/presentation/components'
+import { WorktreeList } from '@renderer/features/worktree-management/presentation/components'
 import { VContainerProvider } from '@shared/lib/di/v-container-provider'
 import { Toaster } from 'sonner'
 
@@ -25,13 +27,14 @@ function AppContent() {
             <aside className="w-64 shrink-0 border-r">
               <WorktreeList repoPath={currentRepository.path} />
             </aside>
-            <div className="flex-1 overflow-auto">
-              <WorktreeDetail />
+            <div className="flex-1 overflow-hidden">
+              <RepositoryDetailPanel />
             </div>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground">リポジトリを選択してください</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <p className="text-sm text-muted-foreground">リポジトリが選択されていません</p>
+            <Button onClick={() => setRepositorySelectorOpen(true)}>リポジトリを開く</Button>
           </div>
         )}
       </AppLayout>

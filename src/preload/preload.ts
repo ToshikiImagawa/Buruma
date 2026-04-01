@@ -48,6 +48,18 @@ const electronAPI: ElectronAPI = {
       }
     },
   },
+  git: {
+    status: (args) => ipcRenderer.invoke('git:status', args),
+    log: (query) => ipcRenderer.invoke('git:log', query),
+    commitDetail: (args) => ipcRenderer.invoke('git:commit-detail', args),
+    diff: (query) => ipcRenderer.invoke('git:diff', query),
+    diffStaged: (query) => ipcRenderer.invoke('git:diff-staged', query),
+    diffCommit: (args) => ipcRenderer.invoke('git:diff-commit', args),
+    branches: (args) => ipcRenderer.invoke('git:branches', args),
+    fileTree: (args) => ipcRenderer.invoke('git:file-tree', args),
+    fileContents: (args) => ipcRenderer.invoke('git:file-contents', args),
+    fileContentsCommit: (args) => ipcRenderer.invoke('git:file-contents-commit', args),
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

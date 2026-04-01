@@ -73,7 +73,9 @@ export const applicationFoundationConfig: VContainerConfig = {
         RepositoryServiceToken,
         ErrorNotificationServiceToken,
       ])
-      .registerSingleton(GetRecentRepositoriesUseCaseToken, GetRecentRepositoriesDefaultUseCase, [RepositoryServiceToken])
+      .registerSingleton(GetRecentRepositoriesUseCaseToken, GetRecentRepositoriesDefaultUseCase, [
+        RepositoryServiceToken,
+      ])
       .registerSingleton(RemoveRecentRepositoryUseCaseToken, RemoveRecentRepositoryDefaultUseCase, [
         RepositoryRepositoryToken,
         RepositoryServiceToken,
