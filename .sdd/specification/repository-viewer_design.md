@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-01"
+updated: "2026-04-02"
 depends-on: [ "spec-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff" ]
 category: "viewer"
@@ -162,6 +162,7 @@ graph TD
 | UseCase x8 | application | 各 Git 操作の UseCase | `src/renderer/features/repository-viewer/application/usecases/` |
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/renderer/features/repository-viewer/presentation/` |
 | RepositoryDetailPanel | presentation | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） | `src/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
+| BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画（GraphLayout を受け取り可視範囲のみ描画） | `src/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
 | StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/renderer/features/repository-viewer/presentation/components/` |
 
 ### 共有
@@ -170,6 +171,8 @@ graph TD
 |---|---|---|
 | domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
 | IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/shared/types/ipc.ts` |
+| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
+| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
 | Preload git API | contextBridge による git.* API 公開 | `src/preload/preload.ts` |
 
 ---
@@ -238,9 +241,26 @@ import { DiffEditor } from '@monaco-editor/react'
 ## 6.3. ブランチグラフ
 
 ```typescript
-// git log --all --graph --format=<SEP>%n%H%n%h%n%s%n%an%n%ae%n%aI%n%P
-// セパレータでコミット境界を識別し、各行のグラフ装飾（| * / \）を抽出
-// CommitSummary.graphLine に格納し、CommitLog コンポーネントで色分け表示
+// CommitSummary.parents（親コミットハッシュ配列）から
+// computeGraphLayout() でレーン割り当てを計算し、GraphLayout を生成
+// BranchGraphCanvas コンポーネントで Canvas API により描画
+
+// src/shared/lib/graph/types.ts
+interface GraphNode {
+  hash: string
+  parents: string[]
+  lane: number        // 割り当てられたレーン番号
+  parentLanes: number[]
+}
+
+interface GraphLayout {
+  nodes: GraphNode[]
+  maxLane: number
+  hashToIndex: Map<string, number>
+}
+
+// BranchGraphCanvas: Canvas でノード（円）とエッジ（線）を描画
+// レーンごとに色分け、可視範囲のみ描画して大量コミットでも高速
 ```
 
 ---
@@ -291,7 +311,7 @@ import { DiffEditor } from '@monaco-editor/react'
 | diff パース方式 | simple-git の diffSummary / raw diff をパース / unified-diff ライブラリ | 自前パーサー + ファイル全体取得 IPC | diffSummary はファイル統計のみ。Monaco DiffEditor にはファイル全体テキスト（`git show HEAD:path` + ファイル読み込み）を渡す方が正確な差分表示が可能 |
 | ファイルツリー取得方式 | `git ls-tree` / fs.readdir 再帰 / simple-git raw | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現 |
 | Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Electron + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
-| ブランチグラフ方式 | git log --graph / クライアント計算 / 外部ライブラリ | `git log --all --graph` + ASCII パース | サーバー側で ASCII グラフを生成し、`CommitSummary.graphLine` に格納。CommitLog で色分け表示（`*` 黄、`|` 青、`/\` 緑） |
+| ブランチグラフ方式 | git log --graph + ASCII パース / クライアント側レーン計算 + Canvas 描画 / 外部ライブラリ | クライアント側レーン計算 + Canvas 描画 | `CommitSummary.parents` から `computeGraphLayout()` でレーン割り当てを計算し、`BranchGraphCanvas` で Canvas API 描画。ASCII パース方式より柔軟なレイアウト制御が可能で、大量コミットでも可視範囲のみ描画して高速 |
 
 ## 9.2. 未解決の課題
 
@@ -299,7 +319,7 @@ import { DiffEditor } from '@monaco-editor/react'
 |---|---|---|
 | Monaco Editor の Vite 5 + Electron での統合方法 | 高 | **解決済み**: `@monaco-editor/react` を使用し CDN 経由で worker を自動ロード |
 | 大規模ファイル（10000行超）の差分表示パフォーマンス | 中 | Monaco Editor の minimap 無効化、scrollBeyondLastLine 無効化で対応。超大規模ファイルは今後の課題 |
-| ブランチグラフの描画ライブラリ | 低 | **解決済み**: `git log --graph --all` の ASCII 出力をパースし、テキストベースで色分け表示 |
+| ブランチグラフの描画ライブラリ | 低 | **解決済み**: `CommitSummary.parents` からレーン計算 + Canvas API 描画（`BranchGraphCanvas`） |
 | simple-git の同時実行制御 | 中 | 未対応。現時点で問題は報告されていないが、同一リポジトリへの並行操作でロック競合の可能性あり |
 
 ---
@@ -314,7 +334,7 @@ import { DiffEditor } from '@monaco-editor/react'
 - `GitService` を `GitReadRepository` IF + `GitReadDefaultRepository` 実装に分離（DI 対応）
 - 差分表示を `@monaco-editor/react` DiffEditor に変更（ファイル全体テキストを IPC で取得）
 - `git:file-contents` / `git:file-contents-commit` IPC チャネルを追加
-- `git log --graph --all` によるブランチグラフ表示を追加（`CommitSummary.graphLine`）
+- ブランチグラフ表示を追加（`CommitSummary.parents` → `computeGraphLayout()` → `BranchGraphCanvas` Canvas 描画）
 - IPC ハンドラーに `worktreePath` パストラバーサル防止バリデーションを追加
 - `RepositoryDetailPanel` タブ統合コンポーネントを追加（情報/ステータス/コミット/ブランチ/ファイル）
 - レンダラー側に ViewModel + Hook パターン、RepositoryViewerService（状態管理）を追加

@@ -155,7 +155,11 @@ export class GitReadDefaultRepository implements GitReadRepository {
       const nodePath = await import('node:path')
       const resolved = await fs.realpath(nodePath.join(worktreePath, filePath)).catch(() => '')
       const resolvedRoot = await fs.realpath(worktreePath).catch(() => '')
-      if (!resolved || !resolvedRoot || (!resolved.startsWith(resolvedRoot + nodePath.sep) && resolved !== resolvedRoot)) {
+      if (
+        !resolved ||
+        !resolvedRoot ||
+        (!resolved.startsWith(resolvedRoot + nodePath.sep) && resolved !== resolvedRoot)
+      ) {
         modified = ''
       } else {
         try {
