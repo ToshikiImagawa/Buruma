@@ -6,6 +6,20 @@ import { CommitLog } from '../CommitLog'
 
 vi.mock('../../use-commit-log-viewmodel')
 
+// jsdom に ResizeObserver がないためモック
+class MockResizeObserver {
+  observe = vi.fn()
+  unobserve = vi.fn()
+  disconnect = vi.fn()
+}
+global.ResizeObserver = MockResizeObserver as unknown as typeof ResizeObserver
+
+// Canvas は jsdom で未サポートのためモック
+vi.mock('../BranchGraphCanvas', () => ({
+  BranchGraphCanvas: () => null,
+  LANE_WIDTH: 16,
+}))
+
 // テスト環境ではスクロールコンテナに高さがないため仮想スクロールをモック
 vi.mock('@tanstack/react-virtual', () => ({
   useVirtualizer: (opts: { count: number }) => ({

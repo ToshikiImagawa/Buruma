@@ -1,9 +1,11 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { CommitSummary } from '@shared/domain'
 import { Input } from '@renderer/components/ui/input'
+import { computeGraphLayout } from '@shared/lib/graph'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { Search } from 'lucide-react'
 import { useCommitLogViewModel } from '../use-commit-log-viewmodel'
+import { BranchGraphCanvas, LANE_WIDTH } from './BranchGraphCanvas'
 
 interface CommitLogProps {
   worktreePath: string
@@ -12,52 +14,28 @@ interface CommitLogProps {
 
 const ITEM_HEIGHT = 52
 
-/** グラフ文字を色分けして表示する */
-function GraphColumn({ graphLine }: { graphLine?: string }) {
-  if (!graphLine) return null
-
-  const firstLine = graphLine.split('\n')[0] ?? ''
-  if (!firstLine.trim()) return null
-
-  return (
-    <span className="shrink-0 whitespace-pre font-mono text-xs leading-tight text-muted-foreground">
-      {firstLine.split('').map((ch, i) => {
-        if (ch === '*')
-          return (
-            <span key={i} className="font-bold text-yellow-500">
-              {ch}
-            </span>
-          )
-        if (ch === '|')
-          return (
-            <span key={i} className="text-blue-400">
-              {ch}
-            </span>
-          )
-        if (ch === '/' || ch === '\\')
-          return (
-            <span key={i} className="text-green-400">
-              {ch}
-            </span>
-          )
-        return <span key={i}>{ch}</span>
-      })}
-    </span>
-  )
-}
-
-function CommitItem({ commit, selected, onClick }: { commit: CommitSummary; selected: boolean; onClick: () => void }) {
+function CommitItem({
+  commit,
+  selected,
+  onClick,
+  graphPadding,
+}: {
+  commit: CommitSummary
+  selected: boolean
+  onClick: () => void
+  graphPadding: number
+}) {
   const date = new Date(commit.date)
   const dateStr = date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
 
   return (
     <button
-      className={`flex w-full items-start gap-1 rounded px-2 py-1.5 text-left text-sm hover:bg-accent ${
+      className={`flex w-full items-start gap-1 rounded py-1.5 pr-2 text-left text-sm hover:bg-accent ${
         selected ? 'bg-accent' : ''
       }`}
+      style={{ paddingLeft: `${graphPadding}px` }}
       onClick={onClick}
     >
-      <GraphColumn graphLine={commit.graphLine} />
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <span className="truncate font-medium">{commit.message}</span>
@@ -77,6 +55,11 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
     useCommitLogViewModel()
   const scrollRef = useRef<HTMLDivElement>(null)
   const selectedHash = selectedCommit?.hash ?? null
+  const [scrollTop, setScrollTop] = useState(0)
+  const [containerHeight, setContainerHeight] = useState(0)
+
+  const graphLayout = useMemo(() => computeGraphLayout(commits), [commits])
+  const graphPadding = (graphLayout.maxLane + 1) * LANE_WIDTH + LANE_WIDTH
 
   const virtualizer = useVirtualizer({
     count: commits.length,
@@ -88,6 +71,29 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
   useEffect(() => {
     loadCommits(worktreePath)
   }, [worktreePath, loadCommits])
+
+  // コンテナサイズの取得
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setContainerHeight(entry.contentRect.height)
+      }
+    })
+    observer.observe(el)
+    setContainerHeight(el.clientHeight)
+    return () => observer.disconnect()
+  }, [])
+
+  // スクロール追跡
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    const onScroll = () => setScrollTop(el.scrollTop)
+    el.addEventListener('scroll', onScroll, { passive: true })
+    return () => el.removeEventListener('scroll', onScroll)
+  }, [])
 
   // 仮想スクロール末尾に達したらページネーション
   const virtualItems = virtualizer.getVirtualItems()
@@ -116,43 +122,55 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
           <Input className="h-8 pl-8 text-sm" placeholder="コミットを検索..." onChange={handleSearchChange} />
         </div>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-auto">
+      <div ref={scrollRef} className="flex-1 overflow-auto" style={{ position: 'relative' }}>
         {commits.length === 0 && !loading ? (
           <p className="px-3 py-4 text-center text-sm text-muted-foreground">コミットがありません</p>
         ) : (
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative',
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualItem) => {
-              const commit = commits[virtualItem.index]
-              return (
-                <div
-                  key={commit.hash}
-                  style={{
-                    position: 'absolute',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: `${virtualItem.size}px`,
-                    transform: `translateY(${virtualItem.start}px)`,
-                  }}
-                >
-                  <CommitItem
-                    commit={commit}
-                    selected={commit.hash === selectedHash}
-                    onClick={() => {
-                      selectCommit(worktreePath, commit.hash)
-                      onCommitSelect(commit.hash)
+          <>
+            <BranchGraphCanvas
+              layout={graphLayout}
+              rowHeight={ITEM_HEIGHT}
+              scrollTop={scrollTop}
+              containerHeight={containerHeight}
+              totalHeight={virtualizer.getTotalSize()}
+            />
+            <div
+              style={{
+                height: `${virtualizer.getTotalSize()}px`,
+                width: '100%',
+                position: 'absolute',
+                top: 0,
+                left: 0,
+              }}
+            >
+              {virtualizer.getVirtualItems().map((virtualItem) => {
+                const commit = commits[virtualItem.index]
+                return (
+                  <div
+                    key={commit.hash}
+                    style={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: `${virtualItem.size}px`,
+                      transform: `translateY(${virtualItem.start}px)`,
                     }}
-                  />
-                </div>
-              )
-            })}
-          </div>
+                  >
+                    <CommitItem
+                      commit={commit}
+                      selected={commit.hash === selectedHash}
+                      graphPadding={graphPadding}
+                      onClick={() => {
+                        selectCommit(worktreePath, commit.hash)
+                        onCommitSelect(commit.hash)
+                      }}
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          </>
         )}
         {loading && <p className="px-3 py-2 text-center text-xs text-muted-foreground">読み込み中...</p>}
       </div>
