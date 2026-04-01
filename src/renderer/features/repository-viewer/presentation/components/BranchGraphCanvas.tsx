@@ -18,7 +18,6 @@ interface BranchGraphCanvasProps {
   rowHeight: number
   scrollTop: number
   containerHeight: number
-  totalHeight: number
 }
 
 export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeight }: BranchGraphCanvasProps) {

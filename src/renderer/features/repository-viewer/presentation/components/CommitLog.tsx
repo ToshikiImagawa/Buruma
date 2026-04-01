@@ -132,7 +132,6 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
               rowHeight={ITEM_HEIGHT}
               scrollTop={scrollTop}
               containerHeight={containerHeight}
-              totalHeight={virtualizer.getTotalSize()}
             />
             <div
               style={{
