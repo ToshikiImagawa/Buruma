@@ -195,4 +195,59 @@ index abc1234..def5678 100644
     // context2: old=7, new=8
     expect(lines[4]).toMatchObject({ type: 'context', oldLineNumber: 7, newLineNumber: 8 })
   })
+
+  // --- エッジケース ---
+
+  it('ヘッダーのみで hunk がない diff をパースする', () => {
+    const raw = `diff --git a/empty.txt b/empty.txt
+index abc1234..def5678 100644
+`
+    const result = parseDiffOutput(raw)
+    expect(result).toHaveLength(1)
+    expect(result[0].filePath).toBe('empty.txt')
+    expect(result[0].hunks).toHaveLength(0)
+  })
+
+  it('コンテキスト行のみの diff をパースする', () => {
+    const raw = `diff --git a/src/main.ts b/src/main.ts
+index abc1234..def5678 100644
+--- a/src/main.ts
++++ b/src/main.ts
+@@ -1,3 +1,3 @@
+ line1
+ line2
+ line3
+`
+    const result = parseDiffOutput(raw)
+    expect(result).toHaveLength(1)
+    expect(result[0].hunks).toHaveLength(1)
+    expect(result[0].hunks[0].lines.every((l) => l.type === 'context')).toBe(true)
+  })
+
+  it('コピーファイルをパースする', () => {
+    const raw = `diff --git a/src/original.ts b/src/copied.ts
+copy from src/original.ts
+copy to src/copied.ts
+`
+    const result = parseDiffOutput(raw)
+    expect(result).toHaveLength(1)
+    expect(result[0].status).toBe('copied')
+  })
+
+  it('追加のみの hunk を正しくパースする（コンテキスト行なし）', () => {
+    const raw = `diff --git a/new.ts b/new.ts
+new file mode 100644
+index 0000000..abc1234
+--- /dev/null
++++ b/new.ts
+@@ -0,0 +1,3 @@
++line1
++line2
++line3
+`
+    const result = parseDiffOutput(raw)
+    expect(result[0].hunks[0].lines).toHaveLength(3)
+    expect(result[0].hunks[0].lines[0].newLineNumber).toBe(1)
+    expect(result[0].hunks[0].lines[2].newLineNumber).toBe(3)
+  })
 })

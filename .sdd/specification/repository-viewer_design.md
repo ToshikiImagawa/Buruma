@@ -2,7 +2,7 @@
 id: "design-repository-viewer"
 title: "リポジトリ閲覧"
 type: "design"
-status: "draft"
+status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"

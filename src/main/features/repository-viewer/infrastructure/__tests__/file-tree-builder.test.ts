@@ -78,4 +78,39 @@ describe('buildFileTree', () => {
     expect(result.children![2].name).toBe('a.txt')
     expect(result.children![3].name).toBe('z.txt')
   })
+
+  // --- エッジケース ---
+
+  it('深いネスト（10階層）のディレクトリを構築する', () => {
+    const deepPath = Array.from({ length: 10 }, (_, i) => `d${i}`).join('/') + '/file.ts'
+    let node = buildFileTree(deepPath, new Map(), 'repo')
+    for (let i = 0; i < 10; i++) {
+      expect(node.children).toHaveLength(1)
+      node = node.children![0]
+      expect(node.name).toBe(`d${i}`)
+      expect(node.type).toBe('directory')
+    }
+    expect(node.children).toHaveLength(1)
+    expect(node.children![0].name).toBe('file.ts')
+    expect(node.children![0].type).toBe('file')
+  })
+
+  it('同名のファイルとディレクトリが異なるパスに存在する', () => {
+    const lsTree = 'src/index.ts\nlib/index.ts'
+    const result = buildFileTree(lsTree, new Map(), 'repo')
+
+    expect(result.children).toHaveLength(2) // lib, src
+    expect(result.children![0].name).toBe('lib')
+    expect(result.children![1].name).toBe('src')
+    expect(result.children![0].children![0].name).toBe('index.ts')
+    expect(result.children![1].children![0].name).toBe('index.ts')
+  })
+
+  it('ルートに単一ファイルのみ', () => {
+    const result = buildFileTree('README.md', new Map(), 'repo')
+    expect(result.children).toHaveLength(1)
+    expect(result.children![0].name).toBe('README.md')
+    expect(result.children![0].type).toBe('file')
+    expect(result.children![0].path).toBe('README.md')
+  })
 })

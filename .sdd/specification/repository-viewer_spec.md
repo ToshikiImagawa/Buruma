@@ -2,10 +2,10 @@
 id: "spec-repository-viewer"
 title: "リポジトリ閲覧"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-01"
 depends-on: [ "prd-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff" ]
 category: "viewer"

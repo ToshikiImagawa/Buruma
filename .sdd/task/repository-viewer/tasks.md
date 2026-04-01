@@ -2,7 +2,7 @@
 id: "task-repository-viewer"
 title: "リポジトリ閲覧"
 type: "task"
-status: "pending"
+status: "completed"
 sdd-phase: "tasks"
 created: "2026-04-01"
 updated: "2026-04-01"

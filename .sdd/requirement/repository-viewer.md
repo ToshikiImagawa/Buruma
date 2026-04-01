@@ -2,9 +2,9 @@
 id: "prd-repository-viewer"
 title: "リポジトリ閲覧"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-01"
 depends-on: ["prd-worktree-management"]
 tags: ["viewer", "status", "log", "diff"]
 category: "viewer"
