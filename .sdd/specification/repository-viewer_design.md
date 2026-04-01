@@ -96,85 +96,108 @@ risk: "medium"
 ```mermaid
 graph TD
     subgraph "Renderer Process"
-        React[React UI]
+        Panel[RepositoryDetailPanel]
         StatusView[StatusView]
-        CommitLog[CommitLog]
+        CommitLog[CommitLog + ブランチグラフ]
         CommitDetailView[CommitDetailView]
-        DiffView[DiffView / Monaco Editor]
+        DiffView["DiffView (@monaco-editor/react)"]
         BranchList[BranchList]
         FileTree[FileTree]
-        React --> StatusView
-        React --> CommitLog
-        React --> CommitDetailView
-        React --> DiffView
-        React --> BranchList
-        React --> FileTree
+        VM[ViewModel + Hook]
+        Panel --> StatusView
+        Panel --> CommitLog
+        Panel --> CommitDetailView
+        Panel --> DiffView
+        Panel --> BranchList
+        Panel --> FileTree
+        StatusView --> VM
+        CommitLog --> VM
+        DiffView --> VM
     end
 
     subgraph "Preload"
         Bridge[contextBridge API]
-        GitAPI["git.* API"]
+        GitAPI["git.* API (10 channels)"]
         Bridge --> GitAPI
     end
 
-    subgraph "Main Process"
-        IPCRouter[IPC Router]
-        GitService[GitService]
+    subgraph "Main Process (Clean Architecture)"
+        IPCHandlers[IPC Handlers + Validation]
+        UseCases[UseCases x10]
+        GitReadRepo[GitReadDefaultRepository]
         SimpleGit[simple-git]
-        IPCRouter --> GitService
-        GitService --> SimpleGit
+        IPCHandlers --> UseCases
+        UseCases --> GitReadRepo
+        GitReadRepo --> SimpleGit
     end
 
-    React -->|" invoke "| Bridge
-    Bridge -->|" ipcRenderer "| IPCRouter
-    IPCRouter -->|" response "| Bridge
-    Bridge -->|" result "| React
+    Panel -->|"invoke"| Bridge
+    Bridge -->|"ipcRenderer"| IPCHandlers
+    IPCHandlers -->|"IPCResult"| Bridge
+    Bridge -->|"result"| Panel
 ```
 
 ## 4.2. モジュール分割
 
-| モジュール名            | プロセス     | 責務                                              | 配置場所                                             |
-|-------------------|----------|-------------------------------------------------|--------------------------------------------------|
-| GitService        | main     | Git 操作の実行（status, log, diff, branch, file-tree） | `src/main/services/git.ts`                       |
-| git IPC ハンドラー     | main     | git: 名前空間の IPC チャネル登録                           | `src/main/ipc/git-handlers.ts`                   |
-| Preload git API   | preload  | contextBridge による git.* API 公開                  | `src/preload.ts`（既存に追記）                          |
-| Git 型定義           | shared   | Git 関連の TypeScript 型定義                          | `src/types/git.ts`                               |
-| ElectronAPI 型定義拡張 | shared   | window.electronAPI.git の型定義                     | `src/types/electron.d.ts`（既存に追記）                 |
-| StatusView        | renderer | ステータス分類表示（staged/unstaged/untracked）            | `src/components/repository/StatusView.tsx`       |
-| CommitLog         | renderer | コミットログ一覧（仮想スクロール・検索・ページネーション）                   | `src/components/repository/CommitLog.tsx`        |
-| CommitDetailView  | renderer | コミット詳細（変更ファイル一覧・差分リンク）                          | `src/components/repository/CommitDetailView.tsx` |
-| DiffView          | renderer | Monaco Editor による差分表示（inline/side-by-side）      | `src/components/repository/DiffView.tsx`         |
-| BranchList        | renderer | ブランチ一覧（ローカル/リモート・検索）                            | `src/components/repository/BranchList.tsx`       |
-| FileTree          | renderer | ファイルツリー（変更マーキング付き）                              | `src/components/repository/FileTree.tsx`         |
-| useGitStatus      | renderer | ステータス取得の React Hook                             | `src/hooks/useGitStatus.ts`                      |
-| useCommitLog      | renderer | コミットログ取得の React Hook（ページネーション対応）                | `src/hooks/useCommitLog.ts`                      |
-| useBranches       | renderer | ブランチ一覧取得の React Hook                            | `src/hooks/useBranches.ts`                       |
-| useFileTree       | renderer | ファイルツリー取得の React Hook                           | `src/hooks/useFileTree.ts`                       |
+> **注記**: 初版設計書ではフラット構造（`src/main/services/git.ts` 等）で記述していたが、実装ではプロジェクトの Clean Architecture 4層 + feature ディレクトリ構成に合わせて再配置した。
+
+### メインプロセス側
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|---|---|---|---|
+| GitReadRepository IF | application | Git 読み取り操作の抽象インターフェース | `src/main/features/repository-viewer/application/repositories/git-read-repository.ts` |
+| GitReadDefaultRepository | infrastructure | simple-git による Git 操作の実装 | `src/main/features/repository-viewer/infrastructure/repositories/git-read-default-repository.ts` |
+| diff-parser | infrastructure | `git diff` raw 出力の `FileDiff[]` パーサー | `src/main/features/repository-viewer/infrastructure/repositories/diff-parser.ts` |
+| file-tree-builder | infrastructure | `git ls-tree` + status からのファイルツリー構築 | `src/main/features/repository-viewer/infrastructure/repositories/file-tree-builder.ts` |
+| UseCase x10 | application | 各 Git 操作の UseCase（1クラス1操作） | `src/main/features/repository-viewer/application/usecases/` |
+| IPC ハンドラー | presentation | git:* IPC チャネル登録 + 入力バリデーション | `src/main/features/repository-viewer/presentation/ipc-handlers.ts` |
+
+### レンダラー側
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|---|---|---|---|
+| GitViewerRepository IF | application | IPC 経由の Git 読み取りインターフェース | `src/renderer/features/repository-viewer/application/repositories/git-viewer-repository.ts` |
+| GitViewerDefaultRepository | infrastructure | `window.electronAPI.git.*` への委譲実装 | `src/renderer/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
+| RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/renderer/features/repository-viewer/application/services/` |
+| UseCase x8 | application | 各 Git 操作の UseCase | `src/renderer/features/repository-viewer/application/usecases/` |
+| ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/renderer/features/repository-viewer/presentation/` |
+| RepositoryDetailPanel | presentation | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） | `src/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
+| StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/renderer/features/repository-viewer/presentation/components/` |
+
+### 共有
+
+| モジュール名 | 責務 | 配置場所 |
+|---|---|---|
+| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
+| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/shared/types/ipc.ts` |
+| Preload git API | contextBridge による git.* API 公開 | `src/preload/preload.ts` |
 
 ---
 
 # 5. データモデル
 
 ```typescript
-// simple-git の StatusResult から変換するマッピング
-// simple-git の status() は FileStatusResult[] を返す
-// これを GitStatus（spec 定義）に変換する
+// git status --porcelain=v1 出力から GitStatus への変換
+// 各行の先頭2文字（index, workTree）でステータスを判定
+function parseStatusOutput(raw: string): GitStatus {
+  const staged: FileChange[] = []
+  const unstaged: FileChange[] = []
+  const untracked: string[] = []
+  for (const line of raw.split('\n')) {
+    if (line.length < 3) continue
+    const index = line[0], workTree = line[1], filePath = line.slice(3)
+    if (index === '?' && workTree === '?') { untracked.push(filePath); continue }
+    if (index !== ' ' && index !== '?') staged.push({ path: filePath, status: toFileChangeStatus(index) })
+    if (workTree !== ' ' && workTree !== '?') unstaged.push({ path: filePath, status: toFileChangeStatus(workTree) })
+  }
+  return { staged, unstaged, untracked }
+}
 
-// simple-git StatusResult → GitStatus 変換ロジック
-function mapStatusResult(result: StatusResult): GitStatus {
-    return {
-        staged: [
-            ...result.created.map(f => ({path: f, type: 'added' as const})),
-            ...result.staged.map(f => ({path: f, type: 'modified' as const})),
-            ...result.deleted.map(f => ({path: f, type: 'deleted' as const})),
-            ...result.renamed.map(f => ({path: f.to, type: 'renamed' as const, oldPath: f.from})),
-        ],
-        unstaged: [
-            ...result.modified.map(f => ({path: f, type: 'modified' as const})),
-            ...result.deleted.map(f => ({path: f, type: 'deleted' as const})),
-        ],
-        untracked: result.not_added,
-    };
+// 差分表示用のファイルコンテンツ取得
+interface FileContents {
+  original: string   // 変更前テキスト（git show HEAD:path）
+  modified: string   // 変更後テキスト（ファイル読み込み or git show :path）
+  language: string   // Monaco 言語 ID
 }
 ```
 
@@ -182,337 +205,42 @@ function mapStatusResult(result: StatusResult): GitStatus {
 
 # 6. インターフェース定義
 
-## 6.1. IPC ハンドラー（メインプロセス側）
+## 6.1. IPC チャネル一覧
 
-```typescript
-// src/main/ipc/git-handlers.ts
-import {ipcMain} from 'electron';
-import type {IPCResult} from '../../types/ipc';
-import type {
-    GitStatus,
-    GitLogQuery,
-    GitLogResult,
-    CommitDetail,
-    GitDiffQuery,
-    FileDiff,
-    BranchList,
-    FileTreeNode,
-} from '../../types/git';
-import type {GitService} from '../services/git';
+| チャネル名 | 引数 | 戻り値 | 備考 |
+|---|---|---|---|
+| `git:status` | `{ worktreePath }` | `IPCResult<GitStatus>` | |
+| `git:log` | `GitLogQuery` | `IPCResult<GitLogResult>` | `--graph --all` でブランチグラフ付き |
+| `git:commit-detail` | `{ worktreePath, hash }` | `IPCResult<CommitDetail>` | |
+| `git:diff` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ワーキングツリーの差分 |
+| `git:diff-staged` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ステージ済みの差分 |
+| `git:diff-commit` | `{ worktreePath, hash, filePath? }` | `IPCResult<FileDiff[]>` | コミット差分 |
+| `git:branches` | `{ worktreePath }` | `IPCResult<BranchList>` | |
+| `git:file-tree` | `{ worktreePath }` | `IPCResult<FileTreeNode>` | |
+| `git:file-contents` | `{ worktreePath, filePath, staged? }` | `IPCResult<FileContents>` | Monaco DiffEditor 用ファイル全体取得 |
+| `git:file-contents-commit` | `{ worktreePath, hash, filePath }` | `IPCResult<FileContents>` | コミット差分の Monaco 用 |
 
-export function registerGitHandlers(gitService: GitService): void {
-    ipcMain.handle(
-        'git:status',
-        async (_event, args: { worktreePath: string }): Promise<IPCResult<GitStatus>> => {
-            return gitService.getStatus(args.worktreePath);
-        },
-    );
+全チャネルで `worktreePath` のパストラバーサル防止バリデーションを実施。
 
-    ipcMain.handle(
-        'git:log',
-        async (_event, query: GitLogQuery): Promise<IPCResult<GitLogResult>> => {
-            return gitService.getLog(query);
-        },
-    );
-
-    ipcMain.handle(
-        'git:commit-detail',
-        async (_event, args: { worktreePath: string; hash: string }): Promise<IPCResult<CommitDetail>> => {
-            return gitService.getCommitDetail(args.worktreePath, args.hash);
-        },
-    );
-
-    ipcMain.handle(
-        'git:diff',
-        async (_event, query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> => {
-            return gitService.getDiff(query);
-        },
-    );
-
-    ipcMain.handle(
-        'git:diff-staged',
-        async (_event, query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> => {
-            return gitService.getDiffStaged(query);
-        },
-    );
-
-    ipcMain.handle(
-        'git:diff-commit',
-        async (
-            _event,
-            args: { worktreePath: string; hash: string; filePath?: string },
-        ): Promise<IPCResult<FileDiff[]>> => {
-            return gitService.getDiffCommit(args.worktreePath, args.hash, args.filePath);
-        },
-    );
-
-    ipcMain.handle(
-        'git:branches',
-        async (_event, args: { worktreePath: string }): Promise<IPCResult<BranchList>> => {
-            return gitService.getBranches(args.worktreePath);
-        },
-    );
-
-    ipcMain.handle(
-        'git:file-tree',
-        async (_event, args: { worktreePath: string }): Promise<IPCResult<FileTreeNode>> => {
-            return gitService.getFileTree(args.worktreePath);
-        },
-    );
-}
-```
-
-## 6.2. GitService（メインプロセス側）
-
-```typescript
-// src/main/services/git.ts
-import simpleGit, {type SimpleGit} from 'simple-git';
-import type {IPCResult, IPCError} from '../../types/ipc';
-import type {
-    GitStatus,
-    GitLogQuery,
-    GitLogResult,
-    CommitDetail,
-    GitDiffQuery,
-    FileDiff,
-    BranchList,
-    FileTreeNode,
-} from '../../types/git';
-
-export class GitService {
-    private getGit(worktreePath: string): SimpleGit {
-        return simpleGit(worktreePath);
-    }
-
-    private success<T>(data: T): IPCResult<T> {
-        return {success: true, data};
-    }
-
-    private failure(code: string, message: string, detail?: string): IPCResult<never> {
-        return {success: false, error: {code, message, detail}};
-    }
-
-    async getStatus(worktreePath: string): Promise<IPCResult<GitStatus>> {
-        try {
-            const git = this.getGit(worktreePath);
-            const result = await git.status();
-            return this.success(mapStatusResult(result));
-        } catch (error) {
-            return this.failure('GIT_STATUS_ERROR', 'ステータスの取得に失敗しました', String(error));
-        }
-    }
-
-    async getLog(query: GitLogQuery): Promise<IPCResult<GitLogResult>> {
-        try {
-            const git = this.getGit(query.worktreePath);
-            const options: Record<string, string | number> = {
-                maxCount: query.limit,
-                '--skip': query.offset,
-            };
-            if (query.search) {
-                options['--grep'] = query.search;
-                options['--all-match'] = '';
-            }
-            const result = await git.log(options);
-            return this.success({
-                commits: result.all.map(mapCommitSummary),
-                total: result.total,
-                hasMore: result.all.length === query.limit,
-            });
-        } catch (error) {
-            return this.failure('GIT_LOG_ERROR', 'コミットログの取得に失敗しました', String(error));
-        }
-    }
-
-    async getCommitDetail(worktreePath: string, hash: string): Promise<IPCResult<CommitDetail>> {
-        try {
-            const git = this.getGit(worktreePath);
-            const log = await git.log({maxCount: 1, from: hash, to: hash});
-            const diff = await git.diffSummary([`${hash}~1`, hash]);
-            const entry = log.latest;
-            if (!entry) {
-                return this.failure('GIT_COMMIT_NOT_FOUND', '指定コミットが見つかりません', hash);
-            }
-            return this.success(mapCommitDetail(entry, diff));
-        } catch (error) {
-            return this.failure('GIT_COMMIT_DETAIL_ERROR', 'コミット詳細の取得に失敗しました', String(error));
-        }
-    }
-
-    async getDiff(query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> {
-        try {
-            const git = this.getGit(query.worktreePath);
-            const args = query.filePath ? [query.filePath] : [];
-            const result = await git.diff(args);
-            return this.success(parseDiffOutput(result));
-        } catch (error) {
-            return this.failure('GIT_DIFF_ERROR', '差分の取得に失敗しました', String(error));
-        }
-    }
-
-    async getDiffStaged(query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> {
-        try {
-            const git = this.getGit(query.worktreePath);
-            const args = ['--cached', ...(query.filePath ? [query.filePath] : [])];
-            const result = await git.diff(args);
-            return this.success(parseDiffOutput(result));
-        } catch (error) {
-            return this.failure('GIT_DIFF_STAGED_ERROR', 'ステージ済み差分の取得に失敗しました', String(error));
-        }
-    }
-
-    async getDiffCommit(
-        worktreePath: string,
-        hash: string,
-        filePath?: string,
-    ): Promise<IPCResult<FileDiff[]>> {
-        try {
-            const git = this.getGit(worktreePath);
-            const args = [`${hash}~1`, hash, ...(filePath ? ['--', filePath] : [])];
-            const result = await git.diff(args);
-            return this.success(parseDiffOutput(result));
-        } catch (error) {
-            return this.failure('GIT_DIFF_COMMIT_ERROR', 'コミット差分の取得に失敗しました', String(error));
-        }
-    }
-
-    async getBranches(worktreePath: string): Promise<IPCResult<BranchList>> {
-        try {
-            const git = this.getGit(worktreePath);
-            const result = await git.branch(['-a', '-v', '--abbrev']);
-            return this.success(mapBranchResult(result));
-        } catch (error) {
-            return this.failure('GIT_BRANCHES_ERROR', 'ブランチ一覧の取得に失敗しました', String(error));
-        }
-    }
-
-    async getFileTree(worktreePath: string): Promise<IPCResult<FileTreeNode>> {
-        try {
-            const git = this.getGit(worktreePath);
-            const result = await git.raw(['ls-tree', '-r', '--name-only', 'HEAD']);
-            const status = await git.status();
-            return this.success(buildFileTree(result, status, worktreePath));
-        } catch (error) {
-            return this.failure('GIT_FILE_TREE_ERROR', 'ファイルツリーの取得に失敗しました', String(error));
-        }
-    }
-}
-```
-
-## 6.3. Preload API（contextBridge 経由）
-
-``` typescript
-// src/preload.ts に追記
-// 既存の electronAPI オブジェクトに git プロパティを追加
-
-git: {
-  status: (args: { worktreePath: string }): Promise<IPCResult<GitStatus>> =>
-    ipcRenderer.invoke('git:status', args),
-  log: (query: GitLogQuery): Promise<IPCResult<GitLogResult>> =>
-    ipcRenderer.invoke('git:log', query),
-  commitDetail: (args: { worktreePath: string; hash: string }): Promise<IPCResult<CommitDetail>> =>
-    ipcRenderer.invoke('git:commit-detail', args),
-  diff: (query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> =>
-    ipcRenderer.invoke('git:diff', query),
-  diffStaged: (query: GitDiffQuery): Promise<IPCResult<FileDiff[]>> =>
-    ipcRenderer.invoke('git:diff-staged', query),
-  diffCommit: (args: { worktreePath: string; hash: string; filePath?: string }): Promise<IPCResult<FileDiff[]>> =>
-    ipcRenderer.invoke('git:diff-commit', args),
-  branches: (args: { worktreePath: string }): Promise<IPCResult<BranchList>> =>
-    ipcRenderer.invoke('git:branches', args),
-  fileTree: (args: { worktreePath: string }): Promise<IPCResult<FileTreeNode>> =>
-    ipcRenderer.invoke('git:file-tree', args),
-},
-```
-
-## 6.4. レンダラー側の型定義拡張
-
-```typescript
-// src/types/electron.d.ts に追記
-// 既存の ElectronAPI インターフェースに git プロパティを追加
-
-interface ElectronAPI {
-    // ... 既存のプロパティ（repository, settings, onError）
-
-    git: {
-        status(args: { worktreePath: string }): Promise<IPCResult<GitStatus>>;
-        log(query: GitLogQuery): Promise<IPCResult<GitLogResult>>;
-        commitDetail(args: { worktreePath: string; hash: string }): Promise<IPCResult<CommitDetail>>;
-        diff(query: GitDiffQuery): Promise<IPCResult<FileDiff[]>>;
-        diffStaged(query: GitDiffQuery): Promise<IPCResult<FileDiff[]>>;
-        diffCommit(args: { worktreePath: string; hash: string; filePath?: string }): Promise<IPCResult<FileDiff[]>>;
-        branches(args: { worktreePath: string }): Promise<IPCResult<BranchList>>;
-        fileTree(args: { worktreePath: string }): Promise<IPCResult<FileTreeNode>>;
-    };
-}
-```
-
-## 6.5. DiffView コンポーネント（Monaco Editor 統合）
+## 6.2. DiffView コンポーネント（@monaco-editor/react 統合）
 
 ```tsx
-// src/components/repository/DiffView.tsx
-import * as monaco from 'monaco-editor';
-import {useEffect, useRef} from 'react';
-import type {FileDiff, DiffDisplayMode} from '@/types/git';
+// src/renderer/features/repository-viewer/presentation/components/DiffView.tsx
+// @monaco-editor/react の DiffEditor を使用
+// ファイル全体テキストを git:file-contents IPC で取得して渡す
 
-export function DiffView({diffs, mode, onModeChange}: DiffViewProps) {
-    const editorRef = useRef<HTMLDivElement>(null);
-    const diffEditorRef = useRef<monaco.editor.IDiffEditor | null>(null);
+import { DiffEditor } from '@monaco-editor/react'
 
-    useEffect(() => {
-        if (!editorRef.current || diffs.length === 0) return;
+// onMount でエディタ参照を取得し、updateOptions でインライン/サイドバイサイドを切替
+// useInlineViewWhenSpaceIsLimited: false で狭い画面でも強制的にサイドバイサイド表示
+```
 
-        const diff = diffs[0]; // 現在選択中のファイル
+## 6.3. ブランチグラフ
 
-        // Monaco DiffEditor を使用
-        const diffEditor = monaco.editor.createDiffEditor(editorRef.current, {
-            renderSideBySide: mode === 'side-by-side',
-            readOnly: true,
-            automaticLayout: true,
-            minimap: {enabled: false},
-        });
-
-        const originalModel = monaco.editor.createModel(
-            reconstructOriginal(diff),
-            detectLanguage(diff.filePath),
-        );
-        const modifiedModel = monaco.editor.createModel(
-            reconstructModified(diff),
-            detectLanguage(diff.filePath),
-        );
-
-        diffEditor.setModel({original: originalModel, modified: modifiedModel});
-        diffEditorRef.current = diffEditor;
-
-        return () => {
-            diffEditor.dispose();
-            originalModel.dispose();
-            modifiedModel.dispose();
-        };
-    }, [diffs, mode]);
-
-    return (
-        <div className="flex flex-col h-full">
-            {/* モード切替ボタン */}
-            <div className="flex gap-2 p-2 border-b">
-                <button
-                    className={mode === 'inline' ? 'font-bold' : ''}
-                    onClick={() => onModeChange('inline')}
-                >
-                    インライン
-                </button>
-                <button
-                    className={mode === 'side-by-side' ? 'font-bold' : ''}
-                    onClick={() => onModeChange('side-by-side')}
-                >
-                    サイドバイサイド
-                </button>
-            </div>
-            {/* Monaco Editor */}
-            <div ref={editorRef} className="flex-1"/>
-        </div>
-    );
-}
+```typescript
+// git log --all --graph --format=<SEP>%n%H%n%h%n%s%n%an%n%ae%n%aI%n%P
+// セパレータでコミット境界を識別し、各行のグラフ装飾（| * / \）を抽出
+// CommitSummary.graphLine に格納し、CommitLog コンポーネントで色分け表示
 ```
 
 ---
@@ -560,23 +288,41 @@ export function DiffView({diffs, mode, onModeChange}: DiffViewProps) {
 | 差分表示エンジン       | Monaco Editor / CodeMirror / react-diff-viewer / 自前実装         | Monaco Editor                      | CONSTITUTION 技術スタック制約で指定。DiffEditor を標準搭載、シンタックスハイライト組み込み、VS Code との親和性（原則 A-002）                      |
 | コミットログの仮想スクロール | @tanstack/react-virtual / react-window / react-virtualized    | @tanstack/react-virtual            | React 19 対応、軽量（6KB gzip）、hooks ベース API。react-window は unmaintained（原則 A-002）                           |
 | IPC チャネル命名     | `git:status` / `repository-viewer:status`                     | `git:action` 形式                    | ドメイン（git）ベースの命名で直感的。application-foundation の `repository:action` と一貫性がある                               |
-| diff パース方式     | simple-git の diffSummary / raw diff をパース / unified-diff ライブラリ | simple-git の diff() + 自前パース        | simple-git の diffSummary はファイル統計のみ。行レベルの差分表示にはraw diff 出力のパースが必要。Monaco Editor に渡す場合はファイル全体を再構成する方が効率的 |
-| ファイルツリー取得方式    | `git ls-tree` / fs.readdir 再帰 / simple-git raw                | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現                                                       |
+| diff パース方式 | simple-git の diffSummary / raw diff をパース / unified-diff ライブラリ | 自前パーサー + ファイル全体取得 IPC | diffSummary はファイル統計のみ。Monaco DiffEditor にはファイル全体テキスト（`git show HEAD:path` + ファイル読み込み）を渡す方が正確な差分表示が可能 |
+| ファイルツリー取得方式 | `git ls-tree` / fs.readdir 再帰 / simple-git raw | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現 |
+| Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Electron + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
+| ブランチグラフ方式 | git log --graph / クライアント計算 / 外部ライブラリ | `git log --all --graph` + ASCII パース | サーバー側で ASCII グラフを生成し、`CommitSummary.graphLine` に格納。CommitLog で色分け表示（`*` 黄、`|` 青、`/\` 緑） |
 
 ## 9.2. 未解決の課題
 
-| 課題                                       | 影響度 | 対応方針                                                                      |
-|------------------------------------------|-----|---------------------------------------------------------------------------|
-| Monaco Editor の Vite 5 + Electron での統合方法 | 高   | monaco-editor の ESM ビルドを使用。vite.renderer.config.ts で worker の設定が必要。実装時に検証 |
-| 大規模ファイル（10000行超）の差分表示パフォーマンス             | 中   | Monaco Editor の minimap 無効化、折りたたみで対応。超大規模ファイルは警告表示して部分ロードを検討              |
-| ブランチグラフの描画ライブラリ                          | 低   | 初期実装ではテキストベースの簡易表示。将来的に Canvas/SVG ベースのグラフ描画を検討                           |
-| simple-git の同時実行制御                       | 中   | 同一リポジトリに対する並行 Git 操作でロック競合が発生する可能性。GitService 内でキュー管理を検討                  |
+| 課題 | 影響度 | 対応状況 |
+|---|---|---|
+| Monaco Editor の Vite 5 + Electron での統合方法 | 高 | **解決済み**: `@monaco-editor/react` を使用し CDN 経由で worker を自動ロード |
+| 大規模ファイル（10000行超）の差分表示パフォーマンス | 中 | Monaco Editor の minimap 無効化、scrollBeyondLastLine 無効化で対応。超大規模ファイルは今後の課題 |
+| ブランチグラフの描画ライブラリ | 低 | **解決済み**: `git log --graph --all` の ASCII 出力をパースし、テキストベースで色分け表示 |
+| simple-git の同時実行制御 | 中 | 未対応。現時点で問題は報告されていないが、同一リポジトリへの並行操作でロック競合の可能性あり |
 
 ---
 
 # 10. 変更履歴
 
-## v1.0
+## v2.0 (2026-04-01)
+
+**変更内容:**
+
+- アーキテクチャをフラット構造から Clean Architecture 4層 + feature ディレクトリ構成に変更
+- `GitService` を `GitReadRepository` IF + `GitReadDefaultRepository` 実装に分離（DI 対応）
+- 差分表示を `@monaco-editor/react` DiffEditor に変更（ファイル全体テキストを IPC で取得）
+- `git:file-contents` / `git:file-contents-commit` IPC チャネルを追加
+- `git log --graph --all` によるブランチグラフ表示を追加（`CommitSummary.graphLine`）
+- IPC ハンドラーに `worktreePath` パストラバーサル防止バリデーションを追加
+- `RepositoryDetailPanel` タブ統合コンポーネントを追加（情報/ステータス/コミット/ブランチ/ファイル）
+- レンダラー側に ViewModel + Hook パターン、RepositoryViewerService（状態管理）を追加
+- 仕様書のフィールド名を `FileChange.type` → `FileChange.status` に統一（既存 worktree-management との整合性）
+- `impl-status` を `implemented` に更新
+- 未解決課題（Monaco 統合、ブランチグラフ）を解決済みに更新
+
+## v1.0 (2026-03-25)
 
 **変更内容:**
 

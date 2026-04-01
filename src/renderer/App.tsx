@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Button } from '@renderer/components/ui/button'
 import { AppLayout } from '@renderer/components/layout'
 import { ThemeProvider } from '@renderer/components/theme-provider'
 import { rendererConfigs } from '@renderer/di/configs'
@@ -31,8 +32,9 @@ function AppContent() {
             </div>
           </div>
         ) : (
-          <div className="flex h-full items-center justify-center">
-            <p className="text-muted-foreground">リポジトリを選択してください</p>
+          <div className="flex h-full flex-col items-center justify-center gap-3">
+            <p className="text-sm text-muted-foreground">リポジトリが選択されていません</p>
+            <Button onClick={() => setRepositorySelectorOpen(true)}>リポジトリを開く</Button>
           </div>
         )}
       </AppLayout>
