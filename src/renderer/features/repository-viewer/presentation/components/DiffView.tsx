@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { DiffDisplayMode, FileContents } from '@shared/domain'
 import { Button } from '@renderer/components/ui/button'
 import { DiffEditor } from '@monaco-editor/react'
+import type { editor } from 'monaco-editor'
 
 interface DiffViewProps {
   worktreePath: string
@@ -15,6 +16,20 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
   const [contents, setContents] = useState<FileContents | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const editorRef = useRef<editor.IStandaloneDiffEditor | null>(null)
+
+  // 表示モード切替時にエディタのオプションを直接更新
+  useEffect(() => {
+    if (editorRef.current) {
+      editorRef.current.updateOptions({
+        renderSideBySide: displayMode === 'side-by-side',
+      })
+    }
+  }, [displayMode])
+
+  const handleEditorMount = useCallback((diffEditor: editor.IStandaloneDiffEditor) => {
+    editorRef.current = diffEditor
+  }, [])
 
   const loadContents = useCallback(async () => {
     if (!filePath) return
@@ -96,12 +111,12 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
       </div>
       <div className="flex-1 min-h-0">
         <DiffEditor
-          key={`${filePath}-${displayMode}`}
           height="100%"
           original={contents.original}
           modified={contents.modified}
           language={contents.language}
           theme="vs-dark"
+          onMount={handleEditorMount}
           options={{
             readOnly: true,
             renderSideBySide: isSideBySide,
