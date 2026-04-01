@@ -138,7 +138,6 @@ export interface CommitSummary {
   authorEmail: string
   date: string // ISO 8601
   parents: string[]
-  graphLine?: string // ブランチグラフの ASCII 表現
 }
 
 /** コミット詳細 */

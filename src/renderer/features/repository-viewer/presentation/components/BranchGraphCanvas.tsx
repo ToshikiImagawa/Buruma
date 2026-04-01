@@ -45,8 +45,30 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
 
     const { nodes } = layout
 
-    // 全接続線を描画（ノード → 親）
-    for (let i = 0; i < nodes.length; i++) {
+    // 可視範囲に関係するノードのみ描画（マージン付き）
+    const margin = 5
+    const visibleStart = Math.max(0, Math.floor(scrollTop / rowHeight) - margin)
+    const visibleEnd = Math.min(nodes.length - 1, Math.ceil((scrollTop + containerHeight) / rowHeight) + margin)
+
+    // 可視範囲のノードと、可視範囲を通過する線を持つノードを収集
+    const drawSet = new Set<number>()
+    for (let i = visibleStart; i <= visibleEnd; i++) {
+      drawSet.add(i)
+    }
+    // 可視範囲外のノードでも、親が可視範囲内にある場合は描画対象
+    for (let i = 0; i < visibleStart; i++) {
+      const node = nodes[i]
+      for (const parentHash of node.parents) {
+        const parentIdx = layout.hashToIndex.get(parentHash)
+        const parentRow = parentIdx !== undefined ? parentIdx : nodes.length
+        if (parentRow >= visibleStart) {
+          drawSet.add(i)
+          break
+        }
+      }
+    }
+
+    for (const i of drawSet) {
       const node = nodes[i]
       const nodeY = i * rowHeight + rowHeight / 2 - scrollTop
 

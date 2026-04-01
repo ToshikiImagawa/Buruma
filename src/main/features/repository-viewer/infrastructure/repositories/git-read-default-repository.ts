@@ -15,6 +15,7 @@ import type {
 } from '@shared/domain'
 import type { BranchSummary } from 'simple-git'
 import type { GitReadRepository } from '../../application/repositories/git-read-repository'
+import { detectLanguageFromPath } from '@shared/lib/detect-language'
 import simpleGit from 'simple-git'
 import { parseDiffOutput } from './diff-parser'
 import { buildFileTree } from './file-tree-builder'
@@ -29,16 +30,12 @@ export class GitReadDefaultRepository implements GitReadRepository {
   async getLog(query: GitLogQuery): Promise<GitLogResult> {
     const git = simpleGit(query.worktreePath)
 
-    // セパレータでコミット境界を明確にする
-    const SEP = '---COMMIT_SEP---'
-    const FORMAT = `${SEP}%n%H%n%h%n%s%n%an%n%ae%n%aI%n%P`
     const options: string[] = [
       'log',
       '--all',
-      '--graph',
       `--max-count=${query.limit}`,
       `--skip=${query.offset}`,
-      `--format=${FORMAT}`,
+      '--format=%H%n%h%n%s%n%an%n%ae%n%aI%n%P',
     ]
 
     if (query.search) {
@@ -46,7 +43,7 @@ export class GitReadDefaultRepository implements GitReadRepository {
     }
 
     const raw = await git.raw(options)
-    const commits = parseGraphLogOutput(raw, SEP)
+    const commits = parseLogOutput(raw)
 
     // 総コミット数を取得
     const countArgs = ['rev-list', '--count', '--all']
@@ -78,9 +75,10 @@ export class GitReadDefaultRepository implements GitReadRepository {
     }
     const summary = commits[0]
 
-    // 変更ファイル
+    // 変更ファイル（ステータス + 行数統計）
     const nameStatusRaw = await git.raw(['diff-tree', '--no-commit-id', '-r', '--name-status', hash])
-    const files = parseCommitFiles(nameStatusRaw)
+    const numstatRaw = await git.raw(['diff-tree', '--no-commit-id', '-r', '--numstat', hash])
+    const files = parseCommitFiles(nameStatusRaw, numstatRaw)
 
     return { ...summary, files }
   }
@@ -155,8 +153,13 @@ export class GitReadDefaultRepository implements GitReadRepository {
     } else {
       try {
         const fs = await import('node:fs/promises')
-        const path = await import('node:path')
-        modified = await fs.readFile(path.join(worktreePath, filePath), 'utf-8')
+        const nodePath = await import('node:path')
+        const resolved = await fs.realpath(nodePath.join(worktreePath, filePath))
+        const resolvedRoot = await fs.realpath(worktreePath)
+        if (!resolved.startsWith(resolvedRoot + nodePath.sep) && resolved !== resolvedRoot) {
+          throw new Error('ファイルパスがワークツリー外を参照しています')
+        }
+        modified = await fs.readFile(resolved, 'utf-8')
       } catch {
         modified = ''
       }
@@ -190,29 +193,6 @@ export class GitReadDefaultRepository implements GitReadRepository {
 }
 
 // --- ヘルパー関数 ---
-
-function detectLanguageFromPath(filePath: string): string {
-  const ext = filePath.split('.').pop()?.toLowerCase()
-  const langMap: Record<string, string> = {
-    ts: 'typescript',
-    tsx: 'typescript',
-    js: 'javascript',
-    jsx: 'javascript',
-    json: 'json',
-    md: 'markdown',
-    css: 'css',
-    scss: 'scss',
-    html: 'html',
-    xml: 'xml',
-    yaml: 'yaml',
-    yml: 'yaml',
-    py: 'python',
-    rs: 'rust',
-    go: 'go',
-    sh: 'shell',
-  }
-  return langMap[ext ?? ''] ?? 'plaintext'
-}
 
 function parseStatusOutput(raw: string): GitStatus {
   const staged: GitStatus['staged'] = []
@@ -278,88 +258,32 @@ function parseLogOutput(raw: string): CommitSummary[] {
   return commits
 }
 
-/**
- * git log --graph の出力をパースする
- * --graph 付きの場合、各行の先頭にグラフ文字（| * / \等）が付与される
- * セパレータで各コミットの開始を識別する
- */
-function parseGraphLogOutput(raw: string, sep: string): CommitSummary[] {
-  const commits: CommitSummary[] = []
-  const lines = raw.split('\n')
-
-  let currentGraphLines: string[] = []
-  let currentDataLines: string[] = []
-  let inCommit = false
-
-  for (const line of lines) {
-    // グラフ文字を分離: --graph の出力では各行の先頭にグラフ装飾がつく
-    const sepIdx = line.indexOf(sep)
-    if (sepIdx >= 0) {
-      // 前のコミットを保存
-      if (inCommit && currentDataLines.length >= 7) {
-        commits.push(buildCommitFromData(currentDataLines, currentGraphLines))
-      }
-      // 新しいコミット開始
-      currentGraphLines = [line.slice(0, sepIdx)]
-      currentDataLines = []
-      inCommit = true
-      continue
-    }
-
-    if (inCommit) {
-      // グラフ部分を抽出（行先頭の非英数字文字列）
-      const graphMatch = line.match(/^([|*/\\_ .]+)/)
-      const graphPart = graphMatch ? graphMatch[1] : ''
-      const dataPart = graphPart ? line.slice(graphPart.length) : line
-
-      currentGraphLines.push(graphPart)
-      if (dataPart.length > 0) {
-        currentDataLines.push(dataPart)
-      }
+function parseCommitFiles(nameStatusRaw: string, numstatRaw: string): CommitFileChange[] {
+  // numstat から additions/deletions を取得（パス → {additions, deletions}）
+  const statMap = new Map<string, { additions: number; deletions: number }>()
+  for (const line of numstatRaw.split('\n')) {
+    const match = line.match(/^(\d+|-)\t(\d+|-)\t(.+)$/)
+    if (match) {
+      statMap.set(match[3], {
+        additions: match[1] === '-' ? 0 : parseInt(match[1], 10),
+        deletions: match[2] === '-' ? 0 : parseInt(match[2], 10),
+      })
     }
   }
 
-  // 最後のコミット
-  if (inCommit && currentDataLines.length >= 7) {
-    commits.push(buildCommitFromData(currentDataLines, currentGraphLines))
-  }
-
-  return commits
-}
-
-function buildCommitFromData(dataLines: string[], graphLines: string[]): CommitSummary {
-  // dataLines: hash, hashShort, message, author, authorEmail, date, parents（7行）
-  const graphLine = graphLines
-    .filter((g) => g.length > 0)
-    .map((g) => g.trimEnd())
-    .join('\n')
-
-  return {
-    hash: dataLines[0] ?? '',
-    hashShort: dataLines[1] ?? '',
-    message: dataLines[2] ?? '',
-    author: dataLines[3] ?? '',
-    authorEmail: dataLines[4] ?? '',
-    date: dataLines[5] ?? '',
-    parents: dataLines[6]?.split(' ').filter((p) => p.length > 0) ?? [],
-    graphLine: graphLine || undefined,
-  }
-}
-
-function parseCommitFiles(nameStatusRaw: string): CommitFileChange[] {
   const files: CommitFileChange[] = []
-
   for (const line of nameStatusRaw.split('\n')) {
     if (line.length < 2) continue
     const status = line[0]
     const filePath = line.slice(1).trim()
     if (!filePath) continue
 
+    const stat = statMap.get(filePath)
     files.push({
       path: filePath,
       status: toFileChangeStatus(status),
-      additions: 0,
-      deletions: 0,
+      additions: stat?.additions ?? 0,
+      deletions: stat?.deletions ?? 0,
     })
   }
 
