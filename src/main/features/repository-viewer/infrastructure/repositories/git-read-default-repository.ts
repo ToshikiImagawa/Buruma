@@ -151,17 +151,18 @@ export class GitReadDefaultRepository implements GitReadRepository {
         modified = ''
       }
     } else {
-      try {
-        const fs = await import('node:fs/promises')
-        const nodePath = await import('node:path')
-        const resolved = await fs.realpath(nodePath.join(worktreePath, filePath))
-        const resolvedRoot = await fs.realpath(worktreePath)
-        if (!resolved.startsWith(resolvedRoot + nodePath.sep) && resolved !== resolvedRoot) {
-          throw new Error('ファイルパスがワークツリー外を参照しています')
-        }
-        modified = await fs.readFile(resolved, 'utf-8')
-      } catch {
+      const fs = await import('node:fs/promises')
+      const nodePath = await import('node:path')
+      const resolved = await fs.realpath(nodePath.join(worktreePath, filePath)).catch(() => '')
+      const resolvedRoot = await fs.realpath(worktreePath).catch(() => '')
+      if (!resolved || !resolvedRoot || (!resolved.startsWith(resolvedRoot + nodePath.sep) && resolved !== resolvedRoot)) {
         modified = ''
+      } else {
+        try {
+          modified = await fs.readFile(resolved, 'utf-8')
+        } catch {
+          modified = ''
+        }
       }
     }
 
