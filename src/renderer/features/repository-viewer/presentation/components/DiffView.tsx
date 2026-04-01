@@ -117,6 +117,8 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
           language={contents.language}
           theme="vs-dark"
           onMount={handleEditorMount}
+          keepCurrentOriginalModel={true}
+          keepCurrentModifiedModel={true}
           options={{
             readOnly: true,
             renderSideBySide: isSideBySide,
