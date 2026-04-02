@@ -220,7 +220,7 @@ interface FetchArgs {
 }
 
 interface FetchResult {
-  remote: string
+  remote: string // フェッチ更新サマリー（更新ブランチ数等）は Phase 2 で拡張予定
 }
 
 // --- ブランチ操作 ---
@@ -246,7 +246,7 @@ interface BranchDeleteArgs {
 // --- 進捗 ---
 
 interface GitProgressEvent {
-  operation: string
+  operation: string // 'push' | 'pull' | 'fetch'
   phase: string
   progress?: number // 0-100, undefined = indeterminate
 }
@@ -307,6 +307,8 @@ await window.electronAPI.git.branchCheckout({
 ```
 
 # 7. 振る舞い図
+
+> 以下の振る舞い図は Phase 1 スコープのみを対象とする。ハンク単位ステージング（FR-003/FR-004）は Phase 2 のため含まない。
 
 ## 7.1. コミットフロー
 
@@ -422,6 +424,7 @@ sequenceDiagram
 - リモート操作には SSH キーまたは HTTPS 認証が設定済みであることが前提
 - application-foundation の IPC 通信基盤を利用する
 - `IPCResult<T>` 型パターンを統一的に使用する
+- 各 IPC Handler はユニットテスト対象とし、テストカバレッジ 80% 以上を維持する（原則 D-002）
 
 ---
 

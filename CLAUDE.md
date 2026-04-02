@@ -22,26 +22,31 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 
 Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。ソースコードはプロセス別にディレクトリを分離する。
 
-- **Main process** (`src/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.main.config.ts`
-- **Preload** (`src/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は `vite.preload.config.ts`
-- **Renderer** (`src/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は `vite.renderer.config.ts`
+- **Main process** (`src/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で
+  feature を実装。Vite 設定は `vite.main.config.ts`
+- **Preload** (`src/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は
+  `vite.preload.config.ts`
+- **Renderer** (`src/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は
+  `vite.renderer.config.ts`
 - **Shared** (`src/shared/`): プロセス間共有の domain 型、IPC 型定義、DI ライブラリ、ユーティリティ
 
-Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin でセキュリティオプション（RunAsNode: false 等）を適用。
+Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin
+でセキュリティオプション（RunAsNode: false 等）を適用。
 
 ### Electron Forge ビルドエントリーの命名制約
 
-Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/main/main.ts` → `.vite/build/main.js`）。`package.json` の `"main"` フィールドはこの出力パスを参照する。
+Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/main/main.ts` →
+`.vite/build/main.js`）。`package.json` の `"main"` フィールドはこの出力パスを参照する。
 
 - **エントリーファイル名はプロセスごとに一意にする**（`index.ts` にしない）。同名ファイルはビルド出力が衝突する
 - `package.json` の `"main"` はメインプロセスのビルド出力（`.vite/build/main.js`）を指す
 - `BrowserWindow` の `preload` オプションは preload のビルド出力（`preload.js`）を指す
 
-| エントリー | ビルド出力 | 参照元 |
-|:---|:---|:---|
-| `src/main/main.ts` | `.vite/build/main.js` | `package.json` の `"main"` |
+| エントリー                    | ビルド出力                    | 参照元                                    |
+|:-------------------------|:-------------------------|:---------------------------------------|
+| `src/main/main.ts`       | `.vite/build/main.js`    | `package.json` の `"main"`              |
 | `src/preload/preload.ts` | `.vite/build/preload.js` | `BrowserWindow.webPreferences.preload` |
-| `src/renderer/` | Vite dev server | `forge.config.ts` の `renderer` |
+| `src/renderer/`          | Vite dev server          | `forge.config.ts` の `renderer`         |
 
 `src/renderer/` と `src/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/shared/` に配置する。
 
@@ -58,19 +63,23 @@ Electron Forge の VitePlugin は **エントリーファイルのベース名**
 `src/shared/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。メインプロセス・レンダラーの両方で使用する。
 
 **コア API**:
+
 - `createToken<T>(key)` — 型安全な InjectionToken を作成
 - `container.register()` / `registerSingleton()` / `registerTransient()` — サービス登録
 - `container.resolve<T>(token)` — サービス取得
 - `container.createScope()` — 親子コンテナ階層
 
 **React 統合**:
+
 - `VContainerProvider` — configs（register + setUp）でコンテナを初期化し React ツリーに提供
 - `useVContainer()` — コンポーネントからコンテナを取得
 - setUp 関数は priority で実行順制御、tearDown は `DisposableStack` で LIFO クリーンアップ
 
 **React Hooks**:
+
 - `useResolve<T>(token)` — DI コンテナからトークンでサービスを解決する Hook（`src/lib/di/v-container-provider.tsx`）
-- `useObservable<T>(observable, initialValue)` — RxJS Observable を React state に変換する Hook（`src/lib/hooks/use-observable.ts`）
+- `useObservable<T>(observable, initialValue)` — RxJS Observable を React state に変換する Hook（
+  `src/lib/hooks/use-observable.ts`）
 
 **ライフタイム**: `singleton`（デフォルト、インスタンス再利用）、`transient`（毎回新規作成）。`scoped` は未実装。
 
@@ -78,7 +87,8 @@ Electron Forge の VitePlugin は **エントリーファイルのベース名**
 
 ### DI 統合エントリーポイント
 
-各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/main.ts`, `renderer/App.tsx`）は `di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
+各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/main.ts`, `renderer/App.tsx`）は
+`di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
 
 ```
 src/main/di/
@@ -89,6 +99,7 @@ src/renderer/di/
 ```
 
 **feature 追加時の手順**:
+
 1. `src/renderer/features/{name}/di-config.ts` を作成（レンダラー側）
 2. `src/main/features/{name}/di-config.ts` を作成（メインプロセス側、必要な場合のみ）
 3. `src/renderer/di/configs.ts` に config を 1 行追加
@@ -107,43 +118,50 @@ src/renderer/di/
 **エントリーポイントが infrastructure 層の具象クラスを直接参照してはならない。**
 
 **di-tokens.ts の責務**:
+
 - DI Token 定義（`createToken<IF>('Name')`）
 - UseCase 型エイリアス定義（`type XxxUseCase = FunctionUseCase<T, R>`）
 - 各層のインターフェースファイルからの re-export
 - **インターフェース定義を直接記述しない**（各層の専用ファイルに配置）
 
 **DI 登録パターン**:
+
 - `registerSingleton(Token, Class, [deps])` の **useClass + deps** パターンを優先する
 - deps 配列はコンストラクタ引数の順序と一致させる
 - DI Token 以外の引数（外部インスタンス、コールバック等）が必要な場合のみファクトリー関数を使用する
 
 ### ViewModel + Hook パターン
 
-ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook ラッパー経由で利用する:
+ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook
+ラッパー経由で利用する:
 
 ```typescript
 // ViewModel（純粋 TS クラス、DI で transient 登録）
 class XxxViewModel {
-  readonly items$: Observable<Item[]>
-  constructor(useCase: GetItemsUseCase) { ... }
+    readonly items$: Observable<Item[]>
+
+    constructor(useCase: GetItemsUseCase) { 
+    }
 }
 
 // Hook ラッパー（useResolve + useObservable で ViewModel を React に接続）
 function useXxxViewModel() {
-  const vm = useResolve(xxxViewModelToken)
-  const items = useObservable(vm.items$, [])
-  return { items }
+    const vm = useResolve(xxxViewModelToken)
+    const items = useObservable(vm.items$, [])
+    return {items}
 }
 ```
 
 ### UseCase 型定義
 
 `src/shared/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
+
 - `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
 - `ObservableStoreUseCase<T>` / `ReactivePropertyUseCase<T>` — RxJS Observable でリアクティブデータを公開
 
 **UseCase 実装ルール**:
+
 - **1クラス = 1操作**: 複数のメソッドを持つ UseCase クラスを作らない
 - 必ず上記のインターフェースを `implements` する
 - ステートレス: 内部に BehaviorSubject 等の状態を持たない
@@ -151,31 +169,37 @@ function useXxxViewModel() {
 
 ### Service 型定義
 
-`src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
+`src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends
+する:
 
 - `BaseService` — 引数なし同期 setUp + tearDown
 - `AsyncBaseService` — 引数なし非同期 setUp + tearDown
 - `ParameterizedService<T>` — パラメータ付き同期 setUp + tearDown
 - `AsyncParameterizedService<T>` — パラメータ付き非同期 setUp + tearDown
 
-すべて `TearDownable`（`src/shared/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで BehaviorSubject の complete 等のリソース解放を行う。
+すべて `TearDownable`（`src/shared/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで
+BehaviorSubject の complete 等のリソース解放を行う。
 
 **ライフサイクルルール**:
+
 - Service IF は必ず上記の共通インターフェースを extends する（`dispose()` ではなく `tearDown()` に統一）
 - `setUp()` で初期データの注入を行い、`tearDown()` でリソースを解放する
 - DI コンテナの setUp/tearDown から Service の setUp/tearDown をインターフェース経由で呼び出す（具象クラスへのキャスト不要）
 - Observable プロパティは **constructor でフィールドとして1回だけ生成**する（getter で都度生成しない）
 
 **命名ルール**:
+
 - **Service**: ステートフルな状態管理を行うクラスのみ「Service」と命名する
 - **Repository**: ステートレスな外部 API ラッパー（IPC クライアント、Git CLI、ダイアログ、ファイルシステム等）は「Repository」と命名する
 - ステートレスなクラスに「Service」という名前を付けてはならない
 
 ### Clean Architecture（4層構成）
 
-feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation` の一方向のみ。メインプロセス・レンダラーの両方に4層構成を適用する。
+feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation`
+の一方向のみ。メインプロセス・レンダラーの両方に4層構成を適用する。
 
 **レンダラー側**:
+
 ```
 src/renderer/features/{feature-name}/
 ├── application/
@@ -193,6 +217,7 @@ src/renderer/features/{feature-name}/
 ```
 
 **メインプロセス側**:
+
 ```
 src/main/features/{feature-name}/
 ├── application/
@@ -205,11 +230,13 @@ src/main/features/{feature-name}/
 ```
 
 **共有 domain 型**:
+
 ```
 src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
 ```
 
-- **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable のみ許可）
+- **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable
+  のみ許可）
 - domain 型は `src/shared/domain/` に配置し、両プロセスから参照する
 - リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
 - 非同期データフロー・イベント駆動ロジックには **RxJS** の Observable パターンを使用する
@@ -220,8 +247,10 @@ src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeS
 - **Electron 41** + Electron Forge 7 + Vite 5
 - **React 19** + TypeScript 5.8
 - **RxJS** — 非同期データフロー、イベント駆動ロジック
-- **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）。`@tailwindcss/vite` は ESM only で Vite 5 と非互換のため使用不可
-- **Shadcn/ui** — `components.json` で設定。`npx shadcn@latest add <component>` でコンポーネント追加。`rsc: false`（Server Components 無効）
+- **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）。`@tailwindcss/vite` は ESM only で Vite 5
+  と非互換のため使用不可
+- **Shadcn/ui** — `components.json` で設定。`npx shadcn@latest add <component>` でコンポーネント追加。`rsc: false`（Server
+  Components 無効）
 
 ## Path Aliases
 
@@ -235,6 +264,7 @@ src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeS
 ## ESLint 設定
 
 `eslint.config.mjs` でプロセスごとにグローバル変数を分離:
+
 - **main / preload**: Node.js グローバル許可
 - **renderer**: Browser グローバルのみ
 - `eslint-plugin-import-x` で未解決インポートと重複チェック
@@ -247,7 +277,8 @@ This project follows AI-SDD (AI-driven Specification-Driven Development) workflo
 
 ### Document Operations
 
-When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.md` to ensure proper AI-SDD workflow compliance.
+When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.md` to ensure proper AI-SDD workflow
+compliance.
 
 **Trigger Conditions**:
 
@@ -328,9 +359,9 @@ specification/auth/index.md            # specification requires _spec/_design
 
 Follow these formats for markdown links within documents:
 
-| Link Target    | Format                                     | Link Text             | Example                                              |
-|:---------------|:-------------------------------------------|:----------------------|:-----------------------------------------------------|
-| **File**       | `[filename.md](path or URL)`               | Include filename      | `[user-login.md](../requirement/auth/user-login.md)` |
-| **Directory**  | `[directory-name](path or URL/index.md)`   | Directory name only   | `[auth](../requirement/auth/index.md)`               |
+| Link Target   | Format                                   | Link Text           | Example                                              |
+|:--------------|:-----------------------------------------|:--------------------|:-----------------------------------------------------|
+| **File**      | `[filename.md](path or URL)`             | Include filename    | `[user-login.md](../requirement/auth/user-login.md)` |
+| **Directory** | `[directory-name](path or URL/index.md)` | Directory name only | `[auth](../requirement/auth/index.md)`               |
 
 This convention makes it visually clear whether the link target is a file or directory.

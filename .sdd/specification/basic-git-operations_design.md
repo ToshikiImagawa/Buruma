@@ -77,6 +77,8 @@ risk: "high"
 
 ### メインプロセス側
 
+メインプロセス側の application 層は UseCase + GitWriteRepository IF のみで構成する。レンダラーとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git:progress`）経由でレンダラーに通知する。
+
 ```
 src/main/features/basic-git-operations/
 ├── application/
@@ -437,6 +439,7 @@ export interface GitOperationsService extends BaseService {
 ```typescript
 // src/renderer/features/basic-git-operations/presentation/staging-viewmodel.ts
 export interface StagingViewModel {
+  /** GetOperationLoadingUseCase 経由で取得（A-004: ViewModel は UseCase のみ参照） */
   readonly loading$: Observable<boolean>
   stageFiles(worktreePath: string, files: string[]): void
   unstageFiles(worktreePath: string, files: string[]): void
@@ -526,17 +529,25 @@ export const basicGitOperationsConfig: VContainerConfig = {
     ])
     // ... 他の UseCase も同様
 
-    // ViewModels (transient)
+    // Observable UseCases (Service 状態の公開用)
+    container.registerSingleton(GetOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [
+      GitOperationsServiceToken,
+    ])
+    container.registerSingleton(GetLastErrorUseCaseToken, GetLastErrorUseCase, [
+      GitOperationsServiceToken,
+    ])
+
+    // ViewModels (transient) — ViewModel は UseCase のみを参照し、Service を直接参照しない (A-004)
     container.registerTransient(StagingViewModelToken, StagingDefaultViewModel, [
       StageFilesUseCaseToken,
       UnstageFilesUseCaseToken,
       StageAllUseCaseToken,
       UnstageAllUseCaseToken,
-      GitOperationsServiceToken,
+      GetOperationLoadingUseCaseToken,
     ])
     container.registerTransient(CommitViewModelToken, CommitDefaultViewModel, [
       CommitUseCaseToken,
-      GitOperationsServiceToken,
+      GetOperationLoadingUseCaseToken,
     ])
     // ... 他の ViewModel も同様
   },
