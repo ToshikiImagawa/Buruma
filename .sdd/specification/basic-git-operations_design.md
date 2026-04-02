@@ -6,7 +6,7 @@ status: "draft"
 sdd-phase: "plan"
 impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-02"
 depends-on: ["spec-basic-git-operations"]
 tags: ["git", "staging", "commit", "push", "pull", "branch", "simple-git"]
 category: "git-operations"
@@ -29,25 +29,21 @@ risk: "high"
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| GitService | 🔴 | simple-git ラッパーサービス |
-| IPC ハンドラー（git:*） | 🔴 | Git 操作の IPC ルーティング |
-| StagingArea コンポーネント | 🔴 | ステージング UI |
-| CommitForm コンポーネント | 🔴 | コミットフォーム UI |
-| PushButton コンポーネント | 🔴 | プッシュボタン UI |
-| PullButton コンポーネント | 🔴 | プル/フェッチボタン UI |
-| BranchSelector コンポーネント | 🔴 | ブランチ操作 UI |
-| ConfirmDialog コンポーネント | 🔴 | 確認ダイアログ UI |
-| Preload API 拡張 | 🔴 | git.* API の公開 |
+| domain 型追加（CommitResult 等） | 🔴 | shared/domain に追加 |
+| IPC 型追加（git:stage 等のチャネル） | 🔴 | shared/types/ipc.ts に追加 |
+| メインプロセス feature（4層） | 🔴 | GitWriteRepository + UseCases + IPC Handler |
+| レンダラー feature（4層） | 🔴 | Repository + Service + UseCases + ViewModel |
+| Preload API 拡張 | 🔴 | git.stage / git.commit 等 |
 
 ---
 
 # 2. 設計目標
 
-1. **simple-git による安全な Git 操作** — simple-git ライブラリをメインプロセスで使用し、型安全な Git 操作 API を提供する（原則 A-002: Library-First）
-2. **Electron プロセス分離の徹底** — すべての Git 操作はメインプロセスの GitService で実行し、レンダラーは IPC 経由でのみアクセスする（原則 A-001）
-3. **不可逆操作の安全性確保** — amend、ブランチ削除、force push 等の不可逆操作には必ず確認ダイアログを挟む（原則 B-002）
-4. **IPCResult パターンの統一** — application-foundation で定義された `IPCResult<T>` 型パターンを Git 操作にも統一的に適用する
-5. **リモート操作の進捗フィードバック** — プッシュ・プル・フェッチの長時間操作に進捗インジケーターを提供する
+1. **Clean Architecture 4層構成** — 既存 feature（repository-viewer, worktree-management）と同一のアーキテクチャパターンを踏襲する
+2. **DI ベース設計** — VContainerConfig + Token + deps パターンで依存関係を注入する（原則 A-003）
+3. **ViewModel + Hook パターン** — ViewModel は RxJS Observable でデータを公開し、Hook ラッパー経由で React に接続する
+4. **既存 API との統合** — repository-viewer の読み取り API（`git:status`, `git:branches`）をリフレッシュに再利用する
+5. **不可逆操作の安全性確保** — amend、ブランチ削除の確認ダイアログを ConfirmDialog で実装する（原則 B-002）
 
 ---
 
@@ -57,7 +53,7 @@ risk: "high"
 
 | 領域 | 採用技術 | 選定理由 |
 |------|----------|----------|
-| Git 操作 | simple-git | Node.js 向け Git クライアントライブラリ。型安全な API、Promise ベース、進捗コールバック対応。CONSTITUTION A-002 で指定（原則 A-002: Library-First） |
+| Git 操作 | simple-git | Node.js 向け Git クライアントライブラリ。型安全な API、Promise ベース、進捗コールバック対応（原則 A-002: Library-First） |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
@@ -69,8 +65,7 @@ risk: "high"
 | UI | React 19 + TypeScript |
 | スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
 | UIコンポーネント | Shadcn/ui |
-| Git操作 | simple-git（予定） |
-| エディタ | Monaco Editor（予定） |
+| リアクティブ | RxJS |
 
 </details>
 
@@ -78,212 +73,262 @@ risk: "high"
 
 # 4. アーキテクチャ
 
-## 4.1. システム構成図
+## 4.1. ディレクトリ構成
+
+### メインプロセス側
+
+```
+src/main/features/basic-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── git-write-repository.ts          # GitWriteRepository IF
+│   └── usecases/
+│       ├── stage-files-usecase.ts           # StageFilesUseCase
+│       ├── unstage-files-usecase.ts         # UnstageFilesUseCase
+│       ├── stage-all-usecase.ts             # StageAllUseCase
+│       ├── unstage-all-usecase.ts           # UnstageAllUseCase
+│       ├── commit-usecase.ts                # CommitUseCase
+│       ├── push-usecase.ts                  # PushUseCase
+│       ├── pull-usecase.ts                  # PullUseCase
+│       ├── fetch-usecase.ts                 # FetchUseCase
+│       ├── create-branch-usecase.ts         # CreateBranchUseCase
+│       ├── checkout-branch-usecase.ts       # CheckoutBranchUseCase
+│       └── delete-branch-usecase.ts         # DeleteBranchUseCase
+├── infrastructure/
+│   └── repositories/
+│       └── git-write-default-repository.ts  # simple-git による実装
+├── presentation/
+│   └── ipc-handlers.ts                      # IPC Handler（git:stage 等）
+├── di-tokens.ts
+└── di-config.ts
+```
+
+### レンダラー側
+
+```
+src/renderer/features/basic-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── git-operations-repository.ts     # GitOperationsRepository IF
+│   ├── services/
+│   │   ├── git-operations-service-interface.ts  # GitOperationsService IF
+│   │   └── git-operations-service.ts            # Service 実装（BehaviorSubject で状態管理）
+│   └── usecases/
+│       ├── stage-files-usecase.ts           # StageFilesUseCase
+│       ├── unstage-files-usecase.ts
+│       ├── stage-all-usecase.ts
+│       ├── unstage-all-usecase.ts
+│       ├── commit-usecase.ts
+│       ├── push-usecase.ts
+│       ├── pull-usecase.ts
+│       ├── fetch-usecase.ts
+│       ├── create-branch-usecase.ts
+│       ├── checkout-branch-usecase.ts
+│       ├── delete-branch-usecase.ts
+│       ├── get-operation-loading-usecase.ts  # ObservableStoreUseCase<boolean>
+│       └── get-last-error-usecase.ts         # ObservableStoreUseCase<IPCError | null>
+├── infrastructure/
+│   └── repositories/
+│       └── git-operations-default-repository.ts  # IPC クライアント実装
+├── presentation/
+│   ├── components/
+│   │   ├── staging-area.tsx
+│   │   ├── commit-form.tsx
+│   │   ├── push-pull-buttons.tsx
+│   │   └── branch-operations.tsx
+│   ├── staging-viewmodel.ts
+│   ├── use-staging-viewmodel.ts
+│   ├── commit-viewmodel.ts
+│   ├── use-commit-viewmodel.ts
+│   ├── remote-ops-viewmodel.ts
+│   ├── use-remote-ops-viewmodel.ts
+│   ├── branch-ops-viewmodel.ts
+│   └── use-branch-ops-viewmodel.ts
+├── di-tokens.ts
+└── di-config.ts
+```
+
+## 4.2. システム構成図
 
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TD
     subgraph "Renderer Process"
-        React[React UI]
-        StagingArea[StagingArea]
-        CommitForm[CommitForm]
-        PushButton[PushButton]
-        PullButton[PullButton]
-        BranchSelector[BranchSelector]
-        ConfirmDialog[ConfirmDialog]
-        ProgressIndicator[ProgressIndicator]
-        React --> StagingArea
-        React --> CommitForm
-        React --> PushButton
-        React --> PullButton
-        React --> BranchSelector
-        React --> ConfirmDialog
-        React --> ProgressIndicator
+        subgraph "presentation"
+            StagingArea[StagingArea Component]
+            CommitForm[CommitForm Component]
+            PushPull[PushPull Buttons]
+            BranchOps[Branch Operations]
+            StagingVM[StagingViewModel]
+            CommitVM[CommitViewModel]
+            RemoteVM[RemoteOpsViewModel]
+            BranchVM[BranchOpsViewModel]
+        end
+        subgraph "application"
+            StageUC[StageFiles UseCase]
+            CommitUC[Commit UseCase]
+            PushUC[Push UseCase]
+            GitOpsService[GitOperationsService]
+            GitOpsRepoIF["GitOperationsRepository IF"]
+        end
+        subgraph "infrastructure"
+            GitOpsRepoImpl[GitOperationsDefaultRepository]
+        end
     end
 
     subgraph "Preload"
-        Bridge[contextBridge API]
-        GitAPI["git.* API"]
-        Bridge --> GitAPI
+        Bridge["contextBridge git.* API"]
     end
 
     subgraph "Main Process"
-        IPCRouter[IPC Router]
-        GitHandler[Git IPC Handler]
-        GitService[GitService]
-        SimpleGit[simple-git]
-        IPCRouter --> GitHandler
-        GitHandler --> GitService
-        GitService --> SimpleGit
+        subgraph "presentation (IPC)"
+            IPCHandler[Git IPC Handler]
+        end
+        subgraph "application (main)"
+            MainStageUC[StageFiles UseCase]
+            MainCommitUC[Commit UseCase]
+            GitWriteRepoIF["GitWriteRepository IF"]
+        end
+        subgraph "infrastructure (main)"
+            GitWriteRepoImpl[GitWriteDefaultRepository]
+            SimpleGit[simple-git]
+        end
     end
 
-    React -->|"invoke"| Bridge
-    Bridge -->|"ipcRenderer"| IPCRouter
-    IPCRouter -->|"response"| Bridge
-    Bridge -->|"result"| React
-    GitHandler -->|"webContents.send('git:progress')"| Bridge
-    Bridge -->|"onProgress"| ProgressIndicator
+    StagingArea --> StagingVM
+    CommitForm --> CommitVM
+    PushPull --> RemoteVM
+    BranchOps --> BranchVM
+    StagingVM --> StageUC
+    CommitVM --> CommitUC
+    RemoteVM --> PushUC
+    StageUC --> GitOpsRepoIF
+    CommitUC --> GitOpsRepoIF
+    PushUC --> GitOpsRepoIF
+    GitOpsRepoIF -.-> GitOpsRepoImpl
+    GitOpsRepoImpl -->|"invoke"| Bridge
+    Bridge -->|"ipcRenderer"| IPCHandler
+    IPCHandler --> MainStageUC
+    IPCHandler --> MainCommitUC
+    MainStageUC --> GitWriteRepoIF
+    MainCommitUC --> GitWriteRepoIF
+    GitWriteRepoIF -.-> GitWriteRepoImpl
+    GitWriteRepoImpl --> SimpleGit
 ```
 
-## 4.2. モジュール分割
+## 4.3. モジュール分割
 
-| モジュール名 | プロセス | 責務 | 配置場所 |
-|------------|---------|------|---------|
-| GitService | main | simple-git ラッパー。Git 操作のビジネスロジック | `src/main/services/git.ts` |
-| Git IPC Handler | main | Git 関連 IPC チャネルの登録・バリデーション | `src/main/ipc/git-handler.ts` |
-| Git 型定義 | shared | Git 操作の型定義（引数・戻り値・データモデル） | `src/types/git.ts` |
-| preload API 拡張 | preload | git.* API の contextBridge 公開 | `src/preload.ts` |
-| StagingArea | renderer | ステージング UI（変更ファイル一覧） | `src/components/git/StagingArea.tsx` |
-| CommitForm | renderer | コミットメッセージ入力フォーム | `src/components/git/CommitForm.tsx` |
-| PushButton | renderer | プッシュボタン UI | `src/components/git/PushButton.tsx` |
-| PullButton | renderer | プル/フェッチボタン UI | `src/components/git/PullButton.tsx` |
-| BranchSelector | renderer | ブランチセレクター UI | `src/components/git/BranchSelector.tsx` |
-| ConfirmDialog | renderer | 確認ダイアログ（汎用） | `src/components/ConfirmDialog.tsx` |
-| ProgressIndicator | renderer | 進捗インジケーター | `src/components/ProgressIndicator.tsx` |
+| モジュール名 | プロセス | 層 | 責務 | 配置場所 |
+|------------|---------|-----|------|---------|
+| GitWriteRepository IF | main | application | Git 書き込み操作の抽象 | `src/main/features/basic-git-operations/application/repositories/` |
+| GitWriteDefaultRepository | main | infrastructure | simple-git による実装 | `src/main/features/basic-git-operations/infrastructure/repositories/` |
+| Git Write UseCases | main | application | 1操作1クラス（stage, commit, push等） | `src/main/features/basic-git-operations/application/usecases/` |
+| Git IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src/main/features/basic-git-operations/presentation/` |
+| GitOperationsRepository IF | renderer | application | Git 操作 IPC クライアントの抽象 | `src/renderer/features/basic-git-operations/application/repositories/` |
+| GitOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/renderer/features/basic-git-operations/infrastructure/repositories/` |
+| GitOperationsService | renderer | application | 操作進捗・エラー状態管理（BehaviorSubject） | `src/renderer/features/basic-git-operations/application/services/` |
+| Git Operations UseCases | renderer | application | 1操作1クラス | `src/renderer/features/basic-git-operations/application/usecases/` |
+| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/renderer/features/basic-git-operations/presentation/` |
+| React Components | renderer | presentation | UI コンポーネント | `src/renderer/features/basic-git-operations/presentation/components/` |
+| domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/shared/domain/index.ts` |
+| IPC 型追加 | shared | - | 新規チャネル定義 | `src/shared/types/ipc.ts` |
 
 ---
 
 # 5. データモデル
 
+`src/shared/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `BranchInfo` 等はそのまま再利用する。
+
 ```typescript
-// src/types/git.ts
+// --- 基本 Git 操作 ---
 
-// --- ステージング ---
-
-interface StageArgs {
-  repoPath: string;
-  files: string[];
+/** コミット引数 */
+export interface CommitArgs {
+  worktreePath: string
+  message: string
+  amend?: boolean
 }
 
-interface StageAllArgs {
-  repoPath: string;
+/** コミット結果 */
+export interface CommitResult {
+  hash: string
+  message: string
+  author: string
+  date: string // ISO 8601
 }
 
-interface StageHunkArgs {
-  repoPath: string;
-  file: string;
-  hunkIndex: number;
+/** プッシュ引数 */
+export interface PushArgs {
+  worktreePath: string
+  remote?: string
+  branch?: string
+  setUpstream?: boolean
 }
 
-// --- コミット ---
-
-interface CommitArgs {
-  repoPath: string;
-  message: string;
-  amend?: boolean;
+/** プッシュ結果 */
+export interface PushResult {
+  remote: string
+  branch: string
+  success: boolean
+  upToDate: boolean
 }
 
-interface CommitResult {
-  hash: string;
-  message: string;
-  author: string;
-  date: string; // ISO 8601
+/** プル引数 */
+export interface PullArgs {
+  worktreePath: string
+  remote?: string
+  branch?: string
 }
 
-// --- プッシュ ---
-
-interface PushArgs {
-  repoPath: string;
-  remote?: string;
-  branch?: string;
-  setUpstream?: boolean;
-}
-
-interface PushResult {
-  remote: string;
-  branch: string;
-  success: boolean;
-  upToDate: boolean;
-}
-
-// --- プル ---
-
-interface PullArgs {
-  repoPath: string;
-  remote?: string;
-  branch?: string;
-}
-
-interface PullResult {
-  remote: string;
-  branch: string;
-  created: string[];
-  deleted: string[];
+/** プル結果 */
+export interface PullResult {
+  remote: string
+  branch: string
   summary: {
-    changes: number;
-    insertions: number;
-    deletions: number;
-  };
-  conflicts: string[];
+    changes: number
+    insertions: number
+    deletions: number
+  }
+  conflicts: string[]
 }
 
-// --- フェッチ ---
-
-interface FetchArgs {
-  repoPath: string;
-  remote?: string;
+/** フェッチ引数 */
+export interface FetchArgs {
+  worktreePath: string
+  remote?: string
 }
 
-interface FetchResult {
-  remote: string;
-  branches: string[];
-  tags: string[];
+/** フェッチ結果 */
+export interface FetchResult {
+  remote: string
 }
 
-// --- ブランチ ---
-
-interface BranchCreateArgs {
-  repoPath: string;
-  name: string;
-  startPoint?: string;
+/** ブランチ作成引数 */
+export interface BranchCreateArgs {
+  worktreePath: string
+  name: string
+  startPoint?: string
 }
 
-interface BranchCheckoutArgs {
-  repoPath: string;
-  branch: string;
+/** ブランチチェックアウト引数 */
+export interface BranchCheckoutArgs {
+  worktreePath: string
+  branch: string
 }
 
-interface BranchDeleteArgs {
-  repoPath: string;
-  branch: string;
-  remote?: boolean;
-  force?: boolean;
+/** ブランチ削除引数 */
+export interface BranchDeleteArgs {
+  worktreePath: string
+  branch: string
+  remote?: boolean
+  force?: boolean
 }
 
-interface BranchListArgs {
-  repoPath: string;
-}
-
-interface BranchInfo {
-  name: string;
-  current: boolean;
-  remote: boolean;
-  tracking?: string;
-  ahead: number;
-  behind: number;
-  lastCommitHash?: string;
-  lastCommitMessage?: string;
-}
-
-// --- 共通 ---
-
-interface FileStatus {
-  path: string;
-  status: FileChangeType;
-  staged: boolean;
-}
-
-type FileChangeType =
-  | 'added'
-  | 'modified'
-  | 'deleted'
-  | 'renamed'
-  | 'copied'
-  | 'untracked';
-
-interface GitProgressEvent {
-  operation: string;
-  phase: string;
-  progress?: number; // 0-100, undefined = indeterminate
+/** Git 進捗イベント */
+export interface GitProgressEvent {
+  operation: string
+  phase: string
+  progress?: number // 0-100, undefined = indeterminate
 }
 ```
 
@@ -291,420 +336,234 @@ interface GitProgressEvent {
 
 # 6. インターフェース定義
 
-## 6.1. GitService（メインプロセス側）
+## 6.1. メインプロセス側
+
+### GitWriteRepository（application 層）
 
 ```typescript
-// src/main/services/git.ts
-import simpleGit, { SimpleGit } from 'simple-git';
-import type { IPCResult } from '../../types/ipc';
-import type {
-  StageArgs,
-  CommitArgs,
-  CommitResult,
-  PushArgs,
-  PushResult,
-  PullArgs,
-  PullResult,
-  FetchArgs,
-  FetchResult,
-  BranchCreateArgs,
-  BranchCheckoutArgs,
-  BranchDeleteArgs,
-  BranchInfo,
-  FileStatus,
-} from '../../types/git';
+// src/main/features/basic-git-operations/application/repositories/git-write-repository.ts
+export interface GitWriteRepository {
+  stage(worktreePath: string, files: string[]): Promise<void>
+  stageAll(worktreePath: string): Promise<void>
+  unstage(worktreePath: string, files: string[]): Promise<void>
+  unstageAll(worktreePath: string): Promise<void>
+  commit(args: CommitArgs): Promise<CommitResult>
+  push(args: PushArgs): Promise<PushResult>
+  pull(args: PullArgs): Promise<PullResult>
+  fetch(args: FetchArgs): Promise<FetchResult>
+  branchCreate(args: BranchCreateArgs): Promise<void>
+  branchCheckout(args: BranchCheckoutArgs): Promise<void>
+  branchDelete(args: BranchDeleteArgs): Promise<void>
+}
+```
 
-export class GitService {
-  private getGit(repoPath: string): SimpleGit {
-    return simpleGit(repoPath);
-  }
+### UseCase 例（application 層）
 
-  async stage(args: StageArgs): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      await git.add(args.files);
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'STAGE_FAILED');
-    }
-  }
+```typescript
+// src/main/features/basic-git-operations/application/usecases/stage-files-usecase.ts
+export class StageFilesUseCase implements ConsumerUseCase<{ worktreePath: string; files: string[] }> {
+  constructor(private readonly repository: GitWriteRepository) {}
 
-  async stageAll(repoPath: string): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(repoPath);
-      await git.add('.');
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'STAGE_ALL_FAILED');
-    }
-  }
-
-  async unstage(args: StageArgs): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      await git.reset(['HEAD', '--', ...args.files]);
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'UNSTAGE_FAILED');
-    }
-  }
-
-  async unstageAll(repoPath: string): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(repoPath);
-      await git.reset(['HEAD']);
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'UNSTAGE_ALL_FAILED');
-    }
-  }
-
-  async commit(args: CommitArgs): Promise<IPCResult<CommitResult>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      const options = args.amend ? ['--amend'] : [];
-      const result = await git.commit(args.message, undefined, Object.fromEntries(options.map(o => [o, null])));
-      return {
-        success: true,
-        data: {
-          hash: result.commit,
-          message: args.message,
-          author: result.author?.name ?? '',
-          date: new Date().toISOString(),
-        },
-      };
-    } catch (error) {
-      return this.handleError(error, 'COMMIT_FAILED');
-    }
-  }
-
-  async push(args: PushArgs): Promise<IPCResult<PushResult>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      const pushOptions: string[] = [];
-      if (args.setUpstream) {
-        pushOptions.push('-u');
-      }
-      const remote = args.remote ?? 'origin';
-      const branch = args.branch;
-
-      await git.push(remote, branch, pushOptions);
-      return {
-        success: true,
-        data: {
-          remote,
-          branch: branch ?? '',
-          success: true,
-          upToDate: false,
-        },
-      };
-    } catch (error) {
-      // upstream 未設定エラーの判別
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('no upstream') || errorMessage.includes('--set-upstream')) {
-        return {
-          success: false,
-          error: {
-            code: 'NO_UPSTREAM',
-            message: 'upstream が設定されていません。--set-upstream でプッシュしてください。',
-            detail: errorMessage,
-          },
-        };
-      }
-      if (errorMessage.includes('rejected')) {
-        return {
-          success: false,
-          error: {
-            code: 'PUSH_REJECTED',
-            message: 'プッシュがリジェクトされました。先にプルしてください。',
-            detail: errorMessage,
-          },
-        };
-      }
-      return this.handleError(error, 'PUSH_FAILED');
-    }
-  }
-
-  async pull(args: PullArgs): Promise<IPCResult<PullResult>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      const remote = args.remote ?? 'origin';
-      const branch = args.branch;
-      const result = await git.pull(remote, branch);
-      return {
-        success: true,
-        data: {
-          remote,
-          branch: branch ?? '',
-          created: result.created,
-          deleted: result.deleted,
-          summary: {
-            changes: result.summary.changes,
-            insertions: result.summary.insertions,
-            deletions: result.summary.deletions,
-          },
-          conflicts: [],
-        },
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : String(error);
-      if (errorMessage.includes('CONFLICT') || errorMessage.includes('conflict')) {
-        return {
-          success: false,
-          error: {
-            code: 'PULL_CONFLICT',
-            message: 'プル中にコンフリクトが発生しました。',
-            detail: errorMessage,
-          },
-        };
-      }
-      return this.handleError(error, 'PULL_FAILED');
-    }
-  }
-
-  async fetch(args: FetchArgs): Promise<IPCResult<FetchResult>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      const remote = args.remote;
-      if (remote) {
-        await git.fetch(remote);
-      } else {
-        await git.fetch(['--all']);
-      }
-      return {
-        success: true,
-        data: {
-          remote: remote ?? 'all',
-          branches: [],
-          tags: [],
-        },
-      };
-    } catch (error) {
-      return this.handleError(error, 'FETCH_FAILED');
-    }
-  }
-
-  async branchCreate(args: BranchCreateArgs): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      if (args.startPoint) {
-        await git.checkoutBranch(args.name, args.startPoint);
-      } else {
-        await git.checkoutLocalBranch(args.name);
-      }
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'BRANCH_CREATE_FAILED');
-    }
-  }
-
-  async branchCheckout(args: BranchCheckoutArgs): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      await git.checkout(args.branch);
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'BRANCH_CHECKOUT_FAILED');
-    }
-  }
-
-  async branchDelete(args: BranchDeleteArgs): Promise<IPCResult<void>> {
-    try {
-      const git = this.getGit(args.repoPath);
-      if (args.remote) {
-        // リモートブランチ削除: git push origin --delete <branch>
-        await git.push('origin', undefined, ['--delete', args.branch]);
-      } else if (args.force) {
-        await git.branch(['-D', args.branch]);
-      } else {
-        await git.deleteLocalBranch(args.branch);
-      }
-      return { success: true, data: undefined };
-    } catch (error) {
-      return this.handleError(error, 'BRANCH_DELETE_FAILED');
-    }
-  }
-
-  async branchList(repoPath: string): Promise<IPCResult<BranchInfo[]>> {
-    try {
-      const git = this.getGit(repoPath);
-      const result = await git.branch(['-a', '-v']);
-      const branches: BranchInfo[] = Object.entries(result.branches).map(
-        ([name, info]) => ({
-          name,
-          current: info.current,
-          remote: name.startsWith('remotes/'),
-          tracking: undefined,
-          ahead: 0,
-          behind: 0,
-          lastCommitHash: info.commit,
-          lastCommitMessage: info.label,
-        }),
-      );
-      return { success: true, data: branches };
-    } catch (error) {
-      return this.handleError(error, 'BRANCH_LIST_FAILED');
-    }
-  }
-
-  private handleError(error: unknown, code: string): IPCResult<never> {
-    const message = error instanceof Error ? error.message : String(error);
-    return {
-      success: false,
-      error: {
-        code,
-        message,
-        detail: error instanceof Error ? error.stack : undefined,
-      },
-    };
+  async invoke(input: { worktreePath: string; files: string[] }): Promise<void> {
+    await this.repository.stage(input.worktreePath, input.files)
   }
 }
 ```
 
-## 6.2. Git IPC Handler（メインプロセス側）
+### IPC Handler（presentation 層）
 
 ```typescript
-// src/main/ipc/git-handler.ts
-import { ipcMain, BrowserWindow } from 'electron';
-import type { IPCResult } from '../../types/ipc';
-import type { GitService } from '../services/git';
-
-export function registerGitIPCHandlers(gitService: GitService): void {
-  // ステージング
-  ipcMain.handle('git:stage', async (_event, args) => {
-    return gitService.stage(args);
-  });
-
-  ipcMain.handle('git:stage-all', async (_event, args) => {
-    return gitService.stageAll(args.repoPath);
-  });
-
-  ipcMain.handle('git:unstage', async (_event, args) => {
-    return gitService.unstage(args);
-  });
-
-  ipcMain.handle('git:unstage-all', async (_event, args) => {
-    return gitService.unstageAll(args.repoPath);
-  });
-
-  ipcMain.handle('git:stage-hunk', async (_event, args) => {
-    // ハンク単位ステージングは simple-git の raw コマンドで実装
-    // 実装時に詳細を決定
-    return gitService.stage(args);
-  });
-
-  ipcMain.handle('git:unstage-hunk', async (_event, args) => {
-    return gitService.unstage(args);
-  });
-
-  // コミット
-  ipcMain.handle('git:commit', async (_event, args) => {
-    return gitService.commit(args);
-  });
-
-  // プッシュ
-  ipcMain.handle('git:push', async (_event, args) => {
-    return gitService.push(args);
-  });
-
-  // プル/フェッチ
-  ipcMain.handle('git:pull', async (_event, args) => {
-    return gitService.pull(args);
-  });
-
-  ipcMain.handle('git:fetch', async (_event, args) => {
-    return gitService.fetch(args);
-  });
-
-  // ブランチ操作
-  ipcMain.handle('git:branch-create', async (_event, args) => {
-    return gitService.branchCreate(args);
-  });
-
-  ipcMain.handle('git:branch-checkout', async (_event, args) => {
-    return gitService.branchCheckout(args);
-  });
-
-  ipcMain.handle('git:branch-delete', async (_event, args) => {
-    return gitService.branchDelete(args);
-  });
-
-  ipcMain.handle('git:branch-list', async (_event, args) => {
-    return gitService.branchList(args.repoPath);
-  });
+// src/main/features/basic-git-operations/presentation/ipc-handlers.ts
+export function registerGitWriteIPCHandlers(
+  stageFilesUseCase: StageFilesMainUseCase,
+  unstageFilesUseCase: UnstageFilesMainUseCase,
+  stageAllUseCase: StageAllMainUseCase,
+  unstageAllUseCase: UnstageAllMainUseCase,
+  commitUseCase: CommitMainUseCase,
+  pushUseCase: PushMainUseCase,
+  pullUseCase: PullMainUseCase,
+  fetchUseCase: FetchMainUseCase,
+  createBranchUseCase: CreateBranchMainUseCase,
+  checkoutBranchUseCase: CheckoutBranchMainUseCase,
+  deleteBranchUseCase: DeleteBranchMainUseCase,
+): () => void {
+  ipcMain.handle('git:stage', (_event, args) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stageFilesUseCase.invoke(args)
+    }),
+  )
+  // ... 他のチャネルも同様
+  return () => { /* removeHandler */ }
 }
 ```
 
-## 6.3. Preload API 拡張（contextBridge 経由）
+## 6.2. レンダラー側
+
+### GitOperationsRepository（application 層）
 
 ```typescript
-// src/preload.ts に追加する git.* API
-// 既存の electronAPI に git プロパティを追加
+// src/renderer/features/basic-git-operations/application/repositories/git-operations-repository.ts
+export interface GitOperationsRepository {
+  stage(worktreePath: string, files: string[]): Promise<void>
+  stageAll(worktreePath: string): Promise<void>
+  unstage(worktreePath: string, files: string[]): Promise<void>
+  unstageAll(worktreePath: string): Promise<void>
+  commit(args: CommitArgs): Promise<CommitResult>
+  push(args: PushArgs): Promise<PushResult>
+  pull(args: PullArgs): Promise<PullResult>
+  fetch(args: FetchArgs): Promise<FetchResult>
+  branchCreate(args: BranchCreateArgs): Promise<void>
+  branchCheckout(args: BranchCheckoutArgs): Promise<void>
+  branchDelete(args: BranchDeleteArgs): Promise<void>
+}
+```
 
-git: {
-  stage: (args: StageArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stage', args),
-  stageAll: (args: StageAllArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stage-all', args),
-  unstage: (args: StageArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:unstage', args),
-  unstageAll: (args: StageAllArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:unstage-all', args),
-  stageHunk: (args: StageHunkArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stage-hunk', args),
-  unstageHunk: (args: StageHunkArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:unstage-hunk', args),
-  commit: (args: CommitArgs): Promise<IPCResult<CommitResult>> =>
-    ipcRenderer.invoke('git:commit', args),
-  push: (args: PushArgs): Promise<IPCResult<PushResult>> =>
-    ipcRenderer.invoke('git:push', args),
-  pull: (args: PullArgs): Promise<IPCResult<PullResult>> =>
-    ipcRenderer.invoke('git:pull', args),
-  fetch: (args: FetchArgs): Promise<IPCResult<FetchResult>> =>
-    ipcRenderer.invoke('git:fetch', args),
-  branchCreate: (args: BranchCreateArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:branch-create', args),
-  branchCheckout: (args: BranchCheckoutArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:branch-checkout', args),
-  branchDelete: (args: BranchDeleteArgs): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:branch-delete', args),
-  branchList: (args: BranchListArgs): Promise<IPCResult<BranchInfo[]>> =>
-    ipcRenderer.invoke('git:branch-list', args),
-  onProgress: (callback: (event: GitProgressEvent) => void): void => {
-    ipcRenderer.on('git:progress', (_event, data) => {
-      callback(data);
-    });
+### GitOperationsService（application 層 — ステートフル）
+
+```typescript
+// src/renderer/features/basic-git-operations/application/services/git-operations-service-interface.ts
+export interface GitOperationsService extends BaseService {
+  readonly loading$: Observable<boolean>
+  readonly lastError$: Observable<IPCError | null>
+  setLoading(loading: boolean): void
+  setError(error: IPCError | null): void
+  clearError(): void
+}
+```
+
+### ViewModel 例
+
+```typescript
+// src/renderer/features/basic-git-operations/presentation/staging-viewmodel.ts
+export interface StagingViewModel {
+  readonly loading$: Observable<boolean>
+  stageFiles(worktreePath: string, files: string[]): void
+  unstageFiles(worktreePath: string, files: string[]): void
+  stageAll(worktreePath: string): void
+  unstageAll(worktreePath: string): void
+}
+```
+
+### Hook ラッパー例
+
+```typescript
+// src/renderer/features/basic-git-operations/presentation/use-staging-viewmodel.ts
+export function useStagingViewModel() {
+  const vm = useResolve(StagingViewModelToken)
+  const loading = useObservable(vm.loading$, false)
+
+  return {
+    loading,
+    stageFiles: useCallback(
+      (worktreePath: string, files: string[]) => vm.stageFiles(worktreePath, files),
+      [vm],
+    ),
+    unstageFiles: useCallback(
+      (worktreePath: string, files: string[]) => vm.unstageFiles(worktreePath, files),
+      [vm],
+    ),
+    stageAll: useCallback((worktreePath: string) => vm.stageAll(worktreePath), [vm]),
+    unstageAll: useCallback((worktreePath: string) => vm.unstageAll(worktreePath), [vm]),
+  }
+}
+```
+
+## 6.3. DI 構成
+
+### メインプロセス側 di-tokens.ts
+
+```typescript
+// src/main/features/basic-git-operations/di-tokens.ts
+import { createToken } from '@shared/lib/di'
+
+export const GitWriteRepositoryToken = createToken<GitWriteRepository>('GitWriteRepository')
+
+// UseCase 型エイリアス
+export type StageFilesMainUseCase = ConsumerUseCase<{ worktreePath: string; files: string[] }>
+export const StageFilesMainUseCaseToken = createToken<StageFilesMainUseCase>('StageFilesMainUseCase')
+// ... 他の UseCase Token も同様
+```
+
+### メインプロセス側 di-config.ts
+
+```typescript
+// src/main/features/basic-git-operations/di-config.ts
+export const basicGitOperationsMainConfig: VContainerConfig = {
+  register(container) {
+    container.registerSingleton(GitWriteRepositoryToken, GitWriteDefaultRepository)
+    container.registerSingleton(StageFilesMainUseCaseToken, StageFilesUseCase, [GitWriteRepositoryToken])
+    container.registerSingleton(CommitMainUseCaseToken, CommitUseCase, [GitWriteRepositoryToken])
+    // ... 他の UseCase も同様
   },
-},
+  setUp: async (container) => {
+    const unregister = registerGitWriteIPCHandlers(
+      container.resolve(StageFilesMainUseCaseToken),
+      container.resolve(UnstageFilesMainUseCaseToken),
+      // ... 他の UseCase
+    )
+    return () => { unregister() }
+  },
+}
 ```
 
-## 6.4. レンダラー側の型定義拡張
+### レンダラー側 di-config.ts
 
 ```typescript
-// src/types/electron.d.ts に追加
-// 既存の ElectronAPI interface に git プロパティを追加
+// src/renderer/features/basic-git-operations/di-config.ts
+export const basicGitOperationsConfig: VContainerConfig = {
+  register(container) {
+    // Repository
+    container.registerSingleton(GitOperationsRepositoryToken, GitOperationsDefaultRepository)
 
-interface ElectronAPI {
-  // ... 既存の repository, settings, onError ...
+    // Service
+    container.registerSingleton(GitOperationsServiceToken, GitOperationsDefaultService)
 
-  git: {
-    stage(args: StageArgs): Promise<IPCResult<void>>;
-    stageAll(args: StageAllArgs): Promise<IPCResult<void>>;
-    unstage(args: StageArgs): Promise<IPCResult<void>>;
-    unstageAll(args: StageAllArgs): Promise<IPCResult<void>>;
-    stageHunk(args: StageHunkArgs): Promise<IPCResult<void>>;
-    unstageHunk(args: StageHunkArgs): Promise<IPCResult<void>>;
-    commit(args: CommitArgs): Promise<IPCResult<CommitResult>>;
-    push(args: PushArgs): Promise<IPCResult<PushResult>>;
-    pull(args: PullArgs): Promise<IPCResult<PullResult>>;
-    fetch(args: FetchArgs): Promise<IPCResult<FetchResult>>;
-    branchCreate(args: BranchCreateArgs): Promise<IPCResult<void>>;
-    branchCheckout(args: BranchCheckoutArgs): Promise<IPCResult<void>>;
-    branchDelete(args: BranchDeleteArgs): Promise<IPCResult<void>>;
-    branchList(args: BranchListArgs): Promise<IPCResult<BranchInfo[]>>;
-    onProgress(callback: (event: GitProgressEvent) => void): void;
-  };
+    // UseCases
+    container.registerSingleton(StageFilesUseCaseToken, StageFilesUseCase, [
+      GitOperationsRepositoryToken,
+      GitOperationsServiceToken,
+    ])
+    // ... 他の UseCase も同様
+
+    // ViewModels (transient)
+    container.registerTransient(StagingViewModelToken, StagingDefaultViewModel, [
+      StageFilesUseCaseToken,
+      UnstageFilesUseCaseToken,
+      StageAllUseCaseToken,
+      UnstageAllUseCaseToken,
+      GitOperationsServiceToken,
+    ])
+    container.registerTransient(CommitViewModelToken, CommitDefaultViewModel, [
+      CommitUseCaseToken,
+      GitOperationsServiceToken,
+    ])
+    // ... 他の ViewModel も同様
+  },
+  setUp: async (container) => {
+    const service = container.resolve(GitOperationsServiceToken)
+    service.setUp()
+    return () => { service.tearDown() }
+  },
 }
+```
+
+### DI 統合エントリーポイントへの追加
+
+```typescript
+// src/main/di/configs.ts に追加
+import { basicGitOperationsMainConfig } from '../features/basic-git-operations/di-config'
+export const mainConfigs = [
+  // ... 既存 config
+  basicGitOperationsMainConfig,
+]
+
+// src/renderer/di/configs.ts に追加
+import { basicGitOperationsConfig } from '../features/basic-git-operations/di-config'
+export const rendererConfigs = [
+  // ... 既存 config
+  basicGitOperationsConfig,
+]
 ```
 
 ---
@@ -713,10 +572,10 @@ interface ElectronAPI {
 
 | 要件 | 実現方針 |
 |------|----------|
-| Git 操作応答3秒以内 (NFR_301) | simple-git の非同期 API を使用。重い操作は進捗インジケーターで体感速度を向上 |
-| リモート操作の進捗フィードバック (NFR_302) | simple-git の progress イベントを `git:progress` IPC チャネルでレンダラーに転送。ProgressIndicator コンポーネントで表示 |
-| 不可逆操作の安全性 (DC_301, B-002) | ConfirmDialog コンポーネントで確認。destructive バリアントで視覚的に危険性を示す。amend/ブランチ削除で使用 |
-| メインプロセス実行 (DC_302, A-001) | GitService をメインプロセスにのみ配置。レンダラーからは IPC 経由でのみアクセス |
+| Git 操作応答3秒以内 (NFR_301) | simple-git の非同期 API を使用。各操作を UseCase に分離して軽量に保つ |
+| リモート操作の進捗フィードバック (NFR_302) | simple-git の progress イベントを `git:progress` IPC イベントでレンダラーに転送 |
+| 不可逆操作の安全性 (DC_301, B-002) | Shadcn/ui の AlertDialog をベースにした ConfirmDialog。destructive バリアントで視覚的に危険性を示す |
+| メインプロセス実行 (DC_302, A-001) | GitWriteRepository をメインプロセスの infrastructure 層にのみ配置。レンダラーからは IPC 経由でのみアクセス |
 
 ---
 
@@ -724,20 +583,12 @@ interface ElectronAPI {
 
 | テストレベル | 対象 | カバレッジ目標 |
 |------------|------|------------|
-| ユニットテスト | GitService（simple-git をモック） | ≥ 80% |
-| ユニットテスト | Git IPC Handler（バリデーション、ルーティング） | ≥ 80% |
-| ユニットテスト | React コンポーネント（StagingArea, CommitForm, BranchSelector 等） | ≥ 60% |
+| ユニットテスト | GitWriteDefaultRepository（simple-git をモック） | ≥ 80% |
+| ユニットテスト | メインプロセス UseCases | ≥ 80% |
+| ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
+| ユニットテスト | レンダラー UseCases + ViewModel | ≥ 60% |
 | 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
-| 結合テスト | GitService と実際の Git リポジトリ（テスト用リポジトリ） | 主要操作 |
-| E2Eテスト | ステージ → コミット → プッシュの一連のフロー | 主要ユースケース |
-| E2Eテスト | ブランチ作成 → 切り替え → 削除の一連のフロー | 主要ユースケース |
-
-### テスト時のモック方針
-
-- **GitService のユニットテスト**: simple-git をモックし、各メソッドの正常系・異常系をテスト
-- **IPC Handler のユニットテスト**: GitService をモックし、IPC のルーティング・バリデーションをテスト
-- **React コンポーネントのテスト**: `window.electronAPI.git.*` をモックし、UI の振る舞いをテスト
-- **結合テスト**: テスト用の一時 Git リポジトリを作成し、実際の Git 操作をテスト
+| 結合テスト | GitWriteDefaultRepository と実際の Git リポジトリ | 主要操作 |
 
 ---
 
@@ -747,31 +598,48 @@ interface ElectronAPI {
 
 | 決定事項 | 選択肢 | 決定内容 | 理由 |
 |----------|--------|----------|------|
-| Git ライブラリ | simple-git / nodegit / isomorphic-git / child_process 直接 | simple-git | CONSTITUTION で指定。Promise ベース、型定義付き、メンテナンス活発。nodegit はネイティブバインディングで Electron との互換性問題あり（原則 A-002） |
-| GitService のインスタンス管理 | シングルトン / リポジトリごとにインスタンス / メソッドごとにインスタンス | メソッドごとに simple-git インスタンスを生成 | リポジトリパスが操作ごとに異なる可能性があるため。simple-git のインスタンス生成は軽量 |
-| ハンク単位ステージングの実装 | simple-git の raw コマンド / git apply --cached | simple-git の raw コマンド（`git add -p` 相当の非対話的実行） | simple-git に直接的なハンク操作 API がないため、raw コマンドでパッチを適用。実装時に詳細を決定 |
-| 確認ダイアログの実装 | Electron のネイティブダイアログ / React のカスタムダイアログ | React のカスタムダイアログ（ConfirmDialog） | UI の一貫性。Shadcn/ui の AlertDialog をベースにカスタマイズ。操作内容に応じた詳細な情報表示が可能 |
-| エラーコードの体系 | フラットなコード / ドメインプレフィックス付き | ドメインプレフィックス付き（STAGE_FAILED, COMMIT_FAILED 等） | IPC チャネルの名前空間方式（`git:*`）に合わせた管理性 |
-| Git コンポーネントの配置 | components/ 直下 / components/git/ サブディレクトリ | components/git/ サブディレクトリ | Git 操作コンポーネントをグルーピング。他の機能領域との分離が明確 |
+| Git ライブラリ | simple-git / nodegit / child_process | simple-git | CONSTITUTION A-002 で推奨。Promise ベース、型定義付き |
+| Repository の命名 | GitService / GitWriteRepository | GitWriteRepository | ステートレスな外部 API ラッパーは「Repository」と命名する（CLAUDE.md 命名ルール） |
+| 既存 read API との統合 | 別 Repository / 同一 Repository | 別 Repository（GitWriteRepository） | repository-viewer の GitReadRepository と分離。feature ごとに独立した Repository を持つ |
+| ViewModel の分割 | 単一 ViewModel / 機能別分割 | 機能別分割（Staging, Commit, RemoteOps, BranchOps） | 各ドメインの関心事を分離。コンポーネントの再利用性向上 |
+| 確認ダイアログ | Electron ネイティブ / React カスタム | React カスタム（Shadcn/ui AlertDialog） | UI の一貫性。操作内容に応じた詳細な情報表示が可能 |
+| エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（STAGE_FAILED, NO_UPSTREAM 等） | IPC チャネルの名前空間方式に合わせた管理性 |
 
-## 9.2. 未解決の課題
+## 9.2. 解決済みの課題（Clarify で決定）
+
+| 課題 | 決定内容 | 根拠 |
+|------|----------|------|
+| worktreePath の定義 | ワークツリーの絶対パスを指す。ワークツリー選択時に切り替わる | B-001: Worktree-First UX |
+| ハンク単位ステージングのスコープ | Phase 1 ではスキップ。ファイル単位のみ実装し、Phase 2 で対応 | FR_301_03/04 は優先度「推奨」 |
+| チェックアウト時の未コミット変更 | キャンセルのみ提供。stash・強制チェックアウトは提供しない | stash は Advanced Git Operations のスコープ |
+| 自動リフレッシュの仕組み | 操作完了時に明示的リフレッシュ。IPC レスポンス受信後にレンダラー側で既存 git:status / git:branches を呼び出す | シンプルで予測可能な方式 |
+
+## 9.3. 未解決の課題
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
-| ハンク単位ステージングの具体的な実装方法 | 中 | simple-git の raw コマンドで diff を解析し、パッチを適用する方式を実装時に検証。必要に応じて diff2html 等のライブラリを追加 |
-| simple-git の progress イベントの粒度 | 低 | リモート操作（push/pull/fetch）での進捗表示。simple-git の progress コールバックの実際の呼び出し頻度を実装時に確認 |
-| コンフリクト発生時の UI フロー | 中 | 本機能では通知のみ。コンフリクト解決 UI は FG-4（高度な Git 操作）のスコープ |
-| 大規模リポジトリでのパフォーマンス | 中 | ファイル数が多い場合のステージング UI のレンダリング性能。仮想スクロール等の対策を実装時に検討 |
+| simple-git の progress イベントの粒度 | 低 | リモート操作での進捗表示。実装時に確認 |
+| コンフリクト発生時の UI フロー | 中 | 本機能では通知のみ。解決 UI は Advanced Git Operations |
+| 大規模リポジトリでのパフォーマンス | 中 | ファイル数が多い場合の仮想スクロール等は実装時に検討 |
 
 ---
 
 # 10. 変更履歴
 
-## v1.0
+## v2.0 (2026-04-02)
+
+**変更内容:**
+
+- Clean Architecture 4層構成に全面リファクタリング
+- DI パターン（VContainerConfig + Token + deps）を適用
+- ViewModel + Hook パターンを適用
+- `repoPath` → `worktreePath` に統一（B-001 準拠）
+- `GitService` → `GitWriteRepository`（命名ルール準拠）
+- Phase 1/Phase 2 スコープ分割を反映
+- Clarify の決定事項を統合
+
+## v1.0 (2026-03-25)
 
 **変更内容:**
 
 - 初版作成
-- GitService、IPC ハンドラー、Preload API 拡張、React コンポーネントの設計を定義
-- simple-git の統合方針を決定
-- B-002 準拠の確認ダイアログ設計を含む
