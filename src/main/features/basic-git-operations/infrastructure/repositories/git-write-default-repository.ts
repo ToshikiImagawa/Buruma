@@ -27,16 +27,16 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
 
   async unstage(worktreePath: string, files: string[]): Promise<void> {
     const git = simpleGit(worktreePath)
-    await git.raw(['reset', 'HEAD', '--', ...files])
+    await git.raw(['reset', '--', ...files])
   }
 
   async unstageAll(worktreePath: string): Promise<void> {
     const git = simpleGit(worktreePath)
-    await git.raw(['reset', 'HEAD'])
+    await git.raw(['reset'])
   }
 
   async commit(args: CommitArgs): Promise<CommitResult> {
-    const git = simpleGit(worktreePath(args))
+    const git = simpleGit(args.worktreePath)
     const result = await git.commit(args.message, undefined, args.amend ? { '--amend': null } : undefined)
 
     // コミット情報を取得
@@ -52,7 +52,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async push(args: PushArgs): Promise<PushResult> {
-    const git = simpleGit(worktreePath(args))
+    const git = simpleGit(args.worktreePath)
     const remote = args.remote ?? 'origin'
 
     try {
@@ -63,6 +63,10 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
       pushArgs.push(remote)
       if (args.branch) {
         pushArgs.push(args.branch)
+      } else if (args.setUpstream) {
+        // setUpstream 時はブランチ名を明示的に取得して渡す
+        const currentBranch = (await git.raw(['rev-parse', '--abbrev-ref', 'HEAD'])).trim()
+        pushArgs.push(currentBranch)
       }
       const raw = await git.raw(pushArgs)
 
@@ -85,7 +89,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async pull(args: PullArgs): Promise<PullResult> {
-    const git = simpleGit(worktreePath(args))
+    const git = simpleGit(args.worktreePath)
     const remote = args.remote ?? 'origin'
 
     try {
@@ -110,7 +114,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async fetch(args: FetchArgs): Promise<FetchResult> {
-    const git = simpleGit(worktreePath(args))
+    const git = simpleGit(args.worktreePath)
     const remote = args.remote ?? '--all'
     if (args.remote) {
       await git.fetch(args.remote)
@@ -143,10 +147,6 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
       await git.raw(['branch', flag, args.branch])
     }
   }
-}
-
-function worktreePath(args: { worktreePath: string }): string {
-  return args.worktreePath
 }
 
 export class GitOperationError extends Error {
