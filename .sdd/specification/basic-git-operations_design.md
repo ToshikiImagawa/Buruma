@@ -2,11 +2,11 @@
 id: "design-basic-git-operations"
 title: "基本 Git 操作"
 type: "design"
-status: "draft"
+status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-02"
+updated: "2026-04-04"
 depends-on: ["spec-basic-git-operations"]
 tags: ["git", "staging", "commit", "push", "pull", "branch", "simple-git"]
 category: "git-operations"
@@ -616,6 +616,9 @@ export const rendererConfigs = [
 | ViewModel の分割 | 単一 ViewModel / 機能別分割 | 機能別分割（Staging, Commit, RemoteOps, BranchOps） | 各ドメインの関心事を分離。コンポーネントの再利用性向上 |
 | 確認ダイアログ | Electron ネイティブ / React カスタム | React カスタム（Shadcn/ui AlertDialog） | UI の一貫性。操作内容に応じた詳細な情報表示が可能 |
 | エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（STAGE_FAILED, NO_UPSTREAM 等） | IPC チャネルの名前空間方式に合わせた管理性 |
+| ConsumerUseCase の戻り値 | `void` / `Promise<void>` | `void` | 既存パターン（worktree-management）に準拠。内部で Promise チェーンを処理する |
+| IPCResult ナローイング | `!result.success` / `result.success === false` | `result.success === false` で分岐 | TypeScript の型ナローイングが正しく動作するパターン |
+| GitOperationError の設計 | 汎用 Error / カスタムエラー | メインプロセス側に `code` 付きカスタムエラーを定義 | IPC Handler で `ipcFailure(error.code, error.message)` にマッピングし、レンダラー側でエラーコード別の処理を可能にする |
 
 ## 9.2. 解決済みの課題（Clarify で決定）
 
