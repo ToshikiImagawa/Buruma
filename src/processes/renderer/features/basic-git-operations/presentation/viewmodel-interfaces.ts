@@ -28,6 +28,7 @@ export interface RemoteOpsViewModel {
 
 export interface BranchOpsViewModel {
   readonly loading$: Observable<boolean>
+  readonly lastError$: Observable<IPCError | null>
   createBranch(worktreePath: string, name: string, startPoint?: string): void
   checkoutBranch(worktreePath: string, branch: string): void
   deleteBranch(worktreePath: string, branch: string, remote?: boolean, force?: boolean): void

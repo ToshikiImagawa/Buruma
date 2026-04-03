@@ -1,6 +1,8 @@
+import { useState } from 'react'
 import type { BranchInfo } from '@domain'
 import { Button } from '@renderer/components/ui/button'
-import { ArrowDown, ArrowUp, Loader2, RefreshCw } from 'lucide-react'
+import { Input } from '@renderer/components/ui/input'
+import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { useRemoteOpsViewModel } from '../use-remote-ops-viewmodel'
 
 interface PushPullButtonsProps {
@@ -11,28 +13,35 @@ interface PushPullButtonsProps {
 
 export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: PushPullButtonsProps) {
   const { loading, lastError, push, pull, fetch } = useRemoteOpsViewModel()
+  const [showAdvanced, setShowAdvanced] = useState(false)
+  const [customRemote, setCustomRemote] = useState('')
+  const [customBranch, setCustomBranch] = useState('')
+
+  const targetRemote = customRemote || undefined
+  const targetBranch = customBranch || undefined
 
   const handlePush = () => {
-    if (!currentBranch?.upstream) {
-      push(worktreePath, undefined, undefined, true)
+    if (!currentBranch?.upstream && !customRemote) {
+      push(worktreePath, targetRemote, targetBranch, true)
     } else {
-      push(worktreePath)
+      push(worktreePath, targetRemote, targetBranch)
     }
     onRefresh()
   }
 
   const handlePull = () => {
-    pull(worktreePath)
+    pull(worktreePath, targetRemote, targetBranch)
     onRefresh()
   }
 
   const handleFetch = () => {
-    fetch(worktreePath)
+    fetch(worktreePath, targetRemote)
     onRefresh()
   }
 
   const ahead = currentBranch?.ahead ?? 0
   const behind = currentBranch?.behind ?? 0
+  const upstreamRemote = currentBranch?.upstream?.split('/')[0]
 
   return (
     <div className="flex flex-col gap-2">
@@ -58,7 +67,34 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
-      {!currentBranch?.upstream && (
+      {/* リモート・ブランチ選択（展開式） */}
+      <button
+        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+        onClick={() => setShowAdvanced(!showAdvanced)}
+      >
+        {showAdvanced ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+        リモート設定
+      </button>
+      {showAdvanced && (
+        <div className="flex items-center gap-1">
+          <Input
+            className="h-6 flex-1 text-xs"
+            placeholder={upstreamRemote ?? 'origin'}
+            value={customRemote}
+            onChange={(e) => setCustomRemote(e.target.value)}
+            disabled={loading}
+          />
+          <span className="text-xs text-muted-foreground">/</span>
+          <Input
+            className="h-6 flex-1 text-xs"
+            placeholder={currentBranch?.name ?? 'branch'}
+            value={customBranch}
+            onChange={(e) => setCustomBranch(e.target.value)}
+            disabled={loading}
+          />
+        </div>
+      )}
+      {!currentBranch?.upstream && !customRemote && (
         <p className="text-xs text-muted-foreground">upstream 未設定 — Push 時に自動設定されます</p>
       )}
       {lastError && (

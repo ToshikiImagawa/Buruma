@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { BranchInfo } from '@domain'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@renderer/components/ui/select'
 import { GitBranch, Plus, Trash2 } from 'lucide-react'
 import { useBranchOpsViewModel } from '../use-branch-ops-viewmodel'
 
@@ -21,18 +22,29 @@ export function BranchOperations({
   hasDirtyFiles,
   onRefresh,
 }: BranchOperationsProps) {
-  const { loading, createBranch, checkoutBranch, deleteBranch } = useBranchOpsViewModel()
+  const { loading, lastError, createBranch, checkoutBranch, deleteBranch } = useBranchOpsViewModel()
   const [showCreate, setShowCreate] = useState(false)
   const [newBranchName, setNewBranchName] = useState('')
+  const [startPoint, setStartPoint] = useState<string>('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
+
+  // マージ未済エラー検出時に警告を表示
+  useEffect(() => {
+    if (lastError?.code === 'BRANCH_NOT_MERGED' && deleteTarget) {
+      setShowNotMergedWarning(deleteTarget)
+      setDeleteTarget(null)
+    }
+  }, [lastError, deleteTarget])
 
   const handleCreate = useCallback(() => {
     if (!newBranchName.trim()) return
-    createBranch(worktreePath, newBranchName.trim())
+    createBranch(worktreePath, newBranchName.trim(), startPoint || undefined)
     setNewBranchName('')
+    setStartPoint('')
     setShowCreate(false)
     onRefresh()
-  }, [worktreePath, newBranchName, createBranch, onRefresh])
+  }, [worktreePath, newBranchName, startPoint, createBranch, onRefresh])
 
   const handleCheckout = useCallback(
     (branch: string) => {
@@ -48,6 +60,7 @@ export function BranchOperations({
     (branch: string, force: boolean) => {
       deleteBranch(worktreePath, branch, false, force)
       setDeleteTarget(null)
+      setShowNotMergedWarning(null)
       onRefresh()
     },
     [worktreePath, deleteBranch, onRefresh],
@@ -65,7 +78,7 @@ export function BranchOperations({
       </div>
 
       {showCreate && (
-        <div className="flex items-center gap-1">
+        <div className="flex flex-col gap-1">
           <Input
             className="h-7 text-xs"
             placeholder="ブランチ名"
@@ -74,13 +87,55 @@ export function BranchOperations({
             onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
             disabled={loading}
           />
-          <Button size="sm" className="h-7 text-xs" onClick={handleCreate} disabled={!newBranchName.trim() || loading}>
-            作成
-          </Button>
+          <div className="flex items-center gap-1">
+            <Select value={startPoint} onValueChange={setStartPoint}>
+              <SelectTrigger className="h-7 flex-1 text-xs">
+                <SelectValue placeholder="起点（HEAD）" />
+              </SelectTrigger>
+              <SelectContent>
+                {localBranches.map((b) => (
+                  <SelectItem key={b.name} value={b.name} className="text-xs">
+                    {b.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              size="sm"
+              className="h-7 text-xs"
+              onClick={handleCreate}
+              disabled={!newBranchName.trim() || loading}
+            >
+              作成
+            </Button>
+          </div>
         </div>
       )}
 
       {hasDirtyFiles && <p className="text-xs text-yellow-500">未コミットの変更があるためチェックアウトできません</p>}
+
+      {/* マージ未済ブランチの強制削除警告 */}
+      {showNotMergedWarning && (
+        <div className="rounded border border-destructive/50 bg-destructive/10 p-2">
+          <p className="text-xs text-destructive">
+            ブランチ &apos;{showNotMergedWarning}&apos; はマージされていません。強制削除しますか？
+          </p>
+          <div className="mt-1 flex items-center gap-1">
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-6 text-xs"
+              onClick={() => handleDelete(showNotMergedWarning, true)}
+              disabled={loading}
+            >
+              強制削除
+            </Button>
+            <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowNotMergedWarning(null)}>
+              キャンセル
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* ブランチ一覧 */}
       <div className="space-y-0.5">

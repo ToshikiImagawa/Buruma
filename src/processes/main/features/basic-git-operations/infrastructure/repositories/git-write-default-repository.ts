@@ -144,7 +144,15 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
       await git.raw(['push', 'origin', '--delete', args.branch])
     } else {
       const flag = args.force ? '-D' : '-d'
-      await git.raw(['branch', flag, args.branch])
+      try {
+        await git.raw(['branch', flag, args.branch])
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err)
+        if (message.includes('not fully merged')) {
+          throw new GitOperationError('BRANCH_NOT_MERGED', `ブランチ '${args.branch}' はマージされていません`)
+        }
+        throw err
+      }
     }
   }
 }

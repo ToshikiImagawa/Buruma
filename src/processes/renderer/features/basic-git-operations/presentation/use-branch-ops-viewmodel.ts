@@ -6,9 +6,11 @@ import { BranchOpsViewModelToken } from '../di-tokens'
 export function useBranchOpsViewModel() {
   const vm = useResolve(BranchOpsViewModelToken)
   const loading = useObservable(vm.loading$, false)
+  const lastError = useObservable(vm.lastError$, null)
 
   return {
     loading,
+    lastError,
     createBranch: useCallback(
       (worktreePath: string, name: string, startPoint?: string) => vm.createBranch(worktreePath, name, startPoint),
       [vm],

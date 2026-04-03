@@ -125,6 +125,7 @@ export const basicGitOperationsConfig: VContainerConfig = {
         CheckoutBranchRendererUseCaseToken,
         DeleteBranchRendererUseCaseToken,
         GetOperationLoadingUseCaseToken,
+        GetLastErrorUseCaseToken,
       ])
   },
 
