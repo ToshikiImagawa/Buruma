@@ -22,45 +22,56 @@ Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Ele
 
 Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。ソースコードはプロセス別にディレクトリを分離する。
 
-- **Main process** (`src/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で
+```
+src/
+├── processes/           # プロセス別ディレクトリ（実行単位）
+│   ├── main/            # メインプロセス
+│   ├── preload/         # Preload スクリプト
+│   └── renderer/        # レンダラープロセス
+├── domain/              # プロセス間共有のドメインモデル（純粋 TypeScript）
+└── lib/                 # プロセス間共有ライブラリ（DI, hooks, IPC 型等）
+```
+
+- **Main process** (`src/processes/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で
   feature を実装。Vite 設定は `vite.main.config.ts`
-- **Preload** (`src/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は
+- **Preload** (`src/processes/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は
   `vite.preload.config.ts`
-- **Renderer** (`src/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は
+- **Renderer** (`src/processes/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は
   `vite.renderer.config.ts`
-- **Shared** (`src/shared/`): プロセス間共有の domain 型、IPC 型定義、DI ライブラリ、ユーティリティ
+- **Domain** (`src/domain/`): プロセス間共有のエンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
+- **Lib** (`src/lib/`): DI ライブラリ、IPC 型定義、共有 hooks、UseCase/Service 型、ユーティリティ
 
 Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin
 でセキュリティオプション（RunAsNode: false 等）を適用。
 
 ### Electron Forge ビルドエントリーの命名制約
 
-Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/main/main.ts` →
+Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/processes/main/main.ts` →
 `.vite/build/main.js`）。`package.json` の `"main"` フィールドはこの出力パスを参照する。
 
 - **エントリーファイル名はプロセスごとに一意にする**（`index.ts` にしない）。同名ファイルはビルド出力が衝突する
 - `package.json` の `"main"` はメインプロセスのビルド出力（`.vite/build/main.js`）を指す
 - `BrowserWindow` の `preload` オプションは preload のビルド出力（`preload.js`）を指す
 
-| エントリー                    | ビルド出力                    | 参照元                                    |
-|:-------------------------|:-------------------------|:---------------------------------------|
-| `src/main/main.ts`       | `.vite/build/main.js`    | `package.json` の `"main"`              |
-| `src/preload/preload.ts` | `.vite/build/preload.js` | `BrowserWindow.webPreferences.preload` |
-| `src/renderer/`          | Vite dev server          | `forge.config.ts` の `renderer`         |
+| エントリー                              | ビルド出力                    | 参照元                                    |
+|:------------------------------------|:-------------------------|:---------------------------------------|
+| `src/processes/main/main.ts`        | `.vite/build/main.js`    | `package.json` の `"main"`              |
+| `src/processes/preload/preload.ts`   | `.vite/build/preload.js` | `BrowserWindow.webPreferences.preload` |
+| `src/processes/renderer/`            | Vite dev server          | `forge.config.ts` の `renderer`         |
 
-`src/renderer/` と `src/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/shared/` に配置する。
+`src/processes/renderer/` と `src/processes/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/domain/` と `src/lib/` に配置する。
 
 ### IPC 通信ルール
 
 - メインプロセスとレンダラーの通信は必ず preload + contextBridge を経由する
 - レンダラーから Node.js API を直接使わない
-- IPC チャネルには型安全なインターフェースを `src/shared/types/` に定義する
+- IPC チャネルには型安全なインターフェースを `src/lib/ipc.ts` に定義する
 - レンダラー側: IPC クライアントは **infrastructure 層**（データアクセス手段として IPC を使用）
 - メインプロセス側: IPC Handler は **presentation 層**（リクエスト受付・ルーティング、Web の Controller に相当）
 
 ### DI（依存性注入）アーキテクチャ
 
-`src/shared/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。メインプロセス・レンダラーの両方で使用する。
+`src/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。メインプロセス・レンダラーの両方で使用する。
 
 **コア API**:
 
@@ -91,19 +102,19 @@ Electron Forge の VitePlugin は **エントリーファイルのベース名**
 `di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
 
 ```
-src/main/di/
+src/processes/main/di/
 └── configs.ts             ← メインプロセス側の全 feature VContainerConfig を集約
 
-src/renderer/di/
+src/processes/renderer/di/
 └── configs.ts             ← レンダラー側の全 feature VContainerConfig を集約
 ```
 
 **feature 追加時の手順**:
 
-1. `src/renderer/features/{name}/di-config.ts` を作成（レンダラー側）
-2. `src/main/features/{name}/di-config.ts` を作成（メインプロセス側、必要な場合のみ）
-3. `src/renderer/di/configs.ts` に config を 1 行追加
-4. `src/main/di/configs.ts` に config を 1 行追加（メインプロセス側がある場合）
+1. `src/processes/renderer/features/{name}/di-config.ts` を作成（レンダラー側）
+2. `src/processes/main/features/{name}/di-config.ts` を作成（メインプロセス側、必要な場合のみ）
+3. `src/processes/renderer/di/configs.ts` に config を 1 行追加
+4. `src/processes/main/di/configs.ts` に config を 1 行追加（メインプロセス側がある場合）
 
 エントリーポイントは変更不要。
 
@@ -111,8 +122,8 @@ src/renderer/di/
 
 各 feature は Composition Root として `di-config.ts` と `di-tokens.ts` を持つ。
 
-- レンダラー側: `src/renderer/features/{name}/di-config.ts`, `di-tokens.ts`
-- メインプロセス側: `src/main/features/{name}/di-config.ts`, `di-tokens.ts`
+- レンダラー側: `src/processes/renderer/features/{name}/di-config.ts`, `di-tokens.ts`
+- メインプロセス側: `src/processes/main/features/{name}/di-config.ts`, `di-tokens.ts`
 - 両プロセスとも `VContainerConfig`（register + setUp）パターンで統一
 
 **エントリーポイントが infrastructure 層の具象クラスを直接参照してはならない。**
@@ -154,7 +165,7 @@ function useXxxViewModel() {
 
 ### UseCase 型定義
 
-`src/shared/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
+`src/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
 
 - `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
@@ -169,7 +180,7 @@ function useXxxViewModel() {
 
 ### Service 型定義
 
-`src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends
+`src/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends
 する:
 
 - `BaseService` — 引数なし同期 setUp + tearDown
@@ -177,7 +188,7 @@ function useXxxViewModel() {
 - `ParameterizedService<T>` — パラメータ付き同期 setUp + tearDown
 - `AsyncParameterizedService<T>` — パラメータ付き非同期 setUp + tearDown
 
-すべて `TearDownable`（`src/shared/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで
+すべて `TearDownable`（`src/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで
 BehaviorSubject の complete 等のリソース解放を行う。
 
 **ライフサイクルルール**:
@@ -201,7 +212,7 @@ feature 単位で Clean Architecture を採用。依存方向は `domain ← app
 **レンダラー側**:
 
 ```
-src/renderer/features/{feature-name}/
+src/processes/renderer/features/{feature-name}/
 ├── application/
 │   ├── repositories/    # リポジトリ IF 定義
 │   ├── services/        # Service IF 定義（*-interface.ts）+ Service 実装
@@ -219,7 +230,7 @@ src/renderer/features/{feature-name}/
 **メインプロセス側**:
 
 ```
-src/main/features/{feature-name}/
+src/processes/main/features/{feature-name}/
 ├── application/
 │   ├── repositories/    # リポジトリ IF 定義（Git操作等の外部API抽象）
 │   └── usecases/        # UseCase 実装（1クラス1操作）
@@ -229,18 +240,19 @@ src/main/features/{feature-name}/
 └── di-config.ts         # VContainerConfig（useClass + deps パターン）
 ```
 
-**共有 domain 型**:
+**共有コード**:
 
 ```
-src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
+src/domain/    # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
+src/lib/       # DI, hooks, IPC 型, UseCase/Service 型, ユーティリティ
 ```
 
 - **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable
   のみ許可）
-- domain 型は `src/shared/domain/` に配置し、両プロセスから参照する
+- domain 型は `src/domain/` に配置し、両プロセスから参照する
 - リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
 - 非同期データフロー・イベント駆動ロジックには **RxJS** の Observable パターンを使用する
-- feature 間の共有ロジックは `src/shared/lib/` に、共有型定義は `src/shared/types/` に配置する
+- feature 間の共有ロジックは `src/lib/` に配置する
 
 ## Tech Stack
 
@@ -256,10 +268,11 @@ src/shared/domain/   # エンティティ、値オブジェクト（純粋 TypeS
 
 パスエイリアスは `tsconfig.json` の `paths` と各 Vite 設定の `resolve.alias` で設定。
 
-- `@shared/*` → `./src/shared/*`（全プロセスで有効）
-- `@main/*` → `./src/main/*`（メインプロセスでのみ有効）
-- `@renderer/*` → `./src/renderer/*`（レンダラーでのみ有効）
-- `@preload/*` → `./src/preload/*`（preload でのみ有効）
+- `@domain/*` → `./src/domain/*`（全プロセスで有効）
+- `@lib/*` → `./src/lib/*`（全プロセスで有効）
+- `@main/*` → `./src/processes/main/*`（メインプロセスでのみ有効）
+- `@renderer/*` → `./src/processes/renderer/*`（レンダラーでのみ有効）
+- `@preload/*` → `./src/processes/preload/*`（preload でのみ有効）
 
 ## ESLint 設定
 

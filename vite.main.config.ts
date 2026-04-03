@@ -5,8 +5,9 @@ import { defineConfig } from 'vite'
 export default defineConfig({
   resolve: {
     alias: {
-      '@shared': path.resolve(__dirname, './src/shared'),
-      '@main': path.resolve(__dirname, './src/main'),
+      '@domain': path.resolve(__dirname, './src/domain'),
+      '@lib': path.resolve(__dirname, './src/lib'),
+      '@main': path.resolve(__dirname, './src/processes/main'),
     },
   },
 })
