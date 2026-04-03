@@ -6,6 +6,7 @@ import type {
   CommitResult,
   FetchArgs,
   FetchResult,
+  GitProgressEvent,
   PullArgs,
   PullResult,
   PushArgs,
@@ -15,6 +16,24 @@ import type { GitWriteRepository } from '../../application/repositories/git-writ
 import simpleGit from 'simple-git'
 
 export class GitWriteDefaultRepository implements GitWriteRepository {
+  private progressCallback: ((event: GitProgressEvent) => void) | null = null
+
+  setProgressCallback(callback: (event: GitProgressEvent) => void): void {
+    this.progressCallback = callback
+  }
+
+  private createGitWithProgress(worktreePath: string, operation: string) {
+    return simpleGit({
+      baseDir: worktreePath,
+      progress: ({ stage, progress }) => {
+        this.progressCallback?.({
+          operation,
+          phase: stage,
+          progress: progress,
+        })
+      },
+    })
+  }
   async stage(worktreePath: string, files: string[]): Promise<void> {
     const git = simpleGit(worktreePath)
     await git.add(files)
@@ -52,7 +71,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async push(args: PushArgs): Promise<PushResult> {
-    const git = simpleGit(args.worktreePath)
+    const git = this.createGitWithProgress(args.worktreePath, 'push')
     const remote = args.remote ?? 'origin'
 
     try {
@@ -89,7 +108,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async pull(args: PullArgs): Promise<PullResult> {
-    const git = simpleGit(args.worktreePath)
+    const git = this.createGitWithProgress(args.worktreePath, 'pull')
     const remote = args.remote ?? 'origin'
 
     try {
@@ -114,7 +133,7 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
   }
 
   async fetch(args: FetchArgs): Promise<FetchResult> {
-    const git = simpleGit(args.worktreePath)
+    const git = this.createGitWithProgress(args.worktreePath, 'fetch')
     const remote = args.remote ?? '--all'
     if (args.remote) {
       await git.fetch(args.remote)

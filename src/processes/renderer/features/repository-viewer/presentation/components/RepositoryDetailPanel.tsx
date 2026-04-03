@@ -191,6 +191,7 @@ export function RepositoryDetailPanel() {
             worktreePath={selectedWorktree.path}
             currentBranch={selectedWorktree.branch ?? ''}
             localBranches={branches?.local ?? []}
+            remoteBranches={branches?.remote ?? []}
             hasDirtyFiles={selectedWorktree.isDirty}
             onRefresh={handleRefresh}
           />

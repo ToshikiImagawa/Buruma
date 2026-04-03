@@ -1,4 +1,5 @@
 import type { VContainerConfig } from '@lib/di'
+import { BrowserWindow } from 'electron'
 import { CheckoutBranchUseCase } from './application/usecases/checkout-branch-usecase'
 import { CommitUseCase } from './application/usecases/commit-usecase'
 import { CreateBranchUseCase } from './application/usecases/create-branch-usecase'
@@ -48,6 +49,15 @@ export const basicGitOperationsMainConfig: VContainerConfig = {
   },
 
   setUp: async (container) => {
+    // 進捗フィードバック: GitWriteDefaultRepository に BrowserWindow 経由の通知を注入
+    const repo = container.resolve(GitWriteRepositoryToken) as GitWriteDefaultRepository
+    repo.setProgressCallback((event) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('git:progress', event)
+      }
+    })
+
     const unregisterHandlers = registerGitWriteIPCHandlers(
       container.resolve(StageFilesMainUseCaseToken),
       container.resolve(UnstageFilesMainUseCaseToken),

@@ -4,6 +4,7 @@ import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@renderer/components/ui/select'
+import { Separator } from '@renderer/components/ui/separator'
 import { GitBranch, Plus, Trash2 } from 'lucide-react'
 import { useBranchOpsViewModel } from '../use-branch-ops-viewmodel'
 
@@ -11,6 +12,7 @@ interface BranchOperationsProps {
   worktreePath: string
   currentBranch: string
   localBranches: BranchInfo[]
+  remoteBranches?: BranchInfo[]
   hasDirtyFiles: boolean
   onRefresh: () => void
 }
@@ -18,6 +20,7 @@ interface BranchOperationsProps {
 export function BranchOperations({
   worktreePath,
   currentBranch,
+  remoteBranches = [],
   localBranches,
   hasDirtyFiles,
   onRefresh,
@@ -27,6 +30,7 @@ export function BranchOperations({
   const [newBranchName, setNewBranchName] = useState('')
   const [startPoint, setStartPoint] = useState<string>('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
+  const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
 
   // マージ未済エラー検出時に警告を表示
@@ -61,6 +65,18 @@ export function BranchOperations({
       deleteBranch(worktreePath, branch, false, force)
       setDeleteTarget(null)
       setShowNotMergedWarning(null)
+      onRefresh()
+    },
+    [worktreePath, deleteBranch, onRefresh],
+  )
+
+  const handleRemoteDelete = useCallback(
+    (branchName: string) => {
+      // リモートブランチ名は "origin/feature-x" 形式。"/" 以降がブランチ名
+      const slashIndex = branchName.indexOf('/')
+      const branch = slashIndex >= 0 ? branchName.substring(slashIndex + 1) : branchName
+      deleteBranch(worktreePath, branch, true)
+      setRemoteDeleteTarget(null)
       onRefresh()
     },
     [worktreePath, deleteBranch, onRefresh],
@@ -190,6 +206,56 @@ export function BranchOperations({
           </div>
         ))}
       </div>
+
+      {/* リモートブランチ一覧 */}
+      {remoteBranches.length > 0 && (
+        <>
+          <Separator />
+          <span className="px-2 text-xs font-semibold text-muted-foreground">リモート ({remoteBranches.length})</span>
+          <div className="space-y-0.5">
+            {remoteBranches.map((branch) => (
+              <div
+                key={branch.name}
+                className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
+              >
+                <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                <span className="flex-1 truncate text-muted-foreground">{branch.name}</span>
+                {remoteDeleteTarget === branch.name ? (
+                  <div className="flex items-center gap-1">
+                    <Label className="text-xs text-destructive">削除？</Label>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="h-5 px-1 text-xs"
+                      onClick={() => handleRemoteDelete(branch.name)}
+                      disabled={loading}
+                    >
+                      確認
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-5 px-1 text-xs"
+                      onClick={() => setRemoteDeleteTarget(null)}
+                    >
+                      取消
+                    </Button>
+                  </div>
+                ) : (
+                  <button
+                    className="invisible text-muted-foreground hover:text-destructive group-hover:visible"
+                    onClick={() => setRemoteDeleteTarget(branch.name)}
+                    disabled={loading}
+                    title="リモートブランチ削除"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   )
 }

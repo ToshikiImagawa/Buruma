@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { BranchInfo } from '@domain'
+import { useEffect, useState } from 'react'
+import type { BranchInfo, GitProgressEvent } from '@domain'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
@@ -16,6 +16,19 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [customRemote, setCustomRemote] = useState('')
   const [customBranch, setCustomBranch] = useState('')
+  const [progress, setProgress] = useState<GitProgressEvent | null>(null)
+
+  useEffect(() => {
+    const unsubscribe = window.electronAPI.git.onProgress((event) => {
+      setProgress(event)
+    })
+    return unsubscribe
+  }, [])
+
+  // loading が false になったら進捗をクリア
+  useEffect(() => {
+    if (!loading) setProgress(null)
+  }, [loading])
 
   const targetRemote = customRemote || undefined
   const targetBranch = customBranch || undefined
@@ -92,6 +105,21 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
             onChange={(e) => setCustomBranch(e.target.value)}
             disabled={loading}
           />
+        </div>
+      )}
+      {loading && progress && (
+        <div className="flex flex-col gap-0.5">
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {progress.operation}: {progress.phase}
+            </span>
+            {progress.progress != null && <span>{progress.progress}%</span>}
+          </div>
+          {progress.progress != null && (
+            <div className="h-1 w-full overflow-hidden rounded bg-muted">
+              <div className="h-full bg-primary transition-all" style={{ width: `${progress.progress}%` }} />
+            </div>
+          )}
         </div>
       )}
       {!currentBranch?.upstream && !customRemote && (
