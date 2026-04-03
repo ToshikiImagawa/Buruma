@@ -40,7 +40,7 @@ category: "git-operations"
 - [x] 2.3: GitWriteDefaultRepository — コミット・プッシュ（NO_UPSTREAM, PUSH_REJECTED エラーコード対応）
 - [x] 2.4: GitWriteDefaultRepository — プル・フェッチ・ブランチ（PULL_CONFLICT 検知対応）
 - [x] 2.5: メインプロセス UseCases（11 クラス）
-- [x] 2.6: IPC Handler + DI config（`basicGitOperationsMainConfig`、`src/main/di/configs.ts` に統合）
+- [x] 2.6: IPC Handler + DI config（`basicGitOperationsMainConfig`、`src/processes/main/di/configs.ts` に統合）
 
 ### Phase 3: レンダラー（完了）
 
@@ -51,7 +51,7 @@ category: "git-operations"
 - [x] 3.5: CommitViewModel + Hook
 - [x] 3.6: RemoteOpsViewModel + Hook
 - [x] 3.7: BranchOpsViewModel + Hook
-- [x] 3.8: レンダラー DI config（`basicGitOperationsConfig`、`src/renderer/di/configs.ts` に統合）
+- [x] 3.8: レンダラー DI config（`basicGitOperationsConfig`、`src/processes/renderer/di/configs.ts` に統合）
 
 ### Phase 5: テスト + 仕上げ（部分完了）
 

@@ -138,10 +138,10 @@ graph TD
 
 | モジュール名 | プロセス | 責務 | 配置場所 |
 |------------|---------|------|---------|
-| ClaudeProcessManager | main | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src/main/services/claude-process-manager.ts` |
-| SessionStore | main | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src/main/services/claude-session-store.ts` |
-| OutputParser | main | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src/main/services/claude-output-parser.ts` |
-| Claude IPC Handler | main | `claude:*` IPC チャネルの登録・ルーティング | `src/main/ipc/claude-handler.ts` |
+| ClaudeProcessManager | main | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src/processes/main/services/claude-process-manager.ts` |
+| SessionStore | main | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src/processes/main/services/claude-session-store.ts` |
+| OutputParser | main | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src/processes/main/services/claude-output-parser.ts` |
+| Claude IPC Handler | main | `claude:*` IPC チャネルの登録・ルーティング | `src/processes/main/ipc/claude-handler.ts` |
 | Claude 型定義 | shared | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/types/claude.ts` |
 | Preload Claude API | preload | contextBridge 経由で claude.* API を公開 | `src/preload.ts`（既存ファイルに追加） |
 | ClaudeSessionPanel | renderer | セッション操作 UI（起動/停止/入力/状態） | `src/components/ClaudeSessionPanel.tsx` |
@@ -179,7 +179,7 @@ type SessionMap = Map<string, InternalSession>;
 ## 6.1. ClaudeProcessManager
 
 ```typescript
-// src/main/services/claude-process-manager.ts
+// src/processes/main/services/claude-process-manager.ts
 import { ChildProcess, spawn } from 'child_process';
 import type { ClaudeSession, ClaudeCommand, ClaudeOutput } from '../../types/claude';
 
@@ -231,7 +231,7 @@ export class ClaudeProcessManager {
 ## 6.2. SessionStore
 
 ```typescript
-// src/main/services/claude-session-store.ts
+// src/processes/main/services/claude-session-store.ts
 import type { ClaudeSession, ClaudeOutput } from '../../types/claude';
 
 export class SessionStore {
@@ -275,7 +275,7 @@ export class SessionStore {
 ## 6.3. OutputParser
 
 ```typescript
-// src/main/services/claude-output-parser.ts
+// src/processes/main/services/claude-output-parser.ts
 import type { ReviewComment } from '../../types/claude';
 
 export class OutputParser {
@@ -306,7 +306,7 @@ export class OutputParser {
 ## 6.4. IPC ハンドラー（メインプロセス側）
 
 ```typescript
-// src/main/ipc/claude-handler.ts
+// src/processes/main/ipc/claude-handler.ts
 import { ipcMain, BrowserWindow } from 'electron';
 import type { IPCResult } from '../../types/ipc';
 import type { ClaudeSession, ClaudeCommand, ClaudeOutput, ReviewComment } from '../../types/claude';

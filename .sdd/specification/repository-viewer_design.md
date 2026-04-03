@@ -54,7 +54,7 @@ risk: "medium"
 1. **パフォーマンス** — 大規模リポジトリ（10万コミット以上）でもスムーズに動作する。ページネーションと仮想スクロールで実現する
 2. **型安全な IPC 通信** — すべての git: チャネルに TypeScript 型定義を提供し、`IPCResult<T>` パターンでエラーハンドリングを統一する（原則
    T-001, T-002）
-3. **Electron セキュリティ準拠** — Git 操作はメインプロセスの GitService で実行し、preload + contextBridge
+3. **Electron セキュリティ準拠** — Git 操作はメインプロセスの GitReadDefaultRepository で実行し、preload + contextBridge
    経由でレンダラーに結果を返す（原則 A-001, T-003）
 4. **Library-First** — Git 操作に simple-git、差分表示に Monaco Editor を活用し、自前実装を最小化する（原則 A-002）
 5. **Worktree-First UX** — すべての操作が選択ワークツリーを起点とし、worktreePath を必須引数として渡す（原則 B-001）
@@ -139,41 +139,41 @@ graph TD
 
 ## 4.2. モジュール分割
 
-> **注記**: 初版設計書ではフラット構造（`src/main/services/git.ts` 等）で記述していたが、実装ではプロジェクトの Clean Architecture 4層 + feature ディレクトリ構成に合わせて再配置した。
+> **注記**: 初版設計書ではフラット構造（`src/processes/main/services/git.ts` 等）で記述していたが、実装ではプロジェクトの Clean Architecture 4層 + feature ディレクトリ構成に合わせて再配置した。
 
 ### メインプロセス側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| GitReadRepository IF | application | Git 読み取り操作の抽象インターフェース | `src/main/features/repository-viewer/application/repositories/git-read-repository.ts` |
-| GitReadDefaultRepository | infrastructure | simple-git による Git 操作の実装 | `src/main/features/repository-viewer/infrastructure/repositories/git-read-default-repository.ts` |
-| diff-parser | infrastructure | `git diff` raw 出力の `FileDiff[]` パーサー | `src/main/features/repository-viewer/infrastructure/repositories/diff-parser.ts` |
-| file-tree-builder | infrastructure | `git ls-tree` + status からのファイルツリー構築 | `src/main/features/repository-viewer/infrastructure/repositories/file-tree-builder.ts` |
-| UseCase x10 | application | 各 Git 操作の UseCase（1クラス1操作） | `src/main/features/repository-viewer/application/usecases/` |
-| IPC ハンドラー | presentation | git:* IPC チャネル登録 + 入力バリデーション | `src/main/features/repository-viewer/presentation/ipc-handlers.ts` |
+| GitReadRepository IF | application | Git 読み取り操作の抽象インターフェース | `src/processes/main/features/repository-viewer/application/repositories/git-read-repository.ts` |
+| GitReadDefaultRepository | infrastructure | simple-git による Git 操作の実装 | `src/processes/main/features/repository-viewer/infrastructure/repositories/git-read-default-repository.ts` |
+| diff-parser | infrastructure | `git diff` raw 出力の `FileDiff[]` パーサー | `src/processes/main/features/repository-viewer/infrastructure/repositories/diff-parser.ts` |
+| file-tree-builder | infrastructure | `git ls-tree` + status からのファイルツリー構築 | `src/processes/main/features/repository-viewer/infrastructure/repositories/file-tree-builder.ts` |
+| UseCase x10 | application | 各 Git 操作の UseCase（1クラス1操作） | `src/processes/main/features/repository-viewer/application/usecases/` |
+| IPC ハンドラー | presentation | git:* IPC チャネル登録 + 入力バリデーション | `src/processes/main/features/repository-viewer/presentation/ipc-handlers.ts` |
 
 ### レンダラー側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| GitViewerRepository IF | application | IPC 経由の Git 読み取りインターフェース | `src/renderer/features/repository-viewer/application/repositories/git-viewer-repository.ts` |
-| GitViewerDefaultRepository | infrastructure | `window.electronAPI.git.*` への委譲実装 | `src/renderer/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
-| RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/renderer/features/repository-viewer/application/services/` |
-| UseCase x8 | application | 各 Git 操作の UseCase | `src/renderer/features/repository-viewer/application/usecases/` |
-| ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/renderer/features/repository-viewer/presentation/` |
-| RepositoryDetailPanel | presentation | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） | `src/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
-| BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画（GraphLayout を受け取り可視範囲のみ描画） | `src/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
-| StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/renderer/features/repository-viewer/presentation/components/` |
+| GitViewerRepository IF | application | IPC 経由の Git 読み取りインターフェース（status, log, diff 等 8 メソッド。file-contents は DiffViewModel が直接取得するため含まない） | `src/processes/renderer/features/repository-viewer/application/repositories/git-viewer-repository.ts` |
+| GitViewerDefaultRepository | infrastructure | `window.electronAPI.git.*` への委譲実装 | `src/processes/renderer/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
+| RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/processes/renderer/features/repository-viewer/application/services/` |
+| UseCase x8 | application | GetStatus, GetLog, GetCommitDetail, GetDiff, GetDiffStaged, GetDiffCommit, GetBranches, GetFileTree | `src/processes/renderer/features/repository-viewer/application/usecases/` |
+| ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/processes/renderer/features/repository-viewer/presentation/` |
+| RepositoryDetailPanel | presentation | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
+| BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画（GraphLayout を受け取り可視範囲のみ描画） | `src/processes/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
+| StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/processes/renderer/features/repository-viewer/presentation/components/` |
 
 ### 共有
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
-| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/shared/types/ipc.ts` |
-| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
-| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
-| Preload git API | contextBridge による git.* API 公開 | `src/preload/preload.ts` |
+| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/domain/index.ts` |
+| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/lib/ipc.ts` |
+| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/lib/graph/types.ts` |
+| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/lib/graph/compute-graph-layout.ts` |
+| Preload git API | contextBridge による git.* API 公開 | `src/processes/preload/preload.ts` |
 
 ---
 
@@ -228,7 +228,7 @@ interface FileContents {
 ## 6.2. DiffView コンポーネント（@monaco-editor/react 統合）
 
 ```tsx
-// src/renderer/features/repository-viewer/presentation/components/DiffView.tsx
+// src/processes/renderer/features/repository-viewer/presentation/components/DiffView.tsx
 // @monaco-editor/react の DiffEditor を使用
 // ファイル全体テキストを git:file-contents IPC で取得して渡す
 
@@ -245,7 +245,7 @@ import { DiffEditor } from '@monaco-editor/react'
 // computeGraphLayout() でレーン割り当てを計算し、GraphLayout を生成
 // BranchGraphCanvas コンポーネントで Canvas API により描画
 
-// src/shared/lib/graph/types.ts
+// src/lib/graph/types.ts
 interface GraphNode {
   hash: string
   parents: string[]
@@ -272,7 +272,7 @@ interface GraphLayout {
 | ステータス表示2秒以内 (NFR_201)          | simple-git の status() は内部で `git status --porcelain` を使用し高速。変換処理も O(n) で軽量                    |
 | コミットログ初期表示1秒以内 (NFR_202)       | `--max-count=50` で取得件数を制限。仮想スクロール（@tanstack/react-virtual）で DOM 描画を最小化。スクロール時にオンデマンドで次ページを取得 |
 | 差分表示1秒以内 (NFR_203)             | simple-git の diff() で生の diff 文字列を取得し、メインプロセスでパース。Monaco Editor の DiffEditor はネイティブ実装で高速描画    |
-| Electron セキュリティ (A-001, T-003) | Git 操作は GitService（メインプロセス）に閉じ込め、preload + contextBridge 経由でのみアクセス                           |
+| Electron セキュリティ (A-001, T-003) | Git 操作は GitReadDefaultRepository（メインプロセス）に閉じ込め、preload + contextBridge 経由でのみアクセス                           |
 
 ---
 
@@ -280,7 +280,7 @@ interface GraphLayout {
 
 | テストレベル     | 対象                                                          | カバレッジ目標         |
 |------------|-------------------------------------------------------------|-----------------|
-| ユニットテスト    | GitService（status, log, diff, branch, file-tree）            | ≥ 80%           |
+| ユニットテスト    | GitReadDefaultRepository（status, log, diff, branch, file-tree） | ≥ 80%           |
 | ユニットテスト    | diff パース関数（parseDiffOutput）                                 | ≥ 90%（エッジケース含む） |
 | ユニットテスト    | データ変換関数（mapStatusResult, mapCommitSummary, mapBranchResult） | ≥ 90%           |
 | コンポーネントテスト | StatusView, CommitLog, BranchList, FileTree                 | ≥ 60%           |
@@ -292,7 +292,7 @@ interface GraphLayout {
 
 **モック戦略:**
 
-- GitService のテストでは simple-git をモック化（実際の Git リポジトリに依存しない）
+- GitReadDefaultRepository のテストでは simple-git をモック化（実際の Git リポジトリに依存しない）
 - コンポーネントテストでは IPC 呼び出しをモック化
 - E2E テストでは実際の Git リポジトリ（テスト用の fixture リポジトリ）を使用
 

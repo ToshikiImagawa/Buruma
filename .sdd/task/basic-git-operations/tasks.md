@@ -31,20 +31,20 @@ priority: "high"
 
 | # | タスク | 説明 | 完了条件 | 依存 |
 |:---|:---|:---|:---|:---|
-| 1.1 | 共有 domain 型追加 | `src/shared/domain/index.ts` に `CommitArgs`, `CommitResult`, `PushArgs`, `PushResult`, `PullArgs`, `PullResult`, `FetchArgs`, `FetchResult`, `BranchCreateArgs`, `BranchCheckoutArgs`, `BranchDeleteArgs`, `GitProgressEvent` を追加 | `npm run typecheck` が通る。既存の型（`GitStatus`, `BranchList` 等）と共存 | - |
-| 1.2 | IPC 型定義追加 | `src/shared/types/ipc.ts` の `IPCChannelMap` に `git:stage`, `git:stage-all`, `git:unstage`, `git:unstage-all`, `git:commit`, `git:push`, `git:pull`, `git:fetch`, `git:branch-create`, `git:branch-checkout`, `git:branch-delete` を追加。`IPCEventMap` に `git:progress` を追加。`ElectronAPI.git` に書き込み系メソッドを追加 | `npm run typecheck` が通る。既存チャネル定義を壊さない | 1.1 |
-| 1.3 | Preload API 拡張 | `src/preload/preload.ts` の `electronAPI.git` に `stage`, `stageAll`, `unstage`, `unstageAll`, `commit`, `push`, `pull`, `fetch`, `branchCreate`, `branchCheckout`, `branchDelete`, `onProgress` を追加 | `npm run typecheck` が通る。`ElectronAPI` 型と一致 | 1.2 |
+| 1.1 | 共有 domain 型追加 | `src/domain/index.ts` に `CommitArgs`, `CommitResult`, `PushArgs`, `PushResult`, `PullArgs`, `PullResult`, `FetchArgs`, `FetchResult`, `BranchCreateArgs`, `BranchCheckoutArgs`, `BranchDeleteArgs`, `GitProgressEvent` を追加 | `npm run typecheck` が通る。既存の型（`GitStatus`, `BranchList` 等）と共存 | - |
+| 1.2 | IPC 型定義追加 | `src/lib/ipc.ts` の `IPCChannelMap` に `git:stage`, `git:stage-all`, `git:unstage`, `git:unstage-all`, `git:commit`, `git:push`, `git:pull`, `git:fetch`, `git:branch-create`, `git:branch-checkout`, `git:branch-delete` を追加。`IPCEventMap` に `git:progress` を追加。`ElectronAPI.git` に書き込み系メソッドを追加 | `npm run typecheck` が通る。既存チャネル定義を壊さない | 1.1 |
+| 1.3 | Preload API 拡張 | `src/processes/preload/preload.ts` の `electronAPI.git` に `stage`, `stageAll`, `unstage`, `unstageAll`, `commit`, `push`, `pull`, `fetch`, `branchCreate`, `branchCheckout`, `branchDelete`, `onProgress` を追加 | `npm run typecheck` が通る。`ElectronAPI` 型と一致 | 1.2 |
 
 ### Phase 2: コア実装 — メインプロセス
 
 | # | タスク | 説明 | 完了条件 | 依存 |
 |:---|:---|:---|:---|:---|
-| 2.1 | GitWriteRepository IF + DI tokens | `src/main/features/basic-git-operations/application/repositories/git-write-repository.ts` に IF 定義。`di-tokens.ts` に全トークン + UseCase 型エイリアス定義 | IF が全 11 メソッドを持つ。トークンが全 UseCase + Repository 分定義されている | 1.1 |
-| 2.2 | GitWriteDefaultRepository — ステージング | `src/main/features/basic-git-operations/infrastructure/repositories/git-write-default-repository.ts` に `stage`, `stageAll`, `unstage`, `unstageAll` を simple-git で実装 | ユニットテスト（simple-git モック）が通る。`npm run test` でステージング関連テストが全パス | 2.1 |
+| 2.1 | GitWriteRepository IF + DI tokens | `src/processes/main/features/basic-git-operations/application/repositories/git-write-repository.ts` に IF 定義。`di-tokens.ts` に全トークン + UseCase 型エイリアス定義 | IF が全 11 メソッドを持つ。トークンが全 UseCase + Repository 分定義されている | 1.1 |
+| 2.2 | GitWriteDefaultRepository — ステージング | `src/processes/main/features/basic-git-operations/infrastructure/repositories/git-write-default-repository.ts` に `stage`, `stageAll`, `unstage`, `unstageAll` を simple-git で実装 | ユニットテスト（simple-git モック）が通る。`npm run test` でステージング関連テストが全パス | 2.1 |
 | 2.3 | GitWriteDefaultRepository — コミット・プッシュ | 同ファイルに `commit`, `push` を実装。push は `NO_UPSTREAM`, `PUSH_REJECTED` エラーコードを返す | ユニットテストが通る。正常系・upstream未設定・リジェクトの3パターン | 2.1 |
 | 2.4 | GitWriteDefaultRepository — プル・フェッチ・ブランチ | 同ファイルに `pull`, `fetch`, `branchCreate`, `branchCheckout`, `branchDelete` を実装 | ユニットテストが通る。プル時のコンフリクト検知（`PULL_CONFLICT`）を含む | 2.1 |
 | 2.5 | メインプロセス UseCases | `application/usecases/` に 11 UseCase クラスを作成。各 UseCase は `ConsumerUseCase` または `FunctionUseCase` を implements | ユニットテスト（Repository モック）が通る。1クラス=1操作を遵守 | 2.2, 2.3, 2.4 |
-| 2.6 | IPC Handler + DI config | `presentation/ipc-handlers.ts` に `registerGitWriteIPCHandlers` を実装。`di-config.ts` に `basicGitOperationsMainConfig` を定義。`src/main/di/configs.ts` に1行追加 | `npm run typecheck` が通る。IPC Handler が全チャネルを登録。DI config で全 UseCase + Repository が解決される | 2.5 |
+| 2.6 | IPC Handler + DI config | `presentation/ipc-handlers.ts` に `registerGitWriteIPCHandlers` を実装。`di-config.ts` に `basicGitOperationsMainConfig` を定義。`src/processes/main/di/configs.ts` に1行追加 | `npm run typecheck` が通る。IPC Handler が全チャネルを登録。DI config で全 UseCase + Repository が解決される | 2.5 |
 
 ### Phase 3: コア実装 — レンダラー
 
@@ -57,7 +57,7 @@ priority: "high"
 | 3.5 | CommitViewModel + Hook | `presentation/commit-viewmodel.ts` と `presentation/use-commit-viewmodel.ts`。commit/amend 操作と空コミット防止ロジック | amend 時の確認フラグ管理。loading 状態の公開 | 3.3 |
 | 3.6 | RemoteOpsViewModel + Hook | `presentation/remote-ops-viewmodel.ts` と `presentation/use-remote-ops-viewmodel.ts`。push/pull/fetch 操作と進捗表示 | upstream 未設定エラー時の再プッシュフロー対応。操作結果通知 | 3.3 |
 | 3.7 | BranchOpsViewModel + Hook | `presentation/branch-ops-viewmodel.ts` と `presentation/use-branch-ops-viewmodel.ts`。branchCreate/checkout/delete 操作 | チェックアウト時の未コミット変更チェック（キャンセルのみ）。ブランチ削除のマージ状態確認 | 3.3 |
-| 3.8 | レンダラー DI config | `di-tokens.ts` に全トークン。`di-config.ts` に `basicGitOperationsConfig`。`src/renderer/di/configs.ts` に1行追加 | `npm run typecheck` が通る。全 UseCase / ViewModel / Service / Repository が正しく解決される | 3.4, 3.5, 3.6, 3.7 |
+| 3.8 | レンダラー DI config | `di-tokens.ts` に全トークン。`di-config.ts` に `basicGitOperationsConfig`。`src/processes/renderer/di/configs.ts` に1行追加 | `npm run typecheck` が通る。全 UseCase / ViewModel / Service / Repository が正しく解決される | 3.4, 3.5, 3.6, 3.7 |
 
 ### Phase 4: UI コンポーネント
 

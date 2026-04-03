@@ -11,6 +11,7 @@ interface StagingAreaProps {
   unstaged: FileChange[]
   untracked: string[]
   onRefresh: () => void
+  onFileSelect?: (filePath: string, staged: boolean) => void
 }
 
 function FileChangeIcon({ status }: { status: string }) {
@@ -28,7 +29,7 @@ function FileChangeIcon({ status }: { status: string }) {
   }
 }
 
-export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefresh }: StagingAreaProps) {
+export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefresh, onFileSelect }: StagingAreaProps) {
   const { loading, stageFiles, unstageFiles, stageAll, unstageAll } = useStagingViewModel()
   const [stagedOpen, setStagedOpen] = useState(true)
   const [unstagedOpen, setUnstagedOpen] = useState(true)
@@ -88,7 +89,9 @@ export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefre
                 className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
               >
                 <FileChangeIcon status={file.status} />
-                <span className="flex-1 truncate">{file.path}</span>
+                <button className="flex-1 truncate text-left" onClick={() => onFileSelect?.(file.path, true)}>
+                  {file.path}
+                </button>
                 <button
                   className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
                   onClick={() => handleUnstageFile(file.path)}
@@ -130,7 +133,9 @@ export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefre
                 className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
               >
                 <FileChangeIcon status={file.status} />
-                <span className="flex-1 truncate">{file.path}</span>
+                <button className="flex-1 truncate text-left" onClick={() => onFileSelect?.(file.path, false)}>
+                  {file.path}
+                </button>
                 <button
                   className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
                   onClick={() => handleStageFile(file.path)}

@@ -29,8 +29,8 @@ risk: "high"
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| domain 型追加（CommitResult 等） | 🟢 | shared/domain に追加済み |
-| IPC 型追加（git:stage 等のチャネル） | 🟢 | shared/types/ipc.ts に追加済み |
+| domain 型追加（CommitResult 等） | 🟢 | src/domain/ に追加済み |
+| IPC 型追加（git:stage 等のチャネル） | 🟢 | src/lib/ipc.ts に追加済み |
 | メインプロセス feature（4層） | 🟢 | GitWriteRepository + UseCases + IPC Handler 実装済み |
 | レンダラー feature（4層） | 🟢 | Repository + Service + UseCases + ViewModel 実装済み |
 | Preload API 拡張 | 🟢 | git.stage / git.commit 等 追加済み |
@@ -81,7 +81,7 @@ risk: "high"
 メインプロセス側の application 層は UseCase + GitWriteRepository IF のみで構成する。レンダラーとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git:progress`）経由でレンダラーに通知する。
 
 ```
-src/main/features/basic-git-operations/
+src/processes/main/features/basic-git-operations/
 ├── application/
 │   ├── repositories/
 │   │   └── git-write-repository.ts          # GitWriteRepository IF
@@ -109,7 +109,7 @@ src/main/features/basic-git-operations/
 ### レンダラー側
 
 ```
-src/renderer/features/basic-git-operations/
+src/processes/renderer/features/basic-git-operations/
 ├── application/
 │   ├── repositories/
 │   │   └── git-operations-repository.ts     # GitOperationsRepository IF
@@ -223,24 +223,24 @@ graph TD
 
 | モジュール名 | プロセス | 層 | 責務 | 配置場所 |
 |------------|---------|-----|------|---------|
-| GitWriteRepository IF | main | application | Git 書き込み操作の抽象 | `src/main/features/basic-git-operations/application/repositories/` |
-| GitWriteDefaultRepository | main | infrastructure | simple-git による実装 | `src/main/features/basic-git-operations/infrastructure/repositories/` |
-| Git Write UseCases | main | application | 1操作1クラス（stage, commit, push等） | `src/main/features/basic-git-operations/application/usecases/` |
-| Git IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src/main/features/basic-git-operations/presentation/` |
-| GitOperationsRepository IF | renderer | application | Git 操作 IPC クライアントの抽象 | `src/renderer/features/basic-git-operations/application/repositories/` |
-| GitOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/renderer/features/basic-git-operations/infrastructure/repositories/` |
-| GitOperationsService | renderer | application | 操作進捗・エラー状態管理（BehaviorSubject） | `src/renderer/features/basic-git-operations/application/services/` |
-| Git Operations UseCases | renderer | application | 1操作1クラス | `src/renderer/features/basic-git-operations/application/usecases/` |
-| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/renderer/features/basic-git-operations/presentation/` |
-| React Components | renderer | presentation | UI コンポーネント | `src/renderer/features/basic-git-operations/presentation/components/` |
-| domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/shared/domain/index.ts` |
-| IPC 型追加 | shared | - | 新規チャネル定義 | `src/shared/types/ipc.ts` |
+| GitWriteRepository IF | main | application | Git 書き込み操作の抽象 | `src/processes/main/features/basic-git-operations/application/repositories/` |
+| GitWriteDefaultRepository | main | infrastructure | simple-git による実装 | `src/processes/main/features/basic-git-operations/infrastructure/repositories/` |
+| Git Write UseCases | main | application | 1操作1クラス（stage, commit, push等） | `src/processes/main/features/basic-git-operations/application/usecases/` |
+| Git IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src/processes/main/features/basic-git-operations/presentation/` |
+| GitOperationsRepository IF | renderer | application | Git 操作 IPC クライアントの抽象 | `src/processes/renderer/features/basic-git-operations/application/repositories/` |
+| GitOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/processes/renderer/features/basic-git-operations/infrastructure/repositories/` |
+| GitOperationsService | renderer | application | 操作進捗・エラー状態管理（BehaviorSubject） | `src/processes/renderer/features/basic-git-operations/application/services/` |
+| Git Operations UseCases | renderer | application | 1操作1クラス | `src/processes/renderer/features/basic-git-operations/application/usecases/` |
+| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/processes/renderer/features/basic-git-operations/presentation/` |
+| React Components | renderer | presentation | UI コンポーネント | `src/processes/renderer/features/basic-git-operations/presentation/components/` |
+| domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/domain/index.ts` |
+| IPC 型追加 | shared | - | 新規チャネル定義 | `src/lib/ipc.ts` |
 
 ---
 
 # 5. データモデル
 
-`src/shared/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `BranchInfo` 等はそのまま再利用する。
+`src/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `BranchInfo` 等はそのまま再利用する。
 
 ```typescript
 // --- 基本 Git 操作 ---
@@ -344,7 +344,7 @@ export interface GitProgressEvent {
 ### GitWriteRepository（application 層）
 
 ```typescript
-// src/main/features/basic-git-operations/application/repositories/git-write-repository.ts
+// src/processes/main/features/basic-git-operations/application/repositories/git-write-repository.ts
 export interface GitWriteRepository {
   stage(worktreePath: string, files: string[]): Promise<void>
   stageAll(worktreePath: string): Promise<void>
@@ -363,7 +363,7 @@ export interface GitWriteRepository {
 ### UseCase 例（application 層）
 
 ```typescript
-// src/main/features/basic-git-operations/application/usecases/stage-files-usecase.ts
+// src/processes/main/features/basic-git-operations/application/usecases/stage-files-usecase.ts
 export class StageFilesUseCase implements ConsumerUseCase<{ worktreePath: string; files: string[] }> {
   constructor(private readonly repository: GitWriteRepository) {}
 
@@ -376,7 +376,7 @@ export class StageFilesUseCase implements ConsumerUseCase<{ worktreePath: string
 ### IPC Handler（presentation 層）
 
 ```typescript
-// src/main/features/basic-git-operations/presentation/ipc-handlers.ts
+// src/processes/main/features/basic-git-operations/presentation/ipc-handlers.ts
 export function registerGitWriteIPCHandlers(
   stageFilesUseCase: StageFilesMainUseCase,
   unstageFilesUseCase: UnstageFilesMainUseCase,
@@ -406,7 +406,7 @@ export function registerGitWriteIPCHandlers(
 ### GitOperationsRepository（application 層）
 
 ```typescript
-// src/renderer/features/basic-git-operations/application/repositories/git-operations-repository.ts
+// src/processes/renderer/features/basic-git-operations/application/repositories/git-operations-repository.ts
 export interface GitOperationsRepository {
   stage(worktreePath: string, files: string[]): Promise<void>
   stageAll(worktreePath: string): Promise<void>
@@ -425,7 +425,7 @@ export interface GitOperationsRepository {
 ### GitOperationsService（application 層 — ステートフル）
 
 ```typescript
-// src/renderer/features/basic-git-operations/application/services/git-operations-service-interface.ts
+// src/processes/renderer/features/basic-git-operations/application/services/git-operations-service-interface.ts
 export interface GitOperationsService extends BaseService {
   readonly loading$: Observable<boolean>
   readonly lastError$: Observable<IPCError | null>
@@ -438,7 +438,7 @@ export interface GitOperationsService extends BaseService {
 ### ViewModel 例
 
 ```typescript
-// src/renderer/features/basic-git-operations/presentation/staging-viewmodel.ts
+// src/processes/renderer/features/basic-git-operations/presentation/staging-viewmodel.ts
 export interface StagingViewModel {
   /** GetOperationLoadingUseCase 経由で取得（A-004: ViewModel は UseCase のみ参照） */
   readonly loading$: Observable<boolean>
@@ -452,7 +452,7 @@ export interface StagingViewModel {
 ### Hook ラッパー例
 
 ```typescript
-// src/renderer/features/basic-git-operations/presentation/use-staging-viewmodel.ts
+// src/processes/renderer/features/basic-git-operations/presentation/use-staging-viewmodel.ts
 export function useStagingViewModel() {
   const vm = useResolve(StagingViewModelToken)
   const loading = useObservable(vm.loading$, false)
@@ -478,8 +478,8 @@ export function useStagingViewModel() {
 ### メインプロセス側 di-tokens.ts
 
 ```typescript
-// src/main/features/basic-git-operations/di-tokens.ts
-import { createToken } from '@shared/lib/di'
+// src/processes/main/features/basic-git-operations/di-tokens.ts
+import { createToken } from '@lib/di'
 
 export const GitWriteRepositoryToken = createToken<GitWriteRepository>('GitWriteRepository')
 
@@ -492,7 +492,7 @@ export const StageFilesMainUseCaseToken = createToken<StageFilesMainUseCase>('St
 ### メインプロセス側 di-config.ts
 
 ```typescript
-// src/main/features/basic-git-operations/di-config.ts
+// src/processes/main/features/basic-git-operations/di-config.ts
 export const basicGitOperationsMainConfig: VContainerConfig = {
   register(container) {
     container.registerSingleton(GitWriteRepositoryToken, GitWriteDefaultRepository)
@@ -514,7 +514,7 @@ export const basicGitOperationsMainConfig: VContainerConfig = {
 ### レンダラー側 di-config.ts
 
 ```typescript
-// src/renderer/features/basic-git-operations/di-config.ts
+// src/processes/renderer/features/basic-git-operations/di-config.ts
 export const basicGitOperationsConfig: VContainerConfig = {
   register(container) {
     // Repository
@@ -563,14 +563,14 @@ export const basicGitOperationsConfig: VContainerConfig = {
 ### DI 統合エントリーポイントへの追加
 
 ```typescript
-// src/main/di/configs.ts に追加
+// src/processes/main/di/configs.ts に追加
 import { basicGitOperationsMainConfig } from '../features/basic-git-operations/di-config'
 export const mainConfigs = [
   // ... 既存 config
   basicGitOperationsMainConfig,
 ]
 
-// src/renderer/di/configs.ts に追加
+// src/processes/renderer/di/configs.ts に追加
 import { basicGitOperationsConfig } from '../features/basic-git-operations/di-config'
 export const rendererConfigs = [
   // ... 既存 config

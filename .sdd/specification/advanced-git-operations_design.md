@@ -152,14 +152,14 @@ graph TD
 
 | モジュール名                         | プロセス     | 責務                            | 配置場所                                                    |
 |--------------------------------|----------|-------------------------------|---------------------------------------------------------|
-| MergeService                   | main     | マージ実行・中止・状態取得                 | `src/main/services/git/merge.ts`                        |
-| RebaseService                  | main     | リベース実行・中止・続行・コミット一覧取得         | `src/main/services/git/rebase.ts`                       |
-| StashService                   | main     | スタッシュの退避・復元・削除・一覧取得           | `src/main/services/git/stash.ts`                        |
-| CherryPickService              | main     | チェリーピック実行・中止                  | `src/main/services/git/cherry-pick.ts`                  |
-| ConflictService                | main     | コンフリクトファイル一覧・3ウェイ内容取得・解決処理    | `src/main/services/git/conflict.ts`                     |
-| TagService                     | main     | タグの作成・削除・一覧取得                 | `src/main/services/git/tag.ts`                          |
-| SafetyGuard                    | main     | 不可逆操作の安全性チェック（未コミット変更検出等）     | `src/main/services/git/safety-guard.ts`                 |
-| Git IPC ハンドラー                  | main     | 高度な Git 操作の IPC ルーティング        | `src/main/ipc/git-advanced.ts`                          |
+| MergeService                   | main     | マージ実行・中止・状態取得                 | `src/processes/main/services/git/merge.ts`                        |
+| RebaseService                  | main     | リベース実行・中止・続行・コミット一覧取得         | `src/processes/main/services/git/rebase.ts`                       |
+| StashService                   | main     | スタッシュの退避・復元・削除・一覧取得           | `src/processes/main/services/git/stash.ts`                        |
+| CherryPickService              | main     | チェリーピック実行・中止                  | `src/processes/main/services/git/cherry-pick.ts`                  |
+| ConflictService                | main     | コンフリクトファイル一覧・3ウェイ内容取得・解決処理    | `src/processes/main/services/git/conflict.ts`                     |
+| TagService                     | main     | タグの作成・削除・一覧取得                 | `src/processes/main/services/git/tag.ts`                          |
+| SafetyGuard                    | main     | 不可逆操作の安全性チェック（未コミット変更検出等）     | `src/processes/main/services/git/safety-guard.ts`                 |
+| Git IPC ハンドラー                  | main     | 高度な Git 操作の IPC ルーティング        | `src/processes/main/ipc/git-advanced.ts`                          |
 | Git 型定義                        | shared   | 高度な Git 操作の型定義                | `src/types/git-advanced.ts`                             |
 | preload Git API                | preload  | contextBridge 経由の Git 操作 API  | `src/preload.ts`（既存ファイルに追加）                             |
 | MergeDialog                    | renderer | マージ設定 UI                      | `src/components/git/MergeDialog.tsx`                    |
@@ -193,7 +193,7 @@ function createGitInstance(worktreePath: string): SimpleGit {
 ## 6.1. IPC ハンドラー（メインプロセス側）
 
 ```typescript
-// src/main/ipc/git-advanced.ts
+// src/processes/main/ipc/git-advanced.ts
 import {ipcMain, BrowserWindow} from 'electron';
 import type {IPCResult} from '../../types/ipc';
 import type {

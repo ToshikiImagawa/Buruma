@@ -1,22 +1,44 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Separator } from '@renderer/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { BranchOperations } from '@renderer/features/basic-git-operations/presentation/components/branch-operations'
+import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
+import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
+import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import { Circle, FileText, FolderOpen, GitBranch, GitCommit, Info } from 'lucide-react'
-import { BranchList } from './BranchList'
+import { useBranchListViewModel } from '../use-branch-list-viewmodel'
+import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
 import { CommitLog } from './CommitLog'
 import { DiffView } from './DiffView'
 import { FileTree } from './FileTree'
-import { StatusView } from './StatusView'
 
 export function RepositoryDetailPanel() {
   const { selectedWorktree } = useWorktreeDetailViewModel()
+  const { status, loadStatus } = useStatusViewModel()
+  const { branches, loadBranches } = useBranchListViewModel()
   const [selectedFilePath, setSelectedFilePath] = useState<string | null>(null)
   const [selectedFileStaged, setSelectedFileStaged] = useState(false)
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null)
   const [commitFilePath, setCommitFilePath] = useState<string | undefined>(undefined)
+
+  const worktreePath = selectedWorktree?.path ?? ''
+
+  useEffect(() => {
+    if (worktreePath) {
+      loadStatus(worktreePath)
+      loadBranches(worktreePath)
+    }
+  }, [worktreePath, loadStatus, loadBranches])
+
+  const handleRefresh = useCallback(() => {
+    if (worktreePath) {
+      loadStatus(worktreePath)
+      loadBranches(worktreePath)
+    }
+  }, [worktreePath, loadStatus, loadBranches])
 
   const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
     setSelectedFilePath(filePath)
@@ -87,7 +109,28 @@ export function RepositoryDetailPanel() {
         <TabsContent value="status" className="mt-0 h-full">
           <div className="flex h-full">
             <div className="w-1/3 min-w-[200px] border-r overflow-auto">
-              <StatusView worktreePath={selectedWorktree.path} onFileSelect={handleStatusFileSelect} />
+              <StagingArea
+                worktreePath={selectedWorktree.path}
+                staged={status?.staged ?? []}
+                unstaged={status?.unstaged ?? []}
+                untracked={status?.untracked ?? []}
+                onRefresh={handleRefresh}
+                onFileSelect={handleStatusFileSelect}
+              />
+              <Separator />
+              <CommitForm
+                worktreePath={selectedWorktree.path}
+                hasStagedFiles={(status?.staged.length ?? 0) > 0}
+                onCommitted={handleRefresh}
+              />
+              <Separator />
+              <div className="p-2">
+                <PushPullButtons
+                  worktreePath={selectedWorktree.path}
+                  currentBranch={branches?.local.find((b) => b.isHead)}
+                  onRefresh={handleRefresh}
+                />
+              </div>
             </div>
             <div className="flex-1 overflow-hidden">
               {selectedFilePath && !selectedCommitHash ? (
@@ -143,8 +186,14 @@ export function RepositoryDetailPanel() {
           </div>
         </TabsContent>
 
-        <TabsContent value="branches" className="mt-0 h-full">
-          <BranchList worktreePath={selectedWorktree.path} />
+        <TabsContent value="branches" className="mt-0 h-full overflow-auto">
+          <BranchOperations
+            worktreePath={selectedWorktree.path}
+            currentBranch={selectedWorktree.branch ?? ''}
+            localBranches={branches?.local ?? []}
+            hasDirtyFiles={selectedWorktree.isDirty}
+            onRefresh={handleRefresh}
+          />
         </TabsContent>
 
         <TabsContent value="files" className="mt-0 h-full">

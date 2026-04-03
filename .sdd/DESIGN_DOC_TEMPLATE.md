@@ -120,7 +120,7 @@ interface SomeEntity {
 ## 6.1. IPC ハンドラー（メインプロセス側）
 
 ```typescript
-// src/main.ts または src/main/handlers/
+// src/main.ts または src/processes/main/handlers/
 ipcMain.handle('channel-name', async (_event, args: ArgType): Promise<ReturnType> => {
   // ...
 });
