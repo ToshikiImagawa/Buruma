@@ -6,9 +6,9 @@ status: "draft"
 sdd-phase: "plan"
 impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: [ "spec-advanced-git-operations" ]
-tags: [ "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag" ]
+tags: [ "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "refactoring-planned" ]
 category: "git-operations"
 priority: "medium"
 risk: "high"
@@ -558,9 +558,290 @@ interface ElectronAPI {
 
 ---
 
-# 10. 変更履歴
+# 10. リファクタリング計画
 
-## v1.0
+## 目的と背景
+
+**リファクタリングが必要な理由:**
+
+現在の design（v1.0）は、プロジェクトの Clean Architecture 4層構成・DI パターン・ViewModel + Hook パターンに準拠していない旧構造で記述されている。Basic Git Operations、Repository Viewer、Worktree Management はすべて Clean Architecture パターンで実装済みであり、Advanced Git Operations も同じパターンに統一する必要がある。
+
+**ビジネス/技術的な推進要因:**
+
+- プロジェクト全体のアーキテクチャ一貫性の確保（既存3機能との統一）
+- DI パターンによるテスト容易性の向上（UseCase 単体テストが容易に）
+- ViewModel + Hook パターンによるレンダラー側の関心事分離
+
+## 現状分析
+
+**特定された問題:**
+
+1. **ディレクトリ構造の不一致** (深刻度: 高)
+    - 説明: v1.0 は `src/processes/main/services/git/`, `src/components/git/` 等のフラットなパスを使用しているが、プロジェクトは `src/processes/{main|renderer}/features/{name}/` の feature ベース4層構成を採用済み
+    - 影響: 新規開発者が既存パターンと異なる構造を見て混乱する。DI 統合エントリーポイントに接続できない
+
+2. **命名ルール違反** (深刻度: 高)
+    - 説明: `MergeService`, `RebaseService` 等のステートレスな Git CLI ラッパーに「Service」命名を使用している。CLAUDE.md の命名ルールでは、ステートレスな外部 API ラッパーは「Repository」と命名する
+    - 影響: Service と Repository の責務の混同。basic-git-operations の `GitWriteRepository` パターンと不整合
+
+3. **UseCase 層の欠如** (深刻度: 高)
+    - 説明: IPC Handler から直接 Service を呼び出す設計。Clean Architecture では UseCase 層（1クラス = 1操作）を挟む
+    - 影響: 操作ごとのテスト容易性低下。依存方向の違反
+
+4. **DI パターンの欠如** (深刻度: 高)
+    - 説明: `di-tokens.ts`, `di-config.ts`, VContainerConfig が未定義。DI 統合エントリーポイント（`configs.ts`）に接続できない
+    - 影響: コンテナ経由のサービス解決不可。既存アプリのライフサイクルに統合できない
+
+5. **ViewModel + Hook パターンの欠如** (深刻度: 中)
+    - 説明: React コンポーネントが Props でコールバックを直接受け取る設計。プロジェクトでは ViewModel（純粋 TS + RxJS）+ Hook ラッパー（`useResolve` + `useObservable`）を使用
+    - 影響: コンポーネントが UseCase を直接参照できず、A-004 準拠が困難
+
+6. **SafetyGuard モジュールの設計見直し** (深刻度: 低)
+    - 説明: 独立した `SafetyGuard` モジュールが定義されているが、Clean Architecture の層構造に位置づけられていない
+    - 影響: 安全性チェックロジックの配置先が不明確
+
+**根本原因分析:**
+
+design v1.0 は、プロジェクトが Clean Architecture パターンを採用する前（または他 feature の実装確定前）に作成された。その後 Basic Git Operations の実装で確立されたパターン（DI + UseCase + ViewModel + Hook）が v1.0 に反映されていない。
+
+## リファクタリング戦略
+
+**ゴール:**
+
+1. Clean Architecture 4層構成（application / infrastructure / presentation + domain）に準拠したディレクトリ構成へ更新
+2. DI パターン（VContainerConfig + Token + useClass + deps）を適用
+3. ViewModel + Hook パターンを適用（ViewModel は UseCase のみ参照、A-004 準拠）
+4. ステートレスな Git CLI ラッパーを「Repository」に命名統一
+5. 1クラス = 1操作の UseCase 層を導入
+
+**アプローチ:**
+
+- **パターン:** Basic Git Operations で確立済みのパターンをそのまま踏襲
+- **技法:** design doc セクション 1〜9 を v2.0 として全面更新。PRD・spec は変更なし（論理仕様は正しいため）
+
+**トレードオフ:**
+
+| 側面 | Before (v1.0) | After (v2.0) | トレードオフ |
+|:---|:---|:---|:---|
+| ファイル数 | 少ない（フラット構成） | 多い（feature ベース4層） | ファイル数は増えるが各ファイルの責務が明確 |
+| 学習コスト | 低い（直接的な構成） | 中程度（Clean Architecture の理解が必要） | プロジェクト全体で統一されているため、他 feature と同じパターンで学習可能 |
+| テスト容易性 | 低い（密結合） | 高い（DI + UseCase 単体テスト） | テストコードは増えるが品質が向上 |
+
+## 移行計画
+
+design doc の各セクションを以下の方針で v2.0 に更新する:
+
+**セクション 1（実装ステータス）:**
+
+- モジュール名を Clean Architecture 命名に更新
+  - `MergeService` → `MergeRepository IF` + `MergeDefaultRepository` + `Merge UseCases`
+  - `SafetyGuard` → 削除（安全性チェックは UseCase 内の前処理として実装、または共有ユーティリティとして `src/lib/` に配置）
+  - `MergeDialog` → `MergeViewModel` + `useMergeViewModel` + `MergeDialog`
+
+**セクション 4（アーキテクチャ）:**
+
+- ディレクトリ構成を feature ベース4層に更新:
+
+```
+src/processes/main/features/advanced-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── git-advanced-repository.ts       # GitAdvancedRepository IF（全6サブシステム統合）
+│   └── usecases/
+│       ├── merge-usecase.ts                 # MergeUseCase
+│       ├── merge-abort-usecase.ts           # MergeAbortUseCase
+│       ├── merge-status-usecase.ts          # MergeStatusUseCase
+│       ├── rebase-usecase.ts                # RebaseUseCase
+│       ├── rebase-interactive-usecase.ts    # RebaseInteractiveUseCase
+│       ├── rebase-abort-usecase.ts          # RebaseAbortUseCase
+│       ├── rebase-continue-usecase.ts       # RebaseContinueUseCase
+│       ├── get-rebase-commits-usecase.ts    # GetRebaseCommitsUseCase
+│       ├── stash-save-usecase.ts            # StashSaveUseCase
+│       ├── stash-list-usecase.ts            # StashListUseCase
+│       ├── stash-pop-usecase.ts             # StashPopUseCase
+│       ├── stash-apply-usecase.ts           # StashApplyUseCase
+│       ├── stash-drop-usecase.ts            # StashDropUseCase
+│       ├── stash-clear-usecase.ts           # StashClearUseCase
+│       ├── cherry-pick-usecase.ts           # CherryPickUseCase
+│       ├── cherry-pick-abort-usecase.ts     # CherryPickAbortUseCase
+│       ├── conflict-list-usecase.ts         # ConflictListUseCase
+│       ├── conflict-file-content-usecase.ts # ConflictFileContentUseCase
+│       ├── conflict-resolve-usecase.ts      # ConflictResolveUseCase
+│       ├── conflict-resolve-all-usecase.ts  # ConflictResolveAllUseCase
+│       ├── conflict-mark-resolved-usecase.ts # ConflictMarkResolvedUseCase
+│       ├── tag-list-usecase.ts              # TagListUseCase
+│       ├── tag-create-usecase.ts            # TagCreateUseCase
+│       └── tag-delete-usecase.ts            # TagDeleteUseCase
+├── infrastructure/
+│   └── repositories/
+│       └── git-advanced-default-repository.ts  # simple-git による実装
+├── presentation/
+│   └── ipc-handlers.ts                     # IPC Handler（git:merge 等）
+├── di-tokens.ts
+└── di-config.ts
+```
+
+```
+src/processes/renderer/features/advanced-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── advanced-operations-repository.ts     # AdvancedOperationsRepository IF
+│   ├── services/
+│   │   ├── advanced-operations-service-interface.ts  # AdvancedOperationsService IF
+│   │   └── advanced-operations-service.ts            # Service 実装（操作状態管理）
+│   └── usecases/
+│       ├── merge-usecase.ts                 # MergeUseCase (renderer)
+│       ├── merge-abort-usecase.ts
+│       ├── ... (メインプロセス側と対応する全 UseCase)
+│       ├── get-operation-loading-usecase.ts  # ObservableStoreUseCase<boolean>
+│       └── get-last-error-usecase.ts         # ObservableStoreUseCase<IPCError | null>
+├── infrastructure/
+│   └── repositories/
+│       └── advanced-operations-default-repository.ts  # IPC クライアント実装
+├── presentation/
+│   ├── viewmodel-interfaces.ts              # 全 ViewModel IF
+│   ├── components/
+│   │   ├── merge-dialog.tsx
+│   │   ├── rebase-editor.tsx
+│   │   ├── stash-manager.tsx
+│   │   ├── cherry-pick-dialog.tsx
+│   │   ├── conflict-resolver.tsx
+│   │   ├── three-way-merge-view.tsx
+│   │   └── tag-manager.tsx
+│   ├── merge-viewmodel.ts
+│   ├── use-merge-viewmodel.ts
+│   ├── rebase-viewmodel.ts
+│   ├── use-rebase-viewmodel.ts
+│   ├── stash-viewmodel.ts
+│   ├── use-stash-viewmodel.ts
+│   ├── cherry-pick-viewmodel.ts
+│   ├── use-cherry-pick-viewmodel.ts
+│   ├── conflict-viewmodel.ts
+│   ├── use-conflict-viewmodel.ts
+│   ├── tag-viewmodel.ts
+│   └── use-tag-viewmodel.ts
+├── di-tokens.ts
+└── di-config.ts
+```
+
+- システム構成図を Clean Architecture 層構成に更新
+- モジュール分割テーブルを4層構成に更新
+
+**セクション 4.2（モジュール分割）:**
+
+| モジュール名 | プロセス | 層 | 責務 | 配置場所 |
+|---|---|---|---|---|
+| GitAdvancedRepository IF | main | application | Git 高度操作の抽象（マージ・リベース・スタッシュ・チェリーピック・コンフリクト・タグ） | `features/advanced-git-operations/application/repositories/` |
+| GitAdvancedDefaultRepository | main | infrastructure | simple-git による実装 | `features/advanced-git-operations/infrastructure/repositories/` |
+| Git Advanced UseCases | main | application | 1操作1クラス（24 UseCases） | `features/advanced-git-operations/application/usecases/` |
+| Git Advanced IPC Handler | main | presentation | IPC ルーティング + バリデーション | `features/advanced-git-operations/presentation/` |
+| AdvancedOperationsRepository IF | renderer | application | Git 高度操作 IPC クライアントの抽象 | `features/advanced-git-operations/application/repositories/` |
+| AdvancedOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `features/advanced-git-operations/infrastructure/repositories/` |
+| AdvancedOperationsService | renderer | application | 操作状態管理（loading$, lastError$, operationProgress$） | `features/advanced-git-operations/application/services/` |
+| Git Advanced UseCases | renderer | application | 1操作1クラス + Observable UseCases | `features/advanced-git-operations/application/usecases/` |
+| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開（6 ViewModel） | `features/advanced-git-operations/presentation/` |
+| React Components | renderer | presentation | UI コンポーネント | `features/advanced-git-operations/presentation/components/` |
+
+**セクション 5（データモデル）:**
+
+- 型定義を `src/domain/index.ts` に追加する方針に更新（`src/types/git-advanced.ts` ではなく）
+- 既存の `IPCChannelMap` / `IPCEventMap` に新チャネルを追加
+
+**セクション 6（インターフェース定義）:**
+
+- IPC Handler を `wrapHandler` + `validatePath` パターンに更新
+- Service を直接呼び出すのではなく UseCase 経由に変更
+- Preload API は `src/lib/ipc.ts` の `ElectronAPI.git` に型安全に追加
+- ViewModel + Hook パターンのインターフェース定義を追加
+
+**セクション 6.3（DI 構成）:**
+
+- メインプロセス側 `di-tokens.ts` と `di-config.ts` を追加
+- レンダラー側 `di-tokens.ts` と `di-config.ts` を追加
+- `src/processes/main/di/configs.ts` と `src/processes/renderer/di/configs.ts` への1行追加
+
+**SafetyGuard の扱い:**
+
+`SafetyGuard` は独立モジュールとして設計されていたが、以下のように再配置する:
+
+- 未コミット変更の検出 → 既存の `git:status` API を利用（レンダラー側 ViewModel で判定）
+- 進行中の操作検出 → `AdvancedOperationsService` の状態管理で対応
+- 独立モジュールとしての `SafetyGuard` は削除し、各 ViewModel 内のロジックとして統合
+
+## 影響分析
+
+**破壊的変更:**
+
+- [x] なし（後方互換性あり） — 未実装機能のため影響なし
+
+**影響を受けるコンポーネント:**
+
+| コンポーネント | タイプ | 影響 | 緩和策 |
+|:---|:---|:---|:---|
+| `src/domain/index.ts` | 共有型 | 高度な Git 操作の型追加 | 既存型との名前衝突なし |
+| `src/lib/ipc.ts` | IPC 定義 | 新チャネル追加 | 既存チャネルに影響なし |
+| `src/processes/preload/preload.ts` | Preload | git API 拡張 | 既存メソッドに影響なし |
+| `src/processes/main/di/configs.ts` | DI 統合 | 1行追加 | 追加のみ |
+| `src/processes/renderer/di/configs.ts` | DI 統合 | 1行追加 | 追加のみ |
+
+**依存関係:**
+
+- 必要: basic-git-operations の `GitProgressEvent` / `git:progress` IPC イベント（進捗通知の共通基盤として再利用）
+- 必要: repository-viewer の `git:status` / `git:branches`（操作後のリフレッシュ用）
+
+## テスト戦略
+
+| テストレベル | 対象 | カバレッジ目標 |
+|---|---|---|
+| ユニットテスト | GitAdvancedDefaultRepository（simple-git をモック） | ≥ 80% |
+| ユニットテスト | メインプロセス UseCases（24 クラス） | ≥ 80% |
+| ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
+| ユニットテスト | レンダラー UseCases + 6 ViewModel | ≥ 60% |
+| 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
+| E2E テスト | マージ→コンフリクト解決→続行フロー | 主要ユースケース |
+| E2E テスト | スタッシュ save→list→pop フロー | 主要ユースケース |
+
+## 成功基準
+
+- [ ] design doc の全セクションが Clean Architecture パターンに準拠
+- [ ] `npm run typecheck` がパス
+- [ ] `npm run lint` がパス
+- [ ] `npm run test` がパス
+- [ ] 既存 feature（basic-git-operations, repository-viewer, worktree-management）に影響なし
+
+## リスクと緩和策
+
+| リスク | 可能性 | 影響 | 緩和策 |
+|:---|:---|:---|:---|
+| UseCase 数の多さ（24 クラス）による実装工数増大 | 高 | 中 | サブシステム別にフェーズ分割（マージ→スタッシュ→コンフリクト→リベース→チェリーピック→タグ） |
+| インタラクティブリベースの simple-git サポート不足 | 中 | 高 | simple-git の raw コマンド実行で対応。不足時は child_process にフォールバック |
+| Monaco Editor の3ウェイ表示カスタマイズ | 中 | 中 | DiffEditor 2つ + 結果エディタの3パネル構成。サードパーティライブラリも検討 |
+
+## 参考資料
+
+- 関連 PRD: [advanced-git-operations.md](../requirement/advanced-git-operations.md)
+- 関連仕様書: [advanced-git-operations_spec.md](./advanced-git-operations_spec.md)
+- 参考実装: [basic-git-operations_design.md](./basic-git-operations_design.md) — Clean Architecture パターンの実装済みリファレンス
+
+---
+
+**最終更新:** 2026-04-04
+**作成者:** Claude Code (AI-SDD plan-refactor スキル)
+
+---
+
+# 11. 変更履歴
+
+## v2.0 (2026-04-04)
+
+**変更内容:**
+
+- Clean Architecture 4層構成への全面リファクタリング計画を追加（セクション 10）
+- front matter に `refactoring-planned` タグを追加
+- `SafetyGuard` モジュールの統合方針を決定
+- ディレクトリ構成・モジュール分割を feature ベース4層に更新
+
+## v1.0 (2026-03-25)
 
 **変更内容:**
 
