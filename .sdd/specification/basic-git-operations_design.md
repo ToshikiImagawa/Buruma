@@ -4,7 +4,7 @@ title: "基本 Git 操作"
 type: "design"
 status: "draft"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-02"
 depends-on: ["spec-basic-git-operations"]
@@ -23,17 +23,18 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装完了
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| domain 型追加（CommitResult 等） | 🔴 | shared/domain に追加 |
-| IPC 型追加（git:stage 等のチャネル） | 🔴 | shared/types/ipc.ts に追加 |
-| メインプロセス feature（4層） | 🔴 | GitWriteRepository + UseCases + IPC Handler |
-| レンダラー feature（4層） | 🔴 | Repository + Service + UseCases + ViewModel |
-| Preload API 拡張 | 🔴 | git.stage / git.commit 等 |
+| domain 型追加（CommitResult 等） | 🟢 | shared/domain に追加済み |
+| IPC 型追加（git:stage 等のチャネル） | 🟢 | shared/types/ipc.ts に追加済み |
+| メインプロセス feature（4層） | 🟢 | GitWriteRepository + UseCases + IPC Handler 実装済み |
+| レンダラー feature（4層） | 🟢 | Repository + Service + UseCases + ViewModel 実装済み |
+| Preload API 拡張 | 🟢 | git.stage / git.commit 等 追加済み |
+| UI コンポーネント | 🟢 | StagingArea, CommitForm, PushPullButtons, BranchOperations 実装済み |
 
 ---
 

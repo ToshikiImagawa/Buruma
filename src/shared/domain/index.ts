@@ -221,3 +221,94 @@ export interface FileContents {
 
 /** 差分表示モード */
 export type DiffDisplayMode = 'inline' | 'side-by-side'
+
+// --- 基本 Git 操作 ---
+
+/** コミット引数 */
+export interface CommitArgs {
+  worktreePath: string
+  message: string
+  amend?: boolean
+}
+
+/** コミット結果 */
+export interface CommitResult {
+  hash: string
+  message: string
+  author: string
+  date: string // ISO 8601
+}
+
+/** プッシュ引数 */
+export interface PushArgs {
+  worktreePath: string
+  remote?: string
+  branch?: string
+  setUpstream?: boolean
+}
+
+/** プッシュ結果 */
+export interface PushResult {
+  remote: string
+  branch: string
+  success: boolean
+  upToDate: boolean
+}
+
+/** プル引数 */
+export interface PullArgs {
+  worktreePath: string
+  remote?: string
+  branch?: string
+}
+
+/** プル結果 */
+export interface PullResult {
+  remote: string
+  branch: string
+  summary: {
+    changes: number
+    insertions: number
+    deletions: number
+  }
+  conflicts: string[]
+}
+
+/** フェッチ引数 */
+export interface FetchArgs {
+  worktreePath: string
+  remote?: string
+}
+
+/** フェッチ結果 */
+export interface FetchResult {
+  remote: string
+}
+
+/** ブランチ作成引数 */
+export interface BranchCreateArgs {
+  worktreePath: string
+  name: string
+  startPoint?: string
+}
+
+/** ブランチチェックアウト引数 */
+export interface BranchCheckoutArgs {
+  worktreePath: string
+  branch: string
+}
+
+/** ブランチ削除引数 */
+export interface BranchDeleteArgs {
+  worktreePath: string
+  branch: string
+  remote?: boolean
+  force?: boolean
+}
+
+/** Git 進捗イベント */
+export interface GitProgressEvent {
+  operation: string
+  phase: string
+  progress?: number // 0-100, undefined = indeterminate
+}

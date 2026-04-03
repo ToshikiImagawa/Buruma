@@ -107,12 +107,58 @@ export interface IPCChannelMap {
     args: [{ worktreePath: string; hash: string; filePath: string }]
     result: IPCResult<import('../domain').FileContents>
   }
+  // basic-git-operations channels
+  'git:stage': {
+    args: [{ worktreePath: string; files: string[] }]
+    result: IPCResult<void>
+  }
+  'git:stage-all': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:unstage': {
+    args: [{ worktreePath: string; files: string[] }]
+    result: IPCResult<void>
+  }
+  'git:unstage-all': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:commit': {
+    args: [import('../domain').CommitArgs]
+    result: IPCResult<import('../domain').CommitResult>
+  }
+  'git:push': {
+    args: [import('../domain').PushArgs]
+    result: IPCResult<import('../domain').PushResult>
+  }
+  'git:pull': {
+    args: [import('../domain').PullArgs]
+    result: IPCResult<import('../domain').PullResult>
+  }
+  'git:fetch': {
+    args: [import('../domain').FetchArgs]
+    result: IPCResult<import('../domain').FetchResult>
+  }
+  'git:branch-create': {
+    args: [import('../domain').BranchCreateArgs]
+    result: IPCResult<void>
+  }
+  'git:branch-checkout': {
+    args: [import('../domain').BranchCheckoutArgs]
+    result: IPCResult<void>
+  }
+  'git:branch-delete': {
+    args: [import('../domain').BranchDeleteArgs]
+    result: IPCResult<void>
+  }
 }
 
 /** main → renderer イベント */
 export interface IPCEventMap {
   'error:notify': import('../domain').ErrorNotification
   'worktree:changed': import('../domain').WorktreeChangeEvent
+  'git:progress': import('../domain').GitProgressEvent
 }
 
 /** Preload API 型（contextBridge 経由で公開） */
@@ -165,6 +211,19 @@ export interface ElectronAPI {
       hash: string
       filePath: string
     }): Promise<IPCResult<import('../domain').FileContents>>
+    // basic-git-operations
+    stage(args: { worktreePath: string; files: string[] }): Promise<IPCResult<void>>
+    stageAll(args: { worktreePath: string }): Promise<IPCResult<void>>
+    unstage(args: { worktreePath: string; files: string[] }): Promise<IPCResult<void>>
+    unstageAll(args: { worktreePath: string }): Promise<IPCResult<void>>
+    commit(args: import('../domain').CommitArgs): Promise<IPCResult<import('../domain').CommitResult>>
+    push(args: import('../domain').PushArgs): Promise<IPCResult<import('../domain').PushResult>>
+    pull(args: import('../domain').PullArgs): Promise<IPCResult<import('../domain').PullResult>>
+    fetch(args: import('../domain').FetchArgs): Promise<IPCResult<import('../domain').FetchResult>>
+    branchCreate(args: import('../domain').BranchCreateArgs): Promise<IPCResult<void>>
+    branchCheckout(args: import('../domain').BranchCheckoutArgs): Promise<IPCResult<void>>
+    branchDelete(args: import('../domain').BranchDeleteArgs): Promise<IPCResult<void>>
+    onProgress(callback: (event: import('../domain').GitProgressEvent) => void): () => void
   }
 }
 

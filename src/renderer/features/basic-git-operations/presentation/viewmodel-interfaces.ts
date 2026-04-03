@@ -1,0 +1,34 @@
+import type { CommitResult, PullResult, PushResult } from '@shared/domain'
+import type { IPCError } from '@shared/types/ipc'
+import type { Observable } from 'rxjs'
+
+export interface StagingViewModel {
+  readonly loading$: Observable<boolean>
+  stageFiles(worktreePath: string, files: string[]): void
+  unstageFiles(worktreePath: string, files: string[]): void
+  stageAll(worktreePath: string): void
+  unstageAll(worktreePath: string): void
+}
+
+export interface CommitViewModel {
+  readonly loading$: Observable<boolean>
+  readonly lastCommitResult$: Observable<CommitResult | null>
+  commit(worktreePath: string, message: string, amend?: boolean): void
+}
+
+export interface RemoteOpsViewModel {
+  readonly loading$: Observable<boolean>
+  readonly lastError$: Observable<IPCError | null>
+  readonly lastPushResult$: Observable<PushResult | null>
+  readonly lastPullResult$: Observable<PullResult | null>
+  push(worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean): void
+  pull(worktreePath: string, remote?: string, branch?: string): void
+  fetch(worktreePath: string, remote?: string): void
+}
+
+export interface BranchOpsViewModel {
+  readonly loading$: Observable<boolean>
+  createBranch(worktreePath: string, name: string, startPoint?: string): void
+  checkoutBranch(worktreePath: string, branch: string): void
+  deleteBranch(worktreePath: string, branch: string, remote?: boolean, force?: boolean): void
+}

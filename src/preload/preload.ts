@@ -59,6 +59,27 @@ const electronAPI: ElectronAPI = {
     fileTree: (args) => ipcRenderer.invoke('git:file-tree', args),
     fileContents: (args) => ipcRenderer.invoke('git:file-contents', args),
     fileContentsCommit: (args) => ipcRenderer.invoke('git:file-contents-commit', args),
+    // basic-git-operations
+    stage: (args) => ipcRenderer.invoke('git:stage', args),
+    stageAll: (args) => ipcRenderer.invoke('git:stage-all', args),
+    unstage: (args) => ipcRenderer.invoke('git:unstage', args),
+    unstageAll: (args) => ipcRenderer.invoke('git:unstage-all', args),
+    commit: (args) => ipcRenderer.invoke('git:commit', args),
+    push: (args) => ipcRenderer.invoke('git:push', args),
+    pull: (args) => ipcRenderer.invoke('git:pull', args),
+    fetch: (args) => ipcRenderer.invoke('git:fetch', args),
+    branchCreate: (args) => ipcRenderer.invoke('git:branch-create', args),
+    branchCheckout: (args) => ipcRenderer.invoke('git:branch-checkout', args),
+    branchDelete: (args) => ipcRenderer.invoke('git:branch-delete', args),
+    onProgress: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('git:progress', handler)
+      return () => {
+        ipcRenderer.removeListener('git:progress', handler)
+      }
+    },
   },
 }
 
