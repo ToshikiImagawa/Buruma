@@ -7,8 +7,9 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@shared': path.resolve(__dirname, './src/shared'),
-      '@renderer': path.resolve(__dirname, './src/renderer'),
+      '@domain': path.resolve(__dirname, './src/domain'),
+      '@lib': path.resolve(__dirname, './src/lib'),
+      '@renderer': path.resolve(__dirname, './src/processes/renderer'),
     },
   },
   optimizeDeps: {

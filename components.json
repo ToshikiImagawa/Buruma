@@ -5,14 +5,14 @@
   "tsx": true,
   "aliases": {
     "components": "@renderer/components",
-    "utils": "@shared/lib/utils",
+    "utils": "@lib/utils",
     "ui": "@renderer/components/ui",
-    "lib": "@shared/lib",
-    "hooks": "@shared/lib/hooks"
+    "lib": "@lib",
+    "hooks": "@lib/hooks"
   },
   "tailwind": {
     "config": "",
-    "css": "src/renderer/index.css",
+    "css": "src/processes/renderer/index.css",
     "baseColor": "neutral",
     "cssVariables": true
   }

@@ -1,0 +1,25 @@
+import type { RepositoryInfo } from '@domain'
+import type { FunctionUseCase } from '@lib/usecase/types'
+import type { GitValidationRepository, StoreRepository } from '../repositories/types'
+import { addToRecent } from './recent-repository-helper'
+
+export class OpenRepositoryByPathMainUseCase implements FunctionUseCase<string, Promise<RepositoryInfo | null>> {
+  constructor(
+    private readonly store: StoreRepository,
+    private readonly gitValidator: GitValidationRepository,
+  ) {}
+
+  async invoke(dirPath: string): Promise<RepositoryInfo | null> {
+    const isValid = await this.gitValidator.isGitRepository(dirPath)
+    if (!isValid) return null
+
+    const repoInfo: RepositoryInfo = {
+      path: dirPath,
+      name: dirPath.split(/[/\\]/).filter(Boolean).pop() ?? dirPath,
+      isValid: true,
+    }
+
+    addToRecent(this.store, repoInfo)
+    return repoInfo
+  }
+}

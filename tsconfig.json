@@ -9,10 +9,13 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@shared/*": ["./src/shared/*"],
-      "@main/*": ["./src/main/*"],
-      "@renderer/*": ["./src/renderer/*"],
-      "@preload/*": ["./src/preload/*"]
+      "@domain": ["./src/domain"],
+      "@domain/*": ["./src/domain/*"],
+      "@lib": ["./src/lib"],
+      "@lib/*": ["./src/lib/*"],
+      "@main/*": ["./src/processes/main/*"],
+      "@renderer/*": ["./src/processes/renderer/*"],
+      "@preload/*": ["./src/processes/preload/*"]
     },
     "outDir": "dist",
     "moduleResolution": "node",

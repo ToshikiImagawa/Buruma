@@ -142,17 +142,23 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `shared/domain/` |
+| RepositoryInfo, RecentRepository, AppSettings | domain | エンティティ・型定義 | `src/domain/` |
 | RepositoryRepository (IF) | application | リポジトリアクセス IF | `renderer/features/application-foundation/application/` |
 | SettingsRepository (IF) | application | 設定アクセス IF | `renderer/features/application-foundation/application/` |
 | RepositoryService | application | リポジトリ状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
 | SettingsService | application | 設定状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
 | ErrorNotificationService | application | エラー通知状態管理（ステートフル） | `renderer/features/application-foundation/application/` |
-| OpenRepositoryUseCase | application | リポジトリオープン（ステートレス） | `renderer/features/application-foundation/application/` |
-| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得（ステートレス） | `renderer/features/application-foundation/application/` |
-| GetSettingsUseCase | application | 設定取得（ステートレス） | `renderer/features/application-foundation/application/` |
-| UpdateSettingsUseCase | application | 設定更新（ステートレス） | `renderer/features/application-foundation/application/` |
-| GetErrorNotificationsUseCase | application | エラー通知取得（ステートレス） | `renderer/features/application-foundation/application/` |
+| OpenRepositoryUseCase | application | リポジトリオープン（ダイアログ経由） | `renderer/features/application-foundation/application/` |
+| OpenRepositoryByPathUseCase | application | パス指定でリポジトリオープン | `renderer/features/application-foundation/application/` |
+| GetRecentRepositoriesUseCase | application | 最近のリポジトリ取得 | `renderer/features/application-foundation/application/` |
+| RemoveRecentRepositoryUseCase | application | 最近のリポジトリ削除 | `renderer/features/application-foundation/application/` |
+| PinRepositoryUseCase | application | リポジトリのピン留め | `renderer/features/application-foundation/application/` |
+| GetCurrentRepositoryUseCase | application | 現在のリポジトリ取得（Observable） | `renderer/features/application-foundation/application/` |
+| GetSettingsUseCase | application | 設定取得 | `renderer/features/application-foundation/application/` |
+| UpdateSettingsUseCase | application | 設定更新 | `renderer/features/application-foundation/application/` |
+| GetErrorNotificationsUseCase | application | エラー通知取得（Observable） | `renderer/features/application-foundation/application/` |
+| DismissErrorUseCase | application | エラー通知の非表示 | `renderer/features/application-foundation/application/` |
+| RetryErrorUseCase | application | エラー操作の再試行 | `renderer/features/application-foundation/application/` |
 | RepositoryDefaultRepository | infrastructure | IPC 経由のリポジトリ実装 | `renderer/features/application-foundation/infrastructure/` |
 | SettingsDefaultRepository | infrastructure | IPC 経由の設定実装 | `renderer/features/application-foundation/infrastructure/` |
 | RepositorySelectorViewModel | presentation | リポジトリ選択 ViewModel | `renderer/features/application-foundation/presentation/` |
@@ -173,21 +179,29 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| RepositoryInfo, AppSettings 等 | domain | エンティティ（プロセス間共有） | `shared/domain/` |
+| RepositoryInfo, AppSettings 等 | domain | エンティティ（プロセス間共有） | `src/domain/` |
 | IPC Handlers | presentation | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/` |
-| RepositoryMainUseCase | application | Git 検証、履歴管理ビジネスルール | `main/features/application-foundation/application/` |
-| SettingsMainUseCase | application | 設定管理オーケストレーション | `main/features/application-foundation/application/` |
-| StoreRepository | infrastructure | electron-store データアクセス | `main/features/application-foundation/infrastructure/` |
-| GitRepositoryValidator | infrastructure | execFile による Git 検証 | `main/features/application-foundation/infrastructure/` |
-| DialogService | infrastructure | Electron dialog API | `main/features/application-foundation/infrastructure/` |
+| OpenRepositoryWithDialogMainUseCase | application | ダイアログ経由のリポジトリオープン | `main/features/application-foundation/application/` |
+| OpenRepositoryByPathMainUseCase | application | パス指定でリポジトリオープン | `main/features/application-foundation/application/` |
+| ValidateRepositoryMainUseCase | application | リポジトリの検証 | `main/features/application-foundation/application/` |
+| GetRecentRepositoriesMainUseCase | application | 最近のリポジトリ取得 | `main/features/application-foundation/application/` |
+| RemoveRecentRepositoryMainUseCase | application | 最近のリポジトリ削除 | `main/features/application-foundation/application/` |
+| PinRepositoryMainUseCase | application | リポジトリのピン留め | `main/features/application-foundation/application/` |
+| GetSettingsMainUseCase | application | 設定取得 | `main/features/application-foundation/application/` |
+| UpdateSettingsMainUseCase | application | 設定更新 | `main/features/application-foundation/application/` |
+| GetThemeMainUseCase | application | テーマ取得 | `main/features/application-foundation/application/` |
+| SetThemeMainUseCase | application | テーマ設定 | `main/features/application-foundation/application/` |
+| StoreDefaultRepository | infrastructure | electron-store データアクセス | `main/features/application-foundation/infrastructure/` |
+| GitValidationDefaultRepository | infrastructure | execFile による Git 検証 | `main/features/application-foundation/infrastructure/` |
+| DialogDefaultRepository | infrastructure | Electron dialog API | `main/features/application-foundation/infrastructure/` |
 
 ### プロセス間共有
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| Domain 型 | エンティティ（RepositoryInfo, AppSettings 等） | `shared/domain/` |
-| IPC 型定義 | IPC チャネルの型定義 | `shared/types/ipc.ts` |
-| Preload API | contextBridge による API 公開 | `preload/index.ts` |
+| Domain 型 | エンティティ（RepositoryInfo, AppSettings 等） | `src/domain/` |
+| IPC 型定義 | IPC チャネルの型定義 | `src/lib/ipc.ts` |
+| Preload API | contextBridge による API 公開 | `src/processes/preload/preload.ts` |
 
 ---
 
@@ -218,7 +232,7 @@ const storeDefaults: StoreSchema = {
 ## 6.1. DI コンテナ登録
 
 ```typescript
-// src/renderer/features/application-foundation/di-config.ts（目標パス）
+// src/processes/renderer/features/application-foundation/di-config.ts（目標パス）
 import type { VContainerConfig } from '@/lib/di'
 
 export const applicationFoundationConfig: VContainerConfig = {
@@ -452,7 +466,7 @@ export function registerIPCHandlers(
 | テーマ管理 | CSS 変数 / Tailwind dark mode / next-themes | Tailwind CSS dark mode + CSS 変数 | Shadcn/ui のテーマ機構と統合。system テーマは `prefers-color-scheme` メディアクエリ |
 | IPC チャネル命名 | フラット / 名前空間 | 名前空間方式 (`domain:action`) | チャネル数増加時の管理性。ドメインごとのグルーピング |
 | メインプロセスの層構成 | 4層 / infrastructure のみ | **4層構成** | メインプロセスにも Git 検証・履歴管理等のビジネスロジックが存在するため4層構成を適用。IPC Handler = presentation、UseCase = application、electron-store 等 = infrastructure |
-| プロセス別ディレクトリ分離 | feature 内 / プロセス別 | **プロセス別** | `src/main/`, `src/renderer/`, `src/shared/` に分離。ビルド境界と一致し、プロセス間の不正な依存を防止 |
+| プロセス別ディレクトリ分離 | feature 内 / プロセス別 | **プロセス別** | `src/processes/main/`, `src/processes/renderer/`, `src/` に分離。ビルド境界と一致し、プロセス間の不正な依存を防止 |
 | ViewModel の DI ライフタイム | singleton / transient | transient | コンポーネント単位でライフサイクルを管理。画面遷移時に自動的に新しいインスタンスが作成される |
 | テーマ切り替え方式 | CSS 変数 / class 切り替え | `<html>` の `class="dark"` 切り替え | Tailwind CSS dark mode が class 戦略を使用。system 連動は `window.matchMedia('prefers-color-scheme: dark')` で検出 |
 | トースト通知の実装方式 | コンポーネント描画 / API 呼び出し | Sonner の `toast()` API を useEffect 内で呼び出し | コンポーネント自体は null を返し、notifications の変更を監視して toast() を発火 |
@@ -479,7 +493,7 @@ export function registerIPCHandlers(
 
 **変更内容:**
 
-- プロセス別ディレクトリ分離を設計方針として決定（`src/main/`, `src/renderer/`, `src/shared/`, `src/preload/`）
+- プロセス別ディレクトリ分離を設計方針として決定（`src/processes/main/`, `src/processes/renderer/`, `src/`, `src/processes/preload/`）
 - メインプロセス側にも Clean Architecture 4層構成を適用
   - presentation: IPC Handler（Controller 相当）
   - application: UseCase（Git 検証、履歴管理ビジネスルール）

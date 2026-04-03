@@ -160,55 +160,55 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts` |
-| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src/main/features/worktree-management/application/usecases/get-worktree-status-main-usecase.ts` |
-| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src/main/features/worktree-management/application/usecases/create-worktree-main-usecase.ts` |
-| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts` |
-| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts` |
-| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src/main/features/worktree-management/application/usecases/check-dirty-main-usecase.ts` |
-| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src/main/features/worktree-management/application/usecases/get-default-branch-main-usecase.ts` |
-| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース | `src/main/features/worktree-management/application/worktree-interfaces.ts` |
-| WorktreeWatcher IF | application | ファイル監視の抽象インターフェース | `src/main/features/worktree-management/application/worktree-interfaces.ts` |
-| WorktreeGitDefaultRepository | infrastructure | simple-git ラッパー（list, add, remove, status） | `src/main/features/worktree-management/infrastructure/worktree-git-service.ts` |
-| WorktreeWatcher | infrastructure | chokidar による `.git/worktrees` 監視 | `src/main/features/worktree-management/infrastructure/worktree-watcher.ts` |
-| IPC Handlers | presentation | worktree:* チャネル登録、wrapHandler パターン | `src/main/features/worktree-management/presentation/ipc-handlers.ts` |
-| DI Tokens (main) | — | createToken 定義 | `src/main/features/worktree-management/di-tokens.ts` |
-| DI Config (main) | — | VContainerConfig { register, setUp } | `src/main/features/worktree-management/di-config.ts` |
+| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src/processes/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts` |
+| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src/processes/main/features/worktree-management/application/usecases/get-worktree-status-main-usecase.ts` |
+| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src/processes/main/features/worktree-management/application/usecases/create-worktree-main-usecase.ts` |
+| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src/processes/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts` |
+| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src/processes/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts` |
+| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src/processes/main/features/worktree-management/application/usecases/check-dirty-main-usecase.ts` |
+| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src/processes/main/features/worktree-management/application/usecases/get-default-branch-main-usecase.ts` |
+| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース | `src/processes/main/features/worktree-management/application/worktree-interfaces.ts` |
+| WorktreeWatcher IF | application | ファイル監視の抽象インターフェース | `src/processes/main/features/worktree-management/application/worktree-interfaces.ts` |
+| WorktreeGitDefaultRepository | infrastructure | simple-git ラッパー（list, add, remove, status） | `src/processes/main/features/worktree-management/infrastructure/worktree-git-service.ts` |
+| WorktreeWatcher | infrastructure | chokidar による `.git/worktrees` 監視 | `src/processes/main/features/worktree-management/infrastructure/worktree-watcher.ts` |
+| IPC Handlers | presentation | worktree:* チャネル登録、wrapHandler パターン | `src/processes/main/features/worktree-management/presentation/ipc-handlers.ts` |
+| DI Tokens (main) | — | createToken 定義 | `src/processes/main/features/worktree-management/di-tokens.ts` |
+| DI Config (main) | — | VContainerConfig { register, setUp } | `src/processes/main/features/worktree-management/di-config.ts` |
 
 ### レンダラー側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| WorktreeService | application | BehaviorSubject による状態管理（worktrees$, selectedPath$） | `src/renderer/features/worktree-management/application/worktree-service.ts` |
-| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/renderer/features/worktree-management/di-tokens.ts` |
-| UseCases | application | List, Create, Delete, Select, Refresh, SuggestPath, CheckDirty | `src/renderer/features/worktree-management/application/usecases/*.ts` |
-| WorktreeDefaultRepository | infrastructure | window.electronAPI.worktree 経由の IPC クライアント | `src/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts` |
-| WorktreeListViewModel | presentation | 一覧画面の ViewModel（UseCase 経由で Observable 公開） | `src/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts` |
-| WorktreeDetailViewModel | presentation | 詳細パネルの ViewModel | `src/renderer/features/worktree-management/presentation/worktree-detail-viewmodel.ts` |
-| useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
-| useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
-| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/renderer/features/worktree-management/presentation/components/*.tsx` |
-| DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/renderer/features/worktree-management/di-tokens.ts` |
-| DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/renderer/features/worktree-management/di-config.ts` |
+| WorktreeService | application | BehaviorSubject による状態管理（worktrees$, selectedPath$） | `src/processes/renderer/features/worktree-management/application/worktree-service.ts` |
+| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/processes/renderer/features/worktree-management/di-tokens.ts` |
+| UseCases | application | List, Create, Delete, Select, Refresh, SuggestPath, CheckDirty | `src/processes/renderer/features/worktree-management/application/usecases/*.ts` |
+| WorktreeDefaultRepository | infrastructure | window.electronAPI.worktree 経由の IPC クライアント | `src/processes/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts` |
+| WorktreeListViewModel | presentation | 一覧画面の ViewModel（UseCase 経由で Observable 公開） | `src/processes/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts` |
+| WorktreeDetailViewModel | presentation | 詳細パネルの ViewModel | `src/processes/renderer/features/worktree-management/presentation/worktree-detail-viewmodel.ts` |
+| useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/processes/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
+| useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/processes/renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
+| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/processes/renderer/features/worktree-management/presentation/components/*.tsx` |
+| DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/processes/renderer/features/worktree-management/di-tokens.ts` |
+| DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/processes/renderer/features/worktree-management/di-config.ts` |
 
 ### 共有
 
 | モジュール名 | 責務 | 配置場所 |
 |------------|------|---------|
-| Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/shared/domain/index.ts` に追加 |
-| IPC 型拡張 | IPCChannelMap, IPCEventMap, ElectronAPI への worktree 名前空間追加 | `src/shared/types/ipc.ts` に追加 |
-| Preload API (worktree) | contextBridge 経由の worktree API | `src/preload/preload.ts` に追加 |
+| Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/domain/index.ts` に追加 |
+| IPC 型拡張 | IPCChannelMap, IPCEventMap, ElectronAPI への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
+| Preload API (worktree) | contextBridge 経由の worktree API | `src/processes/preload/preload.ts` に追加 |
 
 ## 4.3. DI 設計
 
 ### メインプロセス側 DI Tokens
 
 ```typescript
-// src/main/features/worktree-management/di-tokens.ts
-import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@shared/domain'
-import type { FunctionUseCase } from '@shared/lib/usecase/types'
+// src/processes/main/features/worktree-management/di-tokens.ts
+import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@domain'
+import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository, WorktreeWatcher } from './application/worktree-interfaces'
-import { createToken } from '@shared/lib/di'
+import { createToken } from '@lib/di'
 
 // Infrastructure IF
 export const WorktreeGitDefaultRepositoryToken = createToken<WorktreeGitRepository>('WorktreeGitDefaultRepository')
@@ -240,8 +240,8 @@ export const GetDefaultBranchMainUseCaseToken = createToken<GetDefaultBranchMain
 ### メインプロセス側 DI Config
 
 ```typescript
-// src/main/features/worktree-management/di-config.ts
-import type { VContainerConfig } from '@shared/lib/di'
+// src/processes/main/features/worktree-management/di-config.ts
+import type { VContainerConfig } from '@lib/di'
 import { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
 import { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
 import { DeleteWorktreeMainUseCase } from './application/usecases/delete-worktree-main-usecase'
@@ -305,8 +305,8 @@ export const worktreeManagementMainConfig: VContainerConfig = {
 ### レンダラー側 DI Tokens
 
 ```typescript
-// src/renderer/features/worktree-management/di-tokens.ts
-import { createToken } from '@shared/lib/di'
+// src/processes/renderer/features/worktree-management/di-tokens.ts
+import { createToken } from '@lib/di'
 import type { Observable } from 'rxjs'
 import type {
   WorktreeInfo,
@@ -314,15 +314,15 @@ import type {
   WorktreeCreateParams,
   WorktreeDeleteParams,
   WorktreeChangeEvent,
-} from '@shared/domain'
-import type { IPCResult } from '@shared/types/ipc'
+} from '@domain'
+import type { IPCResult } from '@lib/ipc'
 import type {
   ConsumerUseCase,
   RunnableUseCase,
   FunctionUseCase,
   ObservableStoreUseCase,
-} from '@shared/lib/usecase/types'
-import type { ParameterizedService } from '@shared/lib/service'
+} from '@lib/usecase/types'
+import type { ParameterizedService } from '@lib/service'
 
 // --- Repository IF ---
 export interface WorktreeRepository {
@@ -400,8 +400,8 @@ export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>
 ### レンダラー側 DI Config
 
 ```typescript
-// src/renderer/features/worktree-management/di-config.ts
-import type { VContainerConfig } from '@shared/lib/di'
+// src/processes/renderer/features/worktree-management/di-config.ts
+import type { VContainerConfig } from '@lib/di'
 import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
 import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeDefaultUseCase } from './application/usecases/create-worktree-usecase'
@@ -529,8 +529,8 @@ export const worktreeManagementConfig: VContainerConfig = {
 - ViewModel: `transient`（useResolve 呼び出しごとに新規作成）
 
 **DI 統合エントリーポイント:**
-- `src/main/di/configs.ts` に `worktreeManagementMainConfig` を追加
-- `src/renderer/di/configs.ts` に `worktreeManagementConfig` を追加
+- `src/processes/main/di/configs.ts` に `worktreeManagementMainConfig` を追加
+- `src/processes/renderer/di/configs.ts` に `worktreeManagementConfig` を追加
 
 ## 4.4. レンダラー側 Clean Architecture 設計
 
@@ -539,10 +539,10 @@ export const worktreeManagementConfig: VContainerConfig = {
 BehaviorSubject でワークツリーの状態を管理するステートフルサービス。`ParameterizedService<WorktreeInfo[]>` を extends する。
 
 ```typescript
-// src/renderer/features/worktree-management/application/services/worktree-service.ts
+// src/processes/renderer/features/worktree-management/application/services/worktree-service.ts
 import { BehaviorSubject, combineLatest, type Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
-import type { WorktreeInfo, WorktreeSortOrder } from '@shared/domain'
+import type { WorktreeInfo, WorktreeSortOrder } from '@domain'
 import type { WorktreeService } from '../../di-tokens'
 
 export class WorktreeDefaultService implements WorktreeService {
@@ -644,7 +644,7 @@ export class SuggestPathDefaultUseCase implements FunctionUseCase<{ repoPath: st
 IPC クライアントとして `window.electronAPI.worktree` を呼び出し、`IPCResult<T>` を例外に変換する。
 
 ```typescript
-// src/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts
+// src/processes/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts
 import type { WorktreeRepository } from '../di-tokens'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
@@ -678,7 +678,7 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
 ViewModel は UseCase を集約し、Observable でデータを公開する。
 
 ```typescript
-// src/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts
+// src/processes/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts
 export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
   constructor(
     private readonly listUseCase: ListWorktreesUseCase,
@@ -723,10 +723,10 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
 ### Presentation 層: Hook ラッパー
 
 ```typescript
-// src/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts
+// src/processes/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts
 import { useCallback } from 'react'
-import { useResolve } from '@shared/lib/di/v-container-provider'
-import { useObservable } from '@shared/lib/hooks/use-observable'
+import { useResolve } from '@lib/di/v-container-provider'
+import { useObservable } from '@lib/hooks/use-observable'
 import { WorktreeListViewModelToken } from '../di-tokens'
 
 export function useWorktreeListViewModel() {
@@ -786,7 +786,7 @@ sequenceDiagram
 # 5. データモデル
 
 ```typescript
-// src/shared/domain/index.ts に追加
+// src/domain/index.ts に追加
 
 // ワークツリー情報（git worktree list --porcelain のパース結果）
 export interface WorktreeInfo {
@@ -857,9 +857,9 @@ export type WorktreeSortOrder = 'name' | 'last-updated';
 `wrapHandler<T>()` ユーティリティを使い、UseCase の戻り値を `IPCResult<T>` に統一する。ハンドラーは7つの個別 UseCase を受け取り、各 UseCase の `invoke()` メソッドを呼び出す。
 
 ```typescript
-// src/main/features/worktree-management/presentation/ipc-handlers.ts
-import type { WorktreeCreateParams, WorktreeDeleteParams } from '@shared/domain'
-import type { IPCResult } from '@shared/types/ipc'
+// src/processes/main/features/worktree-management/presentation/ipc-handlers.ts
+import type { WorktreeCreateParams, WorktreeDeleteParams } from '@domain'
+import type { IPCResult } from '@lib/ipc'
 import type {
   CheckDirtyMainUseCase,
   CreateWorktreeMainUseCase,
@@ -869,7 +869,7 @@ import type {
   ListWorktreesMainUseCase,
   SuggestPathMainUseCase,
 } from '../di-tokens'
-import { ipcFailure, ipcSuccess } from '@shared/types/ipc'
+import { ipcFailure, ipcSuccess } from '@lib/ipc'
 import { ipcMain } from 'electron'
 
 // wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に���換する
@@ -926,7 +926,7 @@ export function registerIPCHandlers(
 
 ### 個別 UseCase クラス（7つ）
 
-各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `WorktreeGitRepository` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src/main/features/worktree-management/application/usecases/` ディレクトリ。
+各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `WorktreeGitRepository` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src/processes/main/features/worktree-management/application/usecases/` ディレクトリ。
 
 | UseCase クラス | 型パラメータ | 責務 |
 |---------------|------------|------|
@@ -941,9 +941,9 @@ export function registerIPCHandlers(
 代表的な実装例:
 
 ```typescript
-// src/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts
-import type { WorktreeInfo } from '@shared/domain'
-import type { FunctionUseCase } from '@shared/lib/usecase/types'
+// src/processes/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts
+import type { WorktreeInfo } from '@domain'
+import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
 
 export class ListWorktreesMainUseCase implements FunctionUseCase<string, Promise<WorktreeInfo[]>> {
@@ -962,9 +962,9 @@ export class ListWorktreesMainUseCase implements FunctionUseCase<string, Promise
   }
 }
 
-// src/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts
-import type { WorktreeDeleteParams } from '@shared/domain'
-import type { FunctionUseCase } from '@shared/lib/usecase/types'
+// src/processes/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts
+import type { WorktreeDeleteParams } from '@domain'
+import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
 
 export class DeleteWorktreeMainUseCase
@@ -982,8 +982,8 @@ export class DeleteWorktreeMainUseCase
   }
 }
 
-// src/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts
-import type { FunctionUseCase } from '@shared/lib/usecase/types'
+// src/processes/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts
+import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
 import path from 'node:path'
 
@@ -1009,8 +1009,8 @@ export class SuggestPathMainUseCase
 ### WorktreeGitRepository インターフェース
 
 ```typescript
-// src/main/features/worktree-management/application/worktree-interfaces.ts
-import type { WorktreeInfo, WorktreeStatus, WorktreeCreateParams } from '@shared/domain'
+// src/processes/main/features/worktree-management/application/worktree-interfaces.ts
+import type { WorktreeInfo, WorktreeStatus, WorktreeCreateParams } from '@domain'
 import type { BrowserWindow } from 'electron'
 
 export interface WorktreeGitRepository {
@@ -1034,7 +1034,7 @@ export interface WorktreeWatcher {
 ### WorktreeGitDefaultRepository
 
 ```typescript
-// src/main/features/worktree-management/infrastructure/worktree-git-service.ts
+// src/processes/main/features/worktree-management/infrastructure/worktree-git-service.ts
 import simpleGit from 'simple-git'
 import type { WorktreeGitRepository } from '../application/worktree-interfaces'
 
@@ -1075,7 +1075,7 @@ export class WorktreeGitDefaultRepository implements WorktreeGitRepository {
 ### WorktreeWatcher
 
 ```typescript
-// src/main/features/worktree-management/infrastructure/worktree-watcher.ts
+// src/processes/main/features/worktree-management/infrastructure/worktree-watcher.ts
 import chokidar, { type FSWatcher } from 'chokidar'
 import type { BrowserWindow } from 'electron'
 import type { WorktreeWatcher } from '../application/worktree-interfaces'
@@ -1105,10 +1105,10 @@ export class WorktreeDefaultWatcher implements WorktreeWatcher {
 
 ## 6.4. Preload API（contextBridge 経由）
 
-> **重要:** `contextBridge.exposeInMainWorld('electronAPI', ...)` はアプリケーション全体で **1回だけ** 呼び出される（`src/preload/preload.ts`）。worktree 名前空間は既存の `electronAPI` オブジェクトのプロパティとして追加する。
+> **重要:** `contextBridge.exposeInMainWorld('electronAPI', ...)` はアプリケーション全体で **1回だけ** 呼び出される（`src/processes/preload/preload.ts`）。worktree 名前空間は既存の `electronAPI` オブジェクトのプロパティとして追加する。
 
 ```typescript
-// src/preload/preload.ts に追加する worktree プロパティ
+// src/processes/preload/preload.ts に追加する worktree プロパティ
 worktree: {
   list: (repoPath: string) =>
     ipcRenderer.invoke('worktree:list', repoPath),
@@ -1138,7 +1138,7 @@ worktree: {
 
 ### IPC 型定義の拡張
 
-`src/shared/types/ipc.ts` に以下を追加:
+`src/lib/ipc.ts` に以下を追加:
 
 ```typescript
 // IPCChannelMap に追加
