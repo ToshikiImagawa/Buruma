@@ -141,12 +141,12 @@ interface BranchOperationsProps {
 const [mergeOpen, setMergeOpen] = useState(false)
 const [rebaseOpen, setRebaseOpen] = useState(false)
 
-// JSX に追加
-const BranchOperations = () => (<>
+// JSX に追加（概念例）
+const BranchOperations = ({ onConflict }) => (<>
     <Button onClick={() => setMergeOpen(true)}>マージ</Button>
     <Button onClick={() => setRebaseOpen(true)}>リベース</Button>
-    <MergeDialog open={mergeOpen} onOpenChange={setMergeOpen} onConflict={}/>
-    <RebaseEditor/>
+    <MergeDialog open={mergeOpen} onOpenChange={setMergeOpen} onConflict={() => onConflict?.('merge')}/>
+    <RebaseEditor worktreePath={worktreePath} onConflict={() => onConflict?.('rebase')}/>
 </>)
 ```
 
