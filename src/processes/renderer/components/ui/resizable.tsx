@@ -2,6 +2,8 @@ import { cn } from '@lib/utils'
 import { GripVertical } from 'lucide-react'
 import { Group, Panel, Separator } from 'react-resizable-panels'
 
+// react-resizable-panels v4 は `orientation` prop を使用するが、
+// shadcn/ui 標準の `direction` API と互換性を保つためラッパーで変換している。
 const ResizablePanelGroup = ({
   className,
   direction,

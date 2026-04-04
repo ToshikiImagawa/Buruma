@@ -46,9 +46,9 @@ function RefBadges({ refInfo }: { refInfo: RefInfo }) {
 
   return (
     <span className="inline-flex items-center gap-1 flex-wrap">
-      {visible.map((badge, idx) => (
+      {visible.map((badge) => (
         <span
-          key={idx}
+          key={badge.label}
           className={`inline-flex items-center gap-0.5 rounded px-1 text-[10px] leading-tight shrink-0 ${badge.className}`}
         >
           {badge.icon === 'branch' && <GitBranch className="h-2.5 w-2.5" />}

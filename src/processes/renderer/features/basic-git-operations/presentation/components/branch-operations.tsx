@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@renderer/components/ui/separator'
 import { MergeDialog } from '@renderer/features/advanced-git-operations/presentation/components/merge-dialog'
 import { RebaseEditor } from '@renderer/features/advanced-git-operations/presentation/components/rebase-editor'
-import { GitBranch, GitMerge, GitPullRequest, Plus, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, GitBranch, GitMerge, GitPullRequest, Plus, Trash2 } from 'lucide-react'
 import { useBranchOpsViewModel } from '../use-branch-ops-viewmodel'
 
 interface BranchOperationsProps {
@@ -181,9 +181,7 @@ export function BranchOperations({
           <div key={branch.name} className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent">
             <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <button
-              className={`flex-1 truncate text-left ${branch.name === currentBranch ? 'font-medium' : ''} ${
-                hasDirtyFiles && branch.name !== currentBranch ? 'opacity-50' : ''
-              }`}
+              className={`flex-1 truncate text-left ${branch.name === currentBranch ? 'font-medium' : ''}`}
               onClick={() => {
                 if (onBranchClick) {
                   onBranchClick(branch.hash)
@@ -220,14 +218,24 @@ export function BranchOperations({
                     </Button>
                   </div>
                 ) : (
-                  <button
-                    className="invisible text-muted-foreground hover:text-destructive group-hover:visible"
-                    onClick={() => setDeleteTarget(branch.name)}
-                    disabled={loading}
-                    title="ブランチ削除"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      className="invisible text-muted-foreground hover:text-primary group-hover:visible"
+                      onClick={() => handleCheckout(branch.name)}
+                      disabled={loading || hasDirtyFiles}
+                      title="チェックアウト"
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="invisible text-muted-foreground hover:text-destructive group-hover:visible"
+                      onClick={() => setDeleteTarget(branch.name)}
+                      disabled={loading}
+                      title="ブランチ削除"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </>
             )}

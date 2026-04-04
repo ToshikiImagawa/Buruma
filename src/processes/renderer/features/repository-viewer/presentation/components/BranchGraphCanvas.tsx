@@ -16,6 +16,33 @@ function laneX(lane: number): number {
   return lane * LANE_WIDTH + LANE_WIDTH / 2
 }
 
+/** 背景（線を隠す）の塗りつぶし円を描画 */
+function drawBackground(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, bgColor: string) {
+  ctx.fillStyle = bgColor
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+/** 塗りつぶし円を描画 */
+function drawFilledCircle(ctx: CanvasRenderingContext2D, x: number, y: number, radius: number, color: string) {
+  ctx.fillStyle = color
+  ctx.beginPath()
+  ctx.arc(x, y, radius, 0, Math.PI * 2)
+  ctx.fill()
+}
+
+/** CSS カスタムプロパティから背景色を取得（ライト/ダークモード両対応） */
+function resolveBackgroundColor(canvas: HTMLCanvasElement): string {
+  const style = getComputedStyle(canvas)
+  const raw = style.getPropertyValue('--color-background').trim()
+  if (!raw) return '#1e1e1e'
+  // oklch / hsl / rgb 等の CSS 関数はそのまま Canvas で使える
+  return raw.startsWith('#') || raw.startsWith('rgb') || raw.startsWith('hsl') || raw.startsWith('oklch')
+    ? raw
+    : `oklch(${raw})`
+}
+
 interface BranchGraphCanvasProps {
   layout: GraphLayout
   rowHeight: number
@@ -46,6 +73,7 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
     ctx.lineWidth = 1.5
     ctx.lineCap = 'round'
 
+    const bgColor = resolveBackgroundColor(canvas)
     const { nodes } = layout
 
     // 可視範囲に関係するノードのみ描画（マージン付き）
@@ -58,7 +86,6 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
     for (let i = visibleStart; i <= visibleEnd; i++) {
       drawSet.add(i)
     }
-    // 可視範囲外のノードでも、親が可視範囲内にある場合は描画対象
     for (let i = 0; i < visibleStart; i++) {
       const node = nodes[i]
       for (const parentHash of node.parents) {
@@ -79,14 +106,10 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       for (let p = 0; p < node.parents.length; p++) {
         const parentHash = node.parents[p]
         const parentIdx = layout.hashToIndex.get(parentHash)
-
-        // 親の実際のレーンを参照
         const actualParentLane = parentIdx !== undefined ? nodes[parentIdx].lane : node.lane
-        // 親が未読み込み（ページネーション外）の場合、リスト最下部まで延長
         const parentRow = parentIdx !== undefined ? parentIdx : nodes.length
         const parentY = parentRow * rowHeight + rowHeight / 2 - scrollTop
 
-        // 可視範囲外の線は完全にスキップ
         const lineTop = Math.min(nodeY, parentY)
         const lineBottom = Math.max(nodeY, parentY)
         if (lineBottom < -rowHeight * 2 || lineTop > containerHeight + rowHeight * 2) continue
@@ -125,42 +148,26 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
 
       if (ref?.isHead) {
         // HEAD: 二重丸（外側リング + 内側塗りつぶし）
-        ctx.fillStyle = '#1e1e1e'
-        ctx.beginPath()
-        ctx.arc(x, y, HEAD_OUTER_RADIUS + 1, 0, Math.PI * 2)
-        ctx.fill()
-
+        drawBackground(ctx, x, y, HEAD_OUTER_RADIUS + 1, bgColor)
         ctx.strokeStyle = color
         ctx.lineWidth = HEAD_RING_WIDTH
         ctx.beginPath()
         ctx.arc(x, y, HEAD_OUTER_RADIUS, 0, Math.PI * 2)
         ctx.stroke()
         ctx.lineWidth = 1.5
-
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(x, y, NODE_RADIUS - 0.5, 0, Math.PI * 2)
-        ctx.fill()
+        drawFilledCircle(ctx, x, y, NODE_RADIUS - 0.5, color)
       } else if (ref && ref.localBranches.length > 0) {
         // ローカルブランチ: 大きめの塗りつぶし円
-        ctx.fillStyle = '#1e1e1e'
-        ctx.beginPath()
-        ctx.arc(x, y, NODE_RADIUS + 2.5, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(x, y, NODE_RADIUS + 1, 0, Math.PI * 2)
-        ctx.fill()
+        drawBackground(ctx, x, y, NODE_RADIUS + 2.5, bgColor)
+        drawFilledCircle(ctx, x, y, NODE_RADIUS + 1, color)
       } else if (ref && ref.tags.length > 0) {
         // タグ: 角丸四角形
         const size = NODE_RADIUS * 1.6
         const r = 1.5
-        ctx.fillStyle = '#1e1e1e'
+        ctx.fillStyle = bgColor
         ctx.beginPath()
         ctx.roundRect(x - size - 1, y - size - 1, (size + 1) * 2, (size + 1) * 2, r)
         ctx.fill()
-
         ctx.fillStyle = color
         ctx.beginPath()
         ctx.roundRect(x - size, y - size, size * 2, size * 2, r)
@@ -168,7 +175,7 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       } else if (ref && ref.remoteBranches.length > 0) {
         // リモートブランチのみ: ダイヤモンド形
         const d = NODE_RADIUS + 1.5
-        ctx.fillStyle = '#1e1e1e'
+        ctx.fillStyle = bgColor
         ctx.beginPath()
         ctx.moveTo(x, y - d - 1)
         ctx.lineTo(x + d + 1, y)
@@ -176,7 +183,6 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         ctx.lineTo(x - d - 1, y)
         ctx.closePath()
         ctx.fill()
-
         ctx.fillStyle = color
         ctx.beginPath()
         ctx.moveTo(x, y - d)
@@ -187,15 +193,8 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         ctx.fill()
       } else {
         // 通常コミット: 標準の塗りつぶし円
-        ctx.fillStyle = '#1e1e1e'
-        ctx.beginPath()
-        ctx.arc(x, y, NODE_RADIUS + 1.5, 0, Math.PI * 2)
-        ctx.fill()
-
-        ctx.fillStyle = color
-        ctx.beginPath()
-        ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2)
-        ctx.fill()
+        drawBackground(ctx, x, y, NODE_RADIUS + 1.5, bgColor)
+        drawFilledCircle(ctx, x, y, NODE_RADIUS, color)
       }
     }
   }, [layout, rowHeight, scrollTop, containerHeight, canvasWidth, refMap])
@@ -203,6 +202,7 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
   return (
     <canvas
       ref={canvasRef}
+      className="bg-background"
       style={{
         position: 'sticky',
         top: 0,

@@ -40,7 +40,7 @@ risk: "medium"
 | CommitLog コンポーネント          | 🟢    | コミットログ一覧 UI（スクロールページネーション）     |
 | CommitDetailView コンポーネント   | 🟢    | コミット詳細表示 UI                    |
 | DiffView コンポーネント           | 🟢    | @monaco-editor/react DiffEditor によるインライン/サイドバイサイド差分表示 |
-| RepositoryDetailPanel       | 🟢    | タブ統合コンポーネント（ステータス/コミット/ブランチ/ファイル/リファレンス） |
+| RepositoryDetailPanel       | 🟢    | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス） |
 | ブランチグラフ                    | 🟢    | git log --graph --all による ASCII グラフ表示 |
 | IPC 入力バリデーション              | 🟢    | worktreePath パストラバーサル防止          |
 | ファイルコンテンツ取得 IPC            | 🟢    | git:file-contents / git:file-contents-commit チャネル |
@@ -161,7 +161,7 @@ graph TD
 | RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/processes/renderer/features/repository-viewer/application/services/` |
 | UseCase x8 | application | GetStatus, GetLog, GetCommitDetail, GetDiff, GetDiffStaged, GetDiffCommit, GetBranches, GetFileTree | `src/processes/renderer/features/repository-viewer/application/usecases/` |
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/processes/renderer/features/repository-viewer/presentation/` |
-| RepositoryDetailPanel | presentation | タブ統合コンポーネント（ステータス/コミット/ブランチ/ファイル/リファレンス）。ResizablePanelGroup による分割パネルリサイズ対応 | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
+| RepositoryDetailPanel | presentation | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス）。ResizablePanelGroup による分割パネルリサイズ対応 | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
 | BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画（GraphLayout を受け取り可視範囲のみ描画） | `src/processes/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
 | StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/processes/renderer/features/repository-viewer/presentation/components/` |
 
@@ -336,7 +336,7 @@ interface GraphLayout {
 - `git:file-contents` / `git:file-contents-commit` IPC チャネルを追加
 - ブランチグラフ表示を追加（`CommitSummary.parents` → `computeGraphLayout()` → `BranchGraphCanvas` Canvas 描画）
 - IPC ハンドラーに `worktreePath` パストラバーサル防止バリデーションを追加
-- `RepositoryDetailPanel` タブ統合コンポーネントを追加（ステータス/コミット/ブランチ/ファイル/リファレンス）
+- `RepositoryDetailPanel` タブ統合コンポーネントを追加（ステータス/コミット/ファイル/リファレンス）
 - レンダラー側に ViewModel + Hook パターン、RepositoryViewerService（状態管理）を追加
 - 仕様書のフィールド名を `FileChange.type` → `FileChange.status` に統一（既存 worktree-management との整合性）
 - `impl-status` を `implemented` に更新

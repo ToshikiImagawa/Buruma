@@ -69,8 +69,7 @@ RepositoryDetailPanel
 │       └── ThreeWayMergeView
 └── Tabs（通常表示、defaultValue="status"）
     ├── Status（ResizablePanelGroup: StagingArea+CommitForm | DiffView）
-    ├── Commits（ResizablePanelGroup: CommitLog | CommitDetail+DiffView + チェリーピックボタン）
-    ├── Branches（マージ/リベースボタン追加）
+    ├── Commits（3パネル: BranchOperations | CommitLog+Graph | CommitDetail+DiffView）
     ├── Files（ResizablePanelGroup: FileTree | DiffView）
     └── Refs（リファレンス）← 内部トグルで StashManager / TagManager 切り替え
 ```

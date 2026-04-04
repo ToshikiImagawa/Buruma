@@ -5,6 +5,7 @@
  *
  * 依存: macOS の sips / iconutil（外部パッケージ不要）
  */
+
 import { execFileSync } from 'node:child_process'
 import { cpSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
