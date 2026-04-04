@@ -121,16 +121,25 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
           // 同じレーン: 直線
           ctx.moveTo(fromX, nodeY)
           ctx.lineTo(toX, parentY)
+          ctx.stroke()
         } else {
-          // 異なるレーン: 子のレーンに沿って直線、1行手前で斜め線で合流
+          // 異なるレーン: 垂直区間と斜め区間で色を分けて描画
           const joinY = Math.max(parentY - rowHeight, nodeY)
-          ctx.moveTo(fromX, nodeY)
+          // 垂直区間: 子のレーン色（レーンの色を保持し上書きを防ぐ）
           if (joinY > nodeY) {
+            ctx.strokeStyle = laneColor(node.lane)
+            ctx.beginPath()
+            ctx.moveTo(fromX, nodeY)
             ctx.lineTo(fromX, joinY)
+            ctx.stroke()
           }
+          // 斜め区間: 親のレーン色（合流先の色）
+          ctx.strokeStyle = laneColor(actualParentLane)
+          ctx.beginPath()
+          ctx.moveTo(fromX, joinY > nodeY ? joinY : nodeY)
           ctx.lineTo(toX, parentY)
+          ctx.stroke()
         }
-        ctx.stroke()
       }
     }
 
