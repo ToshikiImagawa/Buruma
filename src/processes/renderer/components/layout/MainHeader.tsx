@@ -24,7 +24,13 @@ export function MainHeader({
           {onSidebarToggle && repositoryName && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSidebarToggle} aria-label="サイドバー切り替え">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onSidebarToggle}
+                  aria-label="サイドバー切り替え"
+                >
                   {sidebarCollapsed ? <PanelLeftOpen className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
                 </Button>
               </TooltipTrigger>
@@ -36,7 +42,9 @@ export function MainHeader({
             {repositoryName ? (
               <p className="text-xs text-muted-foreground">{repositoryName}</p>
             ) : (
-              <p className="text-xs text-muted-foreground">Branch-United Real-time Understanding & Multi-worktree Analyzer</p>
+              <p className="text-xs text-muted-foreground">
+                Branch-United Real-time Understanding & Multi-worktree Analyzer
+              </p>
             )}
           </div>
         </div>
@@ -44,7 +52,13 @@ export function MainHeader({
           {onRepositorySwitch && (
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onRepositorySwitch} aria-label="リポジトリを開く">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={onRepositorySwitch}
+                  aria-label="リポジトリを開く"
+                >
                   <FolderOpen className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>

@@ -23,52 +23,49 @@ export function RecentRepositoriesList() {
       {sortedRepositories.map((repo) => {
         const isCurrent = currentRepository?.path === repo.path
         return (
-        <Card
-          key={repo.path}
-          className={cn(
-            'transition-colors',
-            isCurrent ? 'ring-2 ring-primary bg-accent/30' : 'hover:bg-accent/50',
-          )}
-        >
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-base">
-              <button
-                onClick={() => openByPath(repo.path)}
-                className="flex items-center gap-2 flex-1 text-left hover:underline"
-              >
-                {isCurrent ? <Check className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4" />}
-                <span>{repo.name}</span>
-                {repo.pinned && <Pin className="h-3 w-3 text-primary" />}
-              </button>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => pin(repo.path, !repo.pinned)}
-                  aria-label={repo.pinned ? 'ピン解除' : 'ピン留め'}
+          <Card
+            key={repo.path}
+            className={cn('transition-colors', isCurrent ? 'ring-2 ring-primary bg-accent/30' : 'hover:bg-accent/50')}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between text-base">
+                <button
+                  onClick={() => openByPath(repo.path)}
+                  className="flex items-center gap-2 flex-1 text-left hover:underline"
                 >
-                  <Pin className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => removeRecent(repo.path)}
-                  aria-label="履歴から削除"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <p className="text-xs text-muted-foreground truncate">{repo.path}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              最終アクセス: {new Date(repo.lastAccessed).toLocaleString('ja-JP')}
-            </p>
-          </CardContent>
-        </Card>
+                  {isCurrent ? <Check className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4" />}
+                  <span>{repo.name}</span>
+                  {repo.pinned && <Pin className="h-3 w-3 text-primary" />}
+                </button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => pin(repo.path, !repo.pinned)}
+                    aria-label={repo.pinned ? 'ピン解除' : 'ピン留め'}
+                  >
+                    <Pin className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => removeRecent(repo.path)}
+                    aria-label="履歴から削除"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <p className="text-xs text-muted-foreground truncate">{repo.path}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                最終アクセス: {new Date(repo.lastAccessed).toLocaleString('ja-JP')}
+              </p>
+            </CardContent>
+          </Card>
         )
       })}
     </div>

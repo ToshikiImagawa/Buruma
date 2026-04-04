@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CommitLogHandle } from './CommitLog'
 import { Button } from '@renderer/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@renderer/components/ui/resizable'
 import { Separator } from '@renderer/components/ui/separator'
@@ -18,7 +19,6 @@ import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
 import { CommitLog } from './CommitLog'
-import type { CommitLogHandle } from './CommitLog'
 import { DiffView } from './DiffView'
 import { FileTree } from './FileTree'
 
@@ -168,11 +168,7 @@ export function RepositoryDetailPanel() {
             <ResizablePanel defaultSize={67} minSize={10}>
               <div className="h-full overflow-hidden">
                 {statusFilePath ? (
-                  <DiffView
-                    worktreePath={selectedWorktree.path}
-                    filePath={statusFilePath}
-                    staged={statusFileStaged}
-                  />
+                  <DiffView worktreePath={selectedWorktree.path} filePath={statusFilePath} staged={statusFileStaged} />
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
@@ -204,7 +200,12 @@ export function RepositoryDetailPanel() {
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between border-b px-2 py-1">
                   <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
-                  <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCherryPickOpen(true)}>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 text-xs"
+                    onClick={() => setCherryPickOpen(true)}
+                  >
                     <Cherry className="mr-1 h-3 w-3" />
                     チェリーピック
                   </Button>
