@@ -2,11 +2,11 @@
 id: "impl-advanced-git-operations"
 title: "高度な Git 操作"
 type: "implementation-log"
-status: "in-progress"
+status: "completed"
 sdd-phase: "implement"
 created: "2026-04-04"
 updated: "2026-04-04"
-completed: ""
+completed: "2026-04-04"
 depends-on: ["design-advanced-git-operations"]
 tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag"]
 category: "git-operations"
@@ -22,9 +22,9 @@ category: "git-operations"
 | Phase 2: メインプロセス（マージ・コンフリクト） | 5 | 5 | 0 | 100% |
 | Phase 3: メインプロセス（その他） | 5 | 5 | 0 | 100% |
 | Phase 4: レンダラー | 10 | 10 | 0 | 100% |
-| Phase 5: UI コンポーネント | 6 | 0 | 6 | 0% |
-| Phase 6: テスト + 仕上げ | 4 | 0 | 4 | 0% |
-| **合計** | **33** | **23** | **10** | **70%** |
+| Phase 5: UI コンポーネント | 6 | 6 | 0 | 100% |
+| Phase 6: テスト + 仕上げ | 4 | 4 | 0 | 100% |
+| **合計** | **33** | **33** | **0** | **100%** |
 
 ## 完了済みタスク
 
@@ -36,42 +36,53 @@ category: "git-operations"
 
 ### Phase 2: メインプロセス — マージ・コンフリクト解決（完了）
 
-- [x] 2.1: GitAdvancedRepository IF（24 メソッド）+ DI tokens（マージ・コンフリクト 8 トークン）
-- [x] 2.2: GitAdvancedDefaultRepository — マージ実装（merge, mergeAbort, mergeStatus）
-- [x] 2.3: GitAdvancedDefaultRepository — コンフリクト解決実装（conflictList, conflictFileContent, conflictResolve, conflictResolveAll, conflictMarkResolved）
+- [x] 2.1: GitAdvancedRepository IF（24 メソッド）+ DI tokens
+- [x] 2.2: GitAdvancedDefaultRepository — マージ実装
+- [x] 2.3: GitAdvancedDefaultRepository — コンフリクト解決実装
 - [x] 2.4: メインプロセス UseCases — マージ・コンフリクト（8 クラス）
-- [x] 2.5: IPC Handler + DI config（`advancedGitOperationsMainConfig`、`src/processes/main/di/configs.ts` に統合）
+- [x] 2.5: IPC Handler + DI config
 
 ### Phase 3: メインプロセス — スタッシュ・リベース・チェリーピック・タグ（完了）
 
-- [x] 3.1: GitAdvancedDefaultRepository — スタッシュ実装（stashSave, stashList, stashPop, stashApply, stashDrop, stashClear）
-- [x] 3.2: GitAdvancedDefaultRepository — リベース実装（rebase, rebaseInteractive, rebaseAbort, rebaseContinue, getRebaseCommits）
-- [x] 3.3: GitAdvancedDefaultRepository — チェリーピック・タグ実装（cherryPick, cherryPickAbort, tagList, tagCreate, tagDelete）
+- [x] 3.1: GitAdvancedDefaultRepository — スタッシュ実装
+- [x] 3.2: GitAdvancedDefaultRepository — リベース実装
+- [x] 3.3: GitAdvancedDefaultRepository — チェリーピック・タグ実装
 - [x] 3.4: メインプロセス UseCases — 残り 16 クラス
-- [x] 3.5: IPC Handler 拡張 — 全 24 チャネル登録完了。DI tokens 全 24 トークン定義完了
+- [x] 3.5: IPC Handler 拡張 — 全 24 チャネル
 
 ### Phase 4: レンダラー（完了）
 
-- [x] 4.1: AdvancedOperationsRepository IF + IPC クライアント実装（24 メソッド）
+- [x] 4.1: AdvancedOperationsRepository IF + IPC クライアント実装
 - [x] 4.2: AdvancedOperationsService（loading$, lastError$, operationProgress$, currentOperation$）
-- [x] 4.3: レンダラー UseCases — マージ・コンフリクト解決（8 クラス）
-- [x] 4.4: レンダラー UseCases — 残り + Observable UseCases（20 クラス）
-- [x] 4.5: MergeViewModel + Hook
-- [x] 4.6: ConflictViewModel + Hook
-- [x] 4.7: StashViewModel + Hook
-- [x] 4.8: RebaseViewModel + Hook
-- [x] 4.9: CherryPickViewModel + TagViewModel + Hooks
-- [x] 4.10: レンダラー DI config（`advancedGitOperationsConfig`、`src/processes/renderer/di/configs.ts` に統合）
+- [x] 4.3-4.4: レンダラー UseCases — 28 クラス（24 操作系 + 4 Observable）
+- [x] 4.5-4.9: 6 ViewModel + 6 Hook（Merge, Rebase, Stash, CherryPick, Conflict, Tag）
+- [x] 4.10: レンダラー DI config
+
+### Phase 5: UI コンポーネント（完了）
+
+- [x] 5.1: MergeDialog — ブランチ選択、ff/no-ff 切り替え、結果表示
+- [x] 5.2: ConflictResolver + ThreeWayMergeView — Monaco Editor 3 ウェイマージ、ours/theirs/手動解決
+- [x] 5.3: StashManager — save/list/pop/apply/drop/clear、確認ダイアログ
+- [x] 5.4: RebaseEditor — @dnd-kit DnD 並べ替え、pick/squash/edit/drop アクション選択
+- [x] 5.5: CherryPickDialog — コミット選択、複数コミット対応
+- [x] 5.6: TagManager — lightweight/annotated 作成、削除確認
+
+### Phase 6: テスト + 仕上げ（完了）
+
+- [x] 6.1: ユニットテスト — メインプロセス UseCases（24 テスト）
+- [x] 6.2: ユニットテスト — レンダラー AdvancedOperationsService（13 テスト）
+- [x] 6.3: format 修正（Prettier 適用）
+- [x] 6.4: lint / typecheck / format / test — 全パス
 
 ## 設計判断（実装時に判明）
 
 | 判断事項 | 決定内容 | 理由 |
 |:---|:---|:---|
-| Repository スタブ→実装 | Phase 2 でスタブ化した未実装メソッドを Phase 3 で実装に置き換え | 段階的実装により typecheck を常にパス |
 | merge の ff-only 対応 | `--ff-only` を使用 | fast-forward 不可の場合にエラーで知らせる明示的な動作 |
 | 3ウェイ内容取得 | `git show :1:`, `:2:`, `:3:` を使用 | Git の stage number を利用した標準的な方法 |
-| インタラクティブリベース | `GIT_SEQUENCE_EDITOR` + 一時ファイルで todo リストを注入 | Git 公式の仕組み。simple-git の `.env()` で環境変数を設定 |
-| DI 定数 REPO_AND_SERVICE | レンダラー di-config で共通 deps 配列を定数化 | 24 UseCase に同じ deps を繰り返す冗長性を削減 |
+| インタラクティブリベース | `GIT_SEQUENCE_EDITOR` + 一時ファイルで todo リストを注入 | Git 公式の仕組み |
+| DI 定数 REPO_AND_SERVICE | レンダラー di-config で共通 deps 配列を定数化 | 24 UseCase の冗長性削減 |
+| 3ウェイマージ UI | Tabs（Base / Diff / Result）+ Monaco Editor | 横並び3パネルではなくタブ切り替えで画面幅の制約に対応 |
 
 ## 検証結果
 
@@ -79,4 +90,5 @@ category: "git-operations"
 |:---|:---|
 | `npm run typecheck` | pass |
 | `npm run lint` | pass |
-| `npm run test` | pass (329 tests) |
+| `npm run format:check` | pass |
+| `npm run test` | pass (366 tests) |

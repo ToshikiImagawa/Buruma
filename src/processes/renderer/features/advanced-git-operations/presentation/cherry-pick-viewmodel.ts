@@ -12,8 +12,7 @@ export class CherryPickDefaultViewModel implements CherryPickViewModel {
   readonly loading$: Observable<boolean>
 
   private readonly _cherryPickResult$ = new BehaviorSubject<CherryPickResult | null>(null)
-  readonly cherryPickResult$: Observable<CherryPickResult | null> =
-    this._cherryPickResult$.asObservable()
+  readonly cherryPickResult$: Observable<CherryPickResult | null> = this._cherryPickResult$.asObservable()
 
   constructor(
     private readonly cherryPickUseCase: CherryPickRendererUseCase,

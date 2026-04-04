@@ -14,18 +14,9 @@ export function useStashViewModel() {
     stashes,
     stashSave: useCallback((options: StashSaveOptions) => vm.stashSave(options), [vm]),
     stashList: useCallback((worktreePath: string) => vm.stashList(worktreePath), [vm]),
-    stashPop: useCallback(
-      (worktreePath: string, index: number) => vm.stashPop(worktreePath, index),
-      [vm],
-    ),
-    stashApply: useCallback(
-      (worktreePath: string, index: number) => vm.stashApply(worktreePath, index),
-      [vm],
-    ),
-    stashDrop: useCallback(
-      (worktreePath: string, index: number) => vm.stashDrop(worktreePath, index),
-      [vm],
-    ),
+    stashPop: useCallback((worktreePath: string, index: number) => vm.stashPop(worktreePath, index), [vm]),
+    stashApply: useCallback((worktreePath: string, index: number) => vm.stashApply(worktreePath, index), [vm]),
+    stashDrop: useCallback((worktreePath: string, index: number) => vm.stashDrop(worktreePath, index), [vm]),
     stashClear: useCallback((worktreePath: string) => vm.stashClear(worktreePath), [vm]),
   }
 }

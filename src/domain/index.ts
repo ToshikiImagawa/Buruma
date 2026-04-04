@@ -420,10 +420,7 @@ export interface ConflictResolveOptions {
 }
 
 /** コンフリクト解決方式 */
-export type ConflictResolution =
-  | { type: 'ours' }
-  | { type: 'theirs' }
-  | { type: 'manual'; content: string }
+export type ConflictResolution = { type: 'ours' } | { type: 'theirs' } | { type: 'manual'; content: string }
 
 /** コンフリクト一括解決オプション */
 export interface ConflictResolveAllOptions {

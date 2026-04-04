@@ -1,27 +1,27 @@
 import type {
+  CherryPickOptions,
+  CherryPickResult,
+  ConflictFile,
+  ConflictResolveAllOptions,
+  ConflictResolveOptions,
+  GitProgressEvent,
+  InteractiveRebaseOptions,
   MergeOptions,
   MergeResult,
   MergeStatus,
-  GitProgressEvent,
-  ConflictFile,
-  ThreeWayContent,
-  ConflictResolveOptions,
-  ConflictResolveAllOptions,
   RebaseOptions,
   RebaseResult,
-  InteractiveRebaseOptions,
   RebaseStep,
-  StashSaveOptions,
   StashEntry,
-  CherryPickOptions,
-  CherryPickResult,
-  TagInfo,
+  StashSaveOptions,
   TagCreateOptions,
+  TagInfo,
+  ThreeWayContent,
 } from '@domain'
 import type { GitAdvancedRepository } from '../../application/repositories/git-advanced-repository'
-import simpleGit from 'simple-git'
 import * as fs from 'fs/promises'
 import * as path from 'path'
+import simpleGit from 'simple-git'
 
 export class GitAdvancedDefaultRepository implements GitAdvancedRepository {
   private progressCallback: ((event: GitProgressEvent) => void) | null = null
@@ -229,10 +229,7 @@ export class GitAdvancedDefaultRepository implements GitAdvancedRepository {
     const todoFile = path.join(tmpDir, 'rebase-todo-tmp')
     try {
       await fs.writeFile(todoFile, todoContent, 'utf-8')
-      const editorScript =
-        process.platform === 'win32'
-          ? `cmd /c "copy /y "${todoFile}" "`
-          : `cp "${todoFile}"`
+      const editorScript = process.platform === 'win32' ? `cmd /c "copy /y "${todoFile}" "` : `cp "${todoFile}"`
       await git.env('GIT_SEQUENCE_EDITOR', editorScript).rebase(['-i', options.onto])
       return { status: 'success' }
     } catch (error: unknown) {
@@ -315,7 +312,12 @@ export class GitAdvancedDefaultRepository implements GitAdvancedRepository {
     const result = await git.tags()
     const tags: TagInfo[] = []
     for (const tagName of result.all) {
-      const info = await git.raw(['tag', '-l', '--format=%(objecttype)%09%(creatordate:iso)%09%(*objectname)%09%(contents:subject)%09%(taggername)', tagName])
+      const info = await git.raw([
+        'tag',
+        '-l',
+        '--format=%(objecttype)%09%(creatordate:iso)%09%(*objectname)%09%(contents:subject)%09%(taggername)',
+        tagName,
+      ])
       const parts = info.trim().split('\t')
       const isAnnotated = parts[0] === 'tag'
       const hash = await git.raw(['rev-list', '-1', tagName]).then((h) => h.trim())

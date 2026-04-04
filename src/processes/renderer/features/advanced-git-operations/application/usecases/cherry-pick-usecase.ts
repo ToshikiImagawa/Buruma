@@ -3,9 +3,7 @@ import type { FunctionUseCase } from '@lib/usecase/types'
 import type { AdvancedOperationsRepository } from '../repositories/advanced-operations-repository'
 import type { AdvancedOperationsService } from '../services/advanced-operations-service-interface'
 
-export class CherryPickUseCase
-  implements FunctionUseCase<CherryPickOptions, Promise<CherryPickResult>>
-{
+export class CherryPickUseCase implements FunctionUseCase<CherryPickOptions, Promise<CherryPickResult>> {
   constructor(
     private readonly repository: AdvancedOperationsRepository,
     private readonly service: AdvancedOperationsService,

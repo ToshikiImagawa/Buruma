@@ -1,9 +1,4 @@
-import type {
-  ConflictFile,
-  ConflictResolveAllOptions,
-  ConflictResolveOptions,
-  ThreeWayContent,
-} from '@domain'
+import type { ConflictFile, ConflictResolveAllOptions, ConflictResolveOptions, ThreeWayContent } from '@domain'
 import type { Observable } from 'rxjs'
 import type {
   ConflictFileContentRendererUseCase,
@@ -23,8 +18,7 @@ export class ConflictDefaultViewModel implements ConflictViewModel {
   readonly conflictFiles$: Observable<ConflictFile[]> = this._conflictFiles$.asObservable()
 
   private readonly _threeWayContent$ = new BehaviorSubject<ThreeWayContent | null>(null)
-  readonly threeWayContent$: Observable<ThreeWayContent | null> =
-    this._threeWayContent$.asObservable()
+  readonly threeWayContent$: Observable<ThreeWayContent | null> = this._threeWayContent$.asObservable()
 
   constructor(
     private readonly conflictListUseCase: ConflictListRendererUseCase,

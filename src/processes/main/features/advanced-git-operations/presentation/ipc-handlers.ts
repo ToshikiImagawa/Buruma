@@ -1,39 +1,39 @@
 import type {
-  MergeOptions,
-  ConflictResolveOptions,
-  ConflictResolveAllOptions,
-  RebaseOptions,
-  InteractiveRebaseOptions,
-  StashSaveOptions,
   CherryPickOptions,
+  ConflictResolveAllOptions,
+  ConflictResolveOptions,
+  InteractiveRebaseOptions,
+  MergeOptions,
+  RebaseOptions,
+  StashSaveOptions,
   TagCreateOptions,
 } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
-  MergeMainUseCase,
-  MergeAbortMainUseCase,
-  MergeStatusMainUseCase,
-  ConflictListMainUseCase,
+  CherryPickAbortMainUseCase,
+  CherryPickMainUseCase,
   ConflictFileContentMainUseCase,
-  ConflictResolveMainUseCase,
-  ConflictResolveAllMainUseCase,
+  ConflictListMainUseCase,
   ConflictMarkResolvedMainUseCase,
-  RebaseMainUseCase,
-  RebaseInteractiveMainUseCase,
+  ConflictResolveAllMainUseCase,
+  ConflictResolveMainUseCase,
+  GetRebaseCommitsMainUseCase,
+  MergeAbortMainUseCase,
+  MergeMainUseCase,
+  MergeStatusMainUseCase,
   RebaseAbortMainUseCase,
   RebaseContinueMainUseCase,
-  GetRebaseCommitsMainUseCase,
-  StashSaveMainUseCase,
+  RebaseInteractiveMainUseCase,
+  RebaseMainUseCase,
+  StashApplyMainUseCase,
+  StashClearMainUseCase,
+  StashDropMainUseCase,
   StashListMainUseCase,
   StashPopMainUseCase,
-  StashApplyMainUseCase,
-  StashDropMainUseCase,
-  StashClearMainUseCase,
-  CherryPickMainUseCase,
-  CherryPickAbortMainUseCase,
-  TagListMainUseCase,
+  StashSaveMainUseCase,
   TagCreateMainUseCase,
   TagDeleteMainUseCase,
+  TagListMainUseCase,
 } from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
 import { ipcMain } from 'electron'
@@ -144,13 +144,11 @@ export function registerGitAdvancedIPCHandlers(
     }),
   )
 
-  ipcMain.handle(
-    'git:conflict-file-content',
-    (_event, args: { worktreePath: string; filePath: string }) =>
-      wrapHandler(() => {
-        validatePath(args.worktreePath, 'worktreePath')
-        return conflictFileContentUseCase.invoke(args)
-      }),
+  ipcMain.handle('git:conflict-file-content', (_event, args: { worktreePath: string; filePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return conflictFileContentUseCase.invoke(args)
+    }),
   )
 
   ipcMain.handle('git:conflict-resolve', (_event, args: ConflictResolveOptions) =>
@@ -167,13 +165,11 @@ export function registerGitAdvancedIPCHandlers(
     }),
   )
 
-  ipcMain.handle(
-    'git:conflict-mark-resolved',
-    (_event, args: { worktreePath: string; filePath: string }) =>
-      wrapHandler(() => {
-        validatePath(args.worktreePath, 'worktreePath')
-        return conflictMarkResolvedUseCase.invoke(args)
-      }),
+  ipcMain.handle('git:conflict-mark-resolved', (_event, args: { worktreePath: string; filePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return conflictMarkResolvedUseCase.invoke(args)
+    }),
   )
 
   // --- リベース ---
@@ -205,13 +201,11 @@ export function registerGitAdvancedIPCHandlers(
     }),
   )
 
-  ipcMain.handle(
-    'git:rebase-get-commits',
-    (_event, args: { worktreePath: string; onto: string }) =>
-      wrapHandler(() => {
-        validatePath(args.worktreePath, 'worktreePath')
-        return getRebaseCommitsUseCase.invoke(args)
-      }),
+  ipcMain.handle('git:rebase-get-commits', (_event, args: { worktreePath: string; onto: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return getRebaseCommitsUseCase.invoke(args)
+    }),
   )
 
   // --- スタッシュ ---

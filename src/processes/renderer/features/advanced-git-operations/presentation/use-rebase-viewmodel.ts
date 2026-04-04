@@ -15,10 +15,7 @@ export function useRebaseViewModel() {
     rebaseResult,
     rebaseCommits,
     rebase: useCallback((options: RebaseOptions) => vm.rebase(options), [vm]),
-    rebaseInteractive: useCallback(
-      (options: InteractiveRebaseOptions) => vm.rebaseInteractive(options),
-      [vm],
-    ),
+    rebaseInteractive: useCallback((options: InteractiveRebaseOptions) => vm.rebaseInteractive(options), [vm]),
     rebaseAbort: useCallback((worktreePath: string) => vm.rebaseAbort(worktreePath), [vm]),
     rebaseContinue: useCallback((worktreePath: string) => vm.rebaseContinue(worktreePath), [vm]),
     getRebaseCommits: useCallback(

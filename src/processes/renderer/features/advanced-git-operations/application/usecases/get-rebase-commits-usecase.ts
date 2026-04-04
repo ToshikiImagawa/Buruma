@@ -3,9 +3,10 @@ import type { FunctionUseCase } from '@lib/usecase/types'
 import type { AdvancedOperationsRepository } from '../repositories/advanced-operations-repository'
 import type { AdvancedOperationsService } from '../services/advanced-operations-service-interface'
 
-export class GetRebaseCommitsUseCase
-  implements FunctionUseCase<{ worktreePath: string; onto: string }, Promise<RebaseStep[]>>
-{
+export class GetRebaseCommitsUseCase implements FunctionUseCase<
+  { worktreePath: string; onto: string },
+  Promise<RebaseStep[]>
+> {
   constructor(
     private readonly repository: AdvancedOperationsRepository,
     private readonly service: AdvancedOperationsService,

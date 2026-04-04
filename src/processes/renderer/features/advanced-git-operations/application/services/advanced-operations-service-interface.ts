@@ -1,7 +1,7 @@
-import type { Observable } from 'rxjs'
-import type { BaseService } from '@lib/service'
-import type { IPCError } from '@lib/ipc'
 import type { OperationProgress } from '@domain'
+import type { IPCError } from '@lib/ipc'
+import type { BaseService } from '@lib/service'
+import type { Observable } from 'rxjs'
 
 export interface AdvancedOperationsService extends BaseService {
   readonly loading$: Observable<boolean>

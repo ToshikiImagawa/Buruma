@@ -1,7 +1,8 @@
-import { BehaviorSubject, type Observable } from 'rxjs'
-import type { IPCError } from '@lib/ipc'
 import type { OperationProgress } from '@domain'
+import type { IPCError } from '@lib/ipc'
+import type { Observable } from 'rxjs'
 import type { AdvancedOperationsService } from './advanced-operations-service-interface'
+import { BehaviorSubject } from 'rxjs'
 
 export class AdvancedOperationsDefaultService implements AdvancedOperationsService {
   private readonly _loading$ = new BehaviorSubject<boolean>(false)
@@ -11,8 +12,7 @@ export class AdvancedOperationsDefaultService implements AdvancedOperationsServi
 
   readonly loading$: Observable<boolean> = this._loading$.asObservable()
   readonly lastError$: Observable<IPCError | null> = this._lastError$.asObservable()
-  readonly operationProgress$: Observable<OperationProgress | null> =
-    this._operationProgress$.asObservable()
+  readonly operationProgress$: Observable<OperationProgress | null> = this._operationProgress$.asObservable()
   readonly currentOperation$: Observable<string | null> = this._currentOperation$.asObservable()
 
   setUp(): void {

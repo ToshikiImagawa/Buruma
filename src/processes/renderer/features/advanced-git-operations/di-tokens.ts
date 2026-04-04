@@ -1,33 +1,33 @@
 import type {
-  MergeOptions,
-  MergeResult,
-  MergeStatus,
-  RebaseOptions,
-  InteractiveRebaseOptions,
-  RebaseResult,
-  RebaseStep,
-  StashSaveOptions,
-  StashEntry,
   CherryPickOptions,
   CherryPickResult,
   ConflictFile,
-  ThreeWayContent,
-  ConflictResolveOptions,
   ConflictResolveAllOptions,
-  TagInfo,
-  TagCreateOptions,
+  ConflictResolveOptions,
+  InteractiveRebaseOptions,
+  MergeOptions,
+  MergeResult,
+  MergeStatus,
   OperationProgress,
+  RebaseOptions,
+  RebaseResult,
+  RebaseStep,
+  StashEntry,
+  StashSaveOptions,
+  TagCreateOptions,
+  TagInfo,
+  ThreeWayContent,
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase } from '@lib/usecase/types'
 import type { AdvancedOperationsRepository } from './application/repositories/advanced-operations-repository'
 import type { AdvancedOperationsService } from './application/services/advanced-operations-service-interface'
 import type {
+  CherryPickViewModel,
+  ConflictViewModel,
   MergeViewModel,
   RebaseViewModel,
   StashViewModel,
-  CherryPickViewModel,
-  ConflictViewModel,
   TagViewModel,
 } from './presentation/viewmodel-interfaces'
 import { createToken } from '@lib/di'
@@ -37,8 +37,7 @@ export const AdvancedOperationsRepositoryToken =
   createToken<AdvancedOperationsRepository>('AdvancedOperationsRepository')
 
 // Service Token
-export const AdvancedOperationsServiceToken =
-  createToken<AdvancedOperationsService>('AdvancedOperationsService')
+export const AdvancedOperationsServiceToken = createToken<AdvancedOperationsService>('AdvancedOperationsService')
 
 // --- UseCase 型エイリアス ---
 
@@ -49,10 +48,7 @@ export type MergeStatusRendererUseCase = FunctionUseCase<string, Promise<MergeSt
 
 // リベース
 export type RebaseRendererUseCase = FunctionUseCase<RebaseOptions, Promise<RebaseResult>>
-export type RebaseInteractiveRendererUseCase = FunctionUseCase<
-  InteractiveRebaseOptions,
-  Promise<RebaseResult>
->
+export type RebaseInteractiveRendererUseCase = FunctionUseCase<InteractiveRebaseOptions, Promise<RebaseResult>>
 export type RebaseAbortRendererUseCase = ConsumerUseCase<string>
 export type RebaseContinueRendererUseCase = FunctionUseCase<string, Promise<RebaseResult>>
 export type GetRebaseCommitsRendererUseCase = FunctionUseCase<
@@ -69,10 +65,7 @@ export type StashDropRendererUseCase = ConsumerUseCase<{ worktreePath: string; i
 export type StashClearRendererUseCase = ConsumerUseCase<string>
 
 // チェリーピック
-export type CherryPickRendererUseCase = FunctionUseCase<
-  CherryPickOptions,
-  Promise<CherryPickResult>
->
+export type CherryPickRendererUseCase = FunctionUseCase<CherryPickOptions, Promise<CherryPickResult>>
 export type CherryPickAbortRendererUseCase = ConsumerUseCase<string>
 
 // コンフリクト解決
@@ -105,74 +98,68 @@ export type GetAdvancedCurrentOperationUseCase = ObservableStoreUseCase<string |
 // --- UseCase Tokens ---
 
 // マージ
-export const MergeRendererUseCaseToken =
-  createToken<MergeRendererUseCase>('MergeRendererUseCase')
-export const MergeAbortRendererUseCaseToken =
-  createToken<MergeAbortRendererUseCase>('MergeAbortRendererUseCase')
-export const MergeStatusRendererUseCaseToken =
-  createToken<MergeStatusRendererUseCase>('MergeStatusRendererUseCase')
+export const MergeRendererUseCaseToken = createToken<MergeRendererUseCase>('MergeRendererUseCase')
+export const MergeAbortRendererUseCaseToken = createToken<MergeAbortRendererUseCase>('MergeAbortRendererUseCase')
+export const MergeStatusRendererUseCaseToken = createToken<MergeStatusRendererUseCase>('MergeStatusRendererUseCase')
 
 // リベース
-export const RebaseRendererUseCaseToken =
-  createToken<RebaseRendererUseCase>('RebaseRendererUseCase')
-export const RebaseInteractiveRendererUseCaseToken =
-  createToken<RebaseInteractiveRendererUseCase>('RebaseInteractiveRendererUseCase')
-export const RebaseAbortRendererUseCaseToken =
-  createToken<RebaseAbortRendererUseCase>('RebaseAbortRendererUseCase')
-export const RebaseContinueRendererUseCaseToken =
-  createToken<RebaseContinueRendererUseCase>('RebaseContinueRendererUseCase')
-export const GetRebaseCommitsRendererUseCaseToken =
-  createToken<GetRebaseCommitsRendererUseCase>('GetRebaseCommitsRendererUseCase')
+export const RebaseRendererUseCaseToken = createToken<RebaseRendererUseCase>('RebaseRendererUseCase')
+export const RebaseInteractiveRendererUseCaseToken = createToken<RebaseInteractiveRendererUseCase>(
+  'RebaseInteractiveRendererUseCase',
+)
+export const RebaseAbortRendererUseCaseToken = createToken<RebaseAbortRendererUseCase>('RebaseAbortRendererUseCase')
+export const RebaseContinueRendererUseCaseToken = createToken<RebaseContinueRendererUseCase>(
+  'RebaseContinueRendererUseCase',
+)
+export const GetRebaseCommitsRendererUseCaseToken = createToken<GetRebaseCommitsRendererUseCase>(
+  'GetRebaseCommitsRendererUseCase',
+)
 
 // スタッシュ
-export const StashSaveRendererUseCaseToken =
-  createToken<StashSaveRendererUseCase>('StashSaveRendererUseCase')
-export const StashListRendererUseCaseToken =
-  createToken<StashListRendererUseCase>('StashListRendererUseCase')
-export const StashPopRendererUseCaseToken =
-  createToken<StashPopRendererUseCase>('StashPopRendererUseCase')
-export const StashApplyRendererUseCaseToken =
-  createToken<StashApplyRendererUseCase>('StashApplyRendererUseCase')
-export const StashDropRendererUseCaseToken =
-  createToken<StashDropRendererUseCase>('StashDropRendererUseCase')
-export const StashClearRendererUseCaseToken =
-  createToken<StashClearRendererUseCase>('StashClearRendererUseCase')
+export const StashSaveRendererUseCaseToken = createToken<StashSaveRendererUseCase>('StashSaveRendererUseCase')
+export const StashListRendererUseCaseToken = createToken<StashListRendererUseCase>('StashListRendererUseCase')
+export const StashPopRendererUseCaseToken = createToken<StashPopRendererUseCase>('StashPopRendererUseCase')
+export const StashApplyRendererUseCaseToken = createToken<StashApplyRendererUseCase>('StashApplyRendererUseCase')
+export const StashDropRendererUseCaseToken = createToken<StashDropRendererUseCase>('StashDropRendererUseCase')
+export const StashClearRendererUseCaseToken = createToken<StashClearRendererUseCase>('StashClearRendererUseCase')
 
 // チェリーピック
-export const CherryPickRendererUseCaseToken =
-  createToken<CherryPickRendererUseCase>('CherryPickRendererUseCase')
-export const CherryPickAbortRendererUseCaseToken =
-  createToken<CherryPickAbortRendererUseCase>('CherryPickAbortRendererUseCase')
+export const CherryPickRendererUseCaseToken = createToken<CherryPickRendererUseCase>('CherryPickRendererUseCase')
+export const CherryPickAbortRendererUseCaseToken = createToken<CherryPickAbortRendererUseCase>(
+  'CherryPickAbortRendererUseCase',
+)
 
 // コンフリクト解決
-export const ConflictListRendererUseCaseToken =
-  createToken<ConflictListRendererUseCase>('ConflictListRendererUseCase')
-export const ConflictFileContentRendererUseCaseToken =
-  createToken<ConflictFileContentRendererUseCase>('ConflictFileContentRendererUseCase')
-export const ConflictResolveRendererUseCaseToken =
-  createToken<ConflictResolveRendererUseCase>('ConflictResolveRendererUseCase')
-export const ConflictResolveAllRendererUseCaseToken =
-  createToken<ConflictResolveAllRendererUseCase>('ConflictResolveAllRendererUseCase')
-export const ConflictMarkResolvedRendererUseCaseToken =
-  createToken<ConflictMarkResolvedRendererUseCase>('ConflictMarkResolvedRendererUseCase')
+export const ConflictListRendererUseCaseToken = createToken<ConflictListRendererUseCase>('ConflictListRendererUseCase')
+export const ConflictFileContentRendererUseCaseToken = createToken<ConflictFileContentRendererUseCase>(
+  'ConflictFileContentRendererUseCase',
+)
+export const ConflictResolveRendererUseCaseToken = createToken<ConflictResolveRendererUseCase>(
+  'ConflictResolveRendererUseCase',
+)
+export const ConflictResolveAllRendererUseCaseToken = createToken<ConflictResolveAllRendererUseCase>(
+  'ConflictResolveAllRendererUseCase',
+)
+export const ConflictMarkResolvedRendererUseCaseToken = createToken<ConflictMarkResolvedRendererUseCase>(
+  'ConflictMarkResolvedRendererUseCase',
+)
 
 // タグ
-export const TagListRendererUseCaseToken =
-  createToken<TagListRendererUseCase>('TagListRendererUseCase')
-export const TagCreateRendererUseCaseToken =
-  createToken<TagCreateRendererUseCase>('TagCreateRendererUseCase')
-export const TagDeleteRendererUseCaseToken =
-  createToken<TagDeleteRendererUseCase>('TagDeleteRendererUseCase')
+export const TagListRendererUseCaseToken = createToken<TagListRendererUseCase>('TagListRendererUseCase')
+export const TagCreateRendererUseCaseToken = createToken<TagCreateRendererUseCase>('TagCreateRendererUseCase')
+export const TagDeleteRendererUseCaseToken = createToken<TagDeleteRendererUseCase>('TagDeleteRendererUseCase')
 
 // Observable UseCases
-export const GetAdvancedOperationLoadingUseCaseToken =
-  createToken<GetAdvancedOperationLoadingUseCase>('GetAdvancedOperationLoadingUseCase')
-export const GetAdvancedLastErrorUseCaseToken =
-  createToken<GetAdvancedLastErrorUseCase>('GetAdvancedLastErrorUseCase')
-export const GetAdvancedOperationProgressUseCaseToken =
-  createToken<GetAdvancedOperationProgressUseCase>('GetAdvancedOperationProgressUseCase')
-export const GetAdvancedCurrentOperationUseCaseToken =
-  createToken<GetAdvancedCurrentOperationUseCase>('GetAdvancedCurrentOperationUseCase')
+export const GetAdvancedOperationLoadingUseCaseToken = createToken<GetAdvancedOperationLoadingUseCase>(
+  'GetAdvancedOperationLoadingUseCase',
+)
+export const GetAdvancedLastErrorUseCaseToken = createToken<GetAdvancedLastErrorUseCase>('GetAdvancedLastErrorUseCase')
+export const GetAdvancedOperationProgressUseCaseToken = createToken<GetAdvancedOperationProgressUseCase>(
+  'GetAdvancedOperationProgressUseCase',
+)
+export const GetAdvancedCurrentOperationUseCaseToken = createToken<GetAdvancedCurrentOperationUseCase>(
+  'GetAdvancedCurrentOperationUseCase',
+)
 
 // --- ViewModel Tokens ---
 export const MergeViewModelToken = createToken<MergeViewModel>('MergeViewModel')

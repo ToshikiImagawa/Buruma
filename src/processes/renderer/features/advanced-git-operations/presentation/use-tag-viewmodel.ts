@@ -14,9 +14,6 @@ export function useTagViewModel() {
     tags,
     tagList: useCallback((worktreePath: string) => vm.tagList(worktreePath), [vm]),
     tagCreate: useCallback((options: TagCreateOptions) => vm.tagCreate(options), [vm]),
-    tagDelete: useCallback(
-      (worktreePath: string, tagName: string) => vm.tagDelete(worktreePath, tagName),
-      [vm],
-    ),
+    tagDelete: useCallback((worktreePath: string, tagName: string) => vm.tagDelete(worktreePath, tagName), [vm]),
   }
 }

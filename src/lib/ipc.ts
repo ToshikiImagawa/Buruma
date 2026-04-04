@@ -331,19 +331,14 @@ export interface ElectronAPI {
     ): Promise<IPCResult<import('@domain').RebaseResult>>
     rebaseAbort(args: { worktreePath: string }): Promise<IPCResult<void>>
     rebaseContinue(args: { worktreePath: string }): Promise<IPCResult<import('@domain').RebaseResult>>
-    rebaseGetCommits(args: {
-      worktreePath: string
-      onto: string
-    }): Promise<IPCResult<import('@domain').RebaseStep[]>>
+    rebaseGetCommits(args: { worktreePath: string; onto: string }): Promise<IPCResult<import('@domain').RebaseStep[]>>
     stashSave(args: import('@domain').StashSaveOptions): Promise<IPCResult<void>>
     stashList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').StashEntry[]>>
     stashPop(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
     stashApply(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
     stashDrop(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
     stashClear(args: { worktreePath: string }): Promise<IPCResult<void>>
-    cherryPick(
-      args: import('@domain').CherryPickOptions,
-    ): Promise<IPCResult<import('@domain').CherryPickResult>>
+    cherryPick(args: import('@domain').CherryPickOptions): Promise<IPCResult<import('@domain').CherryPickResult>>
     cherryPickAbort(args: { worktreePath: string }): Promise<IPCResult<void>>
     conflictList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ConflictFile[]>>
     conflictFileContent(args: {

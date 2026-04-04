@@ -19,14 +19,8 @@ export function useConflictViewModel() {
       (worktreePath: string, filePath: string) => vm.conflictFileContent(worktreePath, filePath),
       [vm],
     ),
-    conflictResolve: useCallback(
-      (options: ConflictResolveOptions) => vm.conflictResolve(options),
-      [vm],
-    ),
-    conflictResolveAll: useCallback(
-      (options: ConflictResolveAllOptions) => vm.conflictResolveAll(options),
-      [vm],
-    ),
+    conflictResolve: useCallback((options: ConflictResolveOptions) => vm.conflictResolve(options), [vm]),
+    conflictResolveAll: useCallback((options: ConflictResolveAllOptions) => vm.conflictResolveAll(options), [vm]),
     conflictMarkResolved: useCallback(
       (worktreePath: string, filePath: string) => vm.conflictMarkResolved(worktreePath, filePath),
       [vm],

@@ -13,9 +13,6 @@ export function useCherryPickViewModel() {
     loading,
     cherryPickResult,
     cherryPick: useCallback((options: CherryPickOptions) => vm.cherryPick(options), [vm]),
-    cherryPickAbort: useCallback(
-      (worktreePath: string) => vm.cherryPickAbort(worktreePath),
-      [vm],
-    ),
+    cherryPickAbort: useCallback((worktreePath: string) => vm.cherryPickAbort(worktreePath), [vm]),
   }
 }
