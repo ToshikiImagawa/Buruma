@@ -115,6 +115,13 @@ NFR_201〜NFR_203）を実現するための論理設計を定義する。表示
 |-----------------|-----------------|---------------------|----------------------------|---------------------------|
 | `git:file-tree` | renderer → main | ワークツリーのファイルツリーを取得する | `{ worktreePath: string }` | `IPCResult<FileTreeNode>` |
 
+### ファイルコンテンツ取得
+
+| チャネル名                      | 方向              | 概要                                                   | 引数                                                             | 戻り値                       |
+|----------------------------|-----------------|------------------------------------------------------|----------------------------------------------------------------|---------------------------|
+| `git:file-contents`        | renderer → main | Monaco DiffEditor 用のファイル全体テキストを取得する（ワーキングツリーまたはステージ） | `{ worktreePath: string; filePath: string; staged?: boolean }` | `IPCResult<FileContents>` |
+| `git:file-contents-commit` | renderer → main | 特定コミット時点のファイル全体テキストを取得する                             | `{ worktreePath: string; hash: string; filePath: string }`     | `IPCResult<FileContents>` |
+
 ## 4.2. React コンポーネント API
 
 | コンポーネント            | Props                   | 概要                                        |
@@ -239,6 +246,13 @@ interface FileTreeNode {
     type: 'file' | 'directory';
     children?: FileTreeNode[];
     changeStatus?: FileChangeStatus;    // 変更ファイルのマーキング用
+}
+
+// ファイルコンテンツ（Monaco DiffEditor 用）
+interface FileContents {
+    original: string;   // 変更前テキスト
+    modified: string;   // 変更後テキスト
+    language: string;   // Monaco 言語 ID
 }
 
 // コンポーネント Props
