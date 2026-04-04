@@ -21,6 +21,7 @@ export default tseslint.config(
       'vite.*.config.ts',
       'forge.config.ts',
       'postcss.config.js',
+      'scripts/**/*.mjs',
     ],
     languageOptions: {
       globals: {
