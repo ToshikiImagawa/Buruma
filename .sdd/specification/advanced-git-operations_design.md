@@ -27,31 +27,24 @@ risk: "high"
 
 ## 1.1. 実装進捗
 
-| モジュール/機能          | ステータス | 備考                        |
-|-------------------|-------|---------------------------|
-| MergeService      | 🔴    | マージ実行・中止                  |
-| RebaseService     | 🔴    | 通常/インタラクティブリベース           |
-| StashService      | 🔴    | スタッシュ CRUD                |
-| CherryPickService | 🔴    | チェリーピック実行                 |
-| ConflictService   | 🔴    | コンフリクト解決                  |
-| TagService        | 🔴    | タグ CRUD                   |
-| MergeDialog       | 🔴    | マージ UI                    |
-| RebaseEditor      | 🔴    | インタラクティブリベース UI           |
-| StashManager      | 🔴    | スタッシュ管理 UI                |
-| ConflictResolver  | 🔴    | 3ウェイマージ UI（Monaco Editor） |
-| TagManager        | 🔴    | タグ管理 UI                   |
+| モジュール/機能 | ステータス | 備考 |
+|---|---|---|
+| domain 型追加（MergeOptions, RebaseStep, ConflictFile 等） | 🔴 | src/domain/index.ts に追加予定 |
+| IPC 型追加（git:merge, git:stash-save 等 24 チャネル） | 🔴 | src/lib/ipc.ts に追加予定 |
+| メインプロセス feature（4層） | 🔴 | GitAdvancedRepository + 24 UseCases + IPC Handler |
+| レンダラー feature（4層） | 🔴 | AdvancedOperationsRepository + Service + ~26 UseCases + 6 ViewModel |
+| Preload API 拡張 | 🔴 | git.merge / git.rebase 等 追加予定 |
+| UI コンポーネント | 🔴 | MergeDialog, RebaseEditor, StashManager, CherryPickDialog, ConflictResolver, ThreeWayMergeView, TagManager |
 
 ---
 
 # 2. 設計目標
 
-1. **安全な操作実行** — すべての不可逆操作に確認ステップを設け、操作中は常に abort オプションを提供する（原則 B-002,
-   DC_401）
-2. **視覚的なコンフリクト解決** — Monaco Editor を用いた3ウェイマージ表示で、CLI より直感的なコンフリクト解決を提供する
-3. **simple-git による統一的な Git 操作** — Git 操作をすべて simple-git ライブラリ経由で実行し、コマンドパーサーの独自実装を避ける（原則
-   A-002）
-4. **型安全な IPC 通信** — `IPCResult<T>` パターンで統一し、エラーハンドリングを一貫させる（原則 T-001, T-002）
-5. **操作進捗のリアルタイムフィードバック** — 500ms 以内の進捗表示と30秒以内の完了通知（NFR_401）
+1. **Clean Architecture 4層構成** — 既存 feature（basic-git-operations, repository-viewer, worktree-management）と同一のアーキテクチャパターンを踏襲する（原則 A-004）
+2. **DI ベース設計** — VContainerConfig + Token + deps パターンで依存関係を注入する（原則 A-003）
+3. **ViewModel + Hook パターン** — ViewModel は RxJS Observable でデータを公開し、Hook ラッパー経由で React に接続する。ViewModel は UseCase のみ参照する（原則 A-004）
+4. **不可逆操作の安全性確保** — マージ・リベース・スタッシュ全削除等の不可逆操作に確認ステップを設け、操作中は常に abort オプションを提供する（原則 B-002, DC_401）
+5. **操作進捗のリアルタイムフィードバック** — 既存 `git:progress` イベントを再利用し、500ms 以内の進捗表示と30秒以内の完了通知を実現する（NFR_401）
 
 ---
 
@@ -66,15 +59,14 @@ risk: "high"
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
 
-| 領域        | 採用技術                                     |
-|-----------|------------------------------------------|
-| フレームワーク   | Electron 41 + Electron Forge 7           |
-| バンドラー     | Vite 5                                   |
-| UI        | React 19 + TypeScript                    |
-| スタイリング    | Tailwind CSS v4 (`@tailwindcss/postcss`) |
-| UIコンポーネント | Shadcn/ui                                |
-| Git操作     | simple-git（予定）                           |
-| エディタ      | Monaco Editor（予定）                        |
+| 領域 | 採用技術 |
+|---|---|
+| フレームワーク | Electron 41 + Electron Forge 7 |
+| バンドラー | Vite 5 |
+| UI | React 19 + TypeScript |
+| スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
+| UIコンポーネント | Shadcn/ui |
+| リアクティブ | RxJS |
 
 </details>
 
@@ -82,107 +74,387 @@ risk: "high"
 
 # 4. アーキテクチャ
 
-## 4.1. システム構成図
+## 4.1. ディレクトリ構成
+
+### メインプロセス側
+
+メインプロセス側の application 層は UseCase + GitAdvancedRepository IF のみで構成する。レンダラーとは異なり、状態管理 Service を持たない。Git 操作の進捗は既存の IPC イベント（`git:progress`）経由でレンダラーに通知する。
+
+```
+src/processes/main/features/advanced-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── git-advanced-repository.ts           # GitAdvancedRepository IF
+│   └── usecases/
+│       ├── merge-usecase.ts                     # MergeUseCase
+│       ├── merge-abort-usecase.ts               # MergeAbortUseCase
+│       ├── merge-status-usecase.ts              # MergeStatusUseCase
+│       ├── rebase-usecase.ts                    # RebaseUseCase
+│       ├── rebase-interactive-usecase.ts        # RebaseInteractiveUseCase
+│       ├── rebase-abort-usecase.ts              # RebaseAbortUseCase
+│       ├── rebase-continue-usecase.ts           # RebaseContinueUseCase
+│       ├── get-rebase-commits-usecase.ts        # GetRebaseCommitsUseCase
+│       ├── stash-save-usecase.ts                # StashSaveUseCase
+│       ├── stash-list-usecase.ts                # StashListUseCase
+│       ├── stash-pop-usecase.ts                 # StashPopUseCase
+│       ├── stash-apply-usecase.ts               # StashApplyUseCase
+│       ├── stash-drop-usecase.ts                # StashDropUseCase
+│       ├── stash-clear-usecase.ts               # StashClearUseCase
+│       ├── cherry-pick-usecase.ts               # CherryPickUseCase
+│       ├── cherry-pick-abort-usecase.ts         # CherryPickAbortUseCase
+│       ├── conflict-list-usecase.ts             # ConflictListUseCase
+│       ├── conflict-file-content-usecase.ts     # ConflictFileContentUseCase
+│       ├── conflict-resolve-usecase.ts          # ConflictResolveUseCase
+│       ├── conflict-resolve-all-usecase.ts      # ConflictResolveAllUseCase
+│       ├── conflict-mark-resolved-usecase.ts    # ConflictMarkResolvedUseCase
+│       ├── tag-list-usecase.ts                  # TagListUseCase
+│       ├── tag-create-usecase.ts                # TagCreateUseCase
+│       └── tag-delete-usecase.ts                # TagDeleteUseCase
+├── infrastructure/
+│   └── repositories/
+│       └── git-advanced-default-repository.ts   # simple-git による実装
+├── presentation/
+│   └── ipc-handlers.ts                          # IPC Handler（git:merge 等）
+├── di-tokens.ts
+└── di-config.ts
+```
+
+### レンダラー側
+
+```
+src/processes/renderer/features/advanced-git-operations/
+├── application/
+│   ├── repositories/
+│   │   └── advanced-operations-repository.ts        # AdvancedOperationsRepository IF
+│   ├── services/
+│   │   ├── advanced-operations-service-interface.ts  # AdvancedOperationsService IF
+│   │   └── advanced-operations-service.ts            # Service 実装（操作状態管理）
+│   └── usecases/
+│       ├── merge-usecase.ts                         # MergeUseCase (renderer)
+│       ├── merge-abort-usecase.ts
+│       ├── merge-status-usecase.ts
+│       ├── rebase-usecase.ts
+│       ├── rebase-interactive-usecase.ts
+│       ├── rebase-abort-usecase.ts
+│       ├── rebase-continue-usecase.ts
+│       ├── get-rebase-commits-usecase.ts
+│       ├── stash-save-usecase.ts
+│       ├── stash-list-usecase.ts
+│       ├── stash-pop-usecase.ts
+│       ├── stash-apply-usecase.ts
+│       ├── stash-drop-usecase.ts
+│       ├── stash-clear-usecase.ts
+│       ├── cherry-pick-usecase.ts
+│       ├── cherry-pick-abort-usecase.ts
+│       ├── conflict-list-usecase.ts
+│       ├── conflict-file-content-usecase.ts
+│       ├── conflict-resolve-usecase.ts
+│       ├── conflict-resolve-all-usecase.ts
+│       ├── conflict-mark-resolved-usecase.ts
+│       ├── tag-list-usecase.ts
+│       ├── tag-create-usecase.ts
+│       ├── tag-delete-usecase.ts
+│       ├── get-operation-loading-usecase.ts          # ObservableStoreUseCase<boolean>
+│       ├── get-last-error-usecase.ts                 # ObservableStoreUseCase<IPCError | null>
+│       ├── get-operation-progress-usecase.ts         # ObservableStoreUseCase<OperationProgress | null>
+│       └── get-current-operation-usecase.ts          # ObservableStoreUseCase<string | null>
+├── infrastructure/
+│   └── repositories/
+│       └── advanced-operations-default-repository.ts  # IPC クライアント実装
+├── presentation/
+│   ├── viewmodel-interfaces.ts                  # 全 ViewModel IF 定義
+│   ├── components/
+│   │   ├── merge-dialog.tsx
+│   │   ├── rebase-editor.tsx
+│   │   ├── stash-manager.tsx
+│   │   ├── cherry-pick-dialog.tsx
+│   │   ├── conflict-resolver.tsx
+│   │   ├── three-way-merge-view.tsx
+│   │   └── tag-manager.tsx
+│   ├── merge-viewmodel.ts
+│   ├── use-merge-viewmodel.ts
+│   ├── rebase-viewmodel.ts
+│   ├── use-rebase-viewmodel.ts
+│   ├── stash-viewmodel.ts
+│   ├── use-stash-viewmodel.ts
+│   ├── cherry-pick-viewmodel.ts
+│   ├── use-cherry-pick-viewmodel.ts
+│   ├── conflict-viewmodel.ts
+│   ├── use-conflict-viewmodel.ts
+│   ├── tag-viewmodel.ts
+│   └── use-tag-viewmodel.ts
+├── di-tokens.ts
+└── di-config.ts
+```
+
+## 4.2. システム構成図
 
 ```mermaid
+%%{init: {'theme': 'dark'}}%%
 graph TD
     subgraph "Renderer Process"
-        React[React UI]
-        MergeDialog[MergeDialog]
-        RebaseEditor[RebaseEditor]
-        StashManager[StashManager]
-        CherryPickDialog[CherryPickDialog]
-        ConflictResolver[ConflictResolver]
-        TagManager[TagManager]
-        ProgressBar[OperationProgressBar]
-        ConfirmDialog[DestructiveActionConfirmDialog]
-        MonacoEditor[Monaco Editor]
-        React --> MergeDialog
-        React --> RebaseEditor
-        React --> StashManager
-        React --> CherryPickDialog
-        React --> ConflictResolver
-        React --> TagManager
-        React --> ProgressBar
-        React --> ConfirmDialog
-        ConflictResolver --> MonacoEditor
+        subgraph "presentation"
+            MergeDialog[MergeDialog Component]
+            RebaseEditor[RebaseEditor Component]
+            StashManager[StashManager Component]
+            CherryPickDialog[CherryPickDialog Component]
+            ConflictResolver[ConflictResolver Component]
+            TagManager[TagManager Component]
+            MergeVM[MergeViewModel]
+            RebaseVM[RebaseViewModel]
+            StashVM[StashViewModel]
+            CherryPickVM[CherryPickViewModel]
+            ConflictVM[ConflictViewModel]
+            TagVM[TagViewModel]
+        end
+        subgraph "application"
+            MergeUC[Merge UseCase]
+            RebaseUC[Rebase UseCase]
+            StashUC[Stash UseCase]
+            CherryPickUC[CherryPick UseCase]
+            ConflictUC[Conflict UseCase]
+            TagUC[Tag UseCase]
+            AdvOpsService[AdvancedOperationsService]
+            AdvOpsRepoIF["AdvancedOperationsRepository IF"]
+        end
+        subgraph "infrastructure"
+            AdvOpsRepoImpl[AdvancedOperationsDefaultRepository]
+        end
     end
 
     subgraph "Preload"
-        Bridge[contextBridge API]
-        GitAPI[git.* API]
-        Bridge --> GitAPI
+        Bridge["contextBridge git.* API"]
     end
 
     subgraph "Main Process"
-        IPCRouter[IPC Router]
-        MergeService[MergeService]
-        RebaseService[RebaseService]
-        StashService[StashService]
-        CherryPickService[CherryPickService]
-        ConflictService[ConflictService]
-        TagService[TagService]
-        SafetyGuard[SafetyGuard]
-        SimpleGit[simple-git]
-        IPCRouter --> MergeService
-        IPCRouter --> RebaseService
-        IPCRouter --> StashService
-        IPCRouter --> CherryPickService
-        IPCRouter --> ConflictService
-        IPCRouter --> TagService
-        MergeService --> SafetyGuard
-        RebaseService --> SafetyGuard
-        MergeService --> SimpleGit
-        RebaseService --> SimpleGit
-        StashService --> SimpleGit
-        CherryPickService --> SimpleGit
-        ConflictService --> SimpleGit
-        TagService --> SimpleGit
+        subgraph "presentation (IPC)"
+            IPCHandler[Git Advanced IPC Handler]
+        end
+        subgraph "application (main)"
+            MainMergeUC[Merge UseCase]
+            MainRebaseUC[Rebase UseCase]
+            MainStashUC[Stash UseCase]
+            GitAdvRepoIF["GitAdvancedRepository IF"]
+        end
+        subgraph "infrastructure (main)"
+            GitAdvRepoImpl[GitAdvancedDefaultRepository]
+            SimpleGit[simple-git]
+        end
     end
 
-    React -->|" invoke "| Bridge
-    Bridge -->|" ipcRenderer "| IPCRouter
-    IPCRouter -->|" response "| Bridge
-    Bridge -->|" result "| React
-    IPCRouter -->|" webContents.send "| Bridge
-    Bridge -->|" onProgress "| ProgressBar
+    MergeDialog --> MergeVM
+    RebaseEditor --> RebaseVM
+    StashManager --> StashVM
+    CherryPickDialog --> CherryPickVM
+    ConflictResolver --> ConflictVM
+    TagManager --> TagVM
+    MergeVM --> MergeUC
+    RebaseVM --> RebaseUC
+    StashVM --> StashUC
+    CherryPickVM --> CherryPickUC
+    ConflictVM --> ConflictUC
+    TagVM --> TagUC
+    MergeUC --> AdvOpsRepoIF
+    RebaseUC --> AdvOpsRepoIF
+    StashUC --> AdvOpsRepoIF
+    CherryPickUC --> AdvOpsRepoIF
+    ConflictUC --> AdvOpsRepoIF
+    TagUC --> AdvOpsRepoIF
+    AdvOpsRepoIF -.-> AdvOpsRepoImpl
+    AdvOpsRepoImpl -->|"invoke"| Bridge
+    Bridge -->|"ipcRenderer"| IPCHandler
+    IPCHandler --> MainMergeUC
+    IPCHandler --> MainRebaseUC
+    IPCHandler --> MainStashUC
+    MainMergeUC --> GitAdvRepoIF
+    MainRebaseUC --> GitAdvRepoIF
+    MainStashUC --> GitAdvRepoIF
+    GitAdvRepoIF -.-> GitAdvRepoImpl
+    GitAdvRepoImpl --> SimpleGit
 ```
 
-## 4.2. モジュール分割
+## 4.3. モジュール分割
 
-| モジュール名                         | プロセス     | 責務                            | 配置場所                                                    |
-|--------------------------------|----------|-------------------------------|---------------------------------------------------------|
-| MergeService                   | main     | マージ実行・中止・状態取得                 | `src/processes/main/services/git/merge.ts`                        |
-| RebaseService                  | main     | リベース実行・中止・続行・コミット一覧取得         | `src/processes/main/services/git/rebase.ts`                       |
-| StashService                   | main     | スタッシュの退避・復元・削除・一覧取得           | `src/processes/main/services/git/stash.ts`                        |
-| CherryPickService              | main     | チェリーピック実行・中止                  | `src/processes/main/services/git/cherry-pick.ts`                  |
-| ConflictService                | main     | コンフリクトファイル一覧・3ウェイ内容取得・解決処理    | `src/processes/main/services/git/conflict.ts`                     |
-| TagService                     | main     | タグの作成・削除・一覧取得                 | `src/processes/main/services/git/tag.ts`                          |
-| SafetyGuard                    | main     | 不可逆操作の安全性チェック（未コミット変更検出等）     | `src/processes/main/services/git/safety-guard.ts`                 |
-| Git IPC ハンドラー                  | main     | 高度な Git 操作の IPC ルーティング        | `src/processes/main/ipc/git-advanced.ts`                          |
-| Git 型定義                        | shared   | 高度な Git 操作の型定義                | `src/types/git-advanced.ts`                             |
-| preload Git API                | preload  | contextBridge 経由の Git 操作 API  | `src/preload.ts`（既存ファイルに追加）                             |
-| MergeDialog                    | renderer | マージ設定 UI                      | `src/components/git/MergeDialog.tsx`                    |
-| RebaseEditor                   | renderer | インタラクティブリベース UI               | `src/components/git/RebaseEditor.tsx`                   |
-| StashManager                   | renderer | スタッシュ管理 UI                    | `src/components/git/StashManager.tsx`                   |
-| CherryPickDialog               | renderer | チェリーピック UI                    | `src/components/git/CherryPickDialog.tsx`               |
-| ConflictResolver               | renderer | コンフリクト解決 UI（Monaco Editor 統合） | `src/components/git/ConflictResolver.tsx`               |
-| ThreeWayMergeView              | renderer | 3ウェイマージ差分表示（Monaco Editor）    | `src/components/git/ThreeWayMergeView.tsx`              |
-| TagManager                     | renderer | タグ管理 UI                       | `src/components/git/TagManager.tsx`                     |
-| OperationProgressBar           | renderer | 操作進捗表示                        | `src/components/git/OperationProgressBar.tsx`           |
-| DestructiveActionConfirmDialog | renderer | 不可逆操作確認ダイアログ                  | `src/components/git/DestructiveActionConfirmDialog.tsx` |
+| モジュール名 | プロセス | 層 | 責務 | 配置場所 |
+|---|---|---|---|---|
+| GitAdvancedRepository IF | main | application | Git 高度操作の抽象（マージ・リベース・スタッシュ・チェリーピック・コンフリクト・タグ） | `src/processes/main/features/advanced-git-operations/application/repositories/` |
+| GitAdvancedDefaultRepository | main | infrastructure | simple-git による実装 | `src/processes/main/features/advanced-git-operations/infrastructure/repositories/` |
+| Git Advanced UseCases（24個） | main | application | 1操作1クラス（merge, rebase, stash, cherry-pick, conflict, tag） | `src/processes/main/features/advanced-git-operations/application/usecases/` |
+| Git Advanced IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src/processes/main/features/advanced-git-operations/presentation/` |
+| AdvancedOperationsRepository IF | renderer | application | Git 高度操作 IPC クライアントの抽象 | `src/processes/renderer/features/advanced-git-operations/application/repositories/` |
+| AdvancedOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/processes/renderer/features/advanced-git-operations/infrastructure/repositories/` |
+| AdvancedOperationsService | renderer | application | 操作状態管理（loading$, lastError$, operationProgress$, currentOperation$） | `src/processes/renderer/features/advanced-git-operations/application/services/` |
+| Git Advanced UseCases（~28個） | renderer | application | 1操作1クラス + Observable UseCases（24操作系 + 4 Observable） | `src/processes/renderer/features/advanced-git-operations/application/usecases/` |
+| ViewModels（6つ） | renderer | presentation | RxJS Observable で UI 状態を公開（Merge, Rebase, Stash, CherryPick, Conflict, Tag） | `src/processes/renderer/features/advanced-git-operations/presentation/` |
+| React Components（7つ） | renderer | presentation | UI コンポーネント | `src/processes/renderer/features/advanced-git-operations/presentation/components/` |
+| domain 型追加 | shared | domain | MergeOptions, RebaseStep, ConflictFile 等 | `src/domain/index.ts` |
+| IPC 型追加 | shared | - | 新規 24 チャネル定義 | `src/lib/ipc.ts` |
 
 ---
 
 # 5. データモデル
 
-```typescript
-// simple-git のインスタンス管理
-// ワークツリーパスごとに simple-git インスタンスを生成
-import simpleGit, {SimpleGit} from 'simple-git';
+`src/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `CommitArgs`, `CommitResult` 等はそのまま再利用する。
 
-function createGitInstance(worktreePath: string): SimpleGit {
-    return simpleGit(worktreePath);
+```typescript
+// --- 高度な Git 操作 ---
+
+// === マージ関連 ===
+
+/** マージオプション */
+export interface MergeOptions {
+  worktreePath: string
+  branch: string
+  strategy: 'fast-forward' | 'no-ff'
+}
+
+/** マージ結果 */
+export interface MergeResult {
+  status: 'success' | 'conflict' | 'already-up-to-date'
+  conflictFiles?: string[]
+  mergeCommit?: string
+}
+
+/** マージ状態 */
+export interface MergeStatus {
+  isMerging: boolean
+  branch?: string
+  conflictFiles?: string[]
+}
+
+// === リベース関連 ===
+
+/** リベースオプション */
+export interface RebaseOptions {
+  worktreePath: string
+  onto: string
+}
+
+/** インタラクティブリベースオプション */
+export interface InteractiveRebaseOptions {
+  worktreePath: string
+  onto: string
+  steps: RebaseStep[]
+}
+
+/** リベースステップ */
+export interface RebaseStep {
+  hash: string
+  message: string
+  action: RebaseAction
+  order: number
+}
+
+/** リベースアクション */
+export type RebaseAction = 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop'
+
+/** リベース結果 */
+export interface RebaseResult {
+  status: 'success' | 'conflict' | 'aborted'
+  conflictFiles?: string[]
+  currentStep?: number
+  totalSteps?: number
+}
+
+// === スタッシュ関連 ===
+
+/** スタッシュ保存オプション */
+export interface StashSaveOptions {
+  worktreePath: string
+  message?: string
+  includeUntracked?: boolean
+}
+
+/** スタッシュエントリ */
+export interface StashEntry {
+  index: number
+  message: string
+  date: string // ISO 8601
+  branch: string
+  hash: string
+}
+
+// === チェリーピック関連 ===
+
+/** チェリーピックオプション */
+export interface CherryPickOptions {
+  worktreePath: string
+  commits: string[] // コミットハッシュの配列
+}
+
+/** チェリーピック結果 */
+export interface CherryPickResult {
+  status: 'success' | 'conflict'
+  conflictFiles?: string[]
+  appliedCommits: string[]
+}
+
+// === コンフリクト解決関連 ===
+
+/** コンフリクトファイル */
+export interface ConflictFile {
+  filePath: string
+  status: 'conflicted' | 'resolved'
+  conflictType: 'content' | 'rename' | 'delete'
+}
+
+/** 3ウェイマージ内容 */
+export interface ThreeWayContent {
+  base: string    // 共通祖先
+  ours: string    // 自分の変更
+  theirs: string  // 相手の変更
+  merged: string  // 現在のマージ結果（コンフリクトマーカー付き）
+}
+
+/** コンフリクト解決オプション */
+export interface ConflictResolveOptions {
+  worktreePath: string
+  filePath: string
+  resolution: ConflictResolution
+}
+
+/** コンフリクト解決方式 */
+export type ConflictResolution =
+  | { type: 'ours' }
+  | { type: 'theirs' }
+  | { type: 'manual'; content: string }
+
+/** コンフリクト一括解決オプション */
+export interface ConflictResolveAllOptions {
+  worktreePath: string
+  strategy: 'ours' | 'theirs'
+}
+
+// === タグ関連 ===
+
+/** タグ情報 */
+export interface TagInfo {
+  name: string
+  hash: string
+  message?: string // annotated タグの場合のみ
+  date: string // ISO 8601
+  type: 'lightweight' | 'annotated'
+  tagger?: string
+}
+
+/** タグ作成オプション */
+export interface TagCreateOptions {
+  worktreePath: string
+  tagName: string
+  commitHash?: string // 省略時は HEAD
+  type: 'lightweight' | 'annotated'
+  message?: string // annotated タグの場合に必須
+}
+
+// === 操作進捗 ===
+
+/** 操作進捗イベント */
+export interface OperationProgress {
+  operationType: 'merge' | 'rebase' | 'cherry-pick'
+  status: 'in-progress' | 'completed' | 'failed' | 'conflict'
+  message: string
+  currentStep?: number
+  totalSteps?: number
 }
 ```
 
@@ -190,346 +462,405 @@ function createGitInstance(worktreePath: string): SimpleGit {
 
 # 6. インターフェース定義
 
-## 6.1. IPC ハンドラー（メインプロセス側）
+## 6.1. メインプロセス側
+
+### GitAdvancedRepository（application 層）
 
 ```typescript
-// src/processes/main/ipc/git-advanced.ts
-import {ipcMain, BrowserWindow} from 'electron';
-import type {IPCResult} from '../../types/ipc';
-import type {
-    MergeOptions,
-    MergeResult,
-    MergeStatus,
-    RebaseOptions,
-    InteractiveRebaseOptions,
-    RebaseResult,
-    RebaseStep,
-    StashSaveOptions,
-    StashEntry,
-    CherryPickOptions,
-    CherryPickResult,
-    ConflictFile,
-    ThreeWayContent,
-    ConflictResolveOptions,
-    ConflictResolveAllOptions,
-    TagInfo,
-    TagCreateOptions,
-    OperationProgress,
-} from '../../types/git-advanced';
-
-export function registerAdvancedGitHandlers(
-    mergeService: MergeService,
-    rebaseService: RebaseService,
-    stashService: StashService,
-    cherryPickService: CherryPickService,
-    conflictService: ConflictService,
-    tagService: TagService,
-    mainWindow: BrowserWindow,
-): void {
-    // --- マージ ---
-    ipcMain.handle('git:merge', async (_event, options: MergeOptions): Promise<IPCResult<MergeResult>> => {
-        return mergeService.merge(options);
-    });
-
-    ipcMain.handle('git:merge-abort', async (_event, args: { worktreePath: string }): Promise<IPCResult<void>> => {
-        return mergeService.abort(args.worktreePath);
-    });
-
-    ipcMain.handle('git:merge-status', async (_event, args: {
-        worktreePath: string
-    }): Promise<IPCResult<MergeStatus>> => {
-        return mergeService.getStatus(args.worktreePath);
-    });
-
-    // --- リベース ---
-    ipcMain.handle('git:rebase', async (_event, options: RebaseOptions): Promise<IPCResult<RebaseResult>> => {
-        return rebaseService.rebase(options);
-    });
-
-    ipcMain.handle('git:rebase-interactive', async (_event, options: InteractiveRebaseOptions): Promise<IPCResult<RebaseResult>> => {
-        return rebaseService.interactiveRebase(options);
-    });
-
-    ipcMain.handle('git:rebase-abort', async (_event, args: { worktreePath: string }): Promise<IPCResult<void>> => {
-        return rebaseService.abort(args.worktreePath);
-    });
-
-    ipcMain.handle('git:rebase-continue', async (_event, args: {
-        worktreePath: string
-    }): Promise<IPCResult<RebaseResult>> => {
-        return rebaseService.continue(args.worktreePath);
-    });
-
-    ipcMain.handle('git:rebase-get-commits', async (_event, args: {
-        worktreePath: string;
-        onto: string
-    }): Promise<IPCResult<RebaseStep[]>> => {
-        return rebaseService.getCommits(args.worktreePath, args.onto);
-    });
-
-    // --- スタッシュ ---
-    ipcMain.handle('git:stash-save', async (_event, options: StashSaveOptions): Promise<IPCResult<void>> => {
-        return stashService.save(options);
-    });
-
-    ipcMain.handle('git:stash-list', async (_event, args: {
-        worktreePath: string
-    }): Promise<IPCResult<StashEntry[]>> => {
-        return stashService.list(args.worktreePath);
-    });
-
-    ipcMain.handle('git:stash-pop', async (_event, args: {
-        worktreePath: string;
-        index: number
-    }): Promise<IPCResult<void>> => {
-        return stashService.pop(args.worktreePath, args.index);
-    });
-
-    ipcMain.handle('git:stash-apply', async (_event, args: {
-        worktreePath: string;
-        index: number
-    }): Promise<IPCResult<void>> => {
-        return stashService.apply(args.worktreePath, args.index);
-    });
-
-    ipcMain.handle('git:stash-drop', async (_event, args: {
-        worktreePath: string;
-        index: number
-    }): Promise<IPCResult<void>> => {
-        return stashService.drop(args.worktreePath, args.index);
-    });
-
-    ipcMain.handle('git:stash-clear', async (_event, args: { worktreePath: string }): Promise<IPCResult<void>> => {
-        return stashService.clear(args.worktreePath);
-    });
-
-    // --- チェリーピック ---
-    ipcMain.handle('git:cherry-pick', async (_event, options: CherryPickOptions): Promise<IPCResult<CherryPickResult>> => {
-        return cherryPickService.cherryPick(options);
-    });
-
-    ipcMain.handle('git:cherry-pick-abort', async (_event, args: {
-        worktreePath: string
-    }): Promise<IPCResult<void>> => {
-        return cherryPickService.abort(args.worktreePath);
-    });
-
-    // --- コンフリクト解決 ---
-    ipcMain.handle('git:conflict-list', async (_event, args: {
-        worktreePath: string
-    }): Promise<IPCResult<ConflictFile[]>> => {
-        return conflictService.listConflicts(args.worktreePath);
-    });
-
-    ipcMain.handle('git:conflict-file-content', async (_event, args: {
-        worktreePath: string;
-        filePath: string
-    }): Promise<IPCResult<ThreeWayContent>> => {
-        return conflictService.getThreeWayContent(args.worktreePath, args.filePath);
-    });
-
-    ipcMain.handle('git:conflict-resolve', async (_event, options: ConflictResolveOptions): Promise<IPCResult<void>> => {
-        return conflictService.resolve(options);
-    });
-
-    ipcMain.handle('git:conflict-resolve-all', async (_event, options: ConflictResolveAllOptions): Promise<IPCResult<void>> => {
-        return conflictService.resolveAll(options);
-    });
-
-    ipcMain.handle('git:conflict-mark-resolved', async (_event, args: {
-        worktreePath: string;
-        filePath: string
-    }): Promise<IPCResult<void>> => {
-        return conflictService.markResolved(args.worktreePath, args.filePath);
-    });
-
-    // --- タグ ---
-    ipcMain.handle('git:tag-list', async (_event, args: { worktreePath: string }): Promise<IPCResult<TagInfo[]>> => {
-        return tagService.list(args.worktreePath);
-    });
-
-    ipcMain.handle('git:tag-create', async (_event, options: TagCreateOptions): Promise<IPCResult<void>> => {
-        return tagService.create(options);
-    });
-
-    ipcMain.handle('git:tag-delete', async (_event, args: {
-        worktreePath: string;
-        tagName: string
-    }): Promise<IPCResult<void>> => {
-        return tagService.delete(args.worktreePath, args.tagName);
-    });
-
-    // --- 進捗通知ヘルパー ---
-    function sendProgress(progress: OperationProgress): void {
-        mainWindow.webContents.send('git:operation-progress', progress);
-    }
-
-    // 各サービスに進捗通知コールバックを注入
-    mergeService.onProgress = sendProgress;
-    rebaseService.onProgress = sendProgress;
-    cherryPickService.onProgress = sendProgress;
-}
-```
-
-## 6.2. Preload API（contextBridge 経由）
-
-``` typescript
-// src/preload.ts に追加
-// 既存の electronAPI.repository, electronAPI.settings に加えて git を追加
-
-git: {
+// src/processes/main/features/advanced-git-operations/application/repositories/git-advanced-repository.ts
+export interface GitAdvancedRepository {
   // マージ
-  merge: (options: MergeOptions): Promise<IPCResult<MergeResult>> =>
-    ipcRenderer.invoke('git:merge', options),
-  mergeAbort: (worktreePath: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:merge-abort', { worktreePath }),
-  mergeStatus: (worktreePath: string): Promise<IPCResult<MergeStatus>> =>
-    ipcRenderer.invoke('git:merge-status', { worktreePath }),
-
+  merge(options: MergeOptions): Promise<MergeResult>
+  mergeAbort(worktreePath: string): Promise<void>
+  mergeStatus(worktreePath: string): Promise<MergeStatus>
   // リベース
-  rebase: (options: RebaseOptions): Promise<IPCResult<RebaseResult>> =>
-    ipcRenderer.invoke('git:rebase', options),
-  rebaseInteractive: (options: InteractiveRebaseOptions): Promise<IPCResult<RebaseResult>> =>
-    ipcRenderer.invoke('git:rebase-interactive', options),
-  rebaseAbort: (worktreePath: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:rebase-abort', { worktreePath }),
-  rebaseContinue: (worktreePath: string): Promise<IPCResult<RebaseResult>> =>
-    ipcRenderer.invoke('git:rebase-continue', { worktreePath }),
-  rebaseGetCommits: (worktreePath: string, onto: string): Promise<IPCResult<RebaseStep[]>> =>
-    ipcRenderer.invoke('git:rebase-get-commits', { worktreePath, onto }),
-
+  rebase(options: RebaseOptions): Promise<RebaseResult>
+  rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult>
+  rebaseAbort(worktreePath: string): Promise<void>
+  rebaseContinue(worktreePath: string): Promise<RebaseResult>
+  getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]>
   // スタッシュ
-  stashSave: (options: StashSaveOptions): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stash-save', options),
-  stashList: (worktreePath: string): Promise<IPCResult<StashEntry[]>> =>
-    ipcRenderer.invoke('git:stash-list', { worktreePath }),
-  stashPop: (worktreePath: string, index: number): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stash-pop', { worktreePath, index }),
-  stashApply: (worktreePath: string, index: number): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stash-apply', { worktreePath, index }),
-  stashDrop: (worktreePath: string, index: number): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stash-drop', { worktreePath, index }),
-  stashClear: (worktreePath: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:stash-clear', { worktreePath }),
-
+  stashSave(options: StashSaveOptions): Promise<void>
+  stashList(worktreePath: string): Promise<StashEntry[]>
+  stashPop(worktreePath: string, index: number): Promise<void>
+  stashApply(worktreePath: string, index: number): Promise<void>
+  stashDrop(worktreePath: string, index: number): Promise<void>
+  stashClear(worktreePath: string): Promise<void>
   // チェリーピック
-  cherryPick: (options: CherryPickOptions): Promise<IPCResult<CherryPickResult>> =>
-    ipcRenderer.invoke('git:cherry-pick', options),
-  cherryPickAbort: (worktreePath: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:cherry-pick-abort', { worktreePath }),
-
+  cherryPick(options: CherryPickOptions): Promise<CherryPickResult>
+  cherryPickAbort(worktreePath: string): Promise<void>
   // コンフリクト解決
-  conflictList: (worktreePath: string): Promise<IPCResult<ConflictFile[]>> =>
-    ipcRenderer.invoke('git:conflict-list', { worktreePath }),
-  conflictFileContent: (worktreePath: string, filePath: string): Promise<IPCResult<ThreeWayContent>> =>
-    ipcRenderer.invoke('git:conflict-file-content', { worktreePath, filePath }),
-  conflictResolve: (options: ConflictResolveOptions): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:conflict-resolve', options),
-  conflictResolveAll: (options: ConflictResolveAllOptions): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:conflict-resolve-all', options),
-  conflictMarkResolved: (worktreePath: string, filePath: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:conflict-mark-resolved', { worktreePath, filePath }),
-
+  conflictList(worktreePath: string): Promise<ConflictFile[]>
+  conflictFileContent(worktreePath: string, filePath: string): Promise<ThreeWayContent>
+  conflictResolve(options: ConflictResolveOptions): Promise<void>
+  conflictResolveAll(options: ConflictResolveAllOptions): Promise<void>
+  conflictMarkResolved(worktreePath: string, filePath: string): Promise<void>
   // タグ
-  tagList: (worktreePath: string): Promise<IPCResult<TagInfo[]>> =>
-    ipcRenderer.invoke('git:tag-list', { worktreePath }),
-  tagCreate: (options: TagCreateOptions): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:tag-create', options),
-  tagDelete: (worktreePath: string, tagName: string): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('git:tag-delete', { worktreePath, tagName }),
-
-  // 進捗通知
-  onOperationProgress: (callback: (progress: OperationProgress) => void): void => {
-    ipcRenderer.on('git:operation-progress', (_event, progress) => {
-      callback(progress);
-    });
-  },
-},
+  tagList(worktreePath: string): Promise<TagInfo[]>
+  tagCreate(options: TagCreateOptions): Promise<void>
+  tagDelete(worktreePath: string, tagName: string): Promise<void>
+}
 ```
 
-## 6.3. レンダラー側の型定義
+### UseCase 例（application 層）
 
 ```typescript
-// src/types/electron.d.ts に追加
-import type {
-    MergeOptions,
-    MergeResult,
-    MergeStatus,
-    RebaseOptions,
-    InteractiveRebaseOptions,
-    RebaseResult,
-    RebaseStep,
-    StashSaveOptions,
-    StashEntry,
-    CherryPickOptions,
-    CherryPickResult,
-    ConflictFile,
-    ThreeWayContent,
-    ConflictResolveOptions,
-    ConflictResolveAllOptions,
-    TagInfo,
-    TagCreateOptions,
-    OperationProgress,
-    IPCResult,
-} from './git-advanced';
+// src/processes/main/features/advanced-git-operations/application/usecases/merge-usecase.ts
+export class MergeUseCase implements FunctionUseCase<MergeOptions, Promise<MergeResult>> {
+  constructor(private readonly repository: GitAdvancedRepository) {}
 
-interface ElectronAPI {
-    // ... 既存の repository, settings ...
-    git: {
-        merge(options: MergeOptions): Promise<IPCResult<MergeResult>>;
-        mergeAbort(worktreePath: string): Promise<IPCResult<void>>;
-        mergeStatus(worktreePath: string): Promise<IPCResult<MergeStatus>>;
-        rebase(options: RebaseOptions): Promise<IPCResult<RebaseResult>>;
-        rebaseInteractive(options: InteractiveRebaseOptions): Promise<IPCResult<RebaseResult>>;
-        rebaseAbort(worktreePath: string): Promise<IPCResult<void>>;
-        rebaseContinue(worktreePath: string): Promise<IPCResult<RebaseResult>>;
-        rebaseGetCommits(worktreePath: string, onto: string): Promise<IPCResult<RebaseStep[]>>;
-        stashSave(options: StashSaveOptions): Promise<IPCResult<void>>;
-        stashList(worktreePath: string): Promise<IPCResult<StashEntry[]>>;
-        stashPop(worktreePath: string, index: number): Promise<IPCResult<void>>;
-        stashApply(worktreePath: string, index: number): Promise<IPCResult<void>>;
-        stashDrop(worktreePath: string, index: number): Promise<IPCResult<void>>;
-        stashClear(worktreePath: string): Promise<IPCResult<void>>;
-        cherryPick(options: CherryPickOptions): Promise<IPCResult<CherryPickResult>>;
-        cherryPickAbort(worktreePath: string): Promise<IPCResult<void>>;
-        conflictList(worktreePath: string): Promise<IPCResult<ConflictFile[]>>;
-        conflictFileContent(worktreePath: string, filePath: string): Promise<IPCResult<ThreeWayContent>>;
-        conflictResolve(options: ConflictResolveOptions): Promise<IPCResult<void>>;
-        conflictResolveAll(options: ConflictResolveAllOptions): Promise<IPCResult<void>>;
-        conflictMarkResolved(worktreePath: string, filePath: string): Promise<IPCResult<void>>;
-        tagList(worktreePath: string): Promise<IPCResult<TagInfo[]>>;
-        tagCreate(options: TagCreateOptions): Promise<IPCResult<void>>;
-        tagDelete(worktreePath: string, tagName: string): Promise<IPCResult<void>>;
-        onOperationProgress(callback: (progress: OperationProgress) => void): void;
-    };
+  async invoke(input: MergeOptions): Promise<MergeResult> {
+    return this.repository.merge(input)
+  }
 }
+```
+
+### IPC Handler（presentation 層）
+
+```typescript
+// src/processes/main/features/advanced-git-operations/presentation/ipc-handlers.ts
+export function registerGitAdvancedIPCHandlers(
+  mergeUseCase: MergeMainUseCase,
+  mergeAbortUseCase: MergeAbortMainUseCase,
+  mergeStatusUseCase: MergeStatusMainUseCase,
+  // ... 他の 21 UseCase
+): () => void {
+  ipcMain.handle('git:merge', (_event, args: MergeOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return mergeUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:merge-abort', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return mergeAbortUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle('git:stash-save', (_event, args: StashSaveOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashSaveUseCase.invoke(args)
+    }),
+  )
+
+  // ... 他の 21 チャネルも同様
+
+  return () => {
+    ipcMain.removeHandler('git:merge')
+    ipcMain.removeHandler('git:merge-abort')
+    ipcMain.removeHandler('git:merge-status')
+    // ... 他のチャネルも同様
+  }
+}
+```
+
+## 6.2. レンダラー側
+
+### AdvancedOperationsRepository（application 層）
+
+```typescript
+// src/processes/renderer/features/advanced-git-operations/application/repositories/advanced-operations-repository.ts
+export interface AdvancedOperationsRepository {
+  merge(options: MergeOptions): Promise<MergeResult>
+  mergeAbort(worktreePath: string): Promise<void>
+  mergeStatus(worktreePath: string): Promise<MergeStatus>
+  rebase(options: RebaseOptions): Promise<RebaseResult>
+  rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult>
+  rebaseAbort(worktreePath: string): Promise<void>
+  rebaseContinue(worktreePath: string): Promise<RebaseResult>
+  getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]>
+  stashSave(options: StashSaveOptions): Promise<void>
+  stashList(worktreePath: string): Promise<StashEntry[]>
+  stashPop(worktreePath: string, index: number): Promise<void>
+  stashApply(worktreePath: string, index: number): Promise<void>
+  stashDrop(worktreePath: string, index: number): Promise<void>
+  stashClear(worktreePath: string): Promise<void>
+  cherryPick(options: CherryPickOptions): Promise<CherryPickResult>
+  cherryPickAbort(worktreePath: string): Promise<void>
+  conflictList(worktreePath: string): Promise<ConflictFile[]>
+  conflictFileContent(worktreePath: string, filePath: string): Promise<ThreeWayContent>
+  conflictResolve(options: ConflictResolveOptions): Promise<void>
+  conflictResolveAll(options: ConflictResolveAllOptions): Promise<void>
+  conflictMarkResolved(worktreePath: string, filePath: string): Promise<void>
+  tagList(worktreePath: string): Promise<TagInfo[]>
+  tagCreate(options: TagCreateOptions): Promise<void>
+  tagDelete(worktreePath: string, tagName: string): Promise<void>
+}
+```
+
+### AdvancedOperationsService（application 層 — ステートフル）
+
+```typescript
+// src/processes/renderer/features/advanced-git-operations/application/services/advanced-operations-service-interface.ts
+export interface AdvancedOperationsService extends BaseService {
+  readonly loading$: Observable<boolean>
+  readonly lastError$: Observable<IPCError | null>
+  readonly operationProgress$: Observable<OperationProgress | null>
+  readonly currentOperation$: Observable<string | null>
+  setLoading(loading: boolean): void
+  setError(error: IPCError | null): void
+  clearError(): void
+  setOperationProgress(progress: OperationProgress | null): void
+  setCurrentOperation(operation: string | null): void
+}
+```
+
+### ViewModel インターフェース
+
+```typescript
+// src/processes/renderer/features/advanced-git-operations/presentation/viewmodel-interfaces.ts
+
+export interface MergeViewModel {
+  readonly loading$: Observable<boolean>
+  readonly mergeResult$: Observable<MergeResult | null>
+  readonly mergeStatus$: Observable<MergeStatus | null>
+  merge(options: MergeOptions): void
+  mergeAbort(worktreePath: string): void
+  getMergeStatus(worktreePath: string): void
+}
+
+export interface RebaseViewModel {
+  readonly loading$: Observable<boolean>
+  readonly rebaseResult$: Observable<RebaseResult | null>
+  readonly rebaseCommits$: Observable<RebaseStep[]>
+  rebase(options: RebaseOptions): void
+  rebaseInteractive(options: InteractiveRebaseOptions): void
+  rebaseAbort(worktreePath: string): void
+  rebaseContinue(worktreePath: string): void
+  getRebaseCommits(worktreePath: string, onto: string): void
+}
+
+export interface StashViewModel {
+  readonly loading$: Observable<boolean>
+  readonly stashes$: Observable<StashEntry[]>
+  stashSave(options: StashSaveOptions): void
+  stashList(worktreePath: string): void
+  stashPop(worktreePath: string, index: number): void
+  stashApply(worktreePath: string, index: number): void
+  stashDrop(worktreePath: string, index: number): void
+  stashClear(worktreePath: string): void
+}
+
+export interface CherryPickViewModel {
+  readonly loading$: Observable<boolean>
+  readonly cherryPickResult$: Observable<CherryPickResult | null>
+  cherryPick(options: CherryPickOptions): void
+  cherryPickAbort(worktreePath: string): void
+}
+
+export interface ConflictViewModel {
+  readonly loading$: Observable<boolean>
+  readonly conflictFiles$: Observable<ConflictFile[]>
+  readonly threeWayContent$: Observable<ThreeWayContent | null>
+  conflictList(worktreePath: string): void
+  conflictFileContent(worktreePath: string, filePath: string): void
+  conflictResolve(options: ConflictResolveOptions): void
+  conflictResolveAll(options: ConflictResolveAllOptions): void
+  conflictMarkResolved(worktreePath: string, filePath: string): void
+}
+
+export interface TagViewModel {
+  readonly loading$: Observable<boolean>
+  readonly tags$: Observable<TagInfo[]>
+  tagList(worktreePath: string): void
+  tagCreate(options: TagCreateOptions): void
+  tagDelete(worktreePath: string, tagName: string): void
+}
+```
+
+### Hook ラッパー例
+
+```typescript
+// src/processes/renderer/features/advanced-git-operations/presentation/use-merge-viewmodel.ts
+export function useMergeViewModel() {
+  const vm = useResolve(MergeViewModelToken)
+  const loading = useObservable(vm.loading$, false)
+  const mergeResult = useObservable(vm.mergeResult$, null)
+  const mergeStatus = useObservable(vm.mergeStatus$, null)
+
+  return {
+    loading,
+    mergeResult,
+    mergeStatus,
+    merge: useCallback(
+      (options: MergeOptions) => vm.merge(options),
+      [vm],
+    ),
+    mergeAbort: useCallback(
+      (worktreePath: string) => vm.mergeAbort(worktreePath),
+      [vm],
+    ),
+    getMergeStatus: useCallback(
+      (worktreePath: string) => vm.getMergeStatus(worktreePath),
+      [vm],
+    ),
+  }
+}
+```
+
+## 6.3. DI 構成
+
+### メインプロセス側 di-tokens.ts
+
+```typescript
+// src/processes/main/features/advanced-git-operations/di-tokens.ts
+import { createToken } from '@lib/di'
+
+export const GitAdvancedRepositoryToken = createToken<GitAdvancedRepository>('GitAdvancedRepository')
+
+// UseCase 型エイリアス + Token（代表例）
+export type MergeMainUseCase = FunctionUseCase<MergeOptions, Promise<MergeResult>>
+export const MergeMainUseCaseToken = createToken<MergeMainUseCase>('MergeMainUseCase')
+
+export type MergeAbortMainUseCase = ConsumerUseCase<string>
+export const MergeAbortMainUseCaseToken = createToken<MergeAbortMainUseCase>('MergeAbortMainUseCase')
+
+export type MergeStatusMainUseCase = FunctionUseCase<string, Promise<MergeStatus>>
+export const MergeStatusMainUseCaseToken = createToken<MergeStatusMainUseCase>('MergeStatusMainUseCase')
+
+// ... 他の 21 UseCase Token も同様
+```
+
+### メインプロセス側 di-config.ts
+
+```typescript
+// src/processes/main/features/advanced-git-operations/di-config.ts
+export const advancedGitOperationsMainConfig: VContainerConfig = {
+  register(container) {
+    container.registerSingleton(GitAdvancedRepositoryToken, GitAdvancedDefaultRepository)
+    container.registerSingleton(MergeMainUseCaseToken, MergeUseCase, [GitAdvancedRepositoryToken])
+    container.registerSingleton(MergeAbortMainUseCaseToken, MergeAbortUseCase, [GitAdvancedRepositoryToken])
+    container.registerSingleton(MergeStatusMainUseCaseToken, MergeStatusUseCase, [GitAdvancedRepositoryToken])
+    // ... 他の 21 UseCase も同様
+  },
+  setUp: async (container) => {
+    const repo = container.resolve(GitAdvancedRepositoryToken) as GitAdvancedDefaultRepository
+    repo.setProgressCallback((event) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('git:progress', event)
+      }
+    })
+
+    const unregisterHandlers = registerGitAdvancedIPCHandlers(
+      container.resolve(MergeMainUseCaseToken),
+      container.resolve(MergeAbortMainUseCaseToken),
+      container.resolve(MergeStatusMainUseCaseToken),
+      // ... 他の 21 UseCase
+    )
+    return () => { unregisterHandlers() }
+  },
+}
+```
+
+### レンダラー側 di-config.ts
+
+```typescript
+// src/processes/renderer/features/advanced-git-operations/di-config.ts
+export const advancedGitOperationsConfig: VContainerConfig = {
+  register(container) {
+    // Repository
+    container.registerSingleton(AdvancedOperationsRepositoryToken, AdvancedOperationsDefaultRepository)
+
+    // Service
+    container.registerSingleton(AdvancedOperationsServiceToken, AdvancedOperationsDefaultService)
+
+    // UseCases（代表例）
+    container.registerSingleton(MergeRendererUseCaseToken, MergeUseCase, [
+      AdvancedOperationsRepositoryToken,
+      AdvancedOperationsServiceToken,
+    ])
+    // ... 他の 23 操作系 UseCase も同様
+
+    // Observable UseCases（Service 状態の公開用）
+    container.registerSingleton(GetOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [
+      AdvancedOperationsServiceToken,
+    ])
+    container.registerSingleton(GetLastErrorUseCaseToken, GetLastErrorUseCase, [
+      AdvancedOperationsServiceToken,
+    ])
+    container.registerSingleton(GetOperationProgressUseCaseToken, GetOperationProgressUseCase, [
+      AdvancedOperationsServiceToken,
+    ])
+    container.registerSingleton(GetCurrentOperationUseCaseToken, GetCurrentOperationUseCase, [
+      AdvancedOperationsServiceToken,
+    ])
+
+    // ViewModels (transient) — ViewModel は UseCase のみを参照し、Service を直接参照しない (A-004)
+    container.registerTransient(MergeViewModelToken, MergeDefaultViewModel, [
+      MergeRendererUseCaseToken,
+      MergeAbortRendererUseCaseToken,
+      MergeStatusRendererUseCaseToken,
+      GetOperationLoadingUseCaseToken,
+    ])
+    container.registerTransient(StashViewModelToken, StashDefaultViewModel, [
+      StashSaveRendererUseCaseToken,
+      StashListRendererUseCaseToken,
+      StashPopRendererUseCaseToken,
+      StashApplyRendererUseCaseToken,
+      StashDropRendererUseCaseToken,
+      StashClearRendererUseCaseToken,
+      GetOperationLoadingUseCaseToken,
+    ])
+    // ... 他の 4 ViewModel も同様
+  },
+  setUp: async (container) => {
+    const service = container.resolve(AdvancedOperationsServiceToken)
+    service.setUp()
+    return () => { service.tearDown() }
+  },
+}
+```
+
+### DI 統合エントリーポイントへの追加
+
+```typescript
+// src/processes/main/di/configs.ts に追加
+import { advancedGitOperationsMainConfig } from '../features/advanced-git-operations/di-config'
+export const mainConfigs = [
+  // ... 既存 config
+  advancedGitOperationsMainConfig,
+]
+
+// src/processes/renderer/di/configs.ts に追加
+import { advancedGitOperationsConfig } from '../features/advanced-git-operations/di-config'
+export const rendererConfigs = [
+  // ... 既存 config
+  advancedGitOperationsConfig,
+]
 ```
 
 ---
 
 # 7. 非機能要件実現方針
 
-| 要件                           | 実現方針                                                                               |
-|------------------------------|------------------------------------------------------------------------------------|
-| 進捗フィードバック 500ms 以内 (NFR_401) | simple-git の progress イベントを監視し、`webContents.send` でレンダラーに即座に送信                     |
-| 操作完了通知 30 秒以内 (NFR_401)      | 長時間操作にはタイムアウト設定。進捗バーでリアルタイム表示                                                      |
-| 不可逆操作の確認 (DC_401, B-002)     | SafetyGuard モジュールで操作前に未コミット変更・進行中の操作を検出。レンダラー側で DestructiveActionConfirmDialog を表示 |
-| abort の常時提供 (DC_401)         | マージ・リベース中は OperationProgressBar に abort ボタンを常時表示                                   |
+| 要件 | 実現方針 |
+|---|---|
+| 進捗フィードバック 500ms 以内 (NFR_401) | simple-git の progress イベントを監視し、既存の `git:progress` IPC イベントでレンダラーに転送。AdvancedOperationsService の `operationProgress$` で状態管理 |
+| 操作完了通知 30 秒以内 (NFR_401) | 長時間操作にはタイムアウト設定。OperationProgressBar コンポーネントでリアルタイム表示 |
+| 不可逆操作の確認 (DC_401, B-002) | ViewModel 内で操作前の状態チェック（`currentOperation$` で進行中操作を検出）。レンダラー側で既存 ConfirmDialog（basic-git-operations の AlertDialog ベース）を再利用。特に危険な操作（stash clear, tag delete）には destructive バリアントを使用 |
+| abort の常時提供 (DC_401) | マージ・リベース・チェリーピック中は OperationProgressBar + abort ボタンを常時表示。AdvancedOperationsService の `currentOperation$` で操作中状態を管理 |
+| メインプロセス実行 (A-001) | GitAdvancedRepository をメインプロセスの infrastructure 層にのみ配置。レンダラーからは IPC 経由でのみアクセス |
 
 ---
 
 # 8. テスト戦略
 
-| テストレベル     | 対象                                                                                        | カバレッジ目標  |
-|------------|-------------------------------------------------------------------------------------------|----------|
-| ユニットテスト    | MergeService, RebaseService, StashService, CherryPickService, ConflictService, TagService | ≥ 80%    |
-| ユニットテスト    | SafetyGuard（安全性チェックロジック）                                                                  | ≥ 90%    |
-| ユニットテスト    | 型定義の整合性（git-advanced.ts）                                                                  | 型チェックで保証 |
-| コンポーネントテスト | MergeDialog, RebaseEditor, StashManager, ConflictResolver, TagManager                     | ≥ 60%    |
-| 結合テスト      | IPC ハンドラー（main ↔ preload 連携）                                                              | 主要フロー    |
-| E2Eテスト     | マージ→コンフリクト解決→続行フロー                                                                        | 主要ユースケース |
-| E2Eテスト     | インタラクティブリベース（squash, reorder）                                                             | 主要ユースケース |
-| E2Eテスト     | スタッシュ save→list→pop フロー                                                                   | 主要ユースケース |
+| テストレベル | 対象 | カバレッジ目標 |
+|---|---|---|
+| ユニットテスト | GitAdvancedDefaultRepository（simple-git をモック） | ≥ 80% |
+| ユニットテスト | メインプロセス UseCases（24 クラス） | ≥ 80% |
+| ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
+| ユニットテスト | レンダラー UseCases + 6 ViewModel | ≥ 60% |
+| ユニットテスト | AdvancedOperationsService（状態管理ロジック） | ≥ 80% |
+| 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
+| 結合テスト | GitAdvancedDefaultRepository と実際の Git リポジトリ | 主要操作 |
+| E2E テスト | マージ→コンフリクト解決→続行フロー | 主要ユースケース |
+| E2E テスト | インタラクティブリベース（squash, reorder） | 主要ユースケース |
+| E2E テスト | スタッシュ save→list→pop フロー | 主要ユースケース |
 
 ---
 
@@ -537,24 +868,42 @@ interface ElectronAPI {
 
 ## 9.1. 決定事項
 
-| 決定事項              | 選択肢                                                                      | 決定内容                      | 理由                                                                                           |
-|-------------------|--------------------------------------------------------------------------|---------------------------|----------------------------------------------------------------------------------------------|
-| インタラクティブリベースの実装方式 | (A) GIT_SEQUENCE_EDITOR 環境変数 / (B) git rebase --exec / (C) コミットを手動で pick | (A) GIT_SEQUENCE_EDITOR   | Git 公式の仕組み。simple-git と組み合わせてエディタスクリプトを一時ファイルとして生成し、リベースコマンドに渡す。PRD の技術制約にも明記                |
-| コンフリクト解決エディタ      | (A) Monaco Editor / (B) CodeMirror / (C) カスタム差分 UI                       | (A) Monaco Editor         | VS Code との親和性が高く、3ウェイ差分表示をネイティブサポート。CONSTITUTION で推奨技術として明記（原則 A-002）                        |
-| 3ウェイマージの表示レイアウト   | (A) 横並び3カラム / (B) 2カラム（diff + result） / (C) タブ切り替え                       | (A) 横並び3カラム               | base / ours / theirs を同時に参照でき、マージ結果を別パネルで編集。画面幅が狭い場合はタブ切り替えにフォールバック                          |
-| スタッシュ管理の UI 配置    | (A) 専用パネル / (B) サイドバー内 / (C) ダイアログ                                       | (A) 専用パネル                 | スタッシュ一覧とプレビューを同時に表示する必要があり、ダイアログでは狭い。サイドバーの StashManager パネルとして配置                            |
-| 破壊的操作の確認方式        | (A) 確認ダイアログ / (B) 入力確認（タイプして確認） / (C) 2段階ボタン                             | (A) 確認ダイアログ               | シンプルで一貫性のある UX。スタッシュ全削除、タグ削除、リベース abort 等に適用。特に危険な操作（stash clear）には操作内容の再確認テキストを表示（原則 B-002） |
-| コミット並べ替え UI       | (A) ドラッグ&ドロップ / (B) 上下ボタン / (C) 番号入力                                     | (A) ドラッグ&ドロップ + (B) 上下ボタン | ドラッグ&ドロップが直感的だが、アクセシビリティのためキーボード操作（上下ボタン）も併用。@dnd-kit/core を使用                               |
-| Git サービスのインスタンス管理 | (A) ワークツリーごとにインスタンス生成 / (B) シングルトン                                       | (A) ワークツリーごと              | B-001（Worktree-First）に準拠。各ワークツリーが独立した Git 操作コンテキストを持つ                                        |
+| 決定事項 | 選択肢 | 決定内容 | 理由 |
+|---|---|---|---|
+| インタラクティブリベースの実装方式 | (A) GIT_SEQUENCE_EDITOR 環境変数 / (B) git rebase --exec / (C) コミットを手動で pick | (A) GIT_SEQUENCE_EDITOR | Git 公式の仕組み。simple-git と組み合わせてエディタスクリプトを一時ファイルとして生成し、リベースコマンドに渡す。PRD の技術制約にも明記 |
+| コンフリクト解決エディタ | (A) Monaco Editor / (B) CodeMirror / (C) カスタム差分 UI | (A) Monaco Editor | VS Code との親和性が高く、3ウェイ差分表示をネイティブサポート。CONSTITUTION で推奨技術として明記（原則 A-002） |
+| 3ウェイマージの表示レイアウト | (A) 横並び3カラム / (B) 2カラム（diff + result） / (C) タブ切り替え | (A) 横並び3カラム | base / ours / theirs を同時に参照でき、マージ結果を別パネルで編集。画面幅が狭い場合はタブ切り替えにフォールバック |
+| スタッシュ管理の UI 配置 | (A) 専用パネル / (B) サイドバー内 / (C) ダイアログ | (A) 専用パネル | スタッシュ一覧とプレビューを同時に表示する必要があり、ダイアログでは狭い。サイドバーの StashManager パネルとして配置 |
+| 破壊的操作の確認方式 | (A) 確認ダイアログ / (B) 入力確認（タイプして確認） / (C) 2段階ボタン | (A) 確認ダイアログ | シンプルで一貫性のある UX。スタッシュ全削除、タグ削除、リベース abort 等に適用（原則 B-002） |
+| コミット並べ替え UI | (A) ドラッグ&ドロップ / (B) 上下ボタン / (C) 番号入力 | (A) ドラッグ&ドロップ + (B) 上下ボタン | ドラッグ&ドロップが直感的だが、アクセシビリティのためキーボード操作（上下ボタン）も併用。@dnd-kit/core を使用 |
+| Repository の命名 | GitService / GitAdvancedRepository | GitAdvancedRepository | ステートレスな外部 API ラッパーは「Repository」と命名する（CLAUDE.md 命名ルール） |
+| Repository の分割粒度 | サブシステム別 Repository / 統合 Repository | 統合（GitAdvancedRepository） | basic-git-operations の GitWriteRepository と同パターン。24 メソッドを 1 Repository に統合 |
+| ViewModel の分割 | 単一 ViewModel / サブシステム別分割 | サブシステム別分割（6 ViewModel） | マージ・リベース・スタッシュ・チェリーピック・コンフリクト・タグの関心事を分離 |
+| 確認ダイアログ | 新規作成 / 既存 ConfirmDialog 再利用 | 既存 ConfirmDialog 再利用 | basic-git-operations で実装済みの AlertDialog ベース ConfirmDialog をそのまま使用。UI の一貫性 |
+| SafetyGuard の扱い | 独立モジュール / ViewModel + Service に統合 | ViewModel + Service に統合 | 未コミット変更の検出は既存 `git:status` API、進行中操作の検出は AdvancedOperationsService の状態管理で対応 |
+| 進捗通知チャネル | 既存 `git:progress` 再利用 / 新規 `git:operation-progress` | 既存 `git:progress` 再利用 | GitProgressEvent の operation フィールドで操作種別を識別可能。IPC チャネルの増加を抑制 |
+| ConsumerUseCase の戻り値 | void / Promise\<void\> | void | basic-git-operations のパターンに準拠。内部で Promise チェーンを処理 |
+| エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（MERGE_FAILED, REBASE_CONFLICT 等） | basic-git-operations の IPC チャネル名前空間方式に準拠 |
+| Git インスタンス管理 | ワークツリーごとにインスタンス生成 / シングルトン | ワークツリーごと | GitAdvancedDefaultRepository は worktreePath をメソッド引数として受け取り、内部で simple-git インスタンスを生成する（B-001 準拠） |
 
-## 9.2. 未解決の課題
+## 9.2. 解決済みの課題
 
-| 課題                             | 影響度 | 対応方針                                                                                                                    |
-|--------------------------------|-----|-------------------------------------------------------------------------------------------------------------------------|
-| simple-git のインタラクティブリベースサポート範囲 | 高   | simple-git の raw コマンド実行機能で GIT_SEQUENCE_EDITOR を設定する。実装時に検証し、不足があれば child_process.exec にフォールバック                         |
-| Monaco Editor の3ウェイ差分表示のカスタマイズ | 中   | monaco-editor の DiffEditor は2ファイル比較。3ウェイ表示は DiffEditor 2つ + 結果エディタの3パネル構成で実現。サードパーティの monaco-merge-editor-component も検討 |
-| 大量コンフリクト時のパフォーマンス              | 中   | コンフリクトファイルの内容は遅延ロード（ファイル選択時に取得）。一覧取得はファイルパスのみ                                                                           |
-| リベース中のコンフリクト解決の状態管理            | 中   | リベースの各ステップでコンフリクトが発生する可能性がある。currentStep / totalSteps をトラッキングし、ステップごとに解決→続行のフローを提供                                      |
+| 課題 | 決定内容 | 根拠 |
+|---|---|---|
+| SafetyGuard の配置 | ViewModel + Service 状態管理に統合。独立モジュールは不要 | Clean Architecture の層構造に自然に統合できる |
+| DestructiveActionConfirmDialog | basic-git-operations の ConfirmDialog を再利用 | UI の一貫性。新規コンポーネント作成不要 |
+| OperationProgressBar の共有 | 共有コンポーネントとして実装 | マージ・リベース・チェリーピックで共通利用 |
+| ConflictViewModel と MergeViewModel の連携 | 独立 ViewModel。コンポーネント層で表示切り替え | A-004 準拠。ViewModel 間の直接依存を避ける |
+
+## 9.3. 未解決の課題
+
+| 課題 | 影響度 | 対応方針 |
+|---|---|---|
+| simple-git のインタラクティブリベースサポート範囲 | 高 | simple-git の raw コマンド実行機能で GIT_SEQUENCE_EDITOR を設定する。実装時に検証し、不足があれば child_process.exec にフォールバック |
+| Monaco Editor の3ウェイ差分表示のカスタマイズ | 中 | DiffEditor 2つ + 結果エディタの3パネル構成で実現。サードパーティの monaco-merge-editor-component も検討 |
+| 大量コンフリクト時のパフォーマンス | 中 | コンフリクトファイルの内容は遅延ロード（ファイル選択時に取得）。一覧取得はファイルパスのみ |
+| リベース中のコンフリクト解決の状態管理 | 中 | リベースの各ステップでコンフリクトが発生する可能性がある。currentStep / totalSteps をトラッキングし、ステップごとに解決→続行のフローを提供 |
+| OperationProgress の domain 型設計 | 低 | OperationProgress を独自型として domain に追加するか、既存 GitProgressEvent を拡張するか。実装時に確定 |
 
 ---
 
@@ -836,10 +1185,15 @@ src/processes/renderer/features/advanced-git-operations/
 
 **変更内容:**
 
-- Clean Architecture 4層構成への全面リファクタリング計画を追加（セクション 10）
-- front matter に `refactoring-planned` タグを追加
-- `SafetyGuard` モジュールの統合方針を決定
-- ディレクトリ構成・モジュール分割を feature ベース4層に更新
+- セクション 1〜9 を Clean Architecture 4層構成パターンに全面更新
+- DI パターン（VContainerConfig + Token + useClass + deps）のインターフェース定義を追加
+- ViewModel + Hook パターンの 6 ViewModel インターフェース定義を追加
+- `MergeService` 等の旧命名を `GitAdvancedRepository` に統一
+- `SafetyGuard` を ViewModel + Service 状態管理に統合
+- `src/types/git-advanced.ts` → `src/domain/index.ts` にデータモデル配置先を修正
+- 進捗通知を既存 `git:progress` イベントの再利用方針に決定
+- ConfirmDialog を basic-git-operations の既存コンポーネントとして再利用する方針に決定
+- リファクタリング計画をセクション 10 に追加
 
 ## v1.0 (2026-03-25)
 
