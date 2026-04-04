@@ -100,10 +100,13 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       for (let p = 0; p < node.parents.length; p++) {
         const parentHash = node.parents[p]
         const parentIdx = layout.hashToIndex.get(parentHash)
+        // 親の実際のレーンを参照
         const actualParentLane = parentIdx !== undefined ? nodes[parentIdx].lane : node.lane
+        // 親が未読み込み（ページネーション外）の場合、リスト最下部まで延長
         const parentRow = parentIdx !== undefined ? parentIdx : nodes.length
         const parentY = parentRow * rowHeight + rowHeight / 2 - scrollTop
 
+        // 可視範囲外の線は完全にスキップ
         const lineTop = Math.min(nodeY, parentY)
         const lineBottom = Math.max(nodeY, parentY)
         if (lineBottom < -rowHeight * 2 || lineTop > containerHeight + rowHeight * 2) continue
@@ -115,9 +118,11 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         const toX = laneX(actualParentLane)
 
         if (fromX === toX) {
+          // 同じレーン: 直線
           ctx.moveTo(fromX, nodeY)
           ctx.lineTo(toX, parentY)
         } else {
+          // 異なるレーン: 子のレーンに沿って直線、1行手前で斜め線で合流
           const joinY = Math.max(parentY - rowHeight, nodeY)
           ctx.moveTo(fromX, nodeY)
           if (joinY > nodeY) {

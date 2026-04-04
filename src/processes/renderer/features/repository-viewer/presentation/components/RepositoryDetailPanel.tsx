@@ -8,6 +8,8 @@ import { CherryPickDialog } from '@renderer/features/advanced-git-operations/pre
 import { ConflictResolver } from '@renderer/features/advanced-git-operations/presentation/components/conflict-resolver'
 import { StashManager } from '@renderer/features/advanced-git-operations/presentation/components/stash-manager'
 import { TagManager } from '@renderer/features/advanced-git-operations/presentation/components/tag-manager'
+// cross-feature 参照: タグデータを props 経由で CommitLog に渡すために advanced-git-operations の ViewModel を使用。
+// 将来的に repository-viewer 側にタグ取得を統合する場合はこの import を置き換える。
 import { useTagViewModel } from '@renderer/features/advanced-git-operations/presentation/use-tag-viewmodel'
 import { BranchOperations } from '@renderer/features/basic-git-operations/presentation/components/branch-operations'
 import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
