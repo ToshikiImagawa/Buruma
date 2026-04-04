@@ -4,7 +4,7 @@ title: "高度な Git 操作"
 type: "design"
 status: "draft"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-04"
 depends-on: [ "spec-advanced-git-operations" ]
@@ -23,18 +23,18 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装完了
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |---|---|---|
-| domain 型追加（MergeOptions, RebaseStep, ConflictFile 等） | 🔴 | src/domain/index.ts に追加予定 |
-| IPC 型追加（git:merge, git:stash-save 等 24 チャネル） | 🔴 | src/lib/ipc.ts に追加予定 |
-| メインプロセス feature（4層） | 🔴 | GitAdvancedRepository + 24 UseCases + IPC Handler |
-| レンダラー feature（4層） | 🔴 | AdvancedOperationsRepository + Service + ~26 UseCases + 6 ViewModel |
-| Preload API 拡張 | 🔴 | git.merge / git.rebase 等 追加予定 |
-| UI コンポーネント | 🔴 | MergeDialog, RebaseEditor, StashManager, CherryPickDialog, ConflictResolver, ThreeWayMergeView, TagManager |
+| domain 型追加（MergeOptions, RebaseStep, ConflictFile 等） | 🟢 | src/domain/index.ts に追加済み |
+| IPC 型追加（git:merge, git:stash-save 等 24 チャネル） | 🟢 | src/lib/ipc.ts に追加済み |
+| メインプロセス feature（4層） | 🟢 | GitAdvancedRepository + 24 UseCases + IPC Handler 実装済み |
+| レンダラー feature（4層） | 🟢 | AdvancedOperationsRepository + Service + 28 UseCases + 6 ViewModel 実装済み |
+| Preload API 拡張 | 🟢 | git.merge / git.rebase 等 24 メソッド追加済み |
+| UI コンポーネント | 🟢 | MergeDialog, RebaseEditor, StashManager, CherryPickDialog, ConflictResolver, ThreeWayMergeView, TagManager 実装済み |
 
 ---
 
@@ -776,16 +776,16 @@ export const advancedGitOperationsConfig: VContainerConfig = {
     // ... 他の 23 操作系 UseCase も同様
 
     // Observable UseCases（Service 状態の公開用）
-    container.registerSingleton(GetOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [
+    container.registerSingleton(GetAdvancedOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [
       AdvancedOperationsServiceToken,
     ])
-    container.registerSingleton(GetLastErrorUseCaseToken, GetLastErrorUseCase, [
+    container.registerSingleton(GetAdvancedLastErrorUseCaseToken, GetLastErrorUseCase, [
       AdvancedOperationsServiceToken,
     ])
-    container.registerSingleton(GetOperationProgressUseCaseToken, GetOperationProgressUseCase, [
+    container.registerSingleton(GetAdvancedOperationProgressUseCaseToken, GetOperationProgressUseCase, [
       AdvancedOperationsServiceToken,
     ])
-    container.registerSingleton(GetCurrentOperationUseCaseToken, GetCurrentOperationUseCase, [
+    container.registerSingleton(GetAdvancedCurrentOperationUseCaseToken, GetCurrentOperationUseCase, [
       AdvancedOperationsServiceToken,
     ])
 
@@ -794,7 +794,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
       MergeRendererUseCaseToken,
       MergeAbortRendererUseCaseToken,
       MergeStatusRendererUseCaseToken,
-      GetOperationLoadingUseCaseToken,
+      GetAdvancedOperationLoadingUseCaseToken,
     ])
     container.registerTransient(StashViewModelToken, StashDefaultViewModel, [
       StashSaveRendererUseCaseToken,
@@ -803,7 +803,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
       StashApplyRendererUseCaseToken,
       StashDropRendererUseCaseToken,
       StashClearRendererUseCaseToken,
-      GetOperationLoadingUseCaseToken,
+      GetAdvancedOperationLoadingUseCaseToken,
     ])
     // ... 他の 4 ViewModel も同様
   },
