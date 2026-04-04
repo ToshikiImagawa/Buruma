@@ -131,7 +131,7 @@ export function RepositoryDetailPanel() {
       <div className="flex-1 overflow-hidden">
         <TabsContent value="status" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={15} maxSize={60}>
+            <ResizablePanel defaultSize={33} minSize={10}>
               <div className="h-full overflow-auto">
                 <StagingArea
                   worktreePath={selectedWorktree.path}
@@ -158,7 +158,7 @@ export function RepositoryDetailPanel() {
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67}>
+            <ResizablePanel defaultSize={67} minSize={10}>
               <div className="h-full overflow-hidden">
                 {statusFilePath ? (
                   <DiffView
@@ -178,7 +178,7 @@ export function RepositoryDetailPanel() {
 
         <TabsContent value="commits" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={15} maxSize={60}>
+            <ResizablePanel defaultSize={33} minSize={10}>
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between border-b px-2 py-1">
                   <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
@@ -193,7 +193,7 @@ export function RepositoryDetailPanel() {
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67}>
+            <ResizablePanel defaultSize={67} minSize={10}>
               <div className="h-full overflow-hidden">
                 {selectedCommitHash ? (
                   <div className="flex h-full flex-col">
@@ -242,13 +242,13 @@ export function RepositoryDetailPanel() {
 
         <TabsContent value="files" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={15} maxSize={60}>
+            <ResizablePanel defaultSize={33} minSize={10}>
               <div className="h-full overflow-auto">
                 <FileTree worktreePath={selectedWorktree.path} onFileSelect={handleTreeFileSelect} />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67}>
+            <ResizablePanel defaultSize={67} minSize={10}>
               <div className="h-full overflow-hidden">
                 {treeFilePath ? (
                   <DiffView worktreePath={selectedWorktree.path} filePath={treeFilePath} />
