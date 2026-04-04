@@ -885,6 +885,10 @@ export const rendererConfigs = [
 | ConsumerUseCase の戻り値 | void / Promise\<void\> | void | basic-git-operations のパターンに準拠。内部で Promise チェーンを処理 |
 | エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（MERGE_FAILED, REBASE_CONFLICT 等） | basic-git-operations の IPC チャネル名前空間方式に準拠 |
 | Git インスタンス管理 | ワークツリーごとにインスタンス生成 / シングルトン | ワークツリーごと | GitAdvancedDefaultRepository は worktreePath をメソッド引数として受け取り、内部で simple-git インスタンスを生成する（B-001 準拠） |
+| merge の fast-forward 対応 | `--ff` / `--ff-only` | `--ff-only` | fast-forward 不可の場合にエラーで明示的に知らせる動作。`--ff` だとサイレントに merge commit が作成される |
+| 3ウェイ内容取得方式 | `git show :N:` / ファイル解析 | `git show :1:`, `:2:`, `:3:` | Git の stage number を利用した標準的な方法（base=:1, ours=:2, theirs=:3） |
+| DI deps 配列の定数化 | 毎回インライン指定 / 定数化 | `REPO_AND_SERVICE` 定数で共通化 | レンダラー di-config で 24 UseCase に同じ `[RepositoryToken, ServiceToken]` を繰り返す冗長性を削減 |
+| 3ウェイマージ UI レイアウト（実装時更新） | 横並び3カラム / タブ切り替え | Tabs（Base / Ours vs Theirs Diff / Result）+ Monaco Editor | 横並び3パネルではなくタブ切り替えで画面幅の制約に対応。DiffEditor で ours/theirs を比較表示 |
 
 ## 9.2. 解決済みの課題
 
@@ -894,13 +898,15 @@ export const rendererConfigs = [
 | DestructiveActionConfirmDialog | basic-git-operations の ConfirmDialog を再利用 | UI の一貫性。新規コンポーネント作成不要 |
 | OperationProgressBar の共有 | 共有コンポーネントとして実装 | マージ・リベース・チェリーピックで共通利用 |
 | ConflictViewModel と MergeViewModel の連携 | 独立 ViewModel。コンポーネント層で表示切り替え | A-004 準拠。ViewModel 間の直接依存を避ける |
+| simple-git のインタラクティブリベースサポート | simple-git の `.env()` + `.rebase(['-i', onto])` で実装可能 | raw コマンドへのフォールバックは不要だった |
+| Monaco Editor の 3 ウェイ表示 | Tabs + Editor/DiffEditor で実現。3 パネル横並びではなくタブ切り替え | 画面幅の制約に対応しつつ、DiffEditor で ours/theirs の差分を視覚的に表示 |
 
 ## 9.3. 未解決の課題
 
 | 課題 | 影響度 | 対応方針 |
 |---|---|---|
-| simple-git のインタラクティブリベースサポート範囲 | 高 | simple-git の raw コマンド実行機能で GIT_SEQUENCE_EDITOR を設定する。実装時に検証し、不足があれば child_process.exec にフォールバック |
-| Monaco Editor の3ウェイ差分表示のカスタマイズ | 中 | DiffEditor 2つ + 結果エディタの3パネル構成で実現。サードパーティの monaco-merge-editor-component も検討 |
+| ~~simple-git のインタラクティブリベースサポート範囲~~ | ~~高~~ | 解決済み → 9.2 に移動 |
+| ~~Monaco Editor の3ウェイ差分表示のカスタマイズ~~ | ~~中~~ | 解決済み → 9.2 に移動 |
 | 大量コンフリクト時のパフォーマンス | 中 | コンフリクトファイルの内容は遅延ロード（ファイル選択時に取得）。一覧取得はファイルパスのみ |
 | リベース中のコンフリクト解決の状態管理 | 中 | リベースの各ステップでコンフリクトが発生する可能性がある。currentStep / totalSteps をトラッキングし、ステップごとに解決→続行のフローを提供 |
 | OperationProgress の domain 型設計 | 低 | OperationProgress を独自型として domain に追加するか、既存 GitProgressEvent を拡張するか。実装時に確定 |
