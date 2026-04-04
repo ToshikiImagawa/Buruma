@@ -1,5 +1,4 @@
 export { WorktreeList } from './WorktreeList'
 export { WorktreeListItem } from './WorktreeListItem'
-export { WorktreeDetail } from './WorktreeDetail'
 export { WorktreeCreateDialog } from './WorktreeCreateDialog'
 export { WorktreeDeleteDialog } from './WorktreeDeleteDialog'

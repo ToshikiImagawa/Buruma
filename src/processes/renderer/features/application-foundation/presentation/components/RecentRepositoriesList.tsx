@@ -1,10 +1,11 @@
+import { cn } from '@lib/utils'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
-import { Folder, Pin, Trash2 } from 'lucide-react'
+import { Check, Folder, Pin, Trash2 } from 'lucide-react'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 
 export function RecentRepositoriesList() {
-  const { recentRepositories, openByPath, removeRecent, pin } = useRepositorySelectorViewModel()
+  const { recentRepositories, currentRepository, openByPath, removeRecent, pin } = useRepositorySelectorViewModel()
 
   if (recentRepositories.length === 0) {
     return <div className="text-center text-muted-foreground py-8">最近開いたリポジトリはありません</div>
@@ -19,15 +20,23 @@ export function RecentRepositoriesList() {
 
   return (
     <div className="space-y-2">
-      {sortedRepositories.map((repo) => (
-        <Card key={repo.path} className="hover:bg-accent/50 transition-colors">
+      {sortedRepositories.map((repo) => {
+        const isCurrent = currentRepository?.path === repo.path
+        return (
+        <Card
+          key={repo.path}
+          className={cn(
+            'transition-colors',
+            isCurrent ? 'ring-2 ring-primary bg-accent/30' : 'hover:bg-accent/50',
+          )}
+        >
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center justify-between text-base">
               <button
                 onClick={() => openByPath(repo.path)}
                 className="flex items-center gap-2 flex-1 text-left hover:underline"
               >
-                <Folder className="h-4 w-4" />
+                {isCurrent ? <Check className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4" />}
                 <span>{repo.name}</span>
                 {repo.pinned && <Pin className="h-3 w-3 text-primary" />}
               </button>
@@ -60,7 +69,8 @@ export function RecentRepositoriesList() {
             </p>
           </CardContent>
         </Card>
-      ))}
+        )
+      })}
     </div>
   )
 }

@@ -57,7 +57,7 @@ risk: "low"
 
 | ファイル                                                                                                  | 変更内容                                               |
 |-------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags タブ追加、コンフリクトオーバーレイ状態管理、import 追加         |
+| `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags を「リファレンス」タブに統合、コンフリクトオーバーレイ状態管理、ResizablePanelGroup による分割パネルリサイズ対応 |
 | `src/processes/renderer/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加、MergeDialog/RebaseEditor の open 状態管理 |
 
 ## 4.2. タブ構成（変更後）
@@ -67,14 +67,12 @@ RepositoryDetailPanel
 ├── [コンフリクト解決オーバーレイ]  ← conflictState.active 時のみ表示
 │   └── ConflictResolver
 │       └── ThreeWayMergeView
-└── Tabs（通常表示）
-    ├── Info（既存）
-    ├── Status（既存）
-    ├── Commits（既存 + チェリーピックボタン追加）
-    ├── Branches（既存 + マージ/リベースボタン追加）
-    ├── Files（既存）
-    ├── Stash（新規）← StashManager
-    └── Tags（新規）← TagManager
+└── Tabs（通常表示、defaultValue="status"）
+    ├── Status（ResizablePanelGroup: StagingArea+CommitForm | DiffView）
+    ├── Commits（ResizablePanelGroup: CommitLog | CommitDetail+DiffView + チェリーピックボタン）
+    ├── Branches（マージ/リベースボタン追加）
+    ├── Files（ResizablePanelGroup: FileTree | DiffView）
+    └── Refs（リファレンス）← 内部トグルで StashManager / TagManager 切り替え
 ```
 
 ## 4.3. コンフリクト解決フロー
