@@ -5,7 +5,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class TagCreateUseCase implements ConsumerUseCase<TagCreateOptions> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(input: TagCreateOptions): void {
-    this.repository.tagCreate(input)
+  async invoke(input: TagCreateOptions): Promise<void> {
+    await this.repository.tagCreate(input)
   }
 }

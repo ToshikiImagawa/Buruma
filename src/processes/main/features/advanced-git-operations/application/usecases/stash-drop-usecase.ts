@@ -4,7 +4,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class StashDropUseCase implements ConsumerUseCase<{ worktreePath: string; index: number }> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(input: { worktreePath: string; index: number }): void {
-    this.repository.stashDrop(input.worktreePath, input.index)
+  async invoke(input: { worktreePath: string; index: number }): Promise<void> {
+    await this.repository.stashDrop(input.worktreePath, input.index)
   }
 }

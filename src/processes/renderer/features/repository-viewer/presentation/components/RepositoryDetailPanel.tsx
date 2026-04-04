@@ -1,13 +1,18 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Button } from '@renderer/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
 import { Separator } from '@renderer/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { CherryPickDialog } from '@renderer/features/advanced-git-operations/presentation/components/cherry-pick-dialog'
+import { ConflictResolver } from '@renderer/features/advanced-git-operations/presentation/components/conflict-resolver'
+import { StashManager } from '@renderer/features/advanced-git-operations/presentation/components/stash-manager'
+import { TagManager } from '@renderer/features/advanced-git-operations/presentation/components/tag-manager'
 import { BranchOperations } from '@renderer/features/basic-git-operations/presentation/components/branch-operations'
 import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
 import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
 import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
-import { Circle, FileText, FolderOpen, GitBranch, GitCommit, Info } from 'lucide-react'
+import { Archive, Cherry, Circle, FileText, FolderOpen, GitBranch, GitCommit, Info, Tag } from 'lucide-react'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
@@ -23,6 +28,8 @@ export function RepositoryDetailPanel() {
   const [selectedFileStaged, setSelectedFileStaged] = useState(false)
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null)
   const [commitFilePath, setCommitFilePath] = useState<string | undefined>(undefined)
+  const [conflictOperation, setConflictOperation] = useState<'merge' | 'rebase' | 'cherry-pick' | null>(null)
+  const [cherryPickOpen, setCherryPickOpen] = useState(false)
 
   const worktreePath = selectedWorktree?.path ?? ''
 
@@ -57,6 +64,15 @@ export function RepositoryDetailPanel() {
     setCommitFilePath(filePath)
   }, [])
 
+  const handleConflict = useCallback((operationType: 'merge' | 'rebase' | 'cherry-pick') => {
+    setConflictOperation(operationType)
+  }, [])
+
+  const handleConflictDismiss = useCallback(() => {
+    setConflictOperation(null)
+    handleRefresh()
+  }, [handleRefresh])
+
   const handleTreeFileSelect = useCallback((filePath: string) => {
     setSelectedFilePath(filePath)
     setSelectedFileStaged(false)
@@ -73,6 +89,17 @@ export function RepositoryDetailPanel() {
   }
 
   const displayName = selectedWorktree.path.split('/').pop() ?? selectedWorktree.path
+
+  if (conflictOperation) {
+    return (
+      <ConflictResolver
+        worktreePath={worktreePath}
+        operationType={conflictOperation}
+        onComplete={handleConflictDismiss}
+        onAbort={handleConflictDismiss}
+      />
+    )
+  }
 
   return (
     <Tabs defaultValue="info" className="flex h-full flex-col">
@@ -97,6 +124,14 @@ export function RepositoryDetailPanel() {
           <TabsTrigger value="files" className="gap-1 text-xs">
             <FolderOpen className="h-3.5 w-3.5" />
             ファイル
+          </TabsTrigger>
+          <TabsTrigger value="stash" className="gap-1 text-xs">
+            <Archive className="h-3.5 w-3.5" />
+            スタッシュ
+          </TabsTrigger>
+          <TabsTrigger value="tags" className="gap-1 text-xs">
+            <Tag className="h-3.5 w-3.5" />
+            タグ
           </TabsTrigger>
         </TabsList>
       </div>
@@ -151,6 +186,13 @@ export function RepositoryDetailPanel() {
         <TabsContent value="commits" className="mt-0 h-full">
           <div className="flex h-full">
             <div className="w-1/3 min-w-[200px] border-r overflow-auto">
+              <div className="flex items-center justify-between border-b px-2 py-1">
+                <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
+                <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setCherryPickOpen(true)}>
+                  <Cherry className="mr-1 h-3 w-3" />
+                  チェリーピック
+                </Button>
+              </div>
               <CommitLog worktreePath={selectedWorktree.path} onCommitSelect={handleCommitSelect} />
             </div>
             <div className="flex-1 overflow-hidden">
@@ -194,6 +236,7 @@ export function RepositoryDetailPanel() {
             remoteBranches={branches?.remote ?? []}
             hasDirtyFiles={selectedWorktree.isDirty}
             onRefresh={handleRefresh}
+            onConflict={handleConflict}
           />
         </TabsContent>
 
@@ -213,7 +256,22 @@ export function RepositoryDetailPanel() {
             </div>
           </div>
         </TabsContent>
+
+        <TabsContent value="stash" className="mt-0 h-full overflow-auto">
+          <StashManager worktreePath={selectedWorktree.path} />
+        </TabsContent>
+
+        <TabsContent value="tags" className="mt-0 h-full overflow-auto">
+          <TagManager worktreePath={selectedWorktree.path} />
+        </TabsContent>
       </div>
+
+      <CherryPickDialog
+        worktreePath={selectedWorktree.path}
+        open={cherryPickOpen}
+        onOpenChange={setCherryPickOpen}
+        onConflict={() => handleConflict('cherry-pick')}
+      />
     </Tabs>
   )
 }

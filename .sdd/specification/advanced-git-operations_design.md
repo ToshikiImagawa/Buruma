@@ -910,6 +910,7 @@ export const rendererConfigs = [
 | 大量コンフリクト時のパフォーマンス | 中 | コンフリクトファイルの内容は遅延ロード（ファイル選択時に取得）。一覧取得はファイルパスのみ |
 | リベース中のコンフリクト解決の状態管理 | 中 | リベースの各ステップでコンフリクトが発生する可能性がある。currentStep / totalSteps をトラッキングし、ステップごとに解決→続行のフローを提供 |
 | OperationProgress の domain 型設計 | 低 | OperationProgress を独自型として domain に追加するか、既存 GitProgressEvent を拡張するか。実装時に確定 |
+| 外部マージツール選択 | 低 | コンフリクト解決時に外部ツール（vimdiff, meld, VS Code 等）を選択する機能は未実装。現在は Monaco Editor 固定（ours/theirs/手動編集の 3 方式）。ユーザー設定でデフォルトツールを切り替える機能は将来検討 |
 
 ---
 

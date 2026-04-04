@@ -4,7 +4,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class RebaseAbortUseCase implements ConsumerUseCase<string> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(worktreePath: string): void {
-    this.repository.rebaseAbort(worktreePath)
+  async invoke(worktreePath: string): Promise<void> {
+    await this.repository.rebaseAbort(worktreePath)
   }
 }

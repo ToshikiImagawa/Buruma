@@ -1,11 +1,13 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { BranchInfo } from '@domain'
 import { Button } from '@renderer/components/ui/button'
 import { Input } from '@renderer/components/ui/input'
 import { Label } from '@renderer/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@renderer/components/ui/select'
 import { Separator } from '@renderer/components/ui/separator'
-import { GitBranch, Plus, Trash2 } from 'lucide-react'
+import { MergeDialog } from '@renderer/features/advanced-git-operations/presentation/components/merge-dialog'
+import { RebaseEditor } from '@renderer/features/advanced-git-operations/presentation/components/rebase-editor'
+import { GitBranch, GitMerge, GitPullRequest, Plus, Trash2 } from 'lucide-react'
 import { useBranchOpsViewModel } from '../use-branch-ops-viewmodel'
 
 interface BranchOperationsProps {
@@ -15,6 +17,7 @@ interface BranchOperationsProps {
   remoteBranches?: BranchInfo[]
   hasDirtyFiles: boolean
   onRefresh: () => void
+  onConflict?: (operationType: 'merge' | 'rebase' | 'cherry-pick') => void
 }
 
 export function BranchOperations({
@@ -24,6 +27,7 @@ export function BranchOperations({
   localBranches,
   hasDirtyFiles,
   onRefresh,
+  onConflict,
 }: BranchOperationsProps) {
   const { loading, lastError, createBranch, checkoutBranch, deleteBranch } = useBranchOpsViewModel()
   const [showCreate, setShowCreate] = useState(false)
@@ -32,6 +36,12 @@ export function BranchOperations({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
+  const [mergeOpen, setMergeOpen] = useState(false)
+  const [rebaseOpen, setRebaseOpen] = useState(false)
+  const otherBranchNames = useMemo(
+    () => localBranches.map((b) => b.name).filter((n) => n !== currentBranch),
+    [localBranches, currentBranch],
+  )
 
   // マージ未済エラー検出時に警告を表示
   useEffect(() => {
@@ -84,13 +94,23 @@ export function BranchOperations({
 
   return (
     <div className="flex flex-col gap-2 p-2">
-      {/* 新規ブランチ作成 */}
+      {/* ブランチ操作ヘッダー */}
       <div className="flex items-center justify-between">
         <span className="text-xs font-semibold text-muted-foreground">ブランチ操作</span>
-        <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowCreate(!showCreate)}>
-          <Plus className="mr-1 h-3 w-3" />
-          新規
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setMergeOpen(true)}>
+            <GitMerge className="mr-1 h-3 w-3" />
+            マージ
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setRebaseOpen(true)}>
+            <GitPullRequest className="mr-1 h-3 w-3" />
+            リベース
+          </Button>
+          <Button variant="ghost" size="sm" className="h-6 px-2 text-xs" onClick={() => setShowCreate(!showCreate)}>
+            <Plus className="mr-1 h-3 w-3" />
+            新規
+          </Button>
+        </div>
       </div>
 
       {showCreate && (
@@ -255,6 +275,35 @@ export function BranchOperations({
             ))}
           </div>
         </>
+      )}
+
+      <MergeDialog
+        worktreePath={worktreePath}
+        currentBranch={currentBranch}
+        branches={otherBranchNames}
+        open={mergeOpen}
+        onOpenChange={setMergeOpen}
+        onConflict={() => {
+          setMergeOpen(false)
+          onConflict?.('merge')
+        }}
+      />
+
+      {rebaseOpen && (
+        <div className="mt-2 rounded border p-2">
+          <RebaseEditor
+            worktreePath={worktreePath}
+            currentBranch={currentBranch}
+            branches={otherBranchNames}
+            onConflict={() => {
+              setRebaseOpen(false)
+              onConflict?.('rebase')
+            }}
+          />
+          <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs" onClick={() => setRebaseOpen(false)}>
+            閉じる
+          </Button>
+        </div>
       )}
     </div>
   )

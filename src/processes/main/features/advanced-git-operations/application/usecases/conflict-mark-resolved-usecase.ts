@@ -4,7 +4,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class ConflictMarkResolvedUseCase implements ConsumerUseCase<{ worktreePath: string; filePath: string }> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(input: { worktreePath: string; filePath: string }): void {
-    this.repository.conflictMarkResolved(input.worktreePath, input.filePath)
+  async invoke(input: { worktreePath: string; filePath: string }): Promise<void> {
+    await this.repository.conflictMarkResolved(input.worktreePath, input.filePath)
   }
 }

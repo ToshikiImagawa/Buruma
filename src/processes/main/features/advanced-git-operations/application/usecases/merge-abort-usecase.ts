@@ -4,7 +4,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class MergeAbortUseCase implements ConsumerUseCase<string> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(worktreePath: string): void {
-    this.repository.mergeAbort(worktreePath)
+  async invoke(worktreePath: string): Promise<void> {
+    await this.repository.mergeAbort(worktreePath)
   }
 }

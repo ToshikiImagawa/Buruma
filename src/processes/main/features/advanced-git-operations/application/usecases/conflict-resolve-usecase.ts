@@ -5,7 +5,7 @@ import type { GitAdvancedRepository } from '../repositories/git-advanced-reposit
 export class ConflictResolveUseCase implements ConsumerUseCase<ConflictResolveOptions> {
   constructor(private readonly repository: GitAdvancedRepository) {}
 
-  invoke(input: ConflictResolveOptions): void {
-    this.repository.conflictResolve(input)
+  async invoke(input: ConflictResolveOptions): Promise<void> {
+    await this.repository.conflictResolve(input)
   }
 }
