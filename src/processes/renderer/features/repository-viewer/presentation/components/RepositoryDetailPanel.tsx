@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@renderer/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@renderer/components/ui/resizable'
 import { Separator } from '@renderer/components/ui/separator'
@@ -7,16 +7,18 @@ import { CherryPickDialog } from '@renderer/features/advanced-git-operations/pre
 import { ConflictResolver } from '@renderer/features/advanced-git-operations/presentation/components/conflict-resolver'
 import { StashManager } from '@renderer/features/advanced-git-operations/presentation/components/stash-manager'
 import { TagManager } from '@renderer/features/advanced-git-operations/presentation/components/tag-manager'
+import { useTagViewModel } from '@renderer/features/advanced-git-operations/presentation/use-tag-viewmodel'
 import { BranchOperations } from '@renderer/features/basic-git-operations/presentation/components/branch-operations'
 import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
 import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
 import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
-import { Archive, Bookmark, Cherry, FileText, FolderOpen, GitBranch, GitCommit, Tag } from 'lucide-react'
+import { Archive, Bookmark, Cherry, FileText, FolderOpen, GitCommit, Tag } from 'lucide-react'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
 import { CommitLog } from './CommitLog'
+import type { CommitLogHandle } from './CommitLog'
 import { DiffView } from './DiffView'
 import { FileTree } from './FileTree'
 
@@ -24,6 +26,9 @@ export function RepositoryDetailPanel() {
   const { selectedWorktree } = useWorktreeDetailViewModel()
   const { status, loadStatus } = useStatusViewModel()
   const { branches, loadBranches } = useBranchListViewModel()
+  const { tags, tagList } = useTagViewModel()
+
+  const commitLogRef = useRef<CommitLogHandle>(null)
 
   // Status tab state
   const [statusFilePath, setStatusFilePath] = useState<string | null>(null)
@@ -45,15 +50,17 @@ export function RepositoryDetailPanel() {
     if (worktreePath) {
       loadStatus(worktreePath)
       loadBranches(worktreePath)
+      tagList(worktreePath)
     }
-  }, [worktreePath, loadStatus, loadBranches])
+  }, [worktreePath, loadStatus, loadBranches, tagList])
 
   const handleRefresh = useCallback(() => {
     if (worktreePath) {
       loadStatus(worktreePath)
       loadBranches(worktreePath)
+      tagList(worktreePath)
     }
-  }, [worktreePath, loadStatus, loadBranches])
+  }, [worktreePath, loadStatus, loadBranches, tagList])
 
   const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
     setStatusFilePath(filePath)
@@ -80,6 +87,10 @@ export function RepositoryDetailPanel() {
 
   const handleTreeFileSelect = useCallback((filePath: string) => {
     setTreeFilePath(filePath)
+  }, [])
+
+  const handleBranchClick = useCallback((hash: string) => {
+    commitLogRef.current?.scrollToHash(hash)
   }, [])
 
   if (!selectedWorktree) {
@@ -112,10 +123,6 @@ export function RepositoryDetailPanel() {
           <TabsTrigger value="commits" className="gap-1 text-xs">
             <GitCommit className="h-3.5 w-3.5" />
             コミット
-          </TabsTrigger>
-          <TabsTrigger value="branches" className="gap-1 text-xs">
-            <GitBranch className="h-3.5 w-3.5" />
-            ブランチ
           </TabsTrigger>
           <TabsTrigger value="files" className="gap-1 text-xs">
             <FolderOpen className="h-3.5 w-3.5" />
@@ -178,7 +185,22 @@ export function RepositoryDetailPanel() {
 
         <TabsContent value="commits" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={10}>
+            <ResizablePanel defaultSize={20} minSize={10}>
+              <div className="h-full overflow-auto">
+                <BranchOperations
+                  worktreePath={selectedWorktree.path}
+                  currentBranch={selectedWorktree.branch ?? ''}
+                  localBranches={branches?.local ?? []}
+                  remoteBranches={branches?.remote ?? []}
+                  hasDirtyFiles={selectedWorktree.isDirty}
+                  onRefresh={handleRefresh}
+                  onConflict={handleConflict}
+                  onBranchClick={handleBranchClick}
+                />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={30} minSize={10}>
               <div className="flex h-full flex-col">
                 <div className="flex items-center justify-between border-b px-2 py-1">
                   <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
@@ -188,12 +210,18 @@ export function RepositoryDetailPanel() {
                   </Button>
                 </div>
                 <div className="flex-1 overflow-auto">
-                  <CommitLog worktreePath={selectedWorktree.path} onCommitSelect={handleCommitSelect} />
+                  <CommitLog
+                    ref={commitLogRef}
+                    worktreePath={selectedWorktree.path}
+                    onCommitSelect={handleCommitSelect}
+                    branches={branches}
+                    tags={tags}
+                  />
                 </div>
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67} minSize={10}>
+            <ResizablePanel defaultSize={50} minSize={10}>
               <div className="h-full overflow-hidden">
                 {selectedCommitHash ? (
                   <div className="flex h-full flex-col">
@@ -226,18 +254,6 @@ export function RepositoryDetailPanel() {
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>
-        </TabsContent>
-
-        <TabsContent value="branches" className="mt-0 h-full overflow-auto">
-          <BranchOperations
-            worktreePath={selectedWorktree.path}
-            currentBranch={selectedWorktree.branch ?? ''}
-            localBranches={branches?.local ?? []}
-            remoteBranches={branches?.remote ?? []}
-            hasDirtyFiles={selectedWorktree.isDirty}
-            onRefresh={handleRefresh}
-            onConflict={handleConflict}
-          />
         </TabsContent>
 
         <TabsContent value="files" className="mt-0 h-full">

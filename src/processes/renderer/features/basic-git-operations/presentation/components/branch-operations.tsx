@@ -18,6 +18,7 @@ interface BranchOperationsProps {
   hasDirtyFiles: boolean
   onRefresh: () => void
   onConflict?: (operationType: 'merge' | 'rebase' | 'cherry-pick') => void
+  onBranchClick?: (hash: string) => void
 }
 
 export function BranchOperations({
@@ -28,6 +29,7 @@ export function BranchOperations({
   hasDirtyFiles,
   onRefresh,
   onConflict,
+  onBranchClick,
 }: BranchOperationsProps) {
   const { loading, lastError, createBranch, checkoutBranch, deleteBranch } = useBranchOpsViewModel()
   const [showCreate, setShowCreate] = useState(false)
@@ -182,8 +184,14 @@ export function BranchOperations({
               className={`flex-1 truncate text-left ${branch.name === currentBranch ? 'font-medium' : ''} ${
                 hasDirtyFiles && branch.name !== currentBranch ? 'opacity-50' : ''
               }`}
-              onClick={() => handleCheckout(branch.name)}
-              disabled={loading || branch.name === currentBranch || hasDirtyFiles}
+              onClick={() => {
+                if (onBranchClick) {
+                  onBranchClick(branch.hash)
+                } else if (branch.name !== currentBranch && !hasDirtyFiles) {
+                  handleCheckout(branch.name)
+                }
+              }}
+              disabled={loading}
             >
               {branch.name}
             </button>
@@ -239,7 +247,13 @@ export function BranchOperations({
                 className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
               >
                 <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate text-muted-foreground">{branch.name}</span>
+                <button
+                  className="flex-1 truncate text-left text-muted-foreground"
+                  onClick={() => onBranchClick?.(branch.hash)}
+                  disabled={!onBranchClick}
+                >
+                  {branch.name}
+                </button>
                 {remoteDeleteTarget === branch.name ? (
                   <div className="flex items-center gap-1">
                     <Label className="text-xs text-destructive">削除？</Label>

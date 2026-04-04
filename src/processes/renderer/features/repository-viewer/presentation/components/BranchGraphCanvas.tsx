@@ -1,8 +1,11 @@
 import { useEffect, useRef } from 'react'
 import type { GraphLayout } from '@lib/graph'
+import type { RefMap } from '../ref-map'
 
 const LANE_WIDTH = 16
 const NODE_RADIUS = 4
+const HEAD_OUTER_RADIUS = NODE_RADIUS + 2.5
+const HEAD_RING_WIDTH = 1.5
 const LANE_COLORS = ['#4ec9b0', '#569cd6', '#ce9178', '#dcdcaa', '#c586c0', '#9cdcfe', '#d7ba7d', '#608b4e']
 
 function laneColor(lane: number): string {
@@ -18,9 +21,10 @@ interface BranchGraphCanvasProps {
   rowHeight: number
   scrollTop: number
   containerHeight: number
+  refMap: RefMap
 }
 
-export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeight }: BranchGraphCanvasProps) {
+export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeight, refMap }: BranchGraphCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const canvasWidth = (layout.maxLane + 1) * LANE_WIDTH + LANE_WIDTH
 
@@ -67,6 +71,7 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       }
     }
 
+    // 線の描画
     for (const i of drawSet) {
       const node = nodes[i]
       const nodeY = i * rowHeight + rowHeight / 2 - scrollTop
@@ -93,11 +98,9 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         const toX = laneX(actualParentLane)
 
         if (fromX === toX) {
-          // 同じレーン: 直線
           ctx.moveTo(fromX, nodeY)
           ctx.lineTo(toX, parentY)
         } else {
-          // 異なるレーン: 子のレーンに沿って直線、1行手前で斜め線で合流
           const joinY = Math.max(parentY - rowHeight, nodeY)
           ctx.moveTo(fromX, nodeY)
           if (joinY > nodeY) {
@@ -109,7 +112,7 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       }
     }
 
-    // コミットノード（円）を描画（線の上に重ねる）
+    // コミットノード描画（線の上に重ねる）
     const startIdx = Math.max(0, Math.floor(scrollTop / rowHeight) - 2)
     const endIdx = Math.min(nodes.length - 1, Math.ceil((scrollTop + containerHeight) / rowHeight) + 2)
 
@@ -118,18 +121,84 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
       const x = laneX(node.lane)
       const y = i * rowHeight + rowHeight / 2 - scrollTop
       const color = laneColor(node.lane)
+      const ref = refMap.get(node.hash)
 
-      ctx.fillStyle = '#1e1e1e'
-      ctx.beginPath()
-      ctx.arc(x, y, NODE_RADIUS + 1.5, 0, Math.PI * 2)
-      ctx.fill()
+      if (ref?.isHead) {
+        // HEAD: 二重丸（外側リング + 内側塗りつぶし）
+        ctx.fillStyle = '#1e1e1e'
+        ctx.beginPath()
+        ctx.arc(x, y, HEAD_OUTER_RADIUS + 1, 0, Math.PI * 2)
+        ctx.fill()
 
-      ctx.fillStyle = color
-      ctx.beginPath()
-      ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2)
-      ctx.fill()
+        ctx.strokeStyle = color
+        ctx.lineWidth = HEAD_RING_WIDTH
+        ctx.beginPath()
+        ctx.arc(x, y, HEAD_OUTER_RADIUS, 0, Math.PI * 2)
+        ctx.stroke()
+        ctx.lineWidth = 1.5
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(x, y, NODE_RADIUS - 0.5, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (ref && ref.localBranches.length > 0) {
+        // ローカルブランチ: 大きめの塗りつぶし円
+        ctx.fillStyle = '#1e1e1e'
+        ctx.beginPath()
+        ctx.arc(x, y, NODE_RADIUS + 2.5, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(x, y, NODE_RADIUS + 1, 0, Math.PI * 2)
+        ctx.fill()
+      } else if (ref && ref.tags.length > 0) {
+        // タグ: 角丸四角形
+        const size = NODE_RADIUS * 1.6
+        const r = 1.5
+        ctx.fillStyle = '#1e1e1e'
+        ctx.beginPath()
+        ctx.roundRect(x - size - 1, y - size - 1, (size + 1) * 2, (size + 1) * 2, r)
+        ctx.fill()
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.roundRect(x - size, y - size, size * 2, size * 2, r)
+        ctx.fill()
+      } else if (ref && ref.remoteBranches.length > 0) {
+        // リモートブランチのみ: ダイヤモンド形
+        const d = NODE_RADIUS + 1.5
+        ctx.fillStyle = '#1e1e1e'
+        ctx.beginPath()
+        ctx.moveTo(x, y - d - 1)
+        ctx.lineTo(x + d + 1, y)
+        ctx.lineTo(x, y + d + 1)
+        ctx.lineTo(x - d - 1, y)
+        ctx.closePath()
+        ctx.fill()
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.moveTo(x, y - d)
+        ctx.lineTo(x + d, y)
+        ctx.lineTo(x, y + d)
+        ctx.lineTo(x - d, y)
+        ctx.closePath()
+        ctx.fill()
+      } else {
+        // 通常コミット: 標準の塗りつぶし円
+        ctx.fillStyle = '#1e1e1e'
+        ctx.beginPath()
+        ctx.arc(x, y, NODE_RADIUS + 1.5, 0, Math.PI * 2)
+        ctx.fill()
+
+        ctx.fillStyle = color
+        ctx.beginPath()
+        ctx.arc(x, y, NODE_RADIUS, 0, Math.PI * 2)
+        ctx.fill()
+      }
     }
-  }, [layout, rowHeight, scrollTop, containerHeight, canvasWidth])
+  }, [layout, rowHeight, scrollTop, containerHeight, canvasWidth, refMap])
 
   return (
     <canvas

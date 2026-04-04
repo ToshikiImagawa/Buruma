@@ -56,7 +56,7 @@ describe('CommitLog', () => {
       selectCommit: mockSelectCommit,
       setSearch: mockSetSearch,
     })
-    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} />)
+    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} branches={null} tags={[]} />)
     expect(screen.getByText('コミットがありません')).toBeDefined()
   })
 
@@ -81,7 +81,7 @@ describe('CommitLog', () => {
       selectCommit: mockSelectCommit,
       setSearch: mockSetSearch,
     })
-    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} />)
+    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} branches={null} tags={[]} />)
     expect(screen.getByText('initial commit')).toBeDefined()
     expect(screen.getByText('abc1234')).toBeDefined()
   })
@@ -108,7 +108,7 @@ describe('CommitLog', () => {
       selectCommit: mockSelectCommit,
       setSearch: mockSetSearch,
     })
-    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} />)
+    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} branches={null} tags={[]} />)
     await user.click(screen.getByText('test commit'))
     expect(mockOnCommitSelect).toHaveBeenCalledWith('abc123full')
   })
@@ -124,7 +124,7 @@ describe('CommitLog', () => {
       selectCommit: mockSelectCommit,
       setSearch: mockSetSearch,
     })
-    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} />)
+    render(<CommitLog worktreePath="/repo" onCommitSelect={mockOnCommitSelect} branches={null} tags={[]} />)
     expect(screen.getByText('読み込み中...')).toBeDefined()
   })
 })
