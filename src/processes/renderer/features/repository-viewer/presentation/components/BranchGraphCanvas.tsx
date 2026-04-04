@@ -32,15 +32,9 @@ function drawFilledCircle(ctx: CanvasRenderingContext2D, x: number, y: number, r
   ctx.fill()
 }
 
-/** CSS カスタムプロパティから背景色を取得（ライト/ダークモード両対応） */
+/** CSS 解決済みの背景色を取得（ライト/ダークモード両対応） */
 function resolveBackgroundColor(canvas: HTMLCanvasElement): string {
-  const style = getComputedStyle(canvas)
-  const raw = style.getPropertyValue('--color-background').trim()
-  if (!raw) return '#1e1e1e'
-  // oklch / hsl / rgb 等の CSS 関数はそのまま Canvas で使える
-  return raw.startsWith('#') || raw.startsWith('rgb') || raw.startsWith('hsl') || raw.startsWith('oklch')
-    ? raw
-    : `oklch(${raw})`
+  return getComputedStyle(canvas).backgroundColor || '#1e1e1e'
 }
 
 interface BranchGraphCanvasProps {
