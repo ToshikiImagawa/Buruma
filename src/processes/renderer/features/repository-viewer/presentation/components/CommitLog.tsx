@@ -1,29 +1,78 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { CommitSummary } from '@domain'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
+import type { BranchList, CommitSummary, TagInfo } from '@domain'
+import type { RefInfo } from '../ref-map'
 import { computeGraphLayout } from '@lib/graph'
 import { Input } from '@renderer/components/ui/input'
 import { useVirtualizer } from '@tanstack/react-virtual'
-import { Search } from 'lucide-react'
+import { GitBranch, Search, Tag } from 'lucide-react'
+import { buildRefMap } from '../ref-map'
 import { useCommitLogViewModel } from '../use-commit-log-viewmodel'
 import { BranchGraphCanvas, LANE_WIDTH } from './BranchGraphCanvas'
 
 interface CommitLogProps {
   worktreePath: string
   onCommitSelect: (hash: string) => void
+  branches: BranchList | null
+  tags: TagInfo[]
+}
+
+export interface CommitLogHandle {
+  scrollToHash: (hash: string) => void
 }
 
 const ITEM_HEIGHT = 52
+const MAX_BADGES = 3
+
+function RefBadges({ refInfo }: { refInfo: RefInfo }) {
+  const badges: { label: string; className: string; icon?: 'branch' | 'tag' }[] = []
+
+  if (refInfo.isHead) {
+    badges.push({ label: 'HEAD', className: 'bg-yellow-600 text-white' })
+  }
+  for (const name of refInfo.localBranches) {
+    badges.push({ label: name, className: 'bg-green-900/50 text-green-300 border border-green-700', icon: 'branch' })
+  }
+  for (const name of refInfo.remoteBranches) {
+    badges.push({ label: name, className: 'bg-blue-900/50 text-blue-300 border border-blue-700', icon: 'branch' })
+  }
+  for (const name of refInfo.tags) {
+    badges.push({ label: name, className: 'bg-orange-900/50 text-orange-300 border border-orange-700', icon: 'tag' })
+  }
+
+  if (badges.length === 0) return null
+
+  const visible = badges.slice(0, MAX_BADGES)
+  const overflow = badges.length - MAX_BADGES
+
+  return (
+    <span className="inline-flex items-center gap-1 flex-wrap">
+      {visible.map((badge) => (
+        <span
+          key={badge.label}
+          className={`inline-flex items-center gap-0.5 rounded px-1 text-[10px] leading-tight shrink-0 ${badge.className}`}
+        >
+          {badge.icon === 'branch' && <GitBranch className="h-2.5 w-2.5" />}
+          {badge.icon === 'tag' && <Tag className="h-2.5 w-2.5" />}
+          {badge.label}
+        </span>
+      ))}
+      {overflow > 0 && <span className="text-[10px] text-muted-foreground">+{overflow}</span>}
+    </span>
+  )
+}
 
 function CommitItem({
   commit,
   selected,
   onClick,
   graphPadding,
+  refInfo,
 }: {
   commit: CommitSummary
   selected: boolean
   onClick: () => void
   graphPadding: number
+  refInfo?: RefInfo
 }) {
   const date = new Date(commit.date)
   const dateStr = date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
@@ -37,9 +86,10 @@ function CommitItem({
       onClick={onClick}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5">
+          {refInfo && <RefBadges refInfo={refInfo} />}
           <span className="truncate font-medium">{commit.message}</span>
-          <span className="shrink-0 text-xs text-muted-foreground">{dateStr}</span>
+          <span className="shrink-0 text-xs text-muted-foreground ml-auto">{dateStr}</span>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-mono">{commit.hashShort}</span>
@@ -50,7 +100,10 @@ function CommitItem({
   )
 }
 
-export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
+export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function CommitLog(
+  { worktreePath, onCommitSelect, branches, tags },
+  ref,
+) {
   const { commits, hasMore, loading, selectedCommit, loadCommits, loadMore, selectCommit, setSearch } =
     useCommitLogViewModel()
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -60,6 +113,7 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
 
   const graphLayout = useMemo(() => computeGraphLayout(commits), [commits])
   const graphPadding = (graphLayout.maxLane + 1) * LANE_WIDTH + LANE_WIDTH
+  const refMap = useMemo(() => buildRefMap(branches, tags), [branches, tags])
 
   const virtualizer = useVirtualizer({
     count: commits.length,
@@ -67,6 +121,19 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
     estimateSize: () => ITEM_HEIGHT,
     overscan: 10,
   })
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      scrollToHash(hash: string) {
+        const index = commits.findIndex((c) => c.hash === hash)
+        if (index >= 0) {
+          virtualizer.scrollToIndex(index, { align: 'center' })
+        }
+      },
+    }),
+    [commits, virtualizer],
+  )
 
   useEffect(() => {
     loadCommits(worktreePath)
@@ -132,6 +199,7 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
               rowHeight={ITEM_HEIGHT}
               scrollTop={scrollTop}
               containerHeight={containerHeight}
+              refMap={refMap}
             />
             <div
               style={{
@@ -160,6 +228,7 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
                       commit={commit}
                       selected={commit.hash === selectedHash}
                       graphPadding={graphPadding}
+                      refInfo={refMap.get(commit.hash)}
                       onClick={() => {
                         selectCommit(worktreePath, commit.hash)
                         onCommitSelect(commit.hash)
@@ -175,4 +244,4 @@ export function CommitLog({ worktreePath, onCommitSelect }: CommitLogProps) {
       </div>
     </div>
   )
-}
+})

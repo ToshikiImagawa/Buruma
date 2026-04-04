@@ -1,10 +1,11 @@
+import { cn } from '@lib/utils'
 import { Button } from '@renderer/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@renderer/components/ui/card'
-import { Folder, Pin, Trash2 } from 'lucide-react'
+import { Check, Folder, Pin, Trash2 } from 'lucide-react'
 import { useRepositorySelectorViewModel } from '../use-repository-selector-viewmodel'
 
 export function RecentRepositoriesList() {
-  const { recentRepositories, openByPath, removeRecent, pin } = useRepositorySelectorViewModel()
+  const { recentRepositories, currentRepository, openByPath, removeRecent, pin } = useRepositorySelectorViewModel()
 
   if (recentRepositories.length === 0) {
     return <div className="text-center text-muted-foreground py-8">最近開いたリポジトリはありません</div>
@@ -19,48 +20,54 @@ export function RecentRepositoriesList() {
 
   return (
     <div className="space-y-2">
-      {sortedRepositories.map((repo) => (
-        <Card key={repo.path} className="hover:bg-accent/50 transition-colors">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between text-base">
-              <button
-                onClick={() => openByPath(repo.path)}
-                className="flex items-center gap-2 flex-1 text-left hover:underline"
-              >
-                <Folder className="h-4 w-4" />
-                <span>{repo.name}</span>
-                {repo.pinned && <Pin className="h-3 w-3 text-primary" />}
-              </button>
-              <div className="flex gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => pin(repo.path, !repo.pinned)}
-                  aria-label={repo.pinned ? 'ピン解除' : 'ピン留め'}
+      {sortedRepositories.map((repo) => {
+        const isCurrent = currentRepository?.path === repo.path
+        return (
+          <Card
+            key={repo.path}
+            className={cn('transition-colors', isCurrent ? 'ring-2 ring-primary bg-accent/30' : 'hover:bg-accent/50')}
+          >
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between text-base">
+                <button
+                  onClick={() => openByPath(repo.path)}
+                  className="flex items-center gap-2 flex-1 text-left hover:underline"
                 >
-                  <Pin className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`} />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => removeRecent(repo.path)}
-                  aria-label="履歴から削除"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="pb-3">
-            <p className="text-xs text-muted-foreground truncate">{repo.path}</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              最終アクセス: {new Date(repo.lastAccessed).toLocaleString('ja-JP')}
-            </p>
-          </CardContent>
-        </Card>
-      ))}
+                  {isCurrent ? <Check className="h-4 w-4 text-primary" /> : <Folder className="h-4 w-4" />}
+                  <span>{repo.name}</span>
+                  {repo.pinned && <Pin className="h-3 w-3 text-primary" />}
+                </button>
+                <div className="flex gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => pin(repo.path, !repo.pinned)}
+                    aria-label={repo.pinned ? 'ピン解除' : 'ピン留め'}
+                  >
+                    <Pin className={`h-4 w-4 ${repo.pinned ? 'fill-current text-primary' : ''}`} />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    onClick={() => removeRecent(repo.path)}
+                    aria-label="履歴から削除"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="pb-3">
+              <p className="text-xs text-muted-foreground truncate">{repo.path}</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                最終アクセス: {new Date(repo.lastAccessed).toLocaleString('ja-JP')}
+              </p>
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

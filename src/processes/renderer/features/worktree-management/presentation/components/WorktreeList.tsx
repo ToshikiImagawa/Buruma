@@ -49,6 +49,7 @@ export function WorktreeList({ repoPath }: WorktreeListProps) {
                 worktree={wt}
                 selected={wt.path === selectedPath}
                 onSelect={selectWorktree}
+                onDelete={setDeleteTarget}
               />
             ))}
           </div>

@@ -114,7 +114,7 @@ export class GitReadDefaultRepository implements GitReadRepository {
 
   async getBranches(worktreePath: string): Promise<BranchList> {
     const git = simpleGit(worktreePath)
-    const result: BranchSummary = await git.branch(['-a', '-v', '--abbrev'])
+    const result: BranchSummary = await git.branch(['-a', '-v', '--no-abbrev'])
     return mapBranchResult(result)
   }
 

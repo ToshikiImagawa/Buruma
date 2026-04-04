@@ -17,14 +17,23 @@ import { Toaster } from 'sonner'
 function AppContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [repositorySelectorOpen, setRepositorySelectorOpen] = useState(true)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const { currentRepository } = useRepositorySelectorViewModel()
 
   return (
     <>
-      <AppLayout onSettingsClick={() => setSettingsOpen(true)}>
+      <AppLayout
+        onSettingsClick={() => setSettingsOpen(true)}
+        repositoryName={currentRepository?.name}
+        onRepositorySwitch={() => setRepositorySelectorOpen(true)}
+        sidebarCollapsed={sidebarCollapsed}
+        onSidebarToggle={() => setSidebarCollapsed((prev) => !prev)}
+      >
         {currentRepository ? (
           <div className="flex h-full">
-            <aside className="w-64 shrink-0 border-r">
+            <aside
+              className={`shrink-0 border-r transition-all duration-200 ${sidebarCollapsed ? 'w-0 overflow-hidden border-r-0' : 'w-64'}`}
+            >
               <WorktreeList repoPath={currentRepository.path} />
             </aside>
             <div className="flex-1 overflow-hidden">

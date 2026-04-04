@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-02"
+updated: "2026-04-05"
 depends-on: [ "spec-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff" ]
 category: "viewer"
@@ -40,8 +40,8 @@ risk: "medium"
 | CommitLog コンポーネント          | 🟢    | コミットログ一覧 UI（スクロールページネーション）     |
 | CommitDetailView コンポーネント   | 🟢    | コミット詳細表示 UI                    |
 | DiffView コンポーネント           | 🟢    | @monaco-editor/react DiffEditor によるインライン/サイドバイサイド差分表示 |
-| RepositoryDetailPanel       | 🟢    | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） |
-| ブランチグラフ                    | 🟢    | git log --graph --all による ASCII グラフ表示 |
+| RepositoryDetailPanel       | 🟢    | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス） |
+| ブランチグラフ                    | 🟢    | Canvas API によるブランチグラフ描画。RefMap 連携で HEAD/ブランチ/タグ/リモートのノード種別描画、マージ線の2色分割描画に対応 |
 | IPC 入力バリデーション              | 🟢    | worktreePath パストラバーサル防止          |
 | ファイルコンテンツ取得 IPC            | 🟢    | git:file-contents / git:file-contents-commit チャネル |
 | BranchList コンポーネント         | 🟢    | ブランチ一覧 UI                      |
@@ -161,8 +161,9 @@ graph TD
 | RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/processes/renderer/features/repository-viewer/application/services/` |
 | UseCase x8 | application | GetStatus, GetLog, GetCommitDetail, GetDiff, GetDiffStaged, GetDiffCommit, GetBranches, GetFileTree | `src/processes/renderer/features/repository-viewer/application/usecases/` |
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/processes/renderer/features/repository-viewer/presentation/` |
-| RepositoryDetailPanel | presentation | タブ統合コンポーネント（情報/ステータス/コミット/ブランチ/ファイル） | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
-| BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画（GraphLayout を受け取り可視範囲のみ描画） | `src/processes/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
+| RepositoryDetailPanel | presentation | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス）。ResizablePanelGroup による分割パネルリサイズ対応 | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
+| BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画。RefMap でノード種別（HEAD=二重丸、ローカル=大円、タグ=角丸四角、リモート=菱形）を描き分け。マージ線は垂直区間（子の色）と斜め区間（第1親=子の色、第2親=親の色）の2色分割描画 | `src/processes/renderer/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
+| RefMap (buildRefMap) | presentation | BranchList + TagInfo[] からハッシュ→ref情報のマッピングを構築する純粋関数 | `src/processes/renderer/features/repository-viewer/presentation/ref-map.ts` |
 | StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/processes/renderer/features/repository-viewer/presentation/components/` |
 
 ### 共有
@@ -259,8 +260,23 @@ interface GraphLayout {
   hashToIndex: Map<string, number>
 }
 
-// BranchGraphCanvas: Canvas でノード（円）とエッジ（線）を描画
+// BranchGraphCanvas: Canvas でノードとエッジを描画
 // レーンごとに色分け、可視範囲のみ描画して大量コミットでも高速
+//
+// ノード種別描画（RefMap 連携）:
+//   HEAD: 二重丸（外側リング + 内側塗りつぶし）
+//   ローカルブランチ: 大きめ塗りつぶし円
+//   タグ: 角丸四角形
+//   リモートブランチ: ダイヤモンド形
+//   通常コミット: 標準塗りつぶし円
+//
+// エッジ色分けルール:
+//   同一レーン: そのレーンの色で直線描画
+//   異なるレーン（垂直区間）: 子のレーン色（上書き防止）
+//   異なるレーン（斜め区間）: 第1親=子の色、第2親以降=親の色
+//
+// CommitItem に ref バッジ（HEAD/ローカル/リモート/タグ）を DOM で表示
+// buildRefMap() で BranchList + TagInfo[] → hash→RefInfo マッピングを構築
 ```
 
 ---
@@ -326,6 +342,21 @@ interface GraphLayout {
 
 # 10. 変更履歴
 
+## v3.0 (2026-04-05)
+
+**変更内容:**
+
+- BranchGraphCanvas に RefMap 連携を追加（HEAD/ブランチ/タグ/リモートのノード種別描画）
+- マージ線の色分けを2色分割描画に変更（垂直区間=子の色、斜め区間=第1親は子の色/第2親は親の色）
+- CommitItem に ref バッジ（HEAD/ローカル/リモート/タグ）を DOM 表示
+- `buildRefMap()` 純粋関数を追加（`ref-map.ts`）
+- CommitLog に `forwardRef` + `scrollToHash` を追加（ブランチクリックでスクロール）
+- `getBranches` を `--no-abbrev` に変更（フルハッシュで RefMap と一致）
+- ブランチタブをコミットタブに統合（3パネルレイアウト）、タブを4つに削減
+- ResizablePanelGroup による分割パネルリサイズ対応
+- Canvas 背景色を `getComputedStyle().backgroundColor` で取得（ライト/ダークモード対応）
+- `useTagViewModel` を cross-feature 参照で利用（タグデータを CommitLog に props 経由で供給）
+
 ## v2.0 (2026-04-01)
 
 **変更内容:**
@@ -336,7 +367,7 @@ interface GraphLayout {
 - `git:file-contents` / `git:file-contents-commit` IPC チャネルを追加
 - ブランチグラフ表示を追加（`CommitSummary.parents` → `computeGraphLayout()` → `BranchGraphCanvas` Canvas 描画）
 - IPC ハンドラーに `worktreePath` パストラバーサル防止バリデーションを追加
-- `RepositoryDetailPanel` タブ統合コンポーネントを追加（情報/ステータス/コミット/ブランチ/ファイル）
+- `RepositoryDetailPanel` タブ統合コンポーネントを追加（ステータス/コミット/ファイル/リファレンス）
 - レンダラー側に ViewModel + Hook パターン、RepositoryViewerService（状態管理）を追加
 - 仕様書のフィールド名を `FileChange.type` → `FileChange.status` に統一（既存 worktree-management との整合性）
 - `impl-status` を `implemented` に更新

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@renderer/components/ui/separator'
 import { MergeDialog } from '@renderer/features/advanced-git-operations/presentation/components/merge-dialog'
 import { RebaseEditor } from '@renderer/features/advanced-git-operations/presentation/components/rebase-editor'
-import { GitBranch, GitMerge, GitPullRequest, Plus, Trash2 } from 'lucide-react'
+import { ArrowRightLeft, GitBranch, GitMerge, GitPullRequest, Plus, Trash2 } from 'lucide-react'
 import { useBranchOpsViewModel } from '../use-branch-ops-viewmodel'
 
 interface BranchOperationsProps {
@@ -18,6 +18,7 @@ interface BranchOperationsProps {
   hasDirtyFiles: boolean
   onRefresh: () => void
   onConflict?: (operationType: 'merge' | 'rebase' | 'cherry-pick') => void
+  onBranchClick?: (hash: string) => void
 }
 
 export function BranchOperations({
@@ -28,6 +29,7 @@ export function BranchOperations({
   hasDirtyFiles,
   onRefresh,
   onConflict,
+  onBranchClick,
 }: BranchOperationsProps) {
   const { loading, lastError, createBranch, checkoutBranch, deleteBranch } = useBranchOpsViewModel()
   const [showCreate, setShowCreate] = useState(false)
@@ -179,11 +181,15 @@ export function BranchOperations({
           <div key={branch.name} className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent">
             <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
             <button
-              className={`flex-1 truncate text-left ${branch.name === currentBranch ? 'font-medium' : ''} ${
-                hasDirtyFiles && branch.name !== currentBranch ? 'opacity-50' : ''
-              }`}
-              onClick={() => handleCheckout(branch.name)}
-              disabled={loading || branch.name === currentBranch || hasDirtyFiles}
+              className={`flex-1 truncate text-left ${branch.name === currentBranch ? 'font-medium' : ''}`}
+              onClick={() => {
+                if (onBranchClick) {
+                  onBranchClick(branch.hash)
+                } else if (branch.name !== currentBranch && !hasDirtyFiles) {
+                  handleCheckout(branch.name)
+                }
+              }}
+              disabled={loading}
             >
               {branch.name}
             </button>
@@ -212,14 +218,24 @@ export function BranchOperations({
                     </Button>
                   </div>
                 ) : (
-                  <button
-                    className="invisible text-muted-foreground hover:text-destructive group-hover:visible"
-                    onClick={() => setDeleteTarget(branch.name)}
-                    disabled={loading}
-                    title="ブランチ削除"
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="flex items-center gap-0.5">
+                    <button
+                      className="invisible text-muted-foreground hover:text-primary group-hover:visible"
+                      onClick={() => handleCheckout(branch.name)}
+                      disabled={loading || hasDirtyFiles}
+                      title="チェックアウト"
+                    >
+                      <ArrowRightLeft className="h-3.5 w-3.5" />
+                    </button>
+                    <button
+                      className="invisible text-muted-foreground hover:text-destructive group-hover:visible"
+                      onClick={() => setDeleteTarget(branch.name)}
+                      disabled={loading}
+                      title="ブランチ削除"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 )}
               </>
             )}
@@ -239,7 +255,13 @@ export function BranchOperations({
                 className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
               >
                 <GitBranch className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                <span className="flex-1 truncate text-muted-foreground">{branch.name}</span>
+                <button
+                  className="flex-1 truncate text-left text-muted-foreground"
+                  onClick={() => onBranchClick?.(branch.hash)}
+                  disabled={!onBranchClick}
+                >
+                  {branch.name}
+                </button>
                 {remoteDeleteTarget === branch.name ? (
                   <div className="flex items-center gap-1">
                     <Label className="text-xs text-destructive">削除？</Label>

@@ -27,13 +27,13 @@ risk: "low"
 
 ## 1.1. 実装進捗
 
-| モジュール/機能 | ステータス | 備考 |
-|---|---|---|
-| RepositoryDetailPanel タブ追加（Stash, Tags） | 🟢 | 新規タブ 2 つ追加済み |
-| BranchOperations ボタン追加（マージ, リベース） | 🟢 | マージ/リベースボタン + MergeDialog/RebaseEditor 統合済み |
-| Commits タブ チェリーピックボタン | 🟢 | CherryPickDialog 統合済み |
-| コンフリクト解決オーバーレイ | 🟢 | conflictOperation state で管理、ConflictResolver フルパネル表示 |
-| 操作完了後リフレッシュ | 🟢 | handleRefresh 経由で git:status / git:branches を呼び出し |
+| モジュール/機能                                | ステータス | 備考                                                   |
+|-----------------------------------------|-------|------------------------------------------------------|
+| RepositoryDetailPanel タブ追加（Stash, Tags） | 🟢    | 新規タブ 2 つ追加済み                                         |
+| BranchOperations ボタン追加（マージ, リベース）       | 🟢    | マージ/リベースボタン + MergeDialog/RebaseEditor 統合済み          |
+| Commits タブ チェリーピックボタン                   | 🟢    | CherryPickDialog 統合済み                                |
+| コンフリクト解決オーバーレイ                          | 🟢    | conflictOperation state で管理、ConflictResolver フルパネル表示 |
+| 操作完了後リフレッシュ                             | 🟢    | handleRefresh 経由で git:status / git:branches を呼び出し    |
 
 ---
 
@@ -55,10 +55,10 @@ risk: "low"
 
 ## 4.1. 変更対象ファイル
 
-| ファイル                                                                                                  | 変更内容                                               |
-|-------------------------------------------------------------------------------------------------------|----------------------------------------------------|
-| `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags タブ追加、コンフリクトオーバーレイ状態管理、import 追加         |
-| `src/processes/renderer/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加、MergeDialog/RebaseEditor の open 状態管理 |
+| ファイル                                                                                                  | 変更内容                                                                          |
+|-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
+| `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags を「リファレンス」タブに統合、コンフリクトオーバーレイ状態管理、ResizablePanelGroup による分割パネルリサイズ対応 |
+| `src/processes/renderer/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加、MergeDialog/RebaseEditor の open 状態管理                            |
 
 ## 4.2. タブ構成（変更後）
 
@@ -67,14 +67,11 @@ RepositoryDetailPanel
 ├── [コンフリクト解決オーバーレイ]  ← conflictState.active 時のみ表示
 │   └── ConflictResolver
 │       └── ThreeWayMergeView
-└── Tabs（通常表示）
-    ├── Info（既存）
-    ├── Status（既存）
-    ├── Commits（既存 + チェリーピックボタン追加）
-    ├── Branches（既存 + マージ/リベースボタン追加）
-    ├── Files（既存）
-    ├── Stash（新規）← StashManager
-    └── Tags（新規）← TagManager
+└── Tabs（通常表示、defaultValue="status"）
+    ├── Status（ResizablePanelGroup: StagingArea+CommitForm | DiffView）
+    ├── Commits（3パネル: BranchOperations | CommitLog+Graph | CommitDetail+DiffView）
+    ├── Files（ResizablePanelGroup: FileTree | DiffView）
+    └── Refs（リファレンス）← 内部トグルで StashManager / TagManager 切り替え
 ```
 
 ## 4.3. コンフリクト解決フロー
@@ -144,12 +141,12 @@ interface BranchOperationsProps {
 const [mergeOpen, setMergeOpen] = useState(false)
 const [rebaseOpen, setRebaseOpen] = useState(false)
 
-// JSX に追加
-const BranchOperations = () => (<>
+// JSX に追加（概念例）
+const BranchOperations = ({ onConflict }) => (<>
     <Button onClick={() => setMergeOpen(true)}>マージ</Button>
     <Button onClick={() => setRebaseOpen(true)}>リベース</Button>
-    <MergeDialog open={mergeOpen} onOpenChange={setMergeOpen} onConflict={}/>
-    <RebaseEditor/>
+    <MergeDialog open={mergeOpen} onOpenChange={setMergeOpen} onConflict={() => onConflict?.('merge')}/>
+    <RebaseEditor worktreePath={worktreePath} onConflict={() => onConflict?.('rebase')}/>
 </>)
 ```
 
@@ -175,12 +172,12 @@ const BranchOperations = () => (<>
 
 ## 8.1. 決定事項
 
-| 決定事項          | 選択肢                    | 決定内容              | 理由                                                 |
-|---------------|------------------------|-------------------|----------------------------------------------------|
-| マージ/リベースの配置   | 専用タブ / Branches タブ内ボタン | Branches タブ内ボタン   | ブランチ操作の文脈で自然。新規タブ追加を最小化                            |
-| チェリーピックの配置    | 専用タブ / Commits タブ内ボタン  | Commits タブ内ボタン    | コミット選択の文脈で自然                                       |
-| コンフリクト解決の表示方式 | 新規タブ / ダイアログ / オーバーレイ  | オーバーレイ（タブを隠す）     | 3 ウェイマージには広い表示領域が必要。タブ切り替えで解決作業が中断されない             |
-| タブ追加数         | 全機能個別タブ / 最小限          | 2 タブ（Stash, Tags） | マージ/リベース/チェリーピックはダイアログで十分。常時表示が必要なのはスタッシュ一覧とタグ一覧のみ |
+| 決定事項          | 選択肢                    | 決定内容                               | 理由                                                               |
+|---------------|------------------------|------------------------------------|------------------------------------------------------------------|
+| マージ/リベースの配置   | 専用タブ / Branches タブ内ボタン | Branches タブ内ボタン                    | ブランチ操作の文脈で自然。新規タブ追加を最小化                                          |
+| チェリーピックの配置    | 専用タブ / Commits タブ内ボタン  | Commits タブ内ボタン                     | コミット選択の文脈で自然                                                     |
+| コンフリクト解決の表示方式 | 新規タブ / ダイアログ / オーバーレイ  | オーバーレイ（タブを隠す）                      | 3 ウェイマージには広い表示領域が必要。タブ切り替えで解決作業が中断されない                           |
+| タブ追加数         | 全機能個別タブ / 最小限          | 1 タブ（Refs: Stash + Tags を内部トグルで統合） | マージ/リベース/チェリーピックはダイアログで十分。Stash と Tags は低頻度操作のため単一タブに統合しトグルで切り替え |
 
 ---
 
