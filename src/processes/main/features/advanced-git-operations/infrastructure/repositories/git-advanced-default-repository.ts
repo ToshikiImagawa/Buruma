@@ -7,6 +7,16 @@ import type {
   ThreeWayContent,
   ConflictResolveOptions,
   ConflictResolveAllOptions,
+  RebaseOptions,
+  RebaseResult,
+  InteractiveRebaseOptions,
+  RebaseStep,
+  StashSaveOptions,
+  StashEntry,
+  CherryPickOptions,
+  CherryPickResult,
+  TagInfo,
+  TagCreateOptions,
 } from '@domain'
 import type { GitAdvancedRepository } from '../../application/repositories/git-advanced-repository'
 import simpleGit from 'simple-git'
@@ -146,55 +156,194 @@ export class GitAdvancedDefaultRepository implements GitAdvancedRepository {
     await git.add(filePath)
   }
 
-  // --- stub: 後続 Phase で実装 ---
+  // --- スタッシュ ---
 
-  async rebase(): Promise<never> {
-    throw new Error('Not implemented')
+  async stashSave(options: StashSaveOptions): Promise<void> {
+    const git = simpleGit(options.worktreePath)
+    const args = ['stash', 'push']
+    if (options.message) {
+      args.push('-m', options.message)
+    }
+    if (options.includeUntracked) {
+      args.push('--include-untracked')
+    }
+    await git.raw(args)
   }
-  async rebaseInteractive(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async stashList(worktreePath: string): Promise<StashEntry[]> {
+    const git = simpleGit(worktreePath)
+    const result = await git.stashList()
+    return result.all.map((entry, index) => ({
+      index,
+      message: entry.message,
+      date: entry.date,
+      branch: entry.body || '',
+      hash: entry.hash,
+    }))
   }
-  async rebaseAbort(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async stashPop(worktreePath: string, index: number): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.raw(['stash', 'pop', `stash@{${index}}`])
   }
-  async rebaseContinue(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async stashApply(worktreePath: string, index: number): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.raw(['stash', 'apply', `stash@{${index}}`])
   }
-  async getRebaseCommits(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async stashDrop(worktreePath: string, index: number): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.raw(['stash', 'drop', `stash@{${index}}`])
   }
-  async stashSave(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async stashClear(worktreePath: string): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.raw(['stash', 'clear'])
   }
-  async stashList(): Promise<never> {
-    throw new Error('Not implemented')
+
+  // --- リベース ---
+
+  async rebase(options: RebaseOptions): Promise<RebaseResult> {
+    const git = this.createGitWithProgress(options.worktreePath, 'rebase')
+    try {
+      await git.rebase([options.onto])
+      return { status: 'success' }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('CONFLICT') || message.includes('could not apply')) {
+        const status = await git.status()
+        return { status: 'conflict', conflictFiles: status.conflicted }
+      }
+      throw new GitAdvancedOperationError('REBASE_FAILED', message)
+    }
   }
-  async stashPop(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult> {
+    const git = simpleGit(options.worktreePath)
+    const todoContent = options.steps
+      .sort((a, b) => a.order - b.order)
+      .map((step) => `${step.action} ${step.hash} ${step.message}`)
+      .join('\n')
+    const tmpDir = path.join(options.worktreePath, '.git')
+    const todoFile = path.join(tmpDir, 'rebase-todo-tmp')
+    try {
+      await fs.writeFile(todoFile, todoContent, 'utf-8')
+      const editorScript =
+        process.platform === 'win32'
+          ? `cmd /c "copy /y "${todoFile}" "`
+          : `cp "${todoFile}"`
+      await git.env('GIT_SEQUENCE_EDITOR', editorScript).rebase(['-i', options.onto])
+      return { status: 'success' }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('CONFLICT') || message.includes('could not apply')) {
+        const status = await git.status()
+        return { status: 'conflict', conflictFiles: status.conflicted }
+      }
+      throw new GitAdvancedOperationError('REBASE_FAILED', message)
+    } finally {
+      await fs.unlink(todoFile).catch(() => {})
+    }
   }
-  async stashApply(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async rebaseAbort(worktreePath: string): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.rebase(['--abort'])
   }
-  async stashDrop(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async rebaseContinue(worktreePath: string): Promise<RebaseResult> {
+    const git = simpleGit(worktreePath)
+    try {
+      await git.rebase(['--continue'])
+      return { status: 'success' }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('CONFLICT') || message.includes('could not apply')) {
+        const status = await git.status()
+        return { status: 'conflict', conflictFiles: status.conflicted }
+      }
+      throw new GitAdvancedOperationError('REBASE_CONTINUE_FAILED', message)
+    }
   }
-  async stashClear(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]> {
+    const git = simpleGit(worktreePath)
+    const log = await git.log({ from: onto, to: 'HEAD' })
+    return log.all.map((commit, index) => ({
+      hash: commit.hash,
+      message: commit.message,
+      action: 'pick' as const,
+      order: index,
+    }))
   }
-  async cherryPick(): Promise<never> {
-    throw new Error('Not implemented')
+
+  // --- チェリーピック ---
+
+  async cherryPick(options: CherryPickOptions): Promise<CherryPickResult> {
+    const git = simpleGit(options.worktreePath)
+    const appliedCommits: string[] = []
+    try {
+      for (const commit of options.commits) {
+        await git.raw(['cherry-pick', commit])
+        appliedCommits.push(commit)
+      }
+      return { status: 'success', appliedCommits }
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error)
+      if (message.includes('CONFLICT') || message.includes('could not apply')) {
+        const status = await git.status()
+        return {
+          status: 'conflict',
+          conflictFiles: status.conflicted,
+          appliedCommits,
+        }
+      }
+      throw new GitAdvancedOperationError('CHERRY_PICK_FAILED', message)
+    }
   }
-  async cherryPickAbort(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async cherryPickAbort(worktreePath: string): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.raw(['cherry-pick', '--abort'])
   }
-  async tagList(): Promise<never> {
-    throw new Error('Not implemented')
+
+  // --- タグ ---
+
+  async tagList(worktreePath: string): Promise<TagInfo[]> {
+    const git = simpleGit(worktreePath)
+    const result = await git.tags()
+    const tags: TagInfo[] = []
+    for (const tagName of result.all) {
+      const info = await git.raw(['tag', '-l', '--format=%(objecttype)%09%(creatordate:iso)%09%(*objectname)%09%(contents:subject)%09%(taggername)', tagName])
+      const parts = info.trim().split('\t')
+      const isAnnotated = parts[0] === 'tag'
+      const hash = await git.raw(['rev-list', '-1', tagName]).then((h) => h.trim())
+      tags.push({
+        name: tagName,
+        hash,
+        date: parts[1] || new Date().toISOString(),
+        type: isAnnotated ? 'annotated' : 'lightweight',
+        message: isAnnotated ? parts[3] || undefined : undefined,
+        tagger: isAnnotated ? parts[4] || undefined : undefined,
+      })
+    }
+    return tags
   }
-  async tagCreate(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async tagCreate(options: TagCreateOptions): Promise<void> {
+    const git = simpleGit(options.worktreePath)
+    const target = options.commitHash || 'HEAD'
+    if (options.type === 'annotated' && options.message) {
+      await git.tag(['-a', options.tagName, '-m', options.message, target])
+    } else {
+      await git.tag([options.tagName, target])
+    }
   }
-  async tagDelete(): Promise<never> {
-    throw new Error('Not implemented')
+
+  async tagDelete(worktreePath: string, tagName: string): Promise<void> {
+    const git = simpleGit(worktreePath)
+    await git.tag(['-d', tagName])
   }
 }
 

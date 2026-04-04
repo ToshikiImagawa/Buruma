@@ -1,0 +1,29 @@
+import { useCallback } from 'react'
+import type { InteractiveRebaseOptions, RebaseOptions } from '@domain'
+import { useResolve } from '@lib/di/v-container-provider'
+import { useObservable } from '@lib/hooks/use-observable'
+import { RebaseViewModelToken } from '../di-tokens'
+
+export function useRebaseViewModel() {
+  const vm = useResolve(RebaseViewModelToken)
+  const loading = useObservable(vm.loading$, false)
+  const rebaseResult = useObservable(vm.rebaseResult$, null)
+  const rebaseCommits = useObservable(vm.rebaseCommits$, [])
+
+  return {
+    loading,
+    rebaseResult,
+    rebaseCommits,
+    rebase: useCallback((options: RebaseOptions) => vm.rebase(options), [vm]),
+    rebaseInteractive: useCallback(
+      (options: InteractiveRebaseOptions) => vm.rebaseInteractive(options),
+      [vm],
+    ),
+    rebaseAbort: useCallback((worktreePath: string) => vm.rebaseAbort(worktreePath), [vm]),
+    rebaseContinue: useCallback((worktreePath: string) => vm.rebaseContinue(worktreePath), [vm]),
+    getRebaseCommits: useCallback(
+      (worktreePath: string, onto: string) => vm.getRebaseCommits(worktreePath, onto),
+      [vm],
+    ),
+  }
+}

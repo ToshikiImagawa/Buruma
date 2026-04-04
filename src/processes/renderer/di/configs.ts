@@ -3,10 +3,12 @@ import { applicationFoundationConfig } from '@renderer/features/application-foun
 import { basicGitOperationsConfig } from '@renderer/features/basic-git-operations/di-config'
 import { repositoryViewerConfig } from '@renderer/features/repository-viewer/di-config'
 import { worktreeManagementConfig } from '@renderer/features/worktree-management/di-config'
+import { advancedGitOperationsConfig } from '@renderer/features/advanced-git-operations/di-config'
 
 export const rendererConfigs: VContainerConfig[] = [
   applicationFoundationConfig,
   worktreeManagementConfig,
   repositoryViewerConfig,
   basicGitOperationsConfig,
+  advancedGitOperationsConfig,
 ]

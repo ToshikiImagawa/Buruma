@@ -2,6 +2,11 @@ import type {
   MergeOptions,
   ConflictResolveOptions,
   ConflictResolveAllOptions,
+  RebaseOptions,
+  InteractiveRebaseOptions,
+  StashSaveOptions,
+  CherryPickOptions,
+  TagCreateOptions,
 } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
@@ -13,6 +18,22 @@ import type {
   ConflictResolveMainUseCase,
   ConflictResolveAllMainUseCase,
   ConflictMarkResolvedMainUseCase,
+  RebaseMainUseCase,
+  RebaseInteractiveMainUseCase,
+  RebaseAbortMainUseCase,
+  RebaseContinueMainUseCase,
+  GetRebaseCommitsMainUseCase,
+  StashSaveMainUseCase,
+  StashListMainUseCase,
+  StashPopMainUseCase,
+  StashApplyMainUseCase,
+  StashDropMainUseCase,
+  StashClearMainUseCase,
+  CherryPickMainUseCase,
+  CherryPickAbortMainUseCase,
+  TagListMainUseCase,
+  TagCreateMainUseCase,
+  TagDeleteMainUseCase,
 } from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
 import { ipcMain } from 'electron'
@@ -49,6 +70,22 @@ const CHANNELS = [
   'git:conflict-resolve',
   'git:conflict-resolve-all',
   'git:conflict-mark-resolved',
+  'git:rebase',
+  'git:rebase-interactive',
+  'git:rebase-abort',
+  'git:rebase-continue',
+  'git:rebase-get-commits',
+  'git:stash-save',
+  'git:stash-list',
+  'git:stash-pop',
+  'git:stash-apply',
+  'git:stash-drop',
+  'git:stash-clear',
+  'git:cherry-pick',
+  'git:cherry-pick-abort',
+  'git:tag-list',
+  'git:tag-create',
+  'git:tag-delete',
 ] as const
 
 export function registerGitAdvancedIPCHandlers(
@@ -60,6 +97,22 @@ export function registerGitAdvancedIPCHandlers(
   conflictResolveUseCase: ConflictResolveMainUseCase,
   conflictResolveAllUseCase: ConflictResolveAllMainUseCase,
   conflictMarkResolvedUseCase: ConflictMarkResolvedMainUseCase,
+  rebaseUseCase: RebaseMainUseCase,
+  rebaseInteractiveUseCase: RebaseInteractiveMainUseCase,
+  rebaseAbortUseCase: RebaseAbortMainUseCase,
+  rebaseContinueUseCase: RebaseContinueMainUseCase,
+  getRebaseCommitsUseCase: GetRebaseCommitsMainUseCase,
+  stashSaveUseCase: StashSaveMainUseCase,
+  stashListUseCase: StashListMainUseCase,
+  stashPopUseCase: StashPopMainUseCase,
+  stashApplyUseCase: StashApplyMainUseCase,
+  stashDropUseCase: StashDropMainUseCase,
+  stashClearUseCase: StashClearMainUseCase,
+  cherryPickUseCase: CherryPickMainUseCase,
+  cherryPickAbortUseCase: CherryPickAbortMainUseCase,
+  tagListUseCase: TagListMainUseCase,
+  tagCreateUseCase: TagCreateMainUseCase,
+  tagDeleteUseCase: TagDeleteMainUseCase,
 ): () => void {
   // --- マージ ---
   ipcMain.handle('git:merge', (_event, args: MergeOptions) =>
@@ -121,6 +174,124 @@ export function registerGitAdvancedIPCHandlers(
         validatePath(args.worktreePath, 'worktreePath')
         return conflictMarkResolvedUseCase.invoke(args)
       }),
+  )
+
+  // --- リベース ---
+  ipcMain.handle('git:rebase', (_event, args: RebaseOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return rebaseUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:rebase-interactive', (_event, args: InteractiveRebaseOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return rebaseInteractiveUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:rebase-abort', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return rebaseAbortUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle('git:rebase-continue', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return rebaseContinueUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle(
+    'git:rebase-get-commits',
+    (_event, args: { worktreePath: string; onto: string }) =>
+      wrapHandler(() => {
+        validatePath(args.worktreePath, 'worktreePath')
+        return getRebaseCommitsUseCase.invoke(args)
+      }),
+  )
+
+  // --- スタッシュ ---
+  ipcMain.handle('git:stash-save', (_event, args: StashSaveOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashSaveUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:stash-list', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashListUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle('git:stash-pop', (_event, args: { worktreePath: string; index: number }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashPopUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:stash-apply', (_event, args: { worktreePath: string; index: number }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashApplyUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:stash-drop', (_event, args: { worktreePath: string; index: number }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashDropUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:stash-clear', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stashClearUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  // --- チェリーピック ---
+  ipcMain.handle('git:cherry-pick', (_event, args: CherryPickOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return cherryPickUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:cherry-pick-abort', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return cherryPickAbortUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  // --- タグ ---
+  ipcMain.handle('git:tag-list', (_event, args: { worktreePath: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return tagListUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle('git:tag-create', (_event, args: TagCreateOptions) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return tagCreateUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:tag-delete', (_event, args: { worktreePath: string; tagName: string }) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return tagDeleteUseCase.invoke(args)
+    }),
   )
 
   return () => {
