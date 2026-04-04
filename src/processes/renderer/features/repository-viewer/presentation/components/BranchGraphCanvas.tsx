@@ -125,6 +125,8 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
         } else {
           // 異なるレーン: 垂直区間と斜め区間で色を分けて描画
           const joinY = Math.max(parentY - rowHeight, nodeY)
+          // 第1親 = ブランチの継続（子の色）、第2親以降 = マージ合流（親の色）
+          const diagonalColor = p === 0 ? laneColor(node.lane) : laneColor(actualParentLane)
           // 垂直区間: 子のレーン色（レーンの色を保持し上書きを防ぐ）
           if (joinY > nodeY) {
             ctx.strokeStyle = laneColor(node.lane)
@@ -133,8 +135,8 @@ export function BranchGraphCanvas({ layout, rowHeight, scrollTop, containerHeigh
             ctx.lineTo(fromX, joinY)
             ctx.stroke()
           }
-          // 斜め区間: 親のレーン色（合流先の色）
-          ctx.strokeStyle = laneColor(actualParentLane)
+          // 斜め区間
+          ctx.strokeStyle = diagonalColor
           ctx.beginPath()
           ctx.moveTo(fromX, joinY > nodeY ? joinY : nodeY)
           ctx.lineTo(toX, parentY)
