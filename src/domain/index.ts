@@ -312,3 +312,149 @@ export interface GitProgressEvent {
   phase: string
   progress?: number // 0-100, undefined = indeterminate
 }
+
+// --- 高度な Git 操作 ---
+
+/** マージオプション */
+export interface MergeOptions {
+  worktreePath: string
+  branch: string
+  strategy: 'fast-forward' | 'no-ff'
+}
+
+/** マージ結果 */
+export interface MergeResult {
+  status: 'success' | 'conflict' | 'already-up-to-date'
+  conflictFiles?: string[]
+  mergeCommit?: string
+}
+
+/** マージ状態 */
+export interface MergeStatus {
+  isMerging: boolean
+  branch?: string
+  conflictFiles?: string[]
+}
+
+/** リベースオプション */
+export interface RebaseOptions {
+  worktreePath: string
+  onto: string
+}
+
+/** インタラクティブリベースオプション */
+export interface InteractiveRebaseOptions {
+  worktreePath: string
+  onto: string
+  steps: RebaseStep[]
+}
+
+/** リベースステップ */
+export interface RebaseStep {
+  hash: string
+  message: string
+  action: RebaseAction
+  order: number
+}
+
+/** リベースアクション */
+export type RebaseAction = 'pick' | 'reword' | 'edit' | 'squash' | 'fixup' | 'drop'
+
+/** リベース結果 */
+export interface RebaseResult {
+  status: 'success' | 'conflict' | 'aborted'
+  conflictFiles?: string[]
+  currentStep?: number
+  totalSteps?: number
+}
+
+/** スタッシュ保存オプション */
+export interface StashSaveOptions {
+  worktreePath: string
+  message?: string
+  includeUntracked?: boolean
+}
+
+/** スタッシュエントリ */
+export interface StashEntry {
+  index: number
+  message: string
+  date: string
+  branch: string
+  hash: string
+}
+
+/** チェリーピックオプション */
+export interface CherryPickOptions {
+  worktreePath: string
+  commits: string[]
+}
+
+/** チェリーピック結果 */
+export interface CherryPickResult {
+  status: 'success' | 'conflict'
+  conflictFiles?: string[]
+  appliedCommits: string[]
+}
+
+/** コンフリクトファイル */
+export interface ConflictFile {
+  filePath: string
+  status: 'conflicted' | 'resolved'
+  conflictType: 'content' | 'rename' | 'delete'
+}
+
+/** 3ウェイマージ内容 */
+export interface ThreeWayContent {
+  base: string
+  ours: string
+  theirs: string
+  merged: string
+}
+
+/** コンフリクト解決オプション */
+export interface ConflictResolveOptions {
+  worktreePath: string
+  filePath: string
+  resolution: ConflictResolution
+}
+
+/** コンフリクト解決方式 */
+export type ConflictResolution =
+  | { type: 'ours' }
+  | { type: 'theirs' }
+  | { type: 'manual'; content: string }
+
+/** コンフリクト一括解決オプション */
+export interface ConflictResolveAllOptions {
+  worktreePath: string
+  strategy: 'ours' | 'theirs'
+}
+
+/** タグ情報 */
+export interface TagInfo {
+  name: string
+  hash: string
+  message?: string
+  date: string
+  type: 'lightweight' | 'annotated'
+  tagger?: string
+}
+
+/** タグ作成オプション */
+export interface TagCreateOptions {
+  worktreePath: string
+  tagName: string
+  commitHash?: string
+  type: 'lightweight' | 'annotated'
+  message?: string
+}
+
+/** 操作進捗イベント */
+export interface OperationProgress {
+  operationType: 'merge' | 'rebase' | 'cherry-pick'
+  status: 'in-progress' | 'completed' | 'failed' | 'conflict'
+  message: string
+  currentStep?: number
+  totalSteps?: number
+}

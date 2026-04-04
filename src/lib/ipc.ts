@@ -152,6 +152,103 @@ export interface IPCChannelMap {
     args: [import('@domain').BranchDeleteArgs]
     result: IPCResult<void>
   }
+  // advanced-git-operations channels
+  'git:merge': {
+    args: [import('@domain').MergeOptions]
+    result: IPCResult<import('@domain').MergeResult>
+  }
+  'git:merge-abort': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:merge-status': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').MergeStatus>
+  }
+  'git:rebase': {
+    args: [import('@domain').RebaseOptions]
+    result: IPCResult<import('@domain').RebaseResult>
+  }
+  'git:rebase-interactive': {
+    args: [import('@domain').InteractiveRebaseOptions]
+    result: IPCResult<import('@domain').RebaseResult>
+  }
+  'git:rebase-abort': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:rebase-continue': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').RebaseResult>
+  }
+  'git:rebase-get-commits': {
+    args: [{ worktreePath: string; onto: string }]
+    result: IPCResult<import('@domain').RebaseStep[]>
+  }
+  'git:stash-save': {
+    args: [import('@domain').StashSaveOptions]
+    result: IPCResult<void>
+  }
+  'git:stash-list': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').StashEntry[]>
+  }
+  'git:stash-pop': {
+    args: [{ worktreePath: string; index: number }]
+    result: IPCResult<void>
+  }
+  'git:stash-apply': {
+    args: [{ worktreePath: string; index: number }]
+    result: IPCResult<void>
+  }
+  'git:stash-drop': {
+    args: [{ worktreePath: string; index: number }]
+    result: IPCResult<void>
+  }
+  'git:stash-clear': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:cherry-pick': {
+    args: [import('@domain').CherryPickOptions]
+    result: IPCResult<import('@domain').CherryPickResult>
+  }
+  'git:cherry-pick-abort': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'git:conflict-list': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').ConflictFile[]>
+  }
+  'git:conflict-file-content': {
+    args: [{ worktreePath: string; filePath: string }]
+    result: IPCResult<import('@domain').ThreeWayContent>
+  }
+  'git:conflict-resolve': {
+    args: [import('@domain').ConflictResolveOptions]
+    result: IPCResult<void>
+  }
+  'git:conflict-resolve-all': {
+    args: [import('@domain').ConflictResolveAllOptions]
+    result: IPCResult<void>
+  }
+  'git:conflict-mark-resolved': {
+    args: [{ worktreePath: string; filePath: string }]
+    result: IPCResult<void>
+  }
+  'git:tag-list': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').TagInfo[]>
+  }
+  'git:tag-create': {
+    args: [import('@domain').TagCreateOptions]
+    result: IPCResult<void>
+  }
+  'git:tag-delete': {
+    args: [{ worktreePath: string; tagName: string }]
+    result: IPCResult<void>
+  }
 }
 
 /** main → renderer イベント */
@@ -224,6 +321,41 @@ export interface ElectronAPI {
     branchCheckout(args: import('@domain').BranchCheckoutArgs): Promise<IPCResult<void>>
     branchDelete(args: import('@domain').BranchDeleteArgs): Promise<IPCResult<void>>
     onProgress(callback: (event: import('@domain').GitProgressEvent) => void): () => void
+    // advanced-git-operations
+    merge(args: import('@domain').MergeOptions): Promise<IPCResult<import('@domain').MergeResult>>
+    mergeAbort(args: { worktreePath: string }): Promise<IPCResult<void>>
+    mergeStatus(args: { worktreePath: string }): Promise<IPCResult<import('@domain').MergeStatus>>
+    rebase(args: import('@domain').RebaseOptions): Promise<IPCResult<import('@domain').RebaseResult>>
+    rebaseInteractive(
+      args: import('@domain').InteractiveRebaseOptions,
+    ): Promise<IPCResult<import('@domain').RebaseResult>>
+    rebaseAbort(args: { worktreePath: string }): Promise<IPCResult<void>>
+    rebaseContinue(args: { worktreePath: string }): Promise<IPCResult<import('@domain').RebaseResult>>
+    rebaseGetCommits(args: {
+      worktreePath: string
+      onto: string
+    }): Promise<IPCResult<import('@domain').RebaseStep[]>>
+    stashSave(args: import('@domain').StashSaveOptions): Promise<IPCResult<void>>
+    stashList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').StashEntry[]>>
+    stashPop(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
+    stashApply(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
+    stashDrop(args: { worktreePath: string; index: number }): Promise<IPCResult<void>>
+    stashClear(args: { worktreePath: string }): Promise<IPCResult<void>>
+    cherryPick(
+      args: import('@domain').CherryPickOptions,
+    ): Promise<IPCResult<import('@domain').CherryPickResult>>
+    cherryPickAbort(args: { worktreePath: string }): Promise<IPCResult<void>>
+    conflictList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ConflictFile[]>>
+    conflictFileContent(args: {
+      worktreePath: string
+      filePath: string
+    }): Promise<IPCResult<import('@domain').ThreeWayContent>>
+    conflictResolve(args: import('@domain').ConflictResolveOptions): Promise<IPCResult<void>>
+    conflictResolveAll(args: import('@domain').ConflictResolveAllOptions): Promise<IPCResult<void>>
+    conflictMarkResolved(args: { worktreePath: string; filePath: string }): Promise<IPCResult<void>>
+    tagList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').TagInfo[]>>
+    tagCreate(args: import('@domain').TagCreateOptions): Promise<IPCResult<void>>
+    tagDelete(args: { worktreePath: string; tagName: string }): Promise<IPCResult<void>>
   }
 }
 
