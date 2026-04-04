@@ -2,7 +2,7 @@
 id: "prd-ui-integration-advanced-git-operations"
 title: "高度な Git 操作 UI 統合"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-04-04"
 updated: "2026-04-04"
 depends-on: ["prd-advanced-git-operations"]

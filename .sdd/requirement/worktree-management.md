@@ -2,9 +2,9 @@
 id: "prd-worktree-management"
 title: "ワークツリー管理"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: ["prd-application-foundation"]
 tags: ["worktree", "core", "ui"]
 category: "core"

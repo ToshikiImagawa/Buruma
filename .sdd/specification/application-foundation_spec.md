@@ -2,10 +2,10 @@
 id: "spec-application-foundation"
 title: "アプリケーション基盤"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: ["prd-application-foundation"]
 tags: ["foundation", "ipc", "electron", "error-handling", "clean-architecture", "di", "rxjs"]
 category: "infrastructure"
@@ -311,7 +311,7 @@ interface IPCError {
 
 # 6. 使用例
 
-```typescript
+```tsx
 // presentation 層: Hook ラッパーを使用したリポジトリ選択
 function RepositoryPage() {
   const {

@@ -2,9 +2,9 @@
 id: "prd-advanced-git-operations"
 title: "高度な Git 操作"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: ["prd-basic-git-operations"]
 tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict"]
 category: "git-operations"

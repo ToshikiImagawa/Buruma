@@ -2,7 +2,7 @@
 id: "design-ui-integration-advanced-git-operations"
 title: "高度な Git 操作 UI 統合"
 type: "design"
-status: "draft"
+status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-04-04"

@@ -2,9 +2,9 @@
 id: "prd-application-foundation"
 title: "アプリケーション基盤"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: []
 tags: ["foundation", "ipc", "electron", "error-handling"]
 category: "infrastructure"

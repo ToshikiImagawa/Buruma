@@ -2,10 +2,10 @@
 id: "spec-worktree-management"
 title: "ワークツリー管理"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: ["prd-worktree-management"]
 tags: ["worktree", "core", "ui"]
 category: "core"
@@ -189,7 +189,7 @@ type WorktreeSortOrder = 'name' | 'last-updated';
 
 # 6. 使用例
 
-```typescript
+```tsx
 // レンダラー側：ワークツリー一覧を取得
 const result = await window.electronAPI.worktree.list(repoPath);
 if (result.success) {

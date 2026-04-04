@@ -2,10 +2,10 @@
 id: "spec-advanced-git-operations"
 title: "高度な Git 操作"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-04"
 depends-on: ["prd-advanced-git-operations"]
 tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag"]
 category: "git-operations"
@@ -414,7 +414,7 @@ interface IPCError {
 
 # 6. 使用例
 
-```typescript
+```tsx
 // レンダラー側：マージの実行
 const mergeResult = await window.electronAPI.git.merge({
   worktreePath: '/path/to/worktree',

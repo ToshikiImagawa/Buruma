@@ -2,7 +2,7 @@
 id: "spec-ui-integration-advanced-git-operations"
 title: "高度な Git 操作 UI 統合"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-04-04"
 updated: "2026-04-04"
