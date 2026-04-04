@@ -4,7 +4,7 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "draft"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-04-04"
 updated: "2026-04-04"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
@@ -23,17 +23,17 @@ risk: "low"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟢 実装完了
 
 ## 1.1. 実装進捗
 
-| モジュール/機能                                | ステータス | 備考                                            |
-|-----------------------------------------|-------|-----------------------------------------------|
-| RepositoryDetailPanel タブ追加（Stash, Tags） | 🔴    | 新規タブ 2 つ                                      |
-| BranchOperations ボタン追加（マージ, リベース）       | 🔴    | 既存コンポーネントを拡張                                  |
-| Commits タブ チェリーピックボタン                   | 🔴    | CommitLog 周辺に追加                               |
-| コンフリクト解決オーバーレイ                          | 🔴    | RepositoryDetailPanel 内で状態管理                  |
-| 操作完了後リフレッシュ                             | 🔴    | 既存の git:status / git:branches / git:log を呼び出し |
+| モジュール/機能 | ステータス | 備考 |
+|---|---|---|
+| RepositoryDetailPanel タブ追加（Stash, Tags） | 🟢 | 新規タブ 2 つ追加済み |
+| BranchOperations ボタン追加（マージ, リベース） | 🟢 | マージ/リベースボタン + MergeDialog/RebaseEditor 統合済み |
+| Commits タブ チェリーピックボタン | 🟢 | CherryPickDialog 統合済み |
+| コンフリクト解決オーバーレイ | 🟢 | conflictOperation state で管理、ConflictResolver フルパネル表示 |
+| 操作完了後リフレッシュ | 🟢 | handleRefresh 経由で git:status / git:branches を呼び出し |
 
 ---
 
