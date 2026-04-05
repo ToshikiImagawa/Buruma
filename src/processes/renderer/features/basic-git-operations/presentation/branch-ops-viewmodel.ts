@@ -6,6 +6,7 @@ import type {
   DeleteBranchRendererUseCase,
   GetLastErrorUseCase,
   GetOperationLoadingUseCase,
+  ResetRendererUseCase,
 } from '../di-tokens'
 import type { BranchOpsViewModel } from './viewmodel-interfaces'
 
@@ -17,6 +18,7 @@ export class BranchOpsDefaultViewModel implements BranchOpsViewModel {
     private readonly createBranchUseCase: CreateBranchRendererUseCase,
     private readonly checkoutBranchUseCase: CheckoutBranchRendererUseCase,
     private readonly deleteBranchUseCase: DeleteBranchRendererUseCase,
+    private readonly resetUseCase: ResetRendererUseCase,
     getOperationLoadingUseCase: GetOperationLoadingUseCase,
     getLastErrorUseCase: GetLastErrorUseCase,
   ) {
@@ -34,5 +36,9 @@ export class BranchOpsDefaultViewModel implements BranchOpsViewModel {
 
   deleteBranch(worktreePath: string, branch: string, remote?: boolean, force?: boolean): void {
     this.deleteBranchUseCase.invoke({ worktreePath, branch, remote, force })
+  }
+
+  resetToCommit(worktreePath: string, target: string, mode: 'soft' | 'mixed' | 'hard'): void {
+    this.resetUseCase.invoke({ worktreePath, mode, target })
   }
 }

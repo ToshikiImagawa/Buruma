@@ -71,6 +71,7 @@ const electronAPI: ElectronAPI = {
     branchCreate: (args) => ipcRenderer.invoke('git:branch-create', args),
     branchCheckout: (args) => ipcRenderer.invoke('git:branch-checkout', args),
     branchDelete: (args) => ipcRenderer.invoke('git:branch-delete', args),
+    reset: (args) => ipcRenderer.invoke('git:reset', args),
     // advanced-git-operations
     merge: (args) => ipcRenderer.invoke('git:merge', args),
     mergeAbort: (args) => ipcRenderer.invoke('git:merge-abort', args),

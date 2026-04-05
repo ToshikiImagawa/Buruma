@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -16,11 +16,24 @@ interface CherryPickDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConflict?: (files: string[]) => void
+  defaultCommitHash?: string
 }
 
-export function CherryPickDialog({ worktreePath, open, onOpenChange, onConflict }: CherryPickDialogProps) {
+export function CherryPickDialog({
+  worktreePath,
+  open,
+  onOpenChange,
+  onConflict,
+  defaultCommitHash = '',
+}: CherryPickDialogProps) {
   const { loading, cherryPickResult, cherryPick } = useCherryPickViewModel()
-  const [commitInput, setCommitInput] = useState('')
+  const [commitInput, setCommitInput] = useState(defaultCommitHash)
+
+  useEffect(() => {
+    if (open && defaultCommitHash) {
+      setCommitInput(defaultCommitHash)
+    }
+  }, [open, defaultCommitHash])
 
   const parseCommits = useCallback((input: string): string[] => {
     return input

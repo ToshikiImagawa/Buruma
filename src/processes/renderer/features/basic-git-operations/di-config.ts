@@ -9,6 +9,7 @@ import { GetLastErrorUseCase } from './application/usecases/get-last-error-useca
 import { GetOperationLoadingUseCase } from './application/usecases/get-operation-loading-usecase'
 import { PullUseCase } from './application/usecases/pull-usecase'
 import { PushUseCase } from './application/usecases/push-usecase'
+import { ResetUseCase } from './application/usecases/reset-usecase'
 import { StageAllUseCase } from './application/usecases/stage-all-usecase'
 import { StageFilesUseCase } from './application/usecases/stage-files-usecase'
 import { UnstageAllUseCase } from './application/usecases/unstage-all-usecase'
@@ -28,6 +29,7 @@ import {
   PullRendererUseCaseToken,
   PushRendererUseCaseToken,
   RemoteOpsViewModelToken,
+  ResetRendererUseCaseToken,
   StageAllRendererUseCaseToken,
   StageFilesRendererUseCaseToken,
   StagingViewModelToken,
@@ -94,6 +96,10 @@ export const basicGitOperationsConfig: VContainerConfig = {
         GitOperationsRepositoryToken,
         GitOperationsServiceToken,
       ])
+      .registerSingleton(ResetRendererUseCaseToken, ResetUseCase, [
+        GitOperationsRepositoryToken,
+        GitOperationsServiceToken,
+      ])
 
     // Observable UseCases (singleton)
     container
@@ -124,6 +130,7 @@ export const basicGitOperationsConfig: VContainerConfig = {
         CreateBranchRendererUseCaseToken,
         CheckoutBranchRendererUseCaseToken,
         DeleteBranchRendererUseCaseToken,
+        ResetRendererUseCaseToken,
         GetOperationLoadingUseCaseToken,
         GetLastErrorUseCaseToken,
       ])

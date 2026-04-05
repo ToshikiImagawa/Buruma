@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-04"
+updated: "2026-04-05"
 depends-on: ["spec-basic-git-operations"]
 tags: ["git", "staging", "commit", "push", "pull", "branch", "simple-git"]
 category: "git-operations"
@@ -44,7 +44,7 @@ risk: "high"
 2. **DI ベース設計** — VContainerConfig + Token + deps パターンで依存関係を注入する（原則 A-003）
 3. **ViewModel + Hook パターン** — ViewModel は RxJS Observable でデータを公開し、Hook ラッパー経由で React に接続する
 4. **既存 API との統合** — repository-viewer の読み取り API（`git:status`, `git:branches`）をリフレッシュに再利用する
-5. **不可逆操作の安全性確保** — amend、ブランチ削除の確認ダイアログを ConfirmDialog で実装する（原則 B-002）
+5. **不可逆操作の安全性確保** — amend、ブランチ削除、hard reset の確認ダイアログを ConfirmDialog で実装する（原則 B-002）
 
 ---
 
@@ -96,7 +96,8 @@ src/processes/main/features/basic-git-operations/
 │       ├── fetch-usecase.ts                 # FetchUseCase
 │       ├── create-branch-usecase.ts         # CreateBranchUseCase
 │       ├── checkout-branch-usecase.ts       # CheckoutBranchUseCase
-│       └── delete-branch-usecase.ts         # DeleteBranchUseCase
+│       ├── delete-branch-usecase.ts         # DeleteBranchUseCase
+│       └── reset-usecase.ts                # ResetUseCase
 ├── infrastructure/
 │   └── repositories/
 │       └── git-write-default-repository.ts  # simple-git による実装

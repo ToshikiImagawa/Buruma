@@ -10,6 +10,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 
 /** Git 操作 IPC クライアントの抽象 */
@@ -25,4 +26,5 @@ export interface GitOperationsRepository {
   branchCreate(args: BranchCreateArgs): Promise<void>
   branchCheckout(args: BranchCheckoutArgs): Promise<void>
   branchDelete(args: BranchDeleteArgs): Promise<void>
+  reset(args: ResetArgs): Promise<void>
 }

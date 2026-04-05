@@ -152,6 +152,10 @@ export interface IPCChannelMap {
     args: [import('@domain').BranchDeleteArgs]
     result: IPCResult<void>
   }
+  'git:reset': {
+    args: [import('@domain').ResetArgs]
+    result: IPCResult<void>
+  }
   // advanced-git-operations channels
   'git:merge': {
     args: [import('@domain').MergeOptions]
@@ -320,6 +324,7 @@ export interface ElectronAPI {
     branchCreate(args: import('@domain').BranchCreateArgs): Promise<IPCResult<void>>
     branchCheckout(args: import('@domain').BranchCheckoutArgs): Promise<IPCResult<void>>
     branchDelete(args: import('@domain').BranchDeleteArgs): Promise<IPCResult<void>>
+    reset(args: import('@domain').ResetArgs): Promise<IPCResult<void>>
     onProgress(callback: (event: import('@domain').GitProgressEvent) => void): () => void
     // advanced-git-operations
     merge(args: import('@domain').MergeOptions): Promise<IPCResult<import('@domain').MergeResult>>

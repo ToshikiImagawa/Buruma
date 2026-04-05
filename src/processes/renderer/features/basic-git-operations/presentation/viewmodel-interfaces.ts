@@ -32,4 +32,5 @@ export interface BranchOpsViewModel {
   createBranch(worktreePath: string, name: string, startPoint?: string): void
   checkoutBranch(worktreePath: string, branch: string): void
   deleteBranch(worktreePath: string, branch: string, remote?: boolean, force?: boolean): void
+  resetToCommit(worktreePath: string, target: string, mode: 'soft' | 'mixed' | 'hard'): void
 }

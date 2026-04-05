@@ -10,6 +10,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 
 /** Git 書き込み操作のリポジトリ IF */
@@ -25,4 +26,5 @@ export interface GitWriteRepository {
   branchCreate(args: BranchCreateArgs): Promise<void>
   branchCheckout(args: BranchCheckoutArgs): Promise<void>
   branchDelete(args: BranchDeleteArgs): Promise<void>
+  reset(args: ResetArgs): Promise<void>
 }

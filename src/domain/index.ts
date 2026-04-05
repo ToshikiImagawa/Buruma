@@ -306,6 +306,13 @@ export interface BranchDeleteArgs {
   force?: boolean
 }
 
+/** リセット引数 */
+export interface ResetArgs {
+  worktreePath: string
+  mode: 'soft' | 'mixed' | 'hard'
+  target: string // コミットハッシュ
+}
+
 /** Git 進捗イベント */
 export interface GitProgressEvent {
   operation: string

@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -18,6 +18,7 @@ interface MergeDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onConflict?: (files: string[]) => void
+  defaultTargetBranch?: string
 }
 
 export function MergeDialog({
@@ -27,10 +28,17 @@ export function MergeDialog({
   open,
   onOpenChange,
   onConflict,
+  defaultTargetBranch = '',
 }: MergeDialogProps) {
   const { loading, mergeResult, merge } = useMergeViewModel()
-  const [targetBranch, setTargetBranch] = useState('')
+  const [targetBranch, setTargetBranch] = useState(defaultTargetBranch)
   const [strategy, setStrategy] = useState<'fast-forward' | 'no-ff'>('fast-forward')
+
+  useEffect(() => {
+    if (open && defaultTargetBranch) {
+      setTargetBranch(defaultTargetBranch)
+    }
+  }, [open, defaultTargetBranch])
 
   const canMerge = targetBranch !== '' && !loading
 

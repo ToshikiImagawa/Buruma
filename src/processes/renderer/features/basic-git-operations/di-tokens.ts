@@ -10,6 +10,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase } from '@lib/usecase/types'
@@ -41,6 +42,7 @@ export type FetchRendererUseCase = FunctionUseCase<FetchArgs, Promise<FetchResul
 export type CreateBranchRendererUseCase = ConsumerUseCase<BranchCreateArgs>
 export type CheckoutBranchRendererUseCase = ConsumerUseCase<BranchCheckoutArgs>
 export type DeleteBranchRendererUseCase = ConsumerUseCase<BranchDeleteArgs>
+export type ResetRendererUseCase = ConsumerUseCase<ResetArgs>
 export type GetOperationLoadingUseCase = ObservableStoreUseCase<boolean>
 export type GetLastErrorUseCase = ObservableStoreUseCase<IPCError | null>
 
@@ -58,6 +60,7 @@ export const CheckoutBranchRendererUseCaseToken = createToken<CheckoutBranchRend
   'CheckoutBranchRendererUseCase',
 )
 export const DeleteBranchRendererUseCaseToken = createToken<DeleteBranchRendererUseCase>('DeleteBranchRendererUseCase')
+export const ResetRendererUseCaseToken = createToken<ResetRendererUseCase>('ResetRendererUseCase')
 export const GetOperationLoadingUseCaseToken = createToken<GetOperationLoadingUseCase>('GetOperationLoadingUseCase')
 export const GetLastErrorUseCaseToken = createToken<GetLastErrorUseCase>('GetLastErrorUseCase')
 

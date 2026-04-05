@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
 import { Button } from '@renderer/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@renderer/components/ui/resizable'
 import { Separator } from '@renderer/components/ui/separator'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@renderer/components/ui/tabs'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { CherryPickDialog } from '@renderer/features/advanced-git-operations/presentation/components/cherry-pick-dialog'
 import { ConflictResolver } from '@renderer/features/advanced-git-operations/presentation/components/conflict-resolver'
 import { StashManager } from '@renderer/features/advanced-git-operations/presentation/components/stash-manager'
@@ -15,8 +17,21 @@ import { BranchOperations } from '@renderer/features/basic-git-operations/presen
 import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
 import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
 import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
+import { useBranchOpsViewModel } from '@renderer/features/basic-git-operations/presentation/use-branch-ops-viewmodel'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
-import { Archive, Bookmark, Cherry, FileText, FolderOpen, GitCommit, Tag } from 'lucide-react'
+import {
+  Archive,
+  Bookmark,
+  FileText,
+  FolderOpen,
+  GitCommit,
+  GitMerge,
+  GitPullRequest,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Plus,
+  Tag,
+} from 'lucide-react'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
@@ -29,8 +44,11 @@ export function RepositoryDetailPanel() {
   const { status, loadStatus } = useStatusViewModel()
   const { branches, loadBranches } = useBranchListViewModel()
   const { tags, tagList } = useTagViewModel()
+  const { resetToCommit } = useBranchOpsViewModel()
 
   const commitLogRef = useRef<CommitLogHandle>(null)
+  const branchPanelRef = useRef<PanelImperativeHandle>(null)
+  const [branchPanelCollapsed, setBranchPanelCollapsed] = useState(false)
 
   // Status tab state
   const [statusFilePath, setStatusFilePath] = useState<string | null>(null)
@@ -45,6 +63,7 @@ export function RepositoryDetailPanel() {
 
   const [conflictOperation, setConflictOperation] = useState<'merge' | 'rebase' | 'cherry-pick' | null>(null)
   const [cherryPickOpen, setCherryPickOpen] = useState(false)
+  const [cherryPickHash, setCherryPickHash] = useState('')
 
   const worktreePath = selectedWorktree?.path ?? ''
 
@@ -182,81 +201,162 @@ export function RepositoryDetailPanel() {
         </TabsContent>
 
         <TabsContent value="commits" className="mt-0 h-full">
-          <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={20} minSize={10}>
-              <div className="h-full overflow-auto">
-                <BranchOperations
-                  worktreePath={selectedWorktree.path}
-                  currentBranch={selectedWorktree.branch ?? ''}
-                  localBranches={branches?.local ?? []}
-                  remoteBranches={branches?.remote ?? []}
-                  hasDirtyFiles={selectedWorktree.isDirty}
-                  onRefresh={handleRefresh}
-                  onConflict={handleConflict}
-                  onBranchClick={handleBranchClick}
-                />
+          <TooltipProvider delayDuration={300}>
+            <div className="flex h-full">
+              {/* 常時表示の縦アイコンバー */}
+              <div className="flex shrink-0 flex-col items-center gap-1 border-r px-1 py-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() =>
+                        branchPanelCollapsed ? branchPanelRef.current?.expand() : branchPanelRef.current?.collapse()
+                      }
+                    >
+                      {branchPanelCollapsed ? (
+                        <PanelLeftOpen className="h-4 w-4" />
+                      ) : (
+                        <PanelLeftClose className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    {branchPanelCollapsed ? 'ブランチパネルを開く' : 'ブランチパネルを閉じる'}
+                  </TooltipContent>
+                </Tooltip>
+                <Separator className="my-0.5" />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => branchPanelRef.current?.expand()}
+                    >
+                      <GitMerge className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">マージ（ブランチパネルを表示）</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => branchPanelRef.current?.expand()}
+                    >
+                      <GitPullRequest className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">リベース（ブランチパネルを表示）</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => branchPanelRef.current?.expand()}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="right">新規ブランチ（ブランチパネルを表示）</TooltipContent>
+                </Tooltip>
               </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={30} minSize={10}>
-              <div className="flex h-full flex-col">
-                <div className="flex items-center justify-between border-b px-2 py-1">
-                  <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={() => setCherryPickOpen(true)}
-                  >
-                    <Cherry className="mr-1 h-3 w-3" />
-                    チェリーピック
-                  </Button>
-                </div>
-                <div className="flex-1 overflow-auto">
-                  <CommitLog
-                    ref={commitLogRef}
-                    worktreePath={selectedWorktree.path}
-                    onCommitSelect={handleCommitSelect}
-                    branches={branches}
-                    tags={tags}
-                  />
-                </div>
-              </div>
-            </ResizablePanel>
-            <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={50} minSize={10}>
-              <div className="h-full overflow-hidden">
-                {selectedCommitHash ? (
+              {/* メインコンテンツ */}
+              <ResizablePanelGroup direction="horizontal" className="flex-1">
+                <ResizablePanel
+                  defaultSize={20}
+                  minSize={10}
+                  collapsible={true}
+                  collapsedSize={0}
+                  panelRef={branchPanelRef}
+                  onResize={(size) => setBranchPanelCollapsed(size.asPercentage === 0)}
+                >
+                  <div className="h-full overflow-auto">
+                    <BranchOperations
+                      worktreePath={selectedWorktree.path}
+                      currentBranch={selectedWorktree.branch ?? ''}
+                      localBranches={branches?.local ?? []}
+                      remoteBranches={branches?.remote ?? []}
+                      hasDirtyFiles={selectedWorktree.isDirty}
+                      onRefresh={handleRefresh}
+                      onConflict={handleConflict}
+                      onBranchClick={handleBranchClick}
+                    />
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={30} minSize={10}>
                   <div className="flex h-full flex-col">
-                    <div className="shrink-0 max-h-[40%] overflow-auto border-b">
-                      <CommitDetailView
+                    <div className="flex items-center border-b px-2 py-1">
+                      <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
+                    </div>
+                    <div className="flex-1 overflow-auto">
+                      <CommitLog
+                        ref={commitLogRef}
                         worktreePath={selectedWorktree.path}
-                        commitHash={selectedCommitHash}
-                        onFileSelect={handleCommitFileSelect}
+                        onCommitSelect={handleCommitSelect}
+                        onCherryPick={(hash) => {
+                          setCherryPickHash(hash)
+                          setCherryPickOpen(true)
+                        }}
+                        onReset={(hash, mode) => {
+                          if (mode === 'hard') {
+                            const confirmed = window.confirm(
+                              'Hard リセットを実行すると、未コミッ��の変更が全て失われます。実行しますか？',
+                            )
+                            if (!confirmed) return
+                          }
+                          resetToCommit(selectedWorktree.path, hash, mode)
+                          handleRefresh()
+                        }}
+                        branches={branches}
+                        tags={tags}
                       />
                     </div>
-                    {commitFilePath ? (
-                      <div className="flex-1 min-h-0">
-                        <DiffView
-                          worktreePath={selectedWorktree.path}
-                          filePath={commitFilePath}
-                          commitHash={selectedCommitHash}
-                        />
+                  </div>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={50} minSize={10}>
+                  <div className="h-full overflow-hidden">
+                    {selectedCommitHash ? (
+                      <div className="flex h-full flex-col">
+                        <div className="shrink-0 max-h-[40%] overflow-auto border-b">
+                          <CommitDetailView
+                            worktreePath={selectedWorktree.path}
+                            commitHash={selectedCommitHash}
+                            onFileSelect={handleCommitFileSelect}
+                          />
+                        </div>
+                        {commitFilePath ? (
+                          <div className="flex-1 min-h-0">
+                            <DiffView
+                              worktreePath={selectedWorktree.path}
+                              filePath={commitFilePath}
+                              commitHash={selectedCommitHash}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex flex-1 items-center justify-center">
+                            <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
+                          </div>
+                        )}
                       </div>
                     ) : (
-                      <div className="flex flex-1 items-center justify-center">
-                        <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
+                      <div className="flex h-full items-center justify-center">
+                        <p className="text-sm text-muted-foreground">コミットを選択して詳細を表示</p>
                       </div>
                     )}
                   </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-sm text-muted-foreground">コミットを選択して詳細を表示</p>
-                  </div>
-                )}
-              </div>
-            </ResizablePanel>
-          </ResizablePanelGroup>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </div>
+          </TooltipProvider>
         </TabsContent>
 
         <TabsContent value="files" className="mt-0 h-full">
@@ -289,8 +389,12 @@ export function RepositoryDetailPanel() {
       <CherryPickDialog
         worktreePath={selectedWorktree.path}
         open={cherryPickOpen}
-        onOpenChange={setCherryPickOpen}
+        onOpenChange={(open) => {
+          setCherryPickOpen(open)
+          if (!open) setCherryPickHash('')
+        }}
         onConflict={() => handleConflict('cherry-pick')}
+        defaultCommitHash={cherryPickHash}
       />
     </Tabs>
   )
