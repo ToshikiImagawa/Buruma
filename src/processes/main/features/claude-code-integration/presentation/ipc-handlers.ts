@@ -11,6 +11,15 @@ import type {
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
 import { ipcMain } from 'electron'
 
+function validatePath(value: string | undefined, name: string): void {
+  if (!value || typeof value !== 'string' || value.trim() === '') {
+    throw new Error(`${name} は必須です`)
+  }
+  if (value.includes('..')) {
+    throw new Error(`${name} にパストラバーサルは許可されていません`)
+  }
+}
+
 function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaited<T>>> {
   return Promise.resolve()
     .then(() => handler())
@@ -39,25 +48,40 @@ export function registerClaudeIPCHandlers(
   getOutputUseCase: GetOutputMainUseCase,
 ): () => void {
   ipcMain.handle('claude:start-session', (_event, args: { worktreePath: string }) =>
-    wrapHandler(() => startSessionUseCase.invoke(args.worktreePath)),
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return startSessionUseCase.invoke(args.worktreePath)
+    }),
   )
 
   ipcMain.handle('claude:stop-session', (_event, args: { worktreePath: string }) =>
-    wrapHandler(() => stopSessionUseCase.invoke(args.worktreePath)),
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return stopSessionUseCase.invoke(args.worktreePath)
+    }),
   )
 
   ipcMain.handle('claude:get-session', (_event, args: { worktreePath: string }) =>
-    wrapHandler(() => getSessionUseCase.invoke(args.worktreePath)),
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return getSessionUseCase.invoke(args.worktreePath)
+    }),
   )
 
   ipcMain.handle('claude:get-all-sessions', () => wrapHandler(() => getAllSessionsUseCase.invoke()))
 
   ipcMain.handle('claude:send-command', (_event, command: ClaudeCommand) =>
-    wrapHandler(() => sendCommandUseCase.invoke(command)),
+    wrapHandler(() => {
+      validatePath(command.worktreePath, 'worktreePath')
+      return sendCommandUseCase.invoke(command)
+    }),
   )
 
   ipcMain.handle('claude:get-output', (_event, args: { worktreePath: string }) =>
-    wrapHandler(() => getOutputUseCase.invoke(args.worktreePath)),
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return getOutputUseCase.invoke(args.worktreePath)
+    }),
   )
 
   return () => {

@@ -33,7 +33,10 @@ export function ClaudeOutputView({ outputs, autoScroll = true }: ClaudeOutputVie
   return (
     <div className="p-3 font-mono text-xs">
       {outputs.map((output, i) => (
-        <div key={i} className={cn('whitespace-pre-wrap', output.stream === 'stderr' && 'text-red-400')}>
+        <div
+          key={`${output.timestamp}-${i}`}
+          className={cn('whitespace-pre-wrap', output.stream === 'stderr' && 'text-red-400')}
+        >
           {stripAnsi(output.content)}
         </div>
       ))}
