@@ -72,6 +72,7 @@
     "@radix-ui/react-tooltip": "^1.2.8",
     "@tailwindcss/postcss": "^4.2.2",
     "@tanstack/react-virtual": "^3.13.23",
+    "ansi-to-html": "^0.7.2",
     "chokidar": "^5.0.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

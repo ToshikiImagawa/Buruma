@@ -24,8 +24,8 @@ export function ClaudeSessionPanel({ worktreePath }: ClaudeSessionPanelProps) {
           {isSessionActive ? 'セッション停止' : 'セッション開始'}
         </Button>
       </div>
-      <div className="flex-1 overflow-auto">
-        <ClaudeOutputView outputs={outputs} autoScroll={true} />
+      <div className="flex-1 overflow-hidden">
+        <ClaudeOutputView outputs={outputs} />
       </div>
       <div className="border-t p-2">
         <CommandInput onSubmit={(input) => sendCommand(worktreePath, input)} disabled={status !== 'running'} />
