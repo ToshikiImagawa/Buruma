@@ -10,7 +10,6 @@ if (started) {
   app.quit()
 }
 
-
 // --- Crash diagnostics ---
 process.on('uncaughtException', (error) => {
   console.error('[Main] Uncaught exception:', error)
