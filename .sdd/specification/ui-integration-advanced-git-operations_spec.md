@@ -51,6 +51,7 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 | FR-008 | Commits タブのブランチパネルを ResizablePanel の collapsible prop で折りたたみ可能にする | 推奨  | FR_508         |
 | FR-009 | ブランチ右クリックでコンテキストメニュー表示（ローカル/リモート/HEAD で項目を分ける）          | 推奨  | FR_509         |
 | FR-010 | ブランチ操作ヘッダーのボタンをアイコンのみ + Tooltip に変更                     | 任意  | FR_510         |
+| FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる | 推奨  | FR_511         |
 
 # 4. API
 
@@ -101,3 +102,4 @@ const [conflictState, setConflictState] = useState<{
 | FR_508    | FR-008（ブランチパネル折りたたみ）          | 対応済み  |
 | FR_509    | FR-009（ブランチコンテキストメニュー）        | 対応済み  |
 | FR_510    | FR-010（アイコンのみツールバー）           | 対応済み  |
+| FR_511    | FR-011（コミットリセット）               | 対応済み  |

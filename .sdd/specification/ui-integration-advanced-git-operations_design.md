@@ -37,6 +37,7 @@ risk: "low"
 | ブランチパネル折りたたみ                            | 🟢    | FR-008: ResizablePanel collapsible + 縦アイコンバー         |
 | ブランチコンテキストメニュー                          | 🟢    | FR-009: shadcn/ui context-menu、ブランチ名付きメニュー項目         |
 | アイコンのみツールバー                             | 🟢    | FR-010: Tooltip 付きアイコンボタン + 縦アイコンバー                  |
+| コミットリセット                                 | 🟢    | FR-011: git:reset IPC + コンテキストメニュー（soft/mixed/hard サブメニュー） |
 
 ---
 
@@ -154,6 +155,21 @@ return (
 
 `TooltipProvider delayDuration={300}` で BranchOperations のルートをラップする。
 
+## 4.7. コミットリセット（FR-011）
+
+コミット右クリックのコンテキストメニューに「xxxまでリセット」サブメニューを追加する。Clean Architecture 4層構成でフル実装:
+
+| レイヤー | 実装内容 |
+|---|---|
+| Domain | `ResetArgs { worktreePath, mode: 'soft'\|'mixed'\|'hard', target: string }` |
+| IPC | `git:reset` チャネル + `ElectronAPI.git.reset()` |
+| Main | `ResetUseCase` → `GitWriteRepository.reset()` → `git reset --{mode} {target}` |
+| Renderer | `ResetUseCase` → `GitOperationsRepository.reset()` → IPC 呼び出し |
+| ViewModel | `BranchOpsViewModel.resetToCommit(worktreePath, target, mode)` |
+| UI | `CommitItem` の `ContextMenuSub` でサブメニュー表示（Soft/Mixed/Hard） |
+
+Hard リセットは不可逆操作のため、メニュー項目に `text-destructive` スタイルを適用して視覚的に警告する。
+
 ---
 
 # 5. インターフェース定義
@@ -245,9 +261,10 @@ const BranchOperations = ({ onConflict }) => (<>
 
 **変更内容:**
 
-- FR-008: ブランチパネル折りたたみ設計を追加（ResizablePanel collapsible）
-- FR-009: ブランチコンテキストメニュー設計を追加（shadcn/ui context-menu）
-- FR-010: アイコンのみツールバー設計を追加（Tooltip 付きアイコンボタン）
+- FR-008: ブランチパネル折りたたみ設計を追加（ResizablePanel collapsible + 縦アイコンバー）
+- FR-009: ブランチコンテキストメニュー設計を追加（shadcn/ui context-menu、ブランチ名付き項目）
+- FR-010: アイコンのみツールバー設計を追加（縦アイコンバーに移動）
+- FR-011: コミットリセット設計を追加（git:reset IPC フル実装、soft/mixed/hard サブメニュー）
 - 技術スタックに context-menu を追加
 - 設計判断に折りたたみ方式・コンテキストメニュー項目・ツールバーレイアウトの3決定を追加
 
