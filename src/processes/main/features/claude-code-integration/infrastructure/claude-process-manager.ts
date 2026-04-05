@@ -126,8 +126,11 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     if (!session?.process?.stdin) {
       throw new Error('No active session for this worktree')
     }
-    // stream-json 形式: JSON オブジェクトを改行区切りで送信
-    const message = JSON.stringify({ type: 'user', content: command.input })
+    // stream-json 形式: message オブジェクトを改行区切りで送信
+    const message = JSON.stringify({
+      type: 'user_message',
+      message: { role: 'user', content: command.input },
+    })
     session.process.stdin.write(message + '\n')
   }
 
