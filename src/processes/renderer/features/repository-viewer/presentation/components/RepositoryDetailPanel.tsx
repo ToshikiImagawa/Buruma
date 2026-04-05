@@ -63,6 +63,7 @@ export function RepositoryDetailPanel() {
 
   const [conflictOperation, setConflictOperation] = useState<'merge' | 'rebase' | 'cherry-pick' | null>(null)
   const [cherryPickOpen, setCherryPickOpen] = useState(false)
+  const [cherryPickHash, setCherryPickHash] = useState('')
 
   const worktreePath = selectedWorktree?.path ?? ''
 
@@ -300,7 +301,10 @@ export function RepositoryDetailPanel() {
                         ref={commitLogRef}
                         worktreePath={selectedWorktree.path}
                         onCommitSelect={handleCommitSelect}
-                        onCherryPick={() => setCherryPickOpen(true)}
+                        onCherryPick={(hash) => {
+                          setCherryPickHash(hash)
+                          setCherryPickOpen(true)
+                        }}
                         onReset={(hash, mode) => {
                           if (mode === 'hard') {
                             const confirmed = window.confirm(
@@ -385,8 +389,12 @@ export function RepositoryDetailPanel() {
       <CherryPickDialog
         worktreePath={selectedWorktree.path}
         open={cherryPickOpen}
-        onOpenChange={setCherryPickOpen}
+        onOpenChange={(open) => {
+          setCherryPickOpen(open)
+          if (!open) setCherryPickHash('')
+        }}
         onConflict={() => handleConflict('cherry-pick')}
+        defaultCommitHash={cherryPickHash}
       />
     </Tabs>
   )
