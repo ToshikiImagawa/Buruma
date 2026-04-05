@@ -14,14 +14,9 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
 
   constructor(private readonly sessionStore: ClaudeSessionStore) {}
 
-  private buildEnv(): Record<string, string> {
-    const filteredEnv: Record<string, string> = {}
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key === 'PATH' || key === 'HOME' || key.startsWith('CLAUDE_') || key === 'ANTHROPIC_API_KEY') {
-        if (value !== undefined) filteredEnv[key] = value
-      }
-    }
-    return filteredEnv
+  // 親プロセスの環境変数を継承（認証情報やキーチェーンアクセスに必要）
+  private buildEnv(): NodeJS.ProcessEnv {
+    return { ...process.env }
   }
 
   async startSession(worktreePath: string): Promise<ClaudeSession> {
@@ -90,11 +85,11 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     this.sessionStore.appendOutput(command.worktreePath, userOutput)
     this.notifyOutput(userOutput)
 
-    // claude -p でコマンドを実行
+    // claude -p でコマンドを実行（stdin は使わないので ignore）
     const child = spawn('claude', ['-p', command.input], {
       cwd: command.worktreePath,
       shell: false,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: this.buildEnv(),
     })
 
