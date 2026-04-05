@@ -11,6 +11,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 import type { GitWriteRepository } from '../../application/repositories/git-write-repository'
 import simpleGit from 'simple-git'
@@ -173,6 +174,11 @@ export class GitWriteDefaultRepository implements GitWriteRepository {
         throw err
       }
     }
+  }
+
+  async reset(args: ResetArgs): Promise<void> {
+    const git = simpleGit(args.worktreePath)
+    await git.raw(['reset', `--${args.mode}`, args.target])
   }
 }
 

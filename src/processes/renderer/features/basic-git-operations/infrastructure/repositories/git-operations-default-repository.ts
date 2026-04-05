@@ -10,6 +10,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { GitOperationsRepository } from '../../application/repositories/git-operations-repository'
@@ -71,6 +72,11 @@ export class GitOperationsDefaultRepository implements GitOperationsRepository {
 
   async branchDelete(args: BranchDeleteArgs): Promise<void> {
     const result = await window.electronAPI.git.branchDelete(args)
+    if (result.success === false) throw new GitOperationsError(result.error)
+  }
+
+  async reset(args: ResetArgs): Promise<void> {
+    const result = await window.electronAPI.git.reset(args)
     if (result.success === false) throw new GitOperationsError(result.error)
   }
 }

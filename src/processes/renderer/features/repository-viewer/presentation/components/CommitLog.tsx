@@ -6,6 +6,10 @@ import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuSub,
+  ContextMenuSubContent,
+  ContextMenuSubTrigger,
   ContextMenuTrigger,
 } from '@renderer/components/ui/context-menu'
 import { Input } from '@renderer/components/ui/input'
@@ -19,6 +23,7 @@ interface CommitLogProps {
   worktreePath: string
   onCommitSelect: (hash: string) => void
   onCherryPick?: (hash: string) => void
+  onReset?: (hash: string, mode: 'soft' | 'mixed' | 'hard') => void
   branches: BranchList | null
   tags: TagInfo[]
 }
@@ -75,6 +80,7 @@ function CommitItem({
   graphPadding,
   refInfo,
   onCherryPick,
+  onReset,
 }: {
   commit: CommitSummary
   selected: boolean
@@ -82,6 +88,7 @@ function CommitItem({
   graphPadding: number
   refInfo?: RefInfo
   onCherryPick?: (hash: string) => void
+  onReset?: (hash: string, mode: 'soft' | 'mixed' | 'hard') => void
 }) {
   const date = new Date(commit.date)
   const dateStr = date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
@@ -113,13 +120,32 @@ function CommitItem({
         <ContextMenuItem onClick={() => onCherryPick?.(commit.hash)} disabled={!onCherryPick}>
           {commit.hashShort} をチェリーピック
         </ContextMenuItem>
+        <ContextMenuSeparator />
+        <ContextMenuSub>
+          <ContextMenuSubTrigger>{commit.hashShort} までリセット</ContextMenuSubTrigger>
+          <ContextMenuSubContent>
+            <ContextMenuItem onClick={() => onReset?.(commit.hash, 'soft')} disabled={!onReset}>
+              Soft（変更をステージに保持）
+            </ContextMenuItem>
+            <ContextMenuItem onClick={() => onReset?.(commit.hash, 'mixed')} disabled={!onReset}>
+              Mixed（変更をワーキングツリーに保持）
+            </ContextMenuItem>
+            <ContextMenuItem
+              className="text-destructive"
+              onClick={() => onReset?.(commit.hash, 'hard')}
+              disabled={!onReset}
+            >
+              Hard（変更を破棄）
+            </ContextMenuItem>
+          </ContextMenuSubContent>
+        </ContextMenuSub>
       </ContextMenuContent>
     </ContextMenu>
   )
 }
 
 export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function CommitLog(
-  { worktreePath, onCommitSelect, onCherryPick, branches, tags },
+  { worktreePath, onCommitSelect, onCherryPick, onReset, branches, tags },
   ref,
 ) {
   const { commits, hasMore, loading, selectedCommit, loadCommits, loadMore, selectCommit, setSearch } =
@@ -248,6 +274,7 @@ export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function Co
                       graphPadding={graphPadding}
                       refInfo={refMap.get(commit.hash)}
                       onCherryPick={onCherryPick}
+                      onReset={onReset}
                       onClick={() => {
                         selectCommit(worktreePath, commit.hash)
                         onCommitSelect(commit.hash)

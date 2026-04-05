@@ -183,7 +183,15 @@ requirementDiagram
     UIIntegration - contains -> RefreshAfterOp
     UIIntegration - contains -> CollapsibleBranchSidebar
     UIIntegration - contains -> BranchContextMenu
+    functionalRequirement ResetToCommit {
+        id: FR_511
+        text: "コミット右クリックから指定コミットまでリセット（soft/mixed/hard）を実行できる"
+        risk: medium
+        verifymethod: test
+    }
+
     UIIntegration - contains -> CompactIconToolbar
+    UIIntegration - contains -> ResetToCommit
 ```
 
 ---
@@ -269,13 +277,13 @@ B-002 準拠）。
 | カテゴリ        | 件数     |
 |-------------|--------|
 | ユーザー要求 (UR) | 1      |
-| 機能要求 (FR)   | 10     |
-| **合計**      | **11** |
+| 機能要求 (FR)   | 11     |
+| **合計**      | **12** |
 
 | 優先度         | 件数                                        |
 |-------------|-------------------------------------------|
 | 必須 (Must)   | 5（FR_501, FR_503, FR_505, FR_506, FR_507） |
-| 推奨 (Should) | 4（FR_502, FR_504, FR_508, FR_509）         |
+| 推奨 (Should) | 5（FR_502, FR_504, FR_508, FR_509, FR_511） |
 | 任意 (Could)  | 1（FR_510）                                 |
 
 > **採番規則:** 本PRDの要求IDは500番台を使用する。

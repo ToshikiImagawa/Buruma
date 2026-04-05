@@ -10,6 +10,7 @@ import type {
   PullResult,
   PushArgs,
   PushResult,
+  ResetArgs,
 } from '@domain'
 import type { ConsumerUseCase, FunctionUseCase } from '@lib/usecase/types'
 import type { GitWriteRepository } from './application/repositories/git-write-repository'
@@ -30,6 +31,7 @@ export type FetchMainUseCase = FunctionUseCase<FetchArgs, Promise<FetchResult>>
 export type CreateBranchMainUseCase = ConsumerUseCase<BranchCreateArgs>
 export type CheckoutBranchMainUseCase = ConsumerUseCase<BranchCheckoutArgs>
 export type DeleteBranchMainUseCase = ConsumerUseCase<BranchDeleteArgs>
+export type ResetMainUseCase = ConsumerUseCase<ResetArgs>
 
 // Application UseCase Tokens
 export const StageFilesMainUseCaseToken = createToken<StageFilesMainUseCase>('StageFilesMainUseCase')
@@ -43,3 +45,4 @@ export const FetchMainUseCaseToken = createToken<FetchMainUseCase>('FetchMainUse
 export const CreateBranchMainUseCaseToken = createToken<CreateBranchMainUseCase>('CreateBranchMainUseCase')
 export const CheckoutBranchMainUseCaseToken = createToken<CheckoutBranchMainUseCase>('CheckoutBranchMainUseCase')
 export const DeleteBranchMainUseCaseToken = createToken<DeleteBranchMainUseCase>('DeleteBranchMainUseCase')
+export const ResetMainUseCaseToken = createToken<ResetMainUseCase>('ResetMainUseCase')

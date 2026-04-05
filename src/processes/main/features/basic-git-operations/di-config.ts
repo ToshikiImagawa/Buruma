@@ -7,6 +7,7 @@ import { DeleteBranchUseCase } from './application/usecases/delete-branch-usecas
 import { FetchUseCase } from './application/usecases/fetch-usecase'
 import { PullUseCase } from './application/usecases/pull-usecase'
 import { PushUseCase } from './application/usecases/push-usecase'
+import { ResetUseCase } from './application/usecases/reset-usecase'
 import { StageAllUseCase } from './application/usecases/stage-all-usecase'
 import { StageFilesUseCase } from './application/usecases/stage-files-usecase'
 import { UnstageAllUseCase } from './application/usecases/unstage-all-usecase'
@@ -20,6 +21,7 @@ import {
   GitWriteRepositoryToken,
   PullMainUseCaseToken,
   PushMainUseCaseToken,
+  ResetMainUseCaseToken,
   StageAllMainUseCaseToken,
   StageFilesMainUseCaseToken,
   UnstageAllMainUseCaseToken,
@@ -46,6 +48,7 @@ export const basicGitOperationsMainConfig: VContainerConfig = {
       .registerSingleton(CreateBranchMainUseCaseToken, CreateBranchUseCase, [GitWriteRepositoryToken])
       .registerSingleton(CheckoutBranchMainUseCaseToken, CheckoutBranchUseCase, [GitWriteRepositoryToken])
       .registerSingleton(DeleteBranchMainUseCaseToken, DeleteBranchUseCase, [GitWriteRepositoryToken])
+      .registerSingleton(ResetMainUseCaseToken, ResetUseCase, [GitWriteRepositoryToken])
   },
 
   setUp: async (container) => {
@@ -70,6 +73,7 @@ export const basicGitOperationsMainConfig: VContainerConfig = {
       container.resolve(CreateBranchMainUseCaseToken),
       container.resolve(CheckoutBranchMainUseCaseToken),
       container.resolve(DeleteBranchMainUseCaseToken),
+      container.resolve(ResetMainUseCaseToken),
     )
 
     return () => {

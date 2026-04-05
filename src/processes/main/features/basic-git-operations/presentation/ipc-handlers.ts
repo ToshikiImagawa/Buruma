@@ -6,6 +6,7 @@ import type {
   FetchArgs,
   PullArgs,
   PushArgs,
+  ResetArgs,
 } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
@@ -16,6 +17,7 @@ import type {
   FetchMainUseCase,
   PullMainUseCase,
   PushMainUseCase,
+  ResetMainUseCase,
   StageAllMainUseCase,
   StageFilesMainUseCase,
   UnstageAllMainUseCase,
@@ -59,6 +61,7 @@ const CHANNELS = [
   'git:branch-create',
   'git:branch-checkout',
   'git:branch-delete',
+  'git:reset',
 ] as const
 
 export function registerGitWriteIPCHandlers(
@@ -73,6 +76,7 @@ export function registerGitWriteIPCHandlers(
   createBranchUseCase: CreateBranchMainUseCase,
   checkoutBranchUseCase: CheckoutBranchMainUseCase,
   deleteBranchUseCase: DeleteBranchMainUseCase,
+  resetUseCase: ResetMainUseCase,
 ): () => void {
   ipcMain.handle('git:stage', (_event, args: { worktreePath: string; files: string[] }) =>
     wrapHandler(() => {
@@ -148,6 +152,13 @@ export function registerGitWriteIPCHandlers(
     wrapHandler(() => {
       validatePath(args.worktreePath, 'worktreePath')
       return deleteBranchUseCase.invoke(args)
+    }),
+  )
+
+  ipcMain.handle('git:reset', (_event, args: ResetArgs) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      return resetUseCase.invoke(args)
     }),
   )
 

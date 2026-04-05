@@ -17,6 +17,7 @@ import { BranchOperations } from '@renderer/features/basic-git-operations/presen
 import { CommitForm } from '@renderer/features/basic-git-operations/presentation/components/commit-form'
 import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
 import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
+import { useBranchOpsViewModel } from '@renderer/features/basic-git-operations/presentation/use-branch-ops-viewmodel'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import {
   Archive,
@@ -43,6 +44,7 @@ export function RepositoryDetailPanel() {
   const { status, loadStatus } = useStatusViewModel()
   const { branches, loadBranches } = useBranchListViewModel()
   const { tags, tagList } = useTagViewModel()
+  const { resetToCommit } = useBranchOpsViewModel()
 
   const commitLogRef = useRef<CommitLogHandle>(null)
   const branchPanelRef = useRef<PanelImperativeHandle>(null)
@@ -299,6 +301,10 @@ export function RepositoryDetailPanel() {
                         worktreePath={selectedWorktree.path}
                         onCommitSelect={handleCommitSelect}
                         onCherryPick={() => setCherryPickOpen(true)}
+                        onReset={(hash, mode) => {
+                          resetToCommit(selectedWorktree.path, hash, mode)
+                          handleRefresh()
+                        }}
                         branches={branches}
                         tags={tags}
                       />

@@ -24,5 +24,10 @@ export function useBranchOpsViewModel() {
         vm.deleteBranch(worktreePath, branch, remote, force),
       [vm],
     ),
+    resetToCommit: useCallback(
+      (worktreePath: string, target: string, mode: 'soft' | 'mixed' | 'hard') =>
+        vm.resetToCommit(worktreePath, target, mode),
+      [vm],
+    ),
   }
 }
