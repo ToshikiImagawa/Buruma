@@ -3,11 +3,26 @@ import type { ClaudeProcessRepository } from '../application/repositories/claude
 import type { ClaudeSessionStore, InternalSession } from '../application/services/claude-session-store-interface'
 import { spawn } from 'child_process'
 
+/**
+ * Claude Code CLI をコマンドごとに `claude -p` で実行する方式。
+ * セッション = ワークツリーの作業コンテキスト（出力履歴管理）。
+ * 子プロセスはコマンド実行中のみ存在する。
+ */
 export class ClaudeProcessManager implements ClaudeProcessRepository {
   private outputListeners: ((output: ClaudeOutput) => void)[] = []
   private sessionChangedListeners: ((session: ClaudeSession) => void)[] = []
 
   constructor(private readonly sessionStore: ClaudeSessionStore) {}
+
+  private buildEnv(): Record<string, string> {
+    const filteredEnv: Record<string, string> = {}
+    for (const [key, value] of Object.entries(process.env)) {
+      if (key === 'PATH' || key === 'HOME' || key.startsWith('CLAUDE_') || key === 'ANTHROPIC_API_KEY') {
+        if (value !== undefined) filteredEnv[key] = value
+      }
+    }
+    return filteredEnv
+  }
 
   async startSession(worktreePath: string): Promise<ClaudeSession> {
     if (this.sessionStore.has(worktreePath)) {
@@ -16,9 +31,9 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
 
     const internal: InternalSession = {
       worktreePath,
-      status: 'starting',
+      status: 'running',
       pid: null,
-      startedAt: null,
+      startedAt: new Date().toISOString(),
       error: null,
       outputBuffer: [],
       process: null,
@@ -26,112 +41,109 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     this.sessionStore.set(worktreePath, internal)
     this.notifySessionChanged(worktreePath)
 
-    const filteredEnv: Record<string, string> = {}
-    for (const [key, value] of Object.entries(process.env)) {
-      if (key === 'PATH' || key === 'HOME' || key.startsWith('CLAUDE_')) {
-        if (value !== undefined) filteredEnv[key] = value
-      }
-    }
-
-    const child = spawn('claude', ['-p', '--output-format', 'stream-json', '--input-format', 'stream-json', '--verbose'], {
-      cwd: worktreePath,
-      shell: false,
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: filteredEnv,
-    })
-
-    internal.process = child
-    internal.pid = child.pid ?? null
-    internal.startedAt = new Date().toISOString()
-    internal.status = 'running'
-    this.sessionStore.set(worktreePath, internal)
-    this.notifySessionChanged(worktreePath)
-
-    child.stdout?.on('data', (data: Buffer) => {
-      const output: ClaudeOutput = {
-        worktreePath,
-        stream: 'stdout',
-        content: data.toString(),
-        timestamp: new Date().toISOString(),
-      }
-      this.sessionStore.appendOutput(worktreePath, output)
-      this.notifyOutput(output)
-    })
-
-    child.stderr?.on('data', (data: Buffer) => {
-      const output: ClaudeOutput = {
-        worktreePath,
-        stream: 'stderr',
-        content: data.toString(),
-        timestamp: new Date().toISOString(),
-      }
-      this.sessionStore.appendOutput(worktreePath, output)
-      this.notifyOutput(output)
-    })
-
-    child.on('exit', (code) => {
-      const session = this.sessionStore.get(worktreePath)
-      if (session) {
-        session.status = code === 0 ? 'idle' : 'error'
-        session.error = code !== 0 ? `Process exited with code ${code}` : null
-        session.process = null
-        this.sessionStore.set(worktreePath, session)
-        this.notifySessionChanged(worktreePath)
-      }
-    })
-
-    child.on('error', (err: Error) => {
-      const session = this.sessionStore.get(worktreePath)
-      if (session) {
-        session.status = 'error'
-        session.error = err.message
-        session.process = null
-        this.sessionStore.set(worktreePath, session)
-        this.notifySessionChanged(worktreePath)
-      }
-    })
-
     return this.sessionStore.toClaudeSession(internal)
   }
 
   async stopSession(worktreePath: string): Promise<void> {
     const session = this.sessionStore.get(worktreePath)
-    if (!session?.process) {
-      this.sessionStore.delete(worktreePath)
-      return
+    if (session?.process) {
+      session.status = 'stopping'
+      this.sessionStore.set(worktreePath, session)
+      this.notifySessionChanged(worktreePath)
+
+      await new Promise<void>((resolve) => {
+        const timeout = setTimeout(() => {
+          session.process?.kill('SIGKILL')
+        }, 5000)
+
+        session.process!.on('exit', () => {
+          clearTimeout(timeout)
+          resolve()
+        })
+
+        session.process!.kill('SIGTERM')
+      })
     }
 
-    session.status = 'stopping'
-    this.sessionStore.set(worktreePath, session)
+    this.sessionStore.delete(worktreePath)
     this.notifySessionChanged(worktreePath)
-
-    return new Promise((resolve) => {
-      const timeout = setTimeout(() => {
-        session.process?.kill('SIGKILL')
-      }, 5000)
-
-      session.process!.on('exit', () => {
-        clearTimeout(timeout)
-        this.sessionStore.delete(worktreePath)
-        this.notifySessionChanged(worktreePath)
-        resolve()
-      })
-
-      session.process!.kill('SIGTERM')
-    })
   }
 
   async sendCommand(command: ClaudeCommand): Promise<void> {
     const session = this.sessionStore.get(command.worktreePath)
-    if (!session?.process?.stdin) {
+    if (!session || session.status !== 'running') {
       throw new Error('No active session for this worktree')
     }
-    // stream-json 形式: message オブジェクトを改行区切りで送信
-    const message = JSON.stringify({
-      type: 'user_message',
-      message: { role: 'user', content: command.input },
+
+    // 実行中のプロセスがあれば待機
+    if (session.process) {
+      throw new Error('A command is already running')
+    }
+
+    // ユーザー入力を出力に追加（表示用）
+    const userOutput: ClaudeOutput = {
+      worktreePath: command.worktreePath,
+      stream: 'stdout',
+      content: `> ${command.input}\n`,
+      timestamp: new Date().toISOString(),
+    }
+    this.sessionStore.appendOutput(command.worktreePath, userOutput)
+    this.notifyOutput(userOutput)
+
+    // claude -p でコマンドを実行
+    const child = spawn('claude', ['-p', command.input], {
+      cwd: command.worktreePath,
+      shell: false,
+      stdio: ['pipe', 'pipe', 'pipe'],
+      env: this.buildEnv(),
     })
-    session.process.stdin.write(message + '\n')
+
+    session.process = child
+    session.pid = child.pid ?? null
+    this.sessionStore.set(command.worktreePath, session)
+
+    child.stdout?.on('data', (data: Buffer) => {
+      const output: ClaudeOutput = {
+        worktreePath: command.worktreePath,
+        stream: 'stdout',
+        content: data.toString(),
+        timestamp: new Date().toISOString(),
+      }
+      this.sessionStore.appendOutput(command.worktreePath, output)
+      this.notifyOutput(output)
+    })
+
+    child.stderr?.on('data', (data: Buffer) => {
+      const output: ClaudeOutput = {
+        worktreePath: command.worktreePath,
+        stream: 'stderr',
+        content: data.toString(),
+        timestamp: new Date().toISOString(),
+      }
+      this.sessionStore.appendOutput(command.worktreePath, output)
+      this.notifyOutput(output)
+    })
+
+    child.on('exit', () => {
+      const s = this.sessionStore.get(command.worktreePath)
+      if (s) {
+        s.process = null
+        s.pid = null
+        this.sessionStore.set(command.worktreePath, s)
+      }
+    })
+
+    child.on('error', (err: Error) => {
+      const s = this.sessionStore.get(command.worktreePath)
+      if (s) {
+        s.status = 'error'
+        s.error = err.message
+        s.process = null
+        s.pid = null
+        this.sessionStore.set(command.worktreePath, s)
+        this.notifySessionChanged(command.worktreePath)
+      }
+    })
   }
 
   getSession(worktreePath: string): ClaudeSession | null {
