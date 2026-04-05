@@ -80,6 +80,7 @@ export function RepositoryDetailPanel() {
       loadStatus(worktreePath)
       loadBranches(worktreePath)
       tagList(worktreePath)
+      commitLogRef.current?.refresh()
     }
   }, [worktreePath, loadStatus, loadBranches, tagList])
 

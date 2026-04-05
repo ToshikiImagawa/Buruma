@@ -30,6 +30,7 @@ interface CommitLogProps {
 
 export interface CommitLogHandle {
   scrollToHash: (hash: string) => void
+  refresh: () => void
 }
 
 const ITEM_HEIGHT = 52
@@ -175,8 +176,11 @@ export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function Co
           virtualizer.scrollToIndex(index, { align: 'center' })
         }
       },
+      refresh() {
+        loadCommits(worktreePath)
+      },
     }),
-    [commits, virtualizer],
+    [commits, virtualizer, loadCommits, worktreePath],
   )
 
   useEffect(() => {
