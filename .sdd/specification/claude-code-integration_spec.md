@@ -2,10 +2,10 @@
 id: "spec-claude-code-integration"
 title: "Claude Code 連携"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-05"
 depends-on: ["prd-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session"]
 category: "ai-integration"
@@ -26,7 +26,7 @@ Buruma は Git ワークツリーの並行管理を主軸とする GUI アプリ
 
 Claude Code CLI は Anthropic が提供する AI コーディングアシスタントであり、自然言語による Git 操作委譲、コードレビュー、差分解説などの機能を CLI インターフェースで提供する。本仕様は、Claude Code CLI を子プロセスとして Buruma に統合し、ワークツリーごとに独立した AI 支援セッションを提供するための論理設計を定義する。
 
-本仕様は PRD [claude-code-integration.md](../requirement/claude-code-integration.md) の要求（UR_501〜UR_504, FR_501〜FR_505, DC_501〜DC_502）を実現する。
+本仕様は PRD [claude-code-integration.md](../requirement/claude-code-integration.md) の要求（UR_501〜UR_504, FR_501〜FR_505, DC_501〜DC_503, NFR_501）を実現する。
 
 # 2. 概要
 
@@ -38,7 +38,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 4. **差分解説** — コミット/ブランチ間の差分内容を Claude Code に解説させる（FR_504）
 5. **セッション出力表示** — Claude Code の出力をリアルタイムでストリーミング表示（FR_505）
 
-すべてのサブシステムは Electron のマルチプロセスアーキテクチャ（main / preload / renderer）に準拠し、Claude Code CLI はメインプロセスから子プロセスとして実行される（DC_501）。各ワークツリーのセッションは独立しており、コンテキストを共有しない（DC_502）。
+すべてのサブシステムは Electron のマルチプロセスアーキテクチャ（main / preload / renderer）に準拠し、Claude Code CLI はメインプロセスから子プロセスとして実行される（DC_501）。レンダラーから直接 child_process を使用してはならない（DC_503）。各ワークツリーのセッションは独立しており、コンテキストを共有しない（DC_502）。
 
 # 3. 要求定義
 
@@ -74,7 +74,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 
 | ID | カテゴリ | 要件 | 目標値 |
 |---------|------|------|------|
-| NFR-001 | 性能 | セッション起動からUI反映までの時間 | 5秒以内 |
+| NFR-001 | 性能 | セッション起動からUI反映までの時間 | 30秒以内 |
 | NFR-002 | 性能 | ストリーミング出力のレンダリング遅延 | 100ms以内 |
 | NFR-003 | 安定性 | セッション異常終了時の自動再接続 | 3回までリトライ |
 | NFR-004 | セキュリティ | 子プロセスのサンドボックス化 | ワークツリーの CWD に限定 |
@@ -351,7 +351,7 @@ sequenceDiagram
 # 8. 制約事項
 
 - Claude Code CLI はメインプロセスの子プロセスとしてのみ実行する（DC_501、原則 A-001）
-- レンダラーから Node.js の `child_process` に直接アクセスしない（原則 A-001、T-003）
+- レンダラーから Node.js の `child_process` に直接アクセスしない（DC_503、原則 A-001、T-003）
 - 各ワークツリーのセッションは独立し、コンテキストを共有しない（DC_502）
 - 子プロセスの CWD はワークツリーのパスに設定する（DC_502）
 - Claude Code CLI がユーザー環境にインストール・認証済みであることが前提
@@ -399,3 +399,5 @@ sequenceDiagram
 | FR_505_04 | FR-023 | 対応済み |
 | DC_501 | 制約事項 + 振る舞い図（子プロセス実行） | 対応済み |
 | DC_502 | 制約事項 + セッション分離設計 | 対応済み |
+| DC_503 | 制約事項（レンダラーから child_process 直接使用禁止） | 対応済み |
+| NFR_501 | NFR-001（セッション起動時間 30秒以内） | 対応済み |

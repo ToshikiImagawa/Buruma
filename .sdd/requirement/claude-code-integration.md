@@ -2,9 +2,9 @@
 id: "prd-claude-code-integration"
 title: "Claude Code 連携"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-05"
 depends-on: ["prd-worktree-management", "prd-application-foundation"]
 tags: ["claude-code", "ai", "cli", "session"]
 category: "ai-integration"
@@ -175,7 +175,7 @@ requirementDiagram
         id: UR_503
         text: "自然言語指示で Claude Code に Git 操作を委譲できる"
         risk: high
-        verifymethod: demonstration
+        verifymethod: test
     }
 
     requirement AICodeReview {
@@ -234,6 +234,20 @@ requirementDiagram
         verifymethod: inspection
     }
 
+    designConstraint MainProcessExecution {
+        id: DC_503
+        text: "Claude Code CLI の子プロセス実行はメインプロセスでのみ行い、レンダラーから直接 child_process を使用しない"
+        risk: high
+        verifymethod: inspection
+    }
+
+    performanceRequirement SessionStartupTime {
+        id: NFR_501
+        text: "Claude Code セッションの初回起動は30秒以内に完了する"
+        risk: medium
+        verifymethod: test
+    }
+
     ClaudeCodeIntegration - contains -> SessionManagement
     ClaudeCodeIntegration - contains -> AIAssistedGit
     ClaudeCodeIntegration - contains -> AICodeReview
@@ -242,8 +256,10 @@ requirementDiagram
     AIAssistedGit - contains -> GitDelegation
     AICodeReview - contains -> CodeReview
     AICodeReview - contains -> DiffExplanation
-    ClaudeCodeIntegration - derives -> CLISubprocess
-    SessionManagement - derives -> SessionIsolation
+    ClaudeCodeIntegration - traces -> CLISubprocess
+    ClaudeCodeIntegration - traces -> MainProcessExecution
+    SessionManagement - traces -> SessionIsolation
+    SessionManagement - contains -> SessionStartupTime
 ```
 
 ---
@@ -352,6 +368,20 @@ Claude Code は `claude` コマンドを子プロセスとして実行する。C
 
 **検証方法:** インスペクションによる検証
 
+### DC_503: メインプロセス実行制約
+
+Claude Code CLI の子プロセス実行はメインプロセスでのみ行い、レンダラーから直接 child_process を使用しない。IPC 経由でメインプロセスに委譲する（CONSTITUTION.md A-001 準拠）。
+
+**検証方法:** インスペクションによる検証
+
+## 4.4. 非機能要求
+
+### NFR_501: セッション起動時間
+
+Claude Code セッションの初回起動は30秒以内に完了すること。ユーザーがワークツリーを選択してからセッションが利用可能になるまでの時間を指す。
+
+**検証方法:** テストによる検証
+
 ---
 
 # 5. 制約事項
@@ -360,7 +390,7 @@ Claude Code は `claude` コマンドを子プロセスとして実行する。C
 
 - Claude Code CLI がユーザーの環境にインストール・認証済みであることが前提
 - Claude Code の CLI インターフェースに依存するため、CLI のバージョンアップに追従が必要
-- ストリーミング出力は Node.js の child_process の stdout/stderr パイプ経由で取得
+- Claude Code CLI の出力をリアルタイムで取得する実装詳細は設計書 (claude-code-integration_design.md) で定義する
 
 ## 5.2. ビジネス的制約
 
@@ -406,14 +436,14 @@ Claude Code は `claude` コマンドを子プロセスとして実行する。C
 |----------|------|
 | ユーザー要求 (UR) | 4 |
 | 機能要求 (FR) | 5 |
-| 非機能要求 (NFR) | 0 |
-| 設計制約 (DC) | 2 |
-| **合計** | **11** |
+| 非機能要求 (NFR) | 1 |
+| 設計制約 (DC) | 3 |
+| **合計** | **13** |
 
 | 優先度 | 件数 |
 |--------|------|
-| 必須 (Must) | 5（UR_501, UR_502, FR_501, FR_505, DC_501） |
-| 推奨 (Should) | 4（UR_503, UR_504, FR_502, DC_502） |
+| 必須 (Must) | 6（UR_501, UR_502, FR_501, FR_505, DC_501, DC_503） |
+| 推奨 (Should) | 5（UR_503, UR_504, FR_502, DC_502, NFR_501） |
 | 任意 (Could) | 2（FR_503, FR_504） |
 
 > **採番規則:** 本PRDの要求IDは500番台を使用する（FG-5: Claude Code 連携）。

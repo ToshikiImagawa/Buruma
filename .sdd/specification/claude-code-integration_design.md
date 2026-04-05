@@ -2,11 +2,11 @@
 id: "design-claude-code-integration"
 title: "Claude Code 連携"
 type: "design"
-status: "draft"
+status: "approved"
 sdd-phase: "plan"
 impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-03-25"
+updated: "2026-04-05"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process"]
 category: "ai-integration"
@@ -45,7 +45,7 @@ risk: "high"
 1. **ワークツリー単位のセッション分離** — 各ワークツリーに独立した Claude Code CLI 子プロセスを割り当て、コンテキストの混在を防ぐ（DC_502）
 2. **CLI ベースの統合** — Claude API の直接呼び出しではなく、Claude Code CLI を子プロセスとして利用し、認証管理を CLI に委譲する（DC_501）
 3. **リアルタイムストリーミング** — 子プロセスの stdout/stderr を IPC イベントでレンダラーに逐次送信し、ユーザーに即座にフィードバックを提供する
-4. **Electron セキュリティ準拠** — 子プロセス管理はメインプロセスのみで行い、レンダラーからの直接アクセスを防ぐ（原則 A-001, T-003）
+4. **Electron セキュリティ準拠** — 子プロセス管理はメインプロセスのみで行い、レンダラーから child_process を直接使用しない（DC_503、原則 A-001, T-003）
 5. **Git 操作の安全性** — Git 操作委譲時は実行前確認を必須とし、不可逆操作を保護する（原則 B-002）
 
 ---
@@ -138,18 +138,18 @@ graph TD
 
 | モジュール名 | プロセス | 責務 | 配置場所 |
 |------------|---------|------|---------|
-| ClaudeProcessManager | main | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src/processes/main/services/claude-process-manager.ts` |
-| SessionStore | main | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src/processes/main/services/claude-session-store.ts` |
-| OutputParser | main | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src/processes/main/services/claude-output-parser.ts` |
-| Claude IPC Handler | main | `claude:*` IPC チャネルの登録・ルーティング | `src/processes/main/ipc/claude-handler.ts` |
-| Claude 型定義 | shared | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/types/claude.ts` |
-| Preload Claude API | preload | contextBridge 経由で claude.* API を公開 | `src/preload.ts`（既存ファイルに追加） |
-| ClaudeSessionPanel | renderer | セッション操作 UI（起動/停止/入力/状態） | `src/components/ClaudeSessionPanel.tsx` |
-| ClaudeOutputView | renderer | ストリーミング出力表示 | `src/components/ClaudeOutputView.tsx` |
-| ReviewCommentList | renderer | レビューコメント一覧 | `src/components/ReviewCommentList.tsx` |
-| DiffExplanationView | renderer | 差分解説マークダウン表示 | `src/components/DiffExplanationView.tsx` |
-| SessionStatusIndicator | renderer | セッション状態インジケーター | `src/components/SessionStatusIndicator.tsx` |
-| CommandInput | renderer | 自然言語入力フィールド | `src/components/CommandInput.tsx` |
+| ClaudeProcessManager | main (infrastructure) | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src/processes/main/features/claude-code-integration/infrastructure/claude-process-manager.ts` |
+| SessionStore | main (application/services) | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src/processes/main/features/claude-code-integration/application/services/claude-session-store.ts` |
+| OutputParser | main (infrastructure) | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src/processes/main/features/claude-code-integration/infrastructure/claude-output-parser.ts` |
+| Claude IPC Handler | main (presentation) | `claude:*` IPC チャネルの登録・ルーティング | `src/processes/main/features/claude-code-integration/presentation/ipc-handlers.ts` |
+| Claude 型定義 | domain | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/domain/index.ts`（既存ファイルに追加） |
+| Preload Claude API | preload | contextBridge 経由で claude.* API を公開 | `src/processes/preload/preload.ts`（既存ファイルに追加） |
+| ClaudeSessionPanel | renderer (presentation) | セッション操作 UI（起動/停止/入力/状態） | `src/processes/renderer/features/claude-code-integration/presentation/components/ClaudeSessionPanel.tsx` |
+| ClaudeOutputView | renderer (presentation) | ストリーミング出力表示 | `src/processes/renderer/features/claude-code-integration/presentation/components/ClaudeOutputView.tsx` |
+| ReviewCommentList | renderer (presentation) | レビューコメント一覧 | `src/processes/renderer/features/claude-code-integration/presentation/components/ReviewCommentList.tsx` |
+| DiffExplanationView | renderer (presentation) | 差分解説マークダウン表示 | `src/processes/renderer/features/claude-code-integration/presentation/components/DiffExplanationView.tsx` |
+| SessionStatusIndicator | renderer (presentation) | セッション状態インジケーター | `src/processes/renderer/features/claude-code-integration/presentation/components/SessionStatusIndicator.tsx` |
+| CommandInput | renderer (presentation) | 自然言語入力フィールド | `src/processes/renderer/features/claude-code-integration/presentation/components/CommandInput.tsx` |
 
 ---
 
@@ -477,7 +477,7 @@ interface ElectronAPI {
 
 | 要件 | 実現方針 |
 |------|----------|
-| セッション起動5秒以内 (NFR-001) | spawn は非同期。起動中は `starting` 状態を即座に UI 反映し、プロセス起動完了後に `running` に遷移 |
+| セッション起動30秒以内 (NFR-001, NFR_501) | spawn は非同期。起動中は `starting` 状態を即座に UI 反映し、プロセス起動完了後に `running` に遷移。30秒のタイムアウトで `error` に遷移 |
 | ストリーミング遅延100ms以内 (NFR-002) | stdout/stderr の `data` イベントを即座に IPC イベントとして送信。バッファリングは最小限（16KB チャンク） |
 | 自動再接続3回 (NFR-003) | ClaudeProcessManager が `exit` イベントで異常終了を検知し、指数バックオフ（1s, 2s, 4s）で再起動を試行 |
 | プロセスサンドボックス (NFR-004) | spawn の `cwd` オプションでワークツリーパスを設定。環境変数は必要最小限のみ継承 |
@@ -547,7 +547,16 @@ interface ElectronAPI {
 
 # 11. 変更履歴
 
-## v1.0
+## v1.1 (2026-04-05)
+
+**変更内容:**
+
+- PRD レビュー指摘反映: DC_503（レンダラーからの child_process 直接使用禁止）を設計目標に追加
+- NFR_501（セッション起動30秒以内）を NFR 実現方針に反映
+- モジュール配置パスを Clean Architecture 4層 + feature ディレクトリ構成に修正
+- status を approved に変更
+
+## v1.0 (2026-03-25)
 
 **変更内容:**
 
