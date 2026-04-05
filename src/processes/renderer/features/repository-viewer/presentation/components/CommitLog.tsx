@@ -2,6 +2,12 @@ import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRe
 import type { BranchList, CommitSummary, TagInfo } from '@domain'
 import type { RefInfo } from '../ref-map'
 import { computeGraphLayout } from '@lib/graph'
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from '@renderer/components/ui/context-menu'
 import { Input } from '@renderer/components/ui/input'
 import { useVirtualizer } from '@tanstack/react-virtual'
 import { GitBranch, Search, Tag } from 'lucide-react'
@@ -12,6 +18,7 @@ import { BranchGraphCanvas, LANE_WIDTH } from './BranchGraphCanvas'
 interface CommitLogProps {
   worktreePath: string
   onCommitSelect: (hash: string) => void
+  onCherryPick?: (hash: string) => void
   branches: BranchList | null
   tags: TagInfo[]
 }
@@ -67,41 +74,52 @@ function CommitItem({
   onClick,
   graphPadding,
   refInfo,
+  onCherryPick,
 }: {
   commit: CommitSummary
   selected: boolean
   onClick: () => void
   graphPadding: number
   refInfo?: RefInfo
+  onCherryPick?: (hash: string) => void
 }) {
   const date = new Date(commit.date)
   const dateStr = date.toLocaleDateString('ja-JP', { month: 'short', day: 'numeric' })
 
   return (
-    <button
-      className={`flex w-full items-start gap-1 rounded py-1.5 pr-2 text-left text-sm hover:bg-accent ${
-        selected ? 'bg-accent' : ''
-      }`}
-      style={{ paddingLeft: `${graphPadding}px` }}
-      onClick={onClick}
-    >
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-1.5">
-          {refInfo && <RefBadges refInfo={refInfo} />}
-          <span className="truncate font-medium">{commit.message}</span>
-          <span className="shrink-0 text-xs text-muted-foreground ml-auto">{dateStr}</span>
-        </div>
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <span className="font-mono">{commit.hashShort}</span>
-          <span className="truncate">{commit.author}</span>
-        </div>
-      </div>
-    </button>
+    <ContextMenu>
+      <ContextMenuTrigger asChild>
+        <button
+          className={`flex w-full items-start gap-1 rounded py-1.5 pr-2 text-left text-sm hover:bg-accent ${
+            selected ? 'bg-accent' : ''
+          }`}
+          style={{ paddingLeft: `${graphPadding}px` }}
+          onClick={onClick}
+        >
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              {refInfo && <RefBadges refInfo={refInfo} />}
+              <span className="truncate font-medium">{commit.message}</span>
+              <span className="shrink-0 text-xs text-muted-foreground ml-auto">{dateStr}</span>
+            </div>
+            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              <span className="font-mono">{commit.hashShort}</span>
+              <span className="truncate">{commit.author}</span>
+            </div>
+          </div>
+        </button>
+      </ContextMenuTrigger>
+      <ContextMenuContent>
+        <ContextMenuItem onClick={() => onCherryPick?.(commit.hash)} disabled={!onCherryPick}>
+          {commit.hashShort} をチェリーピック
+        </ContextMenuItem>
+      </ContextMenuContent>
+    </ContextMenu>
   )
 }
 
 export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function CommitLog(
-  { worktreePath, onCommitSelect, branches, tags },
+  { worktreePath, onCommitSelect, onCherryPick, branches, tags },
   ref,
 ) {
   const { commits, hasMore, loading, selectedCommit, loadCommits, loadMore, selectCommit, setSearch } =
@@ -229,6 +247,7 @@ export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function Co
                       selected={commit.hash === selectedHash}
                       graphPadding={graphPadding}
                       refInfo={refMap.get(commit.hash)}
+                      onCherryPick={onCherryPick}
                       onClick={() => {
                         selectCommit(worktreePath, commit.hash)
                         onCommitSelect(commit.hash)

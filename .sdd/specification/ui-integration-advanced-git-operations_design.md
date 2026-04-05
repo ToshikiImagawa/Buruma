@@ -4,7 +4,7 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "in-progress"
+impl-status: "implemented"
 created: "2026-04-04"
 updated: "2026-04-05"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
@@ -23,7 +23,7 @@ risk: "low"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 一部実装中
+**ステータス:** 🟢 実装完了
 
 ## 1.1. 実装進捗
 
@@ -34,9 +34,9 @@ risk: "low"
 | Commits タブ チェリーピックボタン                   | 🟢    | CherryPickDialog 統合済み                                |
 | コンフリクト解決オーバーレイ                          | 🟢    | conflictOperation state で管理、ConflictResolver フルパネル表示 |
 | 操作完了後リフレッシュ                             | 🟢    | handleRefresh 経由で git:status / git:branches を呼び出し    |
-| ブランチパネル折りたたみ                            | 🔴    | FR-008: ResizablePanel collapsible 対応                |
-| ブランチコンテキストメニュー                          | 🔴    | FR-009: shadcn/ui context-menu 導入                    |
-| アイコンのみツールバー                             | 🔴    | FR-010: Tooltip 付きアイコンボタン化                            |
+| ブランチパネル折りたたみ                            | 🟢    | FR-008: ResizablePanel collapsible + 縦アイコンバー         |
+| ブランチコンテキストメニュー                          | 🟢    | FR-009: shadcn/ui context-menu、ブランチ名付きメニュー項目         |
+| アイコンのみツールバー                             | 🟢    | FR-010: Tooltip 付きアイコンボタン + 縦アイコンバー                  |
 
 ---
 
