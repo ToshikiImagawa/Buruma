@@ -33,7 +33,7 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
       }
     }
 
-    const child = spawn('claude', [], {
+    const child = spawn('claude', ['-p', '--output-format', 'stream-json', '--input-format', 'stream-json', '--verbose'], {
       cwd: worktreePath,
       shell: false,
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -126,7 +126,9 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     if (!session?.process?.stdin) {
       throw new Error('No active session for this worktree')
     }
-    session.process.stdin.write(command.input + '\n')
+    // stream-json 形式: JSON オブジェクトを改行区切りで送信
+    const message = JSON.stringify({ type: 'user', content: command.input })
+    session.process.stdin.write(message + '\n')
   }
 
   getSession(worktreePath: string): ClaudeSession | null {
