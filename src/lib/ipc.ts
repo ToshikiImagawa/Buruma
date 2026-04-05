@@ -156,6 +156,31 @@ export interface IPCChannelMap {
     args: [import('@domain').ResetArgs]
     result: IPCResult<void>
   }
+  // claude-code-integration channels
+  'claude:start-session': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').ClaudeSession>
+  }
+  'claude:stop-session': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<void>
+  }
+  'claude:get-session': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').ClaudeSession | null>
+  }
+  'claude:get-all-sessions': {
+    args: []
+    result: IPCResult<import('@domain').ClaudeSession[]>
+  }
+  'claude:send-command': {
+    args: [import('@domain').ClaudeCommand]
+    result: IPCResult<void>
+  }
+  'claude:get-output': {
+    args: [{ worktreePath: string }]
+    result: IPCResult<import('@domain').ClaudeOutput[]>
+  }
   // advanced-git-operations channels
   'git:merge': {
     args: [import('@domain').MergeOptions]
@@ -260,6 +285,8 @@ export interface IPCEventMap {
   'error:notify': import('@domain').ErrorNotification
   'worktree:changed': import('@domain').WorktreeChangeEvent
   'git:progress': import('@domain').GitProgressEvent
+  'claude:output': import('@domain').ClaudeOutput
+  'claude:session-changed': import('@domain').ClaudeSession
 }
 
 /** Preload API 型（contextBridge 経由で公開） */
@@ -356,6 +383,16 @@ export interface ElectronAPI {
     tagList(args: { worktreePath: string }): Promise<IPCResult<import('@domain').TagInfo[]>>
     tagCreate(args: import('@domain').TagCreateOptions): Promise<IPCResult<void>>
     tagDelete(args: { worktreePath: string; tagName: string }): Promise<IPCResult<void>>
+  }
+  claude: {
+    startSession(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeSession>>
+    stopSession(args: { worktreePath: string }): Promise<IPCResult<void>>
+    getSession(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeSession | null>>
+    getAllSessions(): Promise<IPCResult<import('@domain').ClaudeSession[]>>
+    sendCommand(command: import('@domain').ClaudeCommand): Promise<IPCResult<void>>
+    getOutput(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeOutput[]>>
+    onOutput(callback: (output: import('@domain').ClaudeOutput) => void): () => void
+    onSessionChanged(callback: (session: import('@domain').ClaudeSession) => void): () => void
   }
 }
 
