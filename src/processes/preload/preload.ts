@@ -107,6 +107,32 @@ const electronAPI: ElectronAPI = {
       }
     },
   },
+  claude: {
+    startSession: (args) => ipcRenderer.invoke('claude:start-session', args),
+    stopSession: (args) => ipcRenderer.invoke('claude:stop-session', args),
+    getSession: (args) => ipcRenderer.invoke('claude:get-session', args),
+    getAllSessions: () => ipcRenderer.invoke('claude:get-all-sessions'),
+    sendCommand: (command) => ipcRenderer.invoke('claude:send-command', command),
+    getOutput: (args) => ipcRenderer.invoke('claude:get-output', args),
+    onOutput: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('claude:output', handler)
+      return () => {
+        ipcRenderer.removeListener('claude:output', handler)
+      }
+    },
+    onSessionChanged: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('claude:session-changed', handler)
+      return () => {
+        ipcRenderer.removeListener('claude:session-changed', handler)
+      }
+    },
+  },
 }
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI)

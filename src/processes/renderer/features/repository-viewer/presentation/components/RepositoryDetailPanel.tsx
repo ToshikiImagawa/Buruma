@@ -18,10 +18,12 @@ import { CommitForm } from '@renderer/features/basic-git-operations/presentation
 import { PushPullButtons } from '@renderer/features/basic-git-operations/presentation/components/push-pull-buttons'
 import { StagingArea } from '@renderer/features/basic-git-operations/presentation/components/staging-area'
 import { useBranchOpsViewModel } from '@renderer/features/basic-git-operations/presentation/use-branch-ops-viewmodel'
+import { ClaudeSessionPanel } from '@renderer/features/claude-code-integration/presentation/components'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import {
   Archive,
   Bookmark,
+  Bot,
   FileText,
   FolderOpen,
   GitCommit,
@@ -153,6 +155,10 @@ export function RepositoryDetailPanel() {
           <TabsTrigger value="refs" className="gap-1 text-xs">
             <Bookmark className="h-3.5 w-3.5" />
             リファレンス
+          </TabsTrigger>
+          <TabsTrigger value="claude" className="gap-1 text-xs">
+            <Bot className="h-3.5 w-3.5" />
+            Claude
           </TabsTrigger>
         </TabsList>
       </div>
@@ -384,6 +390,10 @@ export function RepositoryDetailPanel() {
 
         <TabsContent value="refs" className="mt-0 h-full">
           <RefsTab worktreePath={selectedWorktree.path} />
+        </TabsContent>
+
+        <TabsContent value="claude" className="mt-0 h-full">
+          <ClaudeSessionPanel worktreePath={selectedWorktree.path} />
         </TabsContent>
       </div>
 

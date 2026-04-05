@@ -462,3 +462,34 @@ export interface OperationProgress {
   currentStep?: number
   totalSteps?: number
 }
+
+// --- Claude Code 連携 ---
+
+/** Claude Code セッション状態 */
+export type SessionStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'error'
+
+/** Claude Code セッション情報 */
+export interface ClaudeSession {
+  worktreePath: string
+  status: SessionStatus
+  pid: number | null
+  startedAt: string | null // ISO 8601
+  error: string | null
+}
+
+/** Claude Code コマンド */
+export interface ClaudeCommand {
+  worktreePath: string
+  type: ClaudeCommandType
+  input: string
+}
+
+export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
+
+/** Claude Code 出力 */
+export interface ClaudeOutput {
+  worktreePath: string
+  stream: 'stdout' | 'stderr'
+  content: string
+  timestamp: string // ISO 8601
+}

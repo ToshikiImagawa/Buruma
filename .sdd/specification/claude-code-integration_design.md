@@ -4,7 +4,7 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "in-progress"
 created: "2026-03-25"
 updated: "2026-04-05"
 depends-on: ["spec-claude-code-integration"]
@@ -23,20 +23,20 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装
+**ステータス:** 🟡 Phase 1 実装完了（セッション管理 + 出力表示）
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| ClaudeProcessManager | 🔴 | 子プロセス管理の中核モジュール |
-| SessionStore | 🔴 | セッション状態の管理 |
-| OutputParser | 🔴 | CLI 出力の解析・構造化 |
-| IPC ハンドラー（claude:*） | 🔴 | セッション・コマンド・レビュー系 |
-| Preload API（claude） | 🔴 | contextBridge 経由の API 公開 |
-| ClaudeSessionPanel | 🔴 | セッション操作 UI |
-| ClaudeOutputView | 🔴 | ストリーミング出力表示 UI |
-| ReviewCommentList | 🔴 | レビューコメント一覧 UI |
+| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装 |
+| SessionStore | 🟢 | インメモリセッション管理（max 1000 出力バッファ） |
+| OutputParser | 🔴 | CLI 出力の解析・構造化（Phase 4 で実装予定） |
+| IPC ハンドラー（claude:*） | 🟢 | 6 チャネル + 2 イベント登録済み |
+| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み |
+| ClaudeSessionPanel | 🟢 | セッション操作 UI（開始/停止/入力/状態表示） |
+| ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
+| ReviewCommentList | 🔴 | レビューコメント一覧 UI（Phase 4 で実装予定） |
 
 ---
 
