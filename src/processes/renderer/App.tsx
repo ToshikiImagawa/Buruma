@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { VContainerProvider } from '@lib/di/v-container-provider'
+import { ErrorBoundary } from '@renderer/components/error-boundary'
 import { AppLayout } from '@renderer/components/layout'
 import { ThemeProvider } from '@renderer/components/theme-provider'
 import { Button } from '@renderer/components/ui/button'
@@ -58,11 +59,13 @@ function AppContent() {
 
 function App() {
   return (
-    <VContainerProvider configs={rendererConfigs}>
-      <ThemeProvider>
-        <AppContent />
-      </ThemeProvider>
-    </VContainerProvider>
+    <ErrorBoundary>
+      <VContainerProvider configs={rendererConfigs}>
+        <ThemeProvider>
+          <AppContent />
+        </ThemeProvider>
+      </VContainerProvider>
+    </ErrorBoundary>
   )
 }
 

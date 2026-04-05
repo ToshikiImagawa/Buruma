@@ -2,13 +2,24 @@ import type { BootstrapResult } from '@main/bootstrap'
 import path from 'node:path'
 import { bootstrapContainer } from '@main/bootstrap'
 import { mainConfigs } from '@main/di/configs'
-import { BrowserWindow, app } from 'electron'
+import { BrowserWindow, app, dialog } from 'electron'
 import started from 'electron-squirrel-startup'
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit()
 }
+
+
+// --- Crash diagnostics ---
+process.on('uncaughtException', (error) => {
+  console.error('[Main] Uncaught exception:', error)
+  dialog.showErrorBox('Main Process Error', `${error.message}\n\n${error.stack}`)
+})
+
+process.on('unhandledRejection', (reason) => {
+  console.error('[Main] Unhandled rejection:', reason)
+})
 
 let bootstrap: BootstrapResult | null = null
 
@@ -22,6 +33,12 @@ const createWindow = () => {
       nodeIntegration: false,
       contextIsolation: true,
     },
+  })
+
+  // Detect renderer crashes
+  mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    console.error('[Main] Renderer process gone:', details)
+    dialog.showErrorBox('Renderer Crash', `reason: ${details.reason}\nexitCode: ${details.exitCode}`)
   })
 
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {

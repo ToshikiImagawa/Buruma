@@ -161,9 +161,9 @@ export class VContainer {
       lifetime: 'singleton',
     }
 
-    // クラスかファクトリー関数かを判定
-    if (isClass(classOrFactory)) {
-      provider.useClass = classOrFactory
+    // deps が指定されている場合はクラスとして扱う（minify 時の isClass 誤判定対策）
+    if (deps || isClass(classOrFactory)) {
+      provider.useClass = classOrFactory as Type<T>
       provider.deps = deps
     } else {
       provider.useFactory = classOrFactory
@@ -192,9 +192,9 @@ export class VContainer {
       lifetime: 'transient',
     }
 
-    // クラスかファクトリー関数かを判定
-    if (isClass(classOrFactory)) {
-      provider.useClass = classOrFactory
+    // deps が指定されている場合はクラスとして扱う（minify 時の isClass 誤判定対策）
+    if (deps || isClass(classOrFactory)) {
+      provider.useClass = classOrFactory as Type<T>
       provider.deps = deps
     } else {
       provider.useFactory = classOrFactory
