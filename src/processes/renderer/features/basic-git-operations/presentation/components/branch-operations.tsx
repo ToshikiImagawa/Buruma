@@ -49,6 +49,7 @@ export function BranchOperations({
   const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
   const [mergeOpen, setMergeOpen] = useState(false)
+  const [mergeTargetBranch, setMergeTargetBranch] = useState<string>('')
   const [rebaseOpen, setRebaseOpen] = useState(false)
   const otherBranchNames = useMemo(
     () => localBranches.map((b) => b.name).filter((n) => n !== currentBranch),
@@ -265,7 +266,12 @@ export function BranchOperations({
                       チェックアウト
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => setMergeOpen(true)}>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setMergeTargetBranch(branch.name)
+                        setMergeOpen(true)
+                      }}
+                    >
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => setRebaseOpen(true)}>{branch.name} へリベース</ContextMenuItem>
@@ -365,7 +371,12 @@ export function BranchOperations({
                       チェックアウト
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem onClick={() => setMergeOpen(true)}>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setMergeTargetBranch(branch.name)
+                        setMergeOpen(true)
+                      }}
+                    >
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
                     <ContextMenuItem onClick={() => setRebaseOpen(true)}>{branch.name} へリベース</ContextMenuItem>
@@ -396,11 +407,16 @@ export function BranchOperations({
           currentBranch={currentBranch}
           branches={otherBranchNames}
           open={mergeOpen}
-          onOpenChange={setMergeOpen}
+          onOpenChange={(open) => {
+            setMergeOpen(open)
+            if (!open) setMergeTargetBranch('')
+          }}
           onConflict={() => {
             setMergeOpen(false)
+            setMergeTargetBranch('')
             onConflict?.('merge')
           }}
+          defaultTargetBranch={mergeTargetBranch}
         />
 
         {rebaseOpen && (

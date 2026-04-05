@@ -237,7 +237,7 @@ export function RepositoryDetailPanel() {
                       <GitMerge className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">マージ</TooltipContent>
+                  <TooltipContent side="right">マージ（ブランチパネルを表示）</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -250,7 +250,7 @@ export function RepositoryDetailPanel() {
                       <GitPullRequest className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">リベース</TooltipContent>
+                  <TooltipContent side="right">リベース（ブランチパネルを表示）</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -263,7 +263,7 @@ export function RepositoryDetailPanel() {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent side="right">新規ブランチ</TooltipContent>
+                  <TooltipContent side="right">新規ブランチ（ブランチパネルを表示）</TooltipContent>
                 </Tooltip>
               </div>
               {/* メインコンテンツ */}
@@ -302,6 +302,12 @@ export function RepositoryDetailPanel() {
                         onCommitSelect={handleCommitSelect}
                         onCherryPick={() => setCherryPickOpen(true)}
                         onReset={(hash, mode) => {
+                          if (mode === 'hard') {
+                            const confirmed = window.confirm(
+                              'Hard リセットを実行すると、未コミッ��の変更が全て失われます。実行しますか？',
+                            )
+                            if (!confirmed) return
+                          }
                           resetToCommit(selectedWorktree.path, hash, mode)
                           handleRefresh()
                         }}
