@@ -34,8 +34,8 @@ risk: "high"
 | GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
 | commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
 | OutputParser | 🔴 | CLI 出力の解析・構造化（Phase 4 で実装予定） |
-| IPC ハンドラー（claude:*） | 🟢 | 7 チャネル + 2 イベント登録済み |
-| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（7 メソッド） |
+| IPC ハンドラー（claude:*） | 🟢 | 7 チャネル + 3 イベント登録済み |
+| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（8 メソッド + 3 イベント） |
 | ClaudeSessionPanel | 🟢 | セッション操作 UI（開始/停止/入力/状態表示） |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
 | コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
@@ -458,6 +458,11 @@ claude: {
     const handler = (_event: Electron.IpcRendererEvent, session: ClaudeSession) => callback(session);
     ipcRenderer.on('claude:session-changed', handler);
     return () => ipcRenderer.removeListener('claude:session-changed', handler);
+  },
+  onCommandCompleted: (callback: (data: { worktreePath: string }) => void): (() => void) => {
+    const handler = (_event: Electron.IpcRendererEvent, data: { worktreePath: string }) => callback(data);
+    ipcRenderer.on('claude:command-completed', handler);
+    return () => ipcRenderer.removeListener('claude:command-completed', handler);
   },
   onReviewResult: (callback: (result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => callback(result);

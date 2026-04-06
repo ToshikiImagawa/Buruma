@@ -104,6 +104,12 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 |-----------|------|------|------|--------|
 | `claude:get-output` | renderer → main | 指定セッションの出力履歴を取得する | `{ worktreePath: string }` | `IPCResult<ClaudeOutput[]>` |
 
+### コミットメッセージ生成
+
+| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|------|--------|
+| `claude:generate-commit-message` | renderer → main | ステージング差分テキストからコミットメッセージを生成する（ワンショット） | `GenerateCommitMessageArgs` | `IPCResult<string>` |
+
 ### レビュー・解説
 
 | チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
@@ -117,6 +123,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 |-----------|------|------|----------|
 | `claude:session-changed` | main → renderer | セッション状態が変化した | `ClaudeSession` |
 | `claude:output` | main → renderer | Claude Code から出力が発生した | `ClaudeOutput` |
+| `claude:command-completed` | main → renderer | コマンド実行が完了した | `{ worktreePath: string }` |
 | `claude:review-result` | main → renderer | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
 | `claude:explain-result` | main → renderer | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
 
@@ -162,6 +169,15 @@ interface ClaudeOutput {
   content: string;
   timestamp: string;        // ISO 8601
 }
+
+// コミットメッセージ生成リクエスト
+interface GenerateCommitMessageArgs {
+  worktreePath: string;
+  diffText: string;           // unified diff 形式のテキスト（レンダラー側で FileDiff[] から変換済み）
+}
+
+// AppSettings 拡張（コミットメッセージルールのカスタマイズ）
+// AppSettings.commitMessageRules: string | null — null はデフォルトルール使用
 
 // 差分ターゲット
 type DiffTarget =

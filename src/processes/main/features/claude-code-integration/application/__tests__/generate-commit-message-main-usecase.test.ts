@@ -68,4 +68,15 @@ describe('GenerateCommitMessageMainUseCase', () => {
       'ステージ済みの変更がありません',
     )
   })
+
+  it('generateText が失敗した場合はエラーを伝播する', async () => {
+    const repo = createMockRepository()
+    repo.generateText.mockRejectedValue(new Error('Claude CLI がコード 1 で終了しました'))
+    const getSettings = createMockGetSettings()
+    const useCase = new GenerateCommitMessageMainUseCase(repo, getSettings)
+
+    await expect(useCase.invoke({ worktreePath: '/repo', diffText: '+line' })).rejects.toThrow(
+      'Claude CLI がコード 1 で終了しました',
+    )
+  })
 })
