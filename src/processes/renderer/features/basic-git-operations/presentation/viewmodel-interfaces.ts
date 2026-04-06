@@ -12,8 +12,10 @@ export interface StagingViewModel {
 
 export interface CommitViewModel {
   readonly loading$: Observable<boolean>
+  readonly generating$: Observable<boolean>
   readonly lastCommitResult$: Observable<CommitResult | null>
   commit(worktreePath: string, message: string, amend?: boolean): void
+  generateCommitMessage(worktreePath: string): Promise<string>
 }
 
 export interface RemoteOpsViewModel {

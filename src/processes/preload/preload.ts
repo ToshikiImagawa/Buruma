@@ -114,6 +114,7 @@ const electronAPI: ElectronAPI = {
     getAllSessions: () => ipcRenderer.invoke('claude:get-all-sessions'),
     sendCommand: (command) => ipcRenderer.invoke('claude:send-command', command),
     getOutput: (args) => ipcRenderer.invoke('claude:get-output', args),
+    generateText: (args) => ipcRenderer.invoke('claude:generate-text', args),
     onOutput: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
         callback(data)

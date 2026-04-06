@@ -1,6 +1,7 @@
 import type { VContainerConfig } from '@lib/di'
 import { BrowserWindow } from 'electron'
 import { ClaudeDefaultSessionStore } from './application/services/claude-session-store'
+import { GenerateTextMainUseCase } from './application/usecases/generate-text-main-usecase'
 import { GetAllSessionsMainUseCase } from './application/usecases/get-all-sessions-main-usecase'
 import { GetOutputMainUseCase } from './application/usecases/get-output-main-usecase'
 import { GetSessionMainUseCase } from './application/usecases/get-session-main-usecase'
@@ -10,6 +11,7 @@ import { StopSessionMainUseCase } from './application/usecases/stop-session-main
 import {
   ClaudeProcessRepositoryToken,
   ClaudeSessionStoreToken,
+  GenerateTextMainUseCaseToken,
   GetAllSessionsMainUseCaseToken,
   GetOutputMainUseCaseToken,
   GetSessionMainUseCaseToken,
@@ -31,6 +33,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       .registerSingleton(GetAllSessionsMainUseCaseToken, GetAllSessionsMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(SendCommandMainUseCaseToken, SendCommandMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(GetOutputMainUseCaseToken, GetOutputMainUseCase, [ClaudeProcessRepositoryToken])
+      .registerSingleton(GenerateTextMainUseCaseToken, GenerateTextMainUseCase, [ClaudeProcessRepositoryToken])
   },
 
   setUp: async (container) => {
@@ -68,6 +71,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       container.resolve(GetAllSessionsMainUseCaseToken),
       container.resolve(SendCommandMainUseCaseToken),
       container.resolve(GetOutputMainUseCaseToken),
+      container.resolve(GenerateTextMainUseCaseToken),
     )
 
     return async () => {

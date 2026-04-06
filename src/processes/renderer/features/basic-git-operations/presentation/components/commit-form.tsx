@@ -2,6 +2,8 @@ import { useCallback, useState } from 'react'
 import { Button } from '@renderer/components/ui/button'
 import { Label } from '@renderer/components/ui/label'
 import { Switch } from '@renderer/components/ui/switch'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
+import { Loader2, Sparkles } from 'lucide-react'
 import { useCommitViewModel } from '../use-commit-viewmodel'
 
 interface CommitFormProps {
@@ -11,7 +13,7 @@ interface CommitFormProps {
 }
 
 export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: CommitFormProps) {
-  const { loading, commit } = useCommitViewModel()
+  const { loading, generating, commit, generateCommitMessage } = useCommitViewModel()
   const [message, setMessage] = useState('')
   const [amend, setAmend] = useState(false)
   const [showAmendConfirm, setShowAmendConfirm] = useState(false)
@@ -30,6 +32,15 @@ export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: Commit
     setShowAmendConfirm(false)
     onCommitted()
   }, [canCommit, amend, showAmendConfirm, commit, worktreePath, message, onCommitted])
+
+  const handleGenerateMessage = useCallback(async () => {
+    try {
+      const generated = await generateCommitMessage(worktreePath)
+      setMessage(generated.trim())
+    } catch {
+      // エラーは ViewModel 層で処理済み
+    }
+  }, [generateCommitMessage, worktreePath])
 
   const handleCancel = useCallback(() => {
     setShowAmendConfirm(false)
@@ -52,7 +63,7 @@ export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: Commit
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
-        disabled={loading}
+        disabled={loading || generating}
       />
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -72,9 +83,32 @@ export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: Commit
             </Button>
           </div>
         ) : (
-          <Button size="sm" className="h-7" onClick={handleCommit} disabled={!canCommit}>
-            {loading ? 'コミット中...' : 'コミット'}
-          </Button>
+          <div className="flex items-center gap-1">
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={handleGenerateMessage}
+                    disabled={!hasStagedFiles || generating || loading}
+                    aria-label="コミットメッセージを作成"
+                  >
+                    {generating ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>コミットメッセージを作成</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+            <Button size="sm" className="h-7" onClick={handleCommit} disabled={!canCommit}>
+              {loading ? 'コミット中...' : 'コミット'}
+            </Button>
+          </div>
         )}
       </div>
       {!hasStagedFiles && !amend && <p className="text-xs text-muted-foreground">ステージ済みのファイルがありません</p>}

@@ -182,6 +182,40 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     }
   }
 
+  async generateText(worktreePath: string, prompt: string): Promise<string> {
+    return new Promise<string>((resolve, reject) => {
+      const chunks: Buffer[] = []
+
+      const child = spawn('claude', ['-p', prompt], {
+        cwd: worktreePath,
+        shell: false,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: this.buildEnv(),
+      })
+
+      child.stdout?.on('data', (data: Buffer) => {
+        chunks.push(data)
+      })
+
+      child.stderr?.on('data', (data: Buffer) => {
+        chunks.push(data)
+      })
+
+      child.on('exit', (code) => {
+        const output = Buffer.concat(chunks).toString()
+        if (code !== 0 && output.trim() === '') {
+          reject(new Error(`Claude CLI がコード ${code} で終了しました`))
+        } else {
+          resolve(output)
+        }
+      })
+
+      child.on('error', (err: Error) => {
+        reject(new Error(`Claude CLI の実行に失敗しました: ${err.message}`))
+      })
+    })
+  }
+
   private notifyOutput(output: ClaudeOutput): void {
     for (const listener of this.outputListeners) {
       listener(output)

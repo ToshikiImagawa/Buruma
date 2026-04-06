@@ -1,6 +1,7 @@
-import type { ClaudeCommand } from '@domain'
+import type { ClaudeCommand, GenerateTextArgs } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
+  GenerateTextMainUseCase,
   GetAllSessionsMainUseCase,
   GetOutputMainUseCase,
   GetSessionMainUseCase,
@@ -37,6 +38,7 @@ const CHANNELS = [
   'claude:get-all-sessions',
   'claude:send-command',
   'claude:get-output',
+  'claude:generate-text',
 ] as const
 
 export function registerClaudeIPCHandlers(
@@ -46,6 +48,7 @@ export function registerClaudeIPCHandlers(
   getAllSessionsUseCase: GetAllSessionsMainUseCase,
   sendCommandUseCase: SendCommandMainUseCase,
   getOutputUseCase: GetOutputMainUseCase,
+  generateTextUseCase: GenerateTextMainUseCase,
 ): () => void {
   ipcMain.handle('claude:start-session', (_event, args: { worktreePath: string }) =>
     wrapHandler(() => {
@@ -81,6 +84,16 @@ export function registerClaudeIPCHandlers(
     wrapHandler(() => {
       validatePath(args.worktreePath, 'worktreePath')
       return getOutputUseCase.invoke(args.worktreePath)
+    }),
+  )
+
+  ipcMain.handle('claude:generate-text', (_event, args: GenerateTextArgs) =>
+    wrapHandler(() => {
+      validatePath(args.worktreePath, 'worktreePath')
+      if (!args.prompt || args.prompt.trim() === '') {
+        throw new Error('prompt は必須です')
+      }
+      return generateTextUseCase.invoke(args)
     }),
   )
 

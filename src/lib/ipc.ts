@@ -181,6 +181,10 @@ export interface IPCChannelMap {
     args: [{ worktreePath: string }]
     result: IPCResult<import('@domain').ClaudeOutput[]>
   }
+  'claude:generate-text': {
+    args: [import('@domain').GenerateTextArgs]
+    result: IPCResult<string>
+  }
   // advanced-git-operations channels
   'git:merge': {
     args: [import('@domain').MergeOptions]
@@ -392,6 +396,7 @@ export interface ElectronAPI {
     getAllSessions(): Promise<IPCResult<import('@domain').ClaudeSession[]>>
     sendCommand(command: import('@domain').ClaudeCommand): Promise<IPCResult<void>>
     getOutput(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeOutput[]>>
+    generateText(args: import('@domain').GenerateTextArgs): Promise<IPCResult<string>>
     onOutput(callback: (output: import('@domain').ClaudeOutput) => void): () => void
     onSessionChanged(callback: (session: import('@domain').ClaudeSession) => void): () => void
     onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void

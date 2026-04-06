@@ -1,4 +1,4 @@
-import type { ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
+import type { ClaudeCommand, ClaudeOutput, ClaudeSession, GenerateTextArgs } from '@domain'
 import type { FunctionUseCase, SupplierUseCase } from '@lib/usecase/types'
 import type { ClaudeProcessRepository } from './application/repositories/claude-process-repository'
 import type { ClaudeSessionStore } from './application/services/claude-session-store-interface'
@@ -15,6 +15,7 @@ export type GetSessionMainUseCase = FunctionUseCase<string, ClaudeSession | null
 export type GetAllSessionsMainUseCase = SupplierUseCase<ClaudeSession[]>
 export type SendCommandMainUseCase = FunctionUseCase<ClaudeCommand, Promise<void>>
 export type GetOutputMainUseCase = FunctionUseCase<string, ClaudeOutput[]>
+export type GenerateTextMainUseCase = FunctionUseCase<GenerateTextArgs, Promise<string>>
 
 // Application UseCase Tokens
 export const StartSessionMainUseCaseToken = createToken<StartSessionMainUseCase>('StartSessionMainUseCase')
@@ -23,3 +24,4 @@ export const GetSessionMainUseCaseToken = createToken<GetSessionMainUseCase>('Ge
 export const GetAllSessionsMainUseCaseToken = createToken<GetAllSessionsMainUseCase>('GetAllSessionsMainUseCase')
 export const SendCommandMainUseCaseToken = createToken<SendCommandMainUseCase>('SendCommandMainUseCase')
 export const GetOutputMainUseCaseToken = createToken<GetOutputMainUseCase>('GetOutputMainUseCase')
+export const GenerateTextMainUseCaseToken = createToken<GenerateTextMainUseCase>('GenerateTextMainUseCase')

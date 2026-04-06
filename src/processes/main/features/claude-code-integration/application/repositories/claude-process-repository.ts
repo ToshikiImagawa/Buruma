@@ -10,4 +10,5 @@ export interface ClaudeProcessRepository {
   stopAllSessions(): Promise<void>
   onOutput(listener: (output: ClaudeOutput) => void): () => void
   onSessionChanged(listener: (session: ClaudeSession) => void): () => void
+  generateText(worktreePath: string, prompt: string): Promise<string>
 }

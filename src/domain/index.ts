@@ -486,6 +486,12 @@ export interface ClaudeCommand {
 
 export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
 
+/** Claude Code テキスト生成リクエスト */
+export interface GenerateTextArgs {
+  worktreePath: string
+  prompt: string
+}
+
 /** Claude Code 出力 */
 export interface ClaudeOutput {
   worktreePath: string
