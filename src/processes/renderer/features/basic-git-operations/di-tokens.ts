@@ -14,7 +14,6 @@ import type {
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase } from '@lib/usecase/types'
-import type { AiAssistRepository } from './application/repositories/ai-assist-repository'
 import type { GitOperationsRepository } from './application/repositories/git-operations-repository'
 import type { GitOperationsService } from './application/services/git-operations-service-interface'
 import type {
@@ -27,7 +26,6 @@ import { createToken } from '@lib/di'
 
 // Repository IF
 export const GitOperationsRepositoryToken = createToken<GitOperationsRepository>('GitOperationsRepository')
-export const AiAssistRepositoryToken = createToken<AiAssistRepository>('AiAssistRepository')
 
 // Service Token
 export const GitOperationsServiceToken = createToken<GitOperationsService>('GitOperationsService')
@@ -47,7 +45,6 @@ export type DeleteBranchRendererUseCase = ConsumerUseCase<BranchDeleteArgs>
 export type ResetRendererUseCase = ConsumerUseCase<ResetArgs>
 export type GetOperationLoadingUseCase = ObservableStoreUseCase<boolean>
 export type GetLastErrorUseCase = ObservableStoreUseCase<IPCError | null>
-export type GenerateCommitMessageRendererUseCase = FunctionUseCase<{ worktreePath: string }, Promise<string>>
 
 // UseCase Tokens
 export const StageFilesRendererUseCaseToken = createToken<StageFilesRendererUseCase>('StageFilesRendererUseCase')
@@ -66,9 +63,6 @@ export const DeleteBranchRendererUseCaseToken = createToken<DeleteBranchRenderer
 export const ResetRendererUseCaseToken = createToken<ResetRendererUseCase>('ResetRendererUseCase')
 export const GetOperationLoadingUseCaseToken = createToken<GetOperationLoadingUseCase>('GetOperationLoadingUseCase')
 export const GetLastErrorUseCaseToken = createToken<GetLastErrorUseCase>('GetLastErrorUseCase')
-export const GenerateCommitMessageRendererUseCaseToken = createToken<GenerateCommitMessageRendererUseCase>(
-  'GenerateCommitMessageRendererUseCase',
-)
 
 // ViewModel Tokens
 export const StagingViewModelToken = createToken<StagingViewModel>('StagingViewModel')

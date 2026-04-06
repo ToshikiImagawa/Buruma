@@ -184,7 +184,8 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
 
   async generateText(worktreePath: string, prompt: string): Promise<string> {
     return new Promise<string>((resolve, reject) => {
-      const chunks: Buffer[] = []
+      const stdoutChunks: Buffer[] = []
+      const stderrChunks: Buffer[] = []
 
       const child = spawn('claude', ['-p', prompt], {
         cwd: worktreePath,
@@ -194,19 +195,20 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
       })
 
       child.stdout?.on('data', (data: Buffer) => {
-        chunks.push(data)
+        stdoutChunks.push(data)
       })
 
       child.stderr?.on('data', (data: Buffer) => {
-        chunks.push(data)
+        stderrChunks.push(data)
       })
 
       child.on('exit', (code) => {
-        const output = Buffer.concat(chunks).toString()
-        if (code !== 0 && output.trim() === '') {
-          reject(new Error(`Claude CLI がコード ${code} で終了しました`))
+        const stdout = Buffer.concat(stdoutChunks).toString()
+        const stderr = Buffer.concat(stderrChunks).toString()
+        if (code !== 0) {
+          reject(new Error(stderr.trim() || `Claude CLI がコード ${code} で終了しました`))
         } else {
-          resolve(output)
+          resolve(stdout)
         }
       })
 

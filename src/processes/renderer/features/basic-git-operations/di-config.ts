@@ -5,7 +5,6 @@ import { CommitUseCase } from './application/usecases/commit-usecase'
 import { CreateBranchUseCase } from './application/usecases/create-branch-usecase'
 import { DeleteBranchUseCase } from './application/usecases/delete-branch-usecase'
 import { FetchUseCase } from './application/usecases/fetch-usecase'
-import { GenerateCommitMessageUseCase } from './application/usecases/generate-commit-message-usecase'
 import { GetLastErrorUseCase } from './application/usecases/get-last-error-usecase'
 import { GetOperationLoadingUseCase } from './application/usecases/get-operation-loading-usecase'
 import { PullUseCase } from './application/usecases/pull-usecase'
@@ -16,7 +15,6 @@ import { StageFilesUseCase } from './application/usecases/stage-files-usecase'
 import { UnstageAllUseCase } from './application/usecases/unstage-all-usecase'
 import { UnstageFilesUseCase } from './application/usecases/unstage-files-usecase'
 import {
-  AiAssistRepositoryToken,
   BranchOpsViewModelToken,
   CheckoutBranchRendererUseCaseToken,
   CommitRendererUseCaseToken,
@@ -24,7 +22,6 @@ import {
   CreateBranchRendererUseCaseToken,
   DeleteBranchRendererUseCaseToken,
   FetchRendererUseCaseToken,
-  GenerateCommitMessageRendererUseCaseToken,
   GetLastErrorUseCaseToken,
   GetOperationLoadingUseCaseToken,
   GitOperationsRepositoryToken,
@@ -39,7 +36,6 @@ import {
   UnstageAllRendererUseCaseToken,
   UnstageFilesRendererUseCaseToken,
 } from './di-tokens'
-import { AiAssistDefaultRepository } from './infrastructure/repositories/ai-assist-default-repository'
 import { GitOperationsDefaultRepository } from './infrastructure/repositories/git-operations-default-repository'
 import { BranchOpsDefaultViewModel } from './presentation/branch-ops-viewmodel'
 import { CommitDefaultViewModel } from './presentation/commit-viewmodel'
@@ -50,7 +46,6 @@ export const basicGitOperationsConfig: VContainerConfig = {
   register(container) {
     // Repository (singleton)
     container.registerSingleton(GitOperationsRepositoryToken, GitOperationsDefaultRepository)
-    container.registerSingleton(AiAssistRepositoryToken, AiAssistDefaultRepository)
 
     // Service (singleton)
     container.registerSingleton(GitOperationsServiceToken, GitOperationsDefaultService)
@@ -106,11 +101,6 @@ export const basicGitOperationsConfig: VContainerConfig = {
         GitOperationsServiceToken,
       ])
 
-    // AI Assist UseCase (singleton)
-    container.registerSingleton(GenerateCommitMessageRendererUseCaseToken, GenerateCommitMessageUseCase, [
-      AiAssistRepositoryToken,
-    ])
-
     // Observable UseCases (singleton)
     container
       .registerSingleton(GetOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [GitOperationsServiceToken])
@@ -128,7 +118,6 @@ export const basicGitOperationsConfig: VContainerConfig = {
       .registerTransient(CommitViewModelToken, CommitDefaultViewModel, [
         CommitRendererUseCaseToken,
         GetOperationLoadingUseCaseToken,
-        GenerateCommitMessageRendererUseCaseToken,
       ])
       .registerTransient(RemoteOpsViewModelToken, RemoteOpsDefaultViewModel, [
         PushRendererUseCaseToken,

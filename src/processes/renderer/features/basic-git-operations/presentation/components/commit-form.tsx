@@ -13,7 +13,7 @@ interface CommitFormProps {
 }
 
 export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: CommitFormProps) {
-  const { loading, generating, commit, generateCommitMessage } = useCommitViewModel()
+  const { loading, generating, generateError, commit, generateCommitMessage } = useCommitViewModel()
   const [message, setMessage] = useState('')
   const [amend, setAmend] = useState(false)
   const [showAmendConfirm, setShowAmendConfirm] = useState(false)
@@ -34,11 +34,9 @@ export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: Commit
   }, [canCommit, amend, showAmendConfirm, commit, worktreePath, message, onCommitted])
 
   const handleGenerateMessage = useCallback(async () => {
-    try {
-      const generated = await generateCommitMessage(worktreePath)
+    const generated = await generateCommitMessage(worktreePath)
+    if (generated) {
       setMessage(generated.trim())
-    } catch {
-      // エラーは ViewModel 層で処理済み
     }
   }, [generateCommitMessage, worktreePath])
 
@@ -112,6 +110,7 @@ export function CommitForm({ worktreePath, hasStagedFiles, onCommitted }: Commit
         )}
       </div>
       {!hasStagedFiles && !amend && <p className="text-xs text-muted-foreground">ステージ済みのファイルがありません</p>}
+      {generateError && <p className="text-xs text-destructive">{generateError}</p>}
     </div>
   )
 }

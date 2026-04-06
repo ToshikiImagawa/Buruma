@@ -28,7 +28,7 @@ describe('GetSettingsMainUseCase', () => {
 
 describe('UpdateSettingsMainUseCase', () => {
   it('部分的な設定を既存の設定にマージして保存する', () => {
-    const current: AppSettings = { theme: 'system', gitPath: null, defaultWorkDir: null }
+    const current: AppSettings = { theme: 'system', gitPath: null, defaultWorkDir: null, commitMessageRules: null }
     const store = createMockStore({ getSettings: vi.fn().mockReturnValue(current) })
     const useCase = new UpdateSettingsMainUseCase(store)
     useCase.invoke({ gitPath: '/usr/local/bin/git' })
@@ -36,6 +36,7 @@ describe('UpdateSettingsMainUseCase', () => {
       theme: 'system',
       gitPath: '/usr/local/bin/git',
       defaultWorkDir: null,
+      commitMessageRules: null,
     })
   })
 
@@ -47,13 +48,14 @@ describe('UpdateSettingsMainUseCase', () => {
       theme: 'dark',
       gitPath: null,
       defaultWorkDir: '/workspace',
+      commitMessageRules: null,
     })
   })
 })
 
 describe('GetThemeMainUseCase', () => {
   it('現在のテーマを返す', () => {
-    const settings: AppSettings = { theme: 'dark', gitPath: null, defaultWorkDir: null }
+    const settings: AppSettings = { theme: 'dark', gitPath: null, defaultWorkDir: null, commitMessageRules: null }
     const store = createMockStore({ getSettings: vi.fn().mockReturnValue(settings) })
     const useCase = new GetThemeMainUseCase(store)
     expect(useCase.invoke()).toBe('dark')

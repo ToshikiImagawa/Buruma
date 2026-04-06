@@ -23,19 +23,22 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 Phase 1 実装完了（セッション管理 + 出力表示）
+**ステータス:** 🟡 Phase 1-3 実装完了 + コミットメッセージ生成
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装 |
+| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装。ワンショット generateText メソッドも提供 |
 | SessionStore | 🟢 | インメモリセッション管理（max 1000 出力バッファ） |
+| GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
+| commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
 | OutputParser | 🔴 | CLI 出力の解析・構造化（Phase 4 で実装予定） |
-| IPC ハンドラー（claude:*） | 🟢 | 6 チャネル + 2 イベント登録済み |
-| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み |
+| IPC ハンドラー（claude:*） | 🟢 | 7 チャネル + 2 イベント登録済み |
+| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（7 メソッド） |
 | ClaudeSessionPanel | 🟢 | セッション操作 UI（開始/停止/入力/状態表示） |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
+| コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
 | ReviewCommentList | 🔴 | レビューコメント一覧 UI（Phase 4 で実装予定） |
 
 ---
@@ -170,6 +173,15 @@ interface InternalSession {
 
 // ワークツリーパスをキーとするセッションマップ
 type SessionMap = Map<string, InternalSession>;
+
+// コミットメッセージ生成リクエスト（IPC 引数）
+interface GenerateCommitMessageArgs {
+  worktreePath: string;
+  diffText: string; // unified diff 形式のテキスト
+}
+
+// AppSettings 拡張（commitMessageRules）
+// commitMessageRules: string | null — null はデフォルトルール使用
 ```
 
 ---
@@ -389,6 +401,17 @@ export function registerClaudeIPCHandlers(
     }
   });
 
+  // コミットメッセージ生成（ワンショット）
+  ipcMain.handle('claude:generate-commit-message', async (_event, args: GenerateCommitMessageArgs): Promise<IPCResult<string>> => {
+    try {
+      const result = await generateCommitMessageUseCase.invoke(args);
+      return { success: true, data: result };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { success: false, error: { code: 'GENERATE_COMMIT_MESSAGE_FAILED', message } };
+    }
+  });
+
   // ストリーミング出力のイベント転送
   processManager.onOutput((output: ClaudeOutput) => {
     mainWindow.webContents.send('claude:output', output);
@@ -418,6 +441,8 @@ claude: {
     ipcRenderer.invoke('claude:send-command', command),
   getOutput: (args: { worktreePath: string }): Promise<IPCResult<ClaudeOutput[]>> =>
     ipcRenderer.invoke('claude:get-output', args),
+  generateCommitMessage: (args: GenerateCommitMessageArgs): Promise<IPCResult<string>> =>
+    ipcRenderer.invoke('claude:generate-commit-message', args),
   reviewDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
     ipcRenderer.invoke('claude:review-diff', args),
   explainDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>

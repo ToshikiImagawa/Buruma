@@ -22,6 +22,7 @@ export interface AppSettings {
   theme: Theme
   gitPath: string | null // null = システムデフォルト
   defaultWorkDir: string | null
+  commitMessageRules: string | null // null = デフォルトルール使用
 }
 
 /** テーマ */
@@ -47,6 +48,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
   gitPath: null,
   defaultWorkDir: null,
+  commitMessageRules: null,
 }
 
 // --- ワークツリー管理 ---
@@ -486,10 +488,10 @@ export interface ClaudeCommand {
 
 export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
 
-/** Claude Code テキスト生成リクエスト */
-export interface GenerateTextArgs {
+/** コミットメッセージ生成リクエスト */
+export interface GenerateCommitMessageArgs {
   worktreePath: string
-  prompt: string
+  diffText: string
 }
 
 /** Claude Code 出力 */

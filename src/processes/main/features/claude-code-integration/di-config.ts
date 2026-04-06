@@ -1,7 +1,8 @@
 import type { VContainerConfig } from '@lib/di'
+import { GetSettingsMainUseCaseToken } from '@main/features/application-foundation/di-tokens'
 import { BrowserWindow } from 'electron'
 import { ClaudeDefaultSessionStore } from './application/services/claude-session-store'
-import { GenerateTextMainUseCase } from './application/usecases/generate-text-main-usecase'
+import { GenerateCommitMessageMainUseCase } from './application/usecases/generate-commit-message-main-usecase'
 import { GetAllSessionsMainUseCase } from './application/usecases/get-all-sessions-main-usecase'
 import { GetOutputMainUseCase } from './application/usecases/get-output-main-usecase'
 import { GetSessionMainUseCase } from './application/usecases/get-session-main-usecase'
@@ -11,7 +12,7 @@ import { StopSessionMainUseCase } from './application/usecases/stop-session-main
 import {
   ClaudeProcessRepositoryToken,
   ClaudeSessionStoreToken,
-  GenerateTextMainUseCaseToken,
+  GenerateCommitMessageMainUseCaseToken,
   GetAllSessionsMainUseCaseToken,
   GetOutputMainUseCaseToken,
   GetSessionMainUseCaseToken,
@@ -33,7 +34,10 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       .registerSingleton(GetAllSessionsMainUseCaseToken, GetAllSessionsMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(SendCommandMainUseCaseToken, SendCommandMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(GetOutputMainUseCaseToken, GetOutputMainUseCase, [ClaudeProcessRepositoryToken])
-      .registerSingleton(GenerateTextMainUseCaseToken, GenerateTextMainUseCase, [ClaudeProcessRepositoryToken])
+      .registerSingleton(GenerateCommitMessageMainUseCaseToken, GenerateCommitMessageMainUseCase, [
+        ClaudeProcessRepositoryToken,
+        GetSettingsMainUseCaseToken,
+      ])
   },
 
   setUp: async (container) => {
@@ -71,7 +75,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       container.resolve(GetAllSessionsMainUseCaseToken),
       container.resolve(SendCommandMainUseCaseToken),
       container.resolve(GetOutputMainUseCaseToken),
-      container.resolve(GenerateTextMainUseCaseToken),
+      container.resolve(GenerateCommitMessageMainUseCaseToken),
     )
 
     return async () => {

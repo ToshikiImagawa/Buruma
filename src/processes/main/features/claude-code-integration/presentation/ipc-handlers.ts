@@ -1,7 +1,7 @@
-import type { ClaudeCommand, GenerateTextArgs } from '@domain'
+import type { ClaudeCommand, GenerateCommitMessageArgs } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
-  GenerateTextMainUseCase,
+  GenerateCommitMessageMainUseCase,
   GetAllSessionsMainUseCase,
   GetOutputMainUseCase,
   GetSessionMainUseCase,
@@ -38,7 +38,7 @@ const CHANNELS = [
   'claude:get-all-sessions',
   'claude:send-command',
   'claude:get-output',
-  'claude:generate-text',
+  'claude:generate-commit-message',
 ] as const
 
 export function registerClaudeIPCHandlers(
@@ -48,7 +48,7 @@ export function registerClaudeIPCHandlers(
   getAllSessionsUseCase: GetAllSessionsMainUseCase,
   sendCommandUseCase: SendCommandMainUseCase,
   getOutputUseCase: GetOutputMainUseCase,
-  generateTextUseCase: GenerateTextMainUseCase,
+  generateCommitMessageUseCase: GenerateCommitMessageMainUseCase,
 ): () => void {
   ipcMain.handle('claude:start-session', (_event, args: { worktreePath: string }) =>
     wrapHandler(() => {
@@ -87,13 +87,13 @@ export function registerClaudeIPCHandlers(
     }),
   )
 
-  ipcMain.handle('claude:generate-text', (_event, args: GenerateTextArgs) =>
+  ipcMain.handle('claude:generate-commit-message', (_event, args: GenerateCommitMessageArgs) =>
     wrapHandler(() => {
       validatePath(args.worktreePath, 'worktreePath')
-      if (!args.prompt || args.prompt.trim() === '') {
-        throw new Error('prompt は必須です')
+      if (!args.diffText || typeof args.diffText !== 'string' || args.diffText.trim() === '') {
+        throw new Error('diffText は必須です')
       }
-      return generateTextUseCase.invoke(args)
+      return generateCommitMessageUseCase.invoke(args)
     }),
   )
 

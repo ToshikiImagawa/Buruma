@@ -14,6 +14,7 @@ describe('SettingsDialog', () => {
     theme: 'light' as const,
     gitPath: null as string | null,
     defaultWorkDir: null as string | null,
+    commitMessageRules: null as string | null,
   }
 
   it('ダイアログが開いているとき、タイトルと説明が表示される', () => {
