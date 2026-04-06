@@ -54,6 +54,13 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       }
     })
 
+    const unsubCommandCompleted = processRepo.onCommandCompleted((data) => {
+      const win = BrowserWindow.getAllWindows()[0]
+      if (win && !win.isDestroyed()) {
+        win.webContents.send('claude:command-completed', data)
+      }
+    })
+
     const unregisterHandlers = registerClaudeIPCHandlers(
       container.resolve(StartSessionMainUseCaseToken),
       container.resolve(StopSessionMainUseCaseToken),
@@ -67,6 +74,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       unregisterHandlers()
       unsubOutput()
       unsubSessionChanged()
+      unsubCommandCompleted()
       await processRepo.stopAllSessions()
       sessionStore.tearDown()
     }

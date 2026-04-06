@@ -11,6 +11,7 @@ import { spawn } from 'child_process'
 export class ClaudeProcessManager implements ClaudeProcessRepository {
   private outputListeners: ((output: ClaudeOutput) => void)[] = []
   private sessionChangedListeners: ((session: ClaudeSession) => void)[] = []
+  private commandCompletedListeners: ((data: { worktreePath: string }) => void)[] = []
 
   constructor(private readonly sessionStore: ClaudeSessionStore) {}
 
@@ -126,6 +127,7 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
         s.pid = null
         this.sessionStore.set(command.worktreePath, s)
       }
+      this.notifyCommandCompleted(command.worktreePath)
     })
 
     child.on('error', (err: Error) => {
@@ -173,6 +175,13 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     }
   }
 
+  onCommandCompleted(listener: (data: { worktreePath: string }) => void): () => void {
+    this.commandCompletedListeners.push(listener)
+    return () => {
+      this.commandCompletedListeners = this.commandCompletedListeners.filter((l) => l !== listener)
+    }
+  }
+
   private notifyOutput(output: ClaudeOutput): void {
     for (const listener of this.outputListeners) {
       listener(output)
@@ -189,6 +198,12 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     }
     for (const listener of this.sessionChangedListeners) {
       listener(session)
+    }
+  }
+
+  private notifyCommandCompleted(worktreePath: string): void {
+    for (const listener of this.commandCompletedListeners) {
+      listener({ worktreePath })
     }
   }
 }

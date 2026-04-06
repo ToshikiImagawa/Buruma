@@ -9,4 +9,5 @@ export interface ClaudeRepository {
   getOutput(worktreePath: string): Promise<ClaudeOutput[]>
   onOutput(callback: (output: ClaudeOutput) => void): () => void
   onSessionChanged(callback: (session: ClaudeSession) => void): () => void
+  onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void
 }

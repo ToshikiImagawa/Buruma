@@ -132,6 +132,15 @@ const electronAPI: ElectronAPI = {
         ipcRenderer.removeListener('claude:session-changed', handler)
       }
     },
+    onCommandCompleted: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('claude:command-completed', handler)
+      return () => {
+        ipcRenderer.removeListener('claude:command-completed', handler)
+      }
+    },
   },
 }
 

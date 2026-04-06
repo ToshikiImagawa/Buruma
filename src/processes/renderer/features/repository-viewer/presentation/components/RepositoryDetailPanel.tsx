@@ -393,7 +393,7 @@ export function RepositoryDetailPanel() {
         </TabsContent>
 
         <TabsContent value="claude" className="mt-0 h-full">
-          <ClaudeSessionPanel worktreePath={selectedWorktree.path} />
+          <ClaudeSessionPanel worktreePath={selectedWorktree.path} onCommandCompleted={handleRefresh} />
         </TabsContent>
       </div>
 

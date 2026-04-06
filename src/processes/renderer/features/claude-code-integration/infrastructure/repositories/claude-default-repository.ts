@@ -43,4 +43,8 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
   onSessionChanged(callback: (session: ClaudeSession) => void): () => void {
     return window.electronAPI.claude.onSessionChanged(callback)
   }
+
+  onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void {
+    return window.electronAPI.claude.onCommandCompleted(callback)
+  }
 }

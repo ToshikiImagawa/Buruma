@@ -287,6 +287,7 @@ export interface IPCEventMap {
   'git:progress': import('@domain').GitProgressEvent
   'claude:output': import('@domain').ClaudeOutput
   'claude:session-changed': import('@domain').ClaudeSession
+  'claude:command-completed': { worktreePath: string }
 }
 
 /** Preload API 型（contextBridge 経由で公開） */
@@ -393,6 +394,7 @@ export interface ElectronAPI {
     getOutput(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeOutput[]>>
     onOutput(callback: (output: import('@domain').ClaudeOutput) => void): () => void
     onSessionChanged(callback: (session: import('@domain').ClaudeSession) => void): () => void
+    onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void
   }
 }
 
