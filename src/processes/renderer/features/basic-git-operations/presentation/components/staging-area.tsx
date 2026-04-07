@@ -1,8 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FileChange } from '@domain'
+import { cn } from '@lib/utils'
 import { Button } from '@renderer/components/ui/button'
 import { Separator } from '@renderer/components/ui/separator'
-import { ChevronDown, ChevronRight, FileEdit, FilePlus, FileSymlink, FileX, Minus, Plus } from 'lucide-react'
+import { useMultiFileSelection } from '@renderer/features/repository-viewer/presentation/use-multi-file-selection'
+import { Check, ChevronDown, ChevronRight, FileEdit, FilePlus, FileSymlink, FileX, Minus, Plus } from 'lucide-react'
 import { useStagingViewModel } from '../use-staging-viewmodel'
 
 interface StagingAreaProps {
@@ -12,6 +14,7 @@ interface StagingAreaProps {
   untracked: string[]
   onRefresh: () => void
   onFileSelect?: (filePath: string, staged: boolean) => void
+  onSelectionChange?: (selectedFiles: Set<string>) => void
 }
 
 function FileChangeIcon({ status }: { status: string }) {
@@ -29,10 +32,30 @@ function FileChangeIcon({ status }: { status: string }) {
   }
 }
 
-export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefresh, onFileSelect }: StagingAreaProps) {
+export function StagingArea({
+  worktreePath,
+  staged,
+  unstaged,
+  untracked,
+  onRefresh,
+  onFileSelect,
+  onSelectionChange,
+}: StagingAreaProps) {
   const { loading, stageFiles, unstageFiles, stageAll, unstageAll } = useStagingViewModel()
   const [stagedOpen, setStagedOpen] = useState(true)
   const [unstagedOpen, setUnstagedOpen] = useState(true)
+
+  const allUnstaged: FileChange[] = [...unstaged, ...untracked.map((path) => ({ path, status: 'added' as const }))]
+
+  const stagedSelection = useMultiFileSelection(staged.map((f) => f.path))
+  const unstagedSelection = useMultiFileSelection(allUnstaged.map((f) => f.path))
+
+  // 選択状態を親に通知（staged + unstaged の選択を統合）
+  useEffect(() => {
+    if (!onSelectionChange) return
+    const combined = new Set<string>([...stagedSelection.selectedFiles, ...unstagedSelection.selectedFiles])
+    onSelectionChange(combined)
+  }, [stagedSelection.selectedFiles, unstagedSelection.selectedFiles, onSelectionChange])
 
   const handleStageFile = (filePath: string) => {
     stageFiles(worktreePath, [filePath])
@@ -54,7 +77,21 @@ export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefre
     onRefresh()
   }
 
-  const allUnstaged: FileChange[] = [...unstaged, ...untracked.map((path) => ({ path, status: 'added' as const }))]
+  const handleStageSelected = () => {
+    const files = Array.from(unstagedSelection.selectedFiles)
+    if (files.length === 0) return
+    stageFiles(worktreePath, files)
+    unstagedSelection.clearSelection()
+    onRefresh()
+  }
+
+  const handleUnstageSelected = () => {
+    const files = Array.from(stagedSelection.selectedFiles)
+    if (files.length === 0) return
+    unstageFiles(worktreePath, files)
+    stagedSelection.clearSelection()
+    onRefresh()
+  }
 
   return (
     <div className="flex flex-col gap-1">
@@ -68,40 +105,84 @@ export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefre
             {stagedOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             ステージ済み ({staged.length})
           </button>
-          {staged.length > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-5 px-1 text-xs"
-              onClick={handleUnstageAll}
-              disabled={loading}
-            >
-              <Minus className="mr-1 h-3 w-3" />
-              すべて解除
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {stagedSelection.selectedFiles.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1 text-xs"
+                onClick={handleUnstageSelected}
+                disabled={loading}
+              >
+                <Minus className="mr-1 h-3 w-3" />
+                選択解除 ({stagedSelection.selectedFiles.size})
+              </Button>
+            )}
+            {staged.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1 text-xs"
+                onClick={handleUnstageAll}
+                disabled={loading}
+              >
+                <Minus className="mr-1 h-3 w-3" />
+                すべて解除
+              </Button>
+            )}
+          </div>
         </div>
         {stagedOpen && staged.length > 0 && (
           <div className="space-y-0.5">
-            {staged.map((file) => (
-              <div
-                key={file.path}
-                className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
-              >
-                <FileChangeIcon status={file.status} />
-                <button className="flex-1 truncate text-left" onClick={() => onFileSelect?.(file.path, true)}>
-                  {file.path}
-                </button>
-                <button
-                  className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
-                  onClick={() => handleUnstageFile(file.path)}
-                  disabled={loading}
-                  title="アンステージ"
+            {staged.map((file) => {
+              const isSelected = stagedSelection.selectedFiles.has(file.path)
+              return (
+                <div
+                  key={file.path}
+                  className={cn(
+                    'group flex items-center gap-1.5 rounded px-2 py-0.5 text-sm hover:bg-accent',
+                    isSelected && 'bg-accent/70',
+                  )}
                 >
-                  <Minus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border',
+                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      stagedSelection.handleFileSelect(file.path, e)
+                    }}
+                  >
+                    {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                  </button>
+                  <FileChangeIcon status={file.status} />
+                  <button
+                    className="flex-1 truncate text-left"
+                    onClick={(e) => {
+                      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                        stagedSelection.handleFileSelect(file.path, e)
+                      } else {
+                        stagedSelection.clearSelection()
+                        unstagedSelection.clearSelection()
+                        onFileSelect?.(file.path, true)
+                      }
+                    }}
+                  >
+                    {file.path}
+                  </button>
+                  <button
+                    className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
+                    onClick={() => handleUnstageFile(file.path)}
+                    disabled={loading}
+                    title="アンステージ"
+                  >
+                    <Minus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -118,34 +199,84 @@ export function StagingArea({ worktreePath, staged, unstaged, untracked, onRefre
             {unstagedOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             変更 ({allUnstaged.length})
           </button>
-          {allUnstaged.length > 0 && (
-            <Button variant="ghost" size="sm" className="h-5 px-1 text-xs" onClick={handleStageAll} disabled={loading}>
-              <Plus className="mr-1 h-3 w-3" />
-              すべてステージ
-            </Button>
-          )}
+          <div className="flex items-center gap-1">
+            {unstagedSelection.selectedFiles.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1 text-xs"
+                onClick={handleStageSelected}
+                disabled={loading}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                選択ステージ ({unstagedSelection.selectedFiles.size})
+              </Button>
+            )}
+            {allUnstaged.length > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-5 px-1 text-xs"
+                onClick={handleStageAll}
+                disabled={loading}
+              >
+                <Plus className="mr-1 h-3 w-3" />
+                すべてステージ
+              </Button>
+            )}
+          </div>
         </div>
         {unstagedOpen && allUnstaged.length > 0 && (
           <div className="space-y-0.5">
-            {allUnstaged.map((file) => (
-              <div
-                key={file.path}
-                className="group flex items-center gap-2 rounded px-2 py-0.5 text-sm hover:bg-accent"
-              >
-                <FileChangeIcon status={file.status} />
-                <button className="flex-1 truncate text-left" onClick={() => onFileSelect?.(file.path, false)}>
-                  {file.path}
-                </button>
-                <button
-                  className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
-                  onClick={() => handleStageFile(file.path)}
-                  disabled={loading}
-                  title="ステージ"
+            {allUnstaged.map((file) => {
+              const isSelected = unstagedSelection.selectedFiles.has(file.path)
+              return (
+                <div
+                  key={file.path}
+                  className={cn(
+                    'group flex items-center gap-1.5 rounded px-2 py-0.5 text-sm hover:bg-accent',
+                    isSelected && 'bg-accent/70',
+                  )}
                 >
-                  <Plus className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
+                  <button
+                    type="button"
+                    className={cn(
+                      'flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-sm border',
+                      isSelected ? 'border-primary bg-primary' : 'border-muted-foreground/40',
+                    )}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      unstagedSelection.handleFileSelect(file.path, e)
+                    }}
+                  >
+                    {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
+                  </button>
+                  <FileChangeIcon status={file.status} />
+                  <button
+                    className="flex-1 truncate text-left"
+                    onClick={(e) => {
+                      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                        unstagedSelection.handleFileSelect(file.path, e)
+                      } else {
+                        stagedSelection.clearSelection()
+                        unstagedSelection.clearSelection()
+                        onFileSelect?.(file.path, false)
+                      }
+                    }}
+                  >
+                    {file.path}
+                  </button>
+                  <button
+                    className="invisible text-muted-foreground hover:text-foreground group-hover:visible"
+                    onClick={() => handleStageFile(file.path)}
+                    disabled={loading}
+                    title="ステージ"
+                  >
+                    <Plus className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>

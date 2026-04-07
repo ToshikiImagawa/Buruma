@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-05"
+updated: "2026-04-07"
 depends-on: [ "spec-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff" ]
 category: "viewer"
@@ -46,6 +46,16 @@ risk: "medium"
 | ファイルコンテンツ取得 IPC            | 🟢    | git:file-contents / git:file-contents-commit チャネル |
 | BranchList コンポーネント         | 🟢    | ブランチ一覧 UI                      |
 | FileTree コンポーネント           | 🟢    | ファイルツリー UI                     |
+| HunkDiffView コンポーネント       | 🟢    | ハンクベース差分レンダラー（FR_203_05 実装）  |
+| DiffLineRow コンポーネント        | 🟢    | 行番号 + 変更内容の1行表示              |
+| CollapsedRegion コンポーネント    | 🟢    | 未変更領域プレースホルダー                |
+| FileDiffSection コンポーネント    | 🟢    | ファイルヘッダー + 統計 + 折りたたみ + チェックボックス |
+| MultiFileDiffPanel コンポーネント | 🟢    | 複数ファイル縦並びコンテナ（react-virtuoso + AI レビュー/解説ボタン）|
+| 表示モード切り替え                  | 🟢    | hunk / monaco トグル（useDiffViewMode Hook）|
+| useMultiFileSelection Hook   | 🟢    | Ctrl/Shift+Click 複数選択ロジック     |
+| Shiki シンタックスハイライト        | 🟢    | 差分行へのハイライト適用（遅延ロード + フォールバック）|
+| StagingArea 複数選択統合         | 🟢    | 一括 stage/unstage ボタン付き        |
+| CommitDetailView 複数選択統合    | 🟢    | Ctrl/Shift+Click 選択 + ハイライト  |
 
 ---
 
