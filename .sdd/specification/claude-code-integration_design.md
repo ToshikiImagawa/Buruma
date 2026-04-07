@@ -4,9 +4,9 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "in-progress"
+impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-05"
+updated: "2026-04-07"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process"]
 category: "ai-integration"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 Phase 1-3 実装完了 + コミットメッセージ生成 + 認証管理
+**ステータス:** 🟢 全 Phase 実装完了
 
 ## 1.1. 実装進捗
 
@@ -34,14 +34,17 @@ risk: "high"
 | GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
 | commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
 | CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
-| OutputParser | 🔴 | CLI 出力の解析・構造化（Phase 4 で実装予定） |
+| OutputParser (ClaudeDefaultOutputParser) | 🟢 | CLI 出力の JSON 解析・構造化。フォールバック付き |
 | IPC ハンドラー（claude:*） | 🟢 | 9 チャネル + 3 イベント登録済み |
 | Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（10 メソッド + 3 イベント） |
 | ClaudeSessionPanel | 🟢 | セッション操作 UI + 未認証時ログインボタン表示 |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
 | コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
 | Settings UI (commitMessageRules) | 🟢 | SettingsDialog に textarea でカスタムルール編集 |
-| ReviewCommentList | 🔴 | レビューコメント一覧 UI（Phase 4 で実装予定） |
+| ReviewCommentList | 🟢 | レビューコメント一覧 UI。severity 別アイコン + suggestion 表示 |
+| DiffExplanationView | 🟢 | 差分解説表示 UI。コピーボタン付き |
+| ReviewDiffMainUseCase / ExplainDiffMainUseCase | 🟢 | レビュー/解説 UseCase + プロンプトビルダー |
+| ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | レンダラー側 ViewModel + Hook ラッパー |
 
 ---
 

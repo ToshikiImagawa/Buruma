@@ -197,6 +197,14 @@ export interface IPCChannelMap {
     args: [import('@domain').GenerateCommitMessageArgs]
     result: IPCResult<string>
   }
+  'claude:review-diff': {
+    args: [{ worktreePath: string; diffTarget: import('@domain').DiffTarget; diffText: string }]
+    result: IPCResult<void>
+  }
+  'claude:explain-diff': {
+    args: [{ worktreePath: string; diffTarget: import('@domain').DiffTarget; diffText: string }]
+    result: IPCResult<void>
+  }
   // advanced-git-operations channels
   'git:merge': {
     args: [import('@domain').MergeOptions]
@@ -304,6 +312,8 @@ export interface IPCEventMap {
   'claude:output': import('@domain').ClaudeOutput
   'claude:session-changed': import('@domain').ClaudeSession
   'claude:command-completed': { worktreePath: string }
+  'claude:review-result': import('@domain').ReviewResult
+  'claude:explain-result': import('@domain').ExplainResult
 }
 
 /** Preload API 型（contextBridge 経由で公開） */
@@ -411,9 +421,21 @@ export interface ElectronAPI {
     checkAuth(): Promise<IPCResult<import('@domain').ClaudeAuthStatus>>
     login(): Promise<IPCResult<void>>
     logout(): Promise<IPCResult<void>>
+    reviewDiff(args: {
+      worktreePath: string
+      diffTarget: import('@domain').DiffTarget
+      diffText: string
+    }): Promise<IPCResult<void>>
+    explainDiff(args: {
+      worktreePath: string
+      diffTarget: import('@domain').DiffTarget
+      diffText: string
+    }): Promise<IPCResult<void>>
     onOutput(callback: (output: import('@domain').ClaudeOutput) => void): () => void
     onSessionChanged(callback: (session: import('@domain').ClaudeSession) => void): () => void
     onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void
+    onReviewResult(callback: (result: import('@domain').ReviewResult) => void): () => void
+    onExplainResult(callback: (result: import('@domain').ExplainResult) => void): () => void
     generateCommitMessage(args: import('@domain').GenerateCommitMessageArgs): Promise<IPCResult<string>>
   }
 }

@@ -3,29 +3,35 @@ import { GetSettingsMainUseCaseToken } from '@main/features/application-foundati
 import { BrowserWindow } from 'electron'
 import { ClaudeDefaultSessionStore } from './application/services/claude-session-store'
 import { CheckAuthMainUseCase } from './application/usecases/check-auth-main-usecase'
+import { ExplainDiffMainUseCase } from './application/usecases/explain-diff-main-usecase'
 import { GenerateCommitMessageMainUseCase } from './application/usecases/generate-commit-message-main-usecase'
 import { GetAllSessionsMainUseCase } from './application/usecases/get-all-sessions-main-usecase'
 import { GetOutputMainUseCase } from './application/usecases/get-output-main-usecase'
 import { GetSessionMainUseCase } from './application/usecases/get-session-main-usecase'
 import { LoginMainUseCase } from './application/usecases/login-main-usecase'
 import { LogoutMainUseCase } from './application/usecases/logout-main-usecase'
+import { ReviewDiffMainUseCase } from './application/usecases/review-diff-main-usecase'
 import { SendCommandMainUseCase } from './application/usecases/send-command-main-usecase'
 import { StartSessionMainUseCase } from './application/usecases/start-session-main-usecase'
 import { StopSessionMainUseCase } from './application/usecases/stop-session-main-usecase'
 import {
   CheckAuthMainUseCaseToken,
+  ClaudeOutputParserToken,
   ClaudeProcessRepositoryToken,
   ClaudeSessionStoreToken,
+  ExplainDiffMainUseCaseToken,
   GenerateCommitMessageMainUseCaseToken,
   GetAllSessionsMainUseCaseToken,
   GetOutputMainUseCaseToken,
   GetSessionMainUseCaseToken,
   LoginMainUseCaseToken,
   LogoutMainUseCaseToken,
+  ReviewDiffMainUseCaseToken,
   SendCommandMainUseCaseToken,
   StartSessionMainUseCaseToken,
   StopSessionMainUseCaseToken,
 } from './di-tokens'
+import { ClaudeDefaultOutputParser } from './infrastructure/claude-default-output-parser'
 import { ClaudeProcessManager } from './infrastructure/claude-process-manager'
 import { registerClaudeIPCHandlers } from './presentation/ipc-handlers'
 
@@ -47,6 +53,15 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       .registerSingleton(CheckAuthMainUseCaseToken, CheckAuthMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(LoginMainUseCaseToken, LoginMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(LogoutMainUseCaseToken, LogoutMainUseCase, [ClaudeProcessRepositoryToken])
+      .registerSingleton(ClaudeOutputParserToken, ClaudeDefaultOutputParser)
+      .registerSingleton(ReviewDiffMainUseCaseToken, ReviewDiffMainUseCase, [
+        ClaudeProcessRepositoryToken,
+        ClaudeOutputParserToken,
+      ])
+      .registerSingleton(ExplainDiffMainUseCaseToken, ExplainDiffMainUseCase, [
+        ClaudeProcessRepositoryToken,
+        ClaudeOutputParserToken,
+      ])
   },
 
   setUp: async (container) => {
@@ -88,6 +103,8 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       container.resolve(CheckAuthMainUseCaseToken),
       container.resolve(LoginMainUseCaseToken),
       container.resolve(LogoutMainUseCaseToken),
+      container.resolve(ReviewDiffMainUseCaseToken),
+      container.resolve(ExplainDiffMainUseCaseToken),
     )
 
     return async () => {

@@ -117,6 +117,8 @@ const electronAPI: ElectronAPI = {
     checkAuth: () => ipcRenderer.invoke('claude:check-auth'),
     login: () => ipcRenderer.invoke('claude:login'),
     logout: () => ipcRenderer.invoke('claude:logout'),
+    reviewDiff: (args) => ipcRenderer.invoke('claude:review-diff', args),
+    explainDiff: (args) => ipcRenderer.invoke('claude:explain-diff', args),
     onOutput: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
         callback(data)
@@ -142,6 +144,24 @@ const electronAPI: ElectronAPI = {
       ipcRenderer.on('claude:command-completed', handler)
       return () => {
         ipcRenderer.removeListener('claude:command-completed', handler)
+      }
+    },
+    onReviewResult: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('claude:review-result', handler)
+      return () => {
+        ipcRenderer.removeListener('claude:review-result', handler)
+      }
+    },
+    onExplainResult: (callback) => {
+      const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
+        callback(data)
+      }
+      ipcRenderer.on('claude:explain-result', handler)
+      return () => {
+        ipcRenderer.removeListener('claude:explain-result', handler)
       }
     },
     generateCommitMessage: (args) => ipcRenderer.invoke('claude:generate-commit-message', args),

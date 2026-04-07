@@ -1,4 +1,12 @@
-import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
+import type {
+  ClaudeAuthStatus,
+  ClaudeCommand,
+  ClaudeOutput,
+  ClaudeSession,
+  DiffTarget,
+  ExplainResult,
+  ReviewResult,
+} from '@domain'
 import type { ClaudeRepository } from '../../application/repositories/claude-repository'
 
 export class ClaudeDefaultRepository implements ClaudeRepository {
@@ -36,6 +44,16 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return result.data
   }
 
+  async reviewDiff(worktreePath: string, diffTarget: DiffTarget, diffText: string): Promise<void> {
+    const result = await window.electronAPI.claude.reviewDiff({ worktreePath, diffTarget, diffText })
+    if (result.success === false) throw new Error(result.error.message)
+  }
+
+  async explainDiff(worktreePath: string, diffTarget: DiffTarget, diffText: string): Promise<void> {
+    const result = await window.electronAPI.claude.explainDiff({ worktreePath, diffTarget, diffText })
+    if (result.success === false) throw new Error(result.error.message)
+  }
+
   onOutput(callback: (output: ClaudeOutput) => void): () => void {
     return window.electronAPI.claude.onOutput(callback)
   }
@@ -46,6 +64,14 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
 
   onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void {
     return window.electronAPI.claude.onCommandCompleted(callback)
+  }
+
+  onReviewResult(callback: (result: ReviewResult) => void): () => void {
+    return window.electronAPI.claude.onReviewResult(callback)
+  }
+
+  onExplainResult(callback: (result: ExplainResult) => void): () => void {
+    return window.electronAPI.claude.onExplainResult(callback)
   }
 
   async checkAuth(): Promise<ClaudeAuthStatus> {

@@ -1,12 +1,24 @@
-import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, GenerateCommitMessageArgs } from '@domain'
+import type {
+  ClaudeAuthStatus,
+  ClaudeCommand,
+  ClaudeOutput,
+  ClaudeSession,
+  ExplainResult,
+  GenerateCommitMessageArgs,
+  ReviewResult,
+} from '@domain'
 import type { FunctionUseCase, SupplierUseCase } from '@lib/usecase/types'
+import type { ClaudeOutputParser } from './application/repositories/claude-output-parser'
 import type { ClaudeProcessRepository } from './application/repositories/claude-process-repository'
 import type { ClaudeSessionStore } from './application/services/claude-session-store-interface'
+import type { ExplainDiffInput } from './application/usecases/explain-diff-main-usecase'
+import type { ReviewDiffInput } from './application/usecases/review-diff-main-usecase'
 import { createToken } from '@lib/di'
 
 // Infrastructure IF
 export const ClaudeSessionStoreToken = createToken<ClaudeSessionStore>('ClaudeSessionStore')
 export const ClaudeProcessRepositoryToken = createToken<ClaudeProcessRepository>('ClaudeProcessRepository')
+export const ClaudeOutputParserToken = createToken<ClaudeOutputParser>('ClaudeOutputParser')
 
 // Application UseCase types
 export type StartSessionMainUseCase = FunctionUseCase<string, Promise<ClaudeSession>>
@@ -19,6 +31,8 @@ export type GenerateCommitMessageMainUseCase = FunctionUseCase<GenerateCommitMes
 export type CheckAuthMainUseCase = SupplierUseCase<Promise<ClaudeAuthStatus>>
 export type LoginMainUseCase = SupplierUseCase<Promise<void>>
 export type LogoutMainUseCase = SupplierUseCase<Promise<void>>
+export type ReviewDiffMainUseCaseType = FunctionUseCase<ReviewDiffInput, Promise<ReviewResult>>
+export type ExplainDiffMainUseCaseType = FunctionUseCase<ExplainDiffInput, Promise<ExplainResult>>
 
 // Application UseCase Tokens
 export const StartSessionMainUseCaseToken = createToken<StartSessionMainUseCase>('StartSessionMainUseCase')
@@ -33,3 +47,5 @@ export const GenerateCommitMessageMainUseCaseToken = createToken<GenerateCommitM
 export const CheckAuthMainUseCaseToken = createToken<CheckAuthMainUseCase>('CheckAuthMainUseCase')
 export const LoginMainUseCaseToken = createToken<LoginMainUseCase>('LoginMainUseCase')
 export const LogoutMainUseCaseToken = createToken<LogoutMainUseCase>('LogoutMainUseCase')
+export const ReviewDiffMainUseCaseToken = createToken<ReviewDiffMainUseCaseType>('ReviewDiffMainUseCase')
+export const ExplainDiffMainUseCaseToken = createToken<ExplainDiffMainUseCaseType>('ExplainDiffMainUseCase')
