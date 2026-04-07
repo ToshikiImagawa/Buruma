@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react'
-import type { DiffHunk, DiffLine, FileDiff } from '@domain'
+import type { DiffHunk, FileDiff } from '@domain'
 import type { Highlighter } from 'shiki'
 import { CollapsedRegion } from './CollapsedRegion'
 import { DiffLineRow } from './DiffLineRow'
@@ -12,6 +12,7 @@ interface HunkDiffViewProps {
 }
 
 const DEFAULT_CONTEXT = 3
+// ハンク間のギャップがこの行数を超えたら折りたたむ（= contextLines * 2 + 2、デフォルト 8 行）
 const COLLAPSE_THRESHOLD_MULTIPLIER = 2
 const COLLAPSE_THRESHOLD_OFFSET = 2
 
@@ -56,32 +57,23 @@ function buildRegions(diff: FileDiff, contextLines: number, expandedRegions: Set
   return regions
 }
 
-function computeLineNumbers(line: DiffLine, hunk: DiffHunk, lineIndex: number) {
-  let oldLineNo: number | undefined
-  let newLineNo: number | undefined
+interface LineNumberEntry {
+  oldLineNo: number | undefined
+  newLineNo: number | undefined
+}
 
-  let oldOffset = 0
-  let newOffset = 0
-  for (let j = 0; j < lineIndex; j++) {
-    const prev = hunk.lines[j]
-    if (prev.type === 'delete') oldOffset++
-    else if (prev.type === 'add') newOffset++
-    else {
-      oldOffset++
-      newOffset++
+function computeAllLineNumbers(hunk: DiffHunk): LineNumberEntry[] {
+  let oldLine = hunk.oldStart
+  let newLine = hunk.newStart
+  return hunk.lines.map((line) => {
+    const entry: LineNumberEntry = {
+      oldLineNo: line.type !== 'add' ? oldLine : undefined,
+      newLineNo: line.type !== 'delete' ? newLine : undefined,
     }
-  }
-
-  if (line.type === 'delete') {
-    oldLineNo = hunk.oldStart + oldOffset
-  } else if (line.type === 'add') {
-    newLineNo = hunk.newStart + newOffset
-  } else {
-    oldLineNo = hunk.oldStart + oldOffset
-    newLineNo = hunk.newStart + newOffset
-  }
-
-  return { oldLineNo, newLineNo }
+    if (line.type !== 'add') oldLine++
+    if (line.type !== 'delete') newLine++
+    return entry
+  })
 }
 
 export function HunkDiffView({ diff, contextLines = DEFAULT_CONTEXT, highlighter, language }: HunkDiffViewProps) {
@@ -119,22 +111,20 @@ export function HunkDiffView({ diff, contextLines = DEFAULT_CONTEXT, highlighter
         }
 
         const hunk = region.hunk!
+        const lineNumbers = computeAllLineNumbers(hunk)
         return (
           <div key={region.key}>
             <div className="bg-blue-500/10 px-4 py-0.5 font-mono text-xs text-blue-400">{hunk.header}</div>
-            {hunk.lines.map((line, lineIdx) => {
-              const { oldLineNo, newLineNo } = computeLineNumbers(line, hunk, lineIdx)
-              return (
-                <DiffLineRow
-                  key={`${region.key}-${lineIdx}`}
-                  line={line}
-                  oldLineNo={oldLineNo}
-                  newLineNo={newLineNo}
-                  highlighter={highlighter}
-                  language={language}
-                />
-              )
-            })}
+            {hunk.lines.map((line, lineIdx) => (
+              <DiffLineRow
+                key={`${region.key}-${lineIdx}`}
+                line={line}
+                oldLineNo={lineNumbers[lineIdx].oldLineNo}
+                newLineNo={lineNumbers[lineIdx].newLineNo}
+                highlighter={highlighter}
+                language={language}
+              />
+            ))}
           </div>
         )
       })}

@@ -119,6 +119,21 @@ describe('useMultiFileSelection', () => {
     expect(result.current.isAllSelected).toBe(false)
   })
 
+  it('fileList 変更時に存在しないファイルが選択から除去される', () => {
+    const { result, rerender } = renderHook(({ list }) => useMultiFileSelection(list), {
+      initialProps: { list: ['a.ts', 'b.ts', 'c.ts'] },
+    })
+
+    act(() => result.current.handleFileSelect('a.ts', mouseEvent()))
+    act(() => result.current.handleFileSelect('b.ts', mouseEvent({ ctrlKey: true })))
+    expect(result.current.selectedFiles).toEqual(new Set(['a.ts', 'b.ts']))
+
+    // b.ts が fileList から消える
+    rerender({ list: ['a.ts', 'c.ts'] })
+
+    expect(result.current.selectedFiles).toEqual(new Set(['a.ts']))
+  })
+
   it('lastSelectedFile がない場合の Shift+Click は通常クリックとして動作', () => {
     const { result } = renderHook(() => useMultiFileSelection(files))
 

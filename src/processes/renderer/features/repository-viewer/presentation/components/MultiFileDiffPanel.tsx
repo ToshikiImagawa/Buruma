@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import type { DiffTarget, FileDiff } from '@domain'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { Button } from '@renderer/components/ui/button'
@@ -79,11 +79,11 @@ export function MultiFileDiffPanel({
     })
   }, [])
 
+  const stats = useMemo(() => computeTotalStats(diffs), [diffs])
+
   if (diffs.length === 0) {
     return <div className="p-4 text-sm text-muted-foreground">差分がありません</div>
   }
-
-  const stats = computeTotalStats(diffs)
 
   return (
     <div className="flex h-full flex-col">

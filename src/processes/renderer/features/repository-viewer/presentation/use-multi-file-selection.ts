@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 
 interface FileSelectionState {
   selectedFiles: Set<string>
@@ -10,6 +10,15 @@ export function useMultiFileSelection(fileList: string[]) {
     selectedFiles: new Set(),
     lastSelectedFile: null,
   })
+
+  // fileList 変更時に存在しないファイルを選択から除去
+  useEffect(() => {
+    setState((prev) => {
+      const filtered = new Set([...prev.selectedFiles].filter((f) => fileList.includes(f)))
+      if (filtered.size === prev.selectedFiles.size) return prev
+      return { ...prev, selectedFiles: filtered }
+    })
+  }, [fileList])
 
   const handleFileSelect = useCallback(
     (filePath: string, event: React.MouseEvent) => {

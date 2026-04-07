@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FileDiff } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
 import { Button } from '@renderer/components/ui/button'
@@ -60,7 +61,7 @@ export function RepositoryDetailPanel() {
   const [statusFilePath, setStatusFilePath] = useState<string | null>(null)
   const [statusFileStaged, setStatusFileStaged] = useState(false)
   const { mode: statusViewMode, setMode: setStatusViewMode } = useDiffViewMode('hunk')
-  const [allDiffs, setAllDiffs] = useState<import('@domain').FileDiff[]>([])
+  const [allDiffs, setAllDiffs] = useState<FileDiff[]>([])
   const [statusSelectedFiles, setStatusSelectedFiles] = useState<Set<string>>(new Set())
 
   // Commits tab state
@@ -82,7 +83,7 @@ export function RepositoryDetailPanel() {
       window.electronAPI.git.diff({ worktreePath }),
       window.electronAPI.git.diffStaged({ worktreePath }),
     ])
-    const diffs: import('@domain').FileDiff[] = []
+    const diffs: FileDiff[] = []
     if (unstagedResult.success) diffs.push(...unstagedResult.data)
     if (stagedResult.success) diffs.push(...stagedResult.data)
     setAllDiffs(diffs)
