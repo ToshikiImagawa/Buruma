@@ -62,7 +62,8 @@ export function useClaudeAuth() {
       .catch(() => {
         // ログアウト失敗時も認証状態を再確認
         service.setAuthChecking(true)
-        return checkAuthUseCase.invoke()
+        return checkAuthUseCase
+          .invoke()
           .then((status) => service.setAuthStatus(status))
           .catch(() => service.setAuthStatus({ authenticated: false }))
           .finally(() => service.setAuthChecking(false))
