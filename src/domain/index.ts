@@ -51,6 +51,12 @@ export const DEFAULT_SETTINGS: AppSettings = {
   commitMessageRules: null,
 }
 
+/** コミットメッセージ生成のデフォルトルール */
+export const DEFAULT_COMMIT_MESSAGE_RULES = `- 日本語で記述
+- プレフィックス付き: [add], [update], [fix], [refactoring], [remove], [docs], [test]
+- 簡潔に変更内容を説明（1〜2行）
+- コミットメッセージのみを出力し、説明や装飾は含めない`
+
 // --- ワークツリー管理 ---
 
 /** ワークツリー情報（git worktree list --porcelain のパース結果） */
@@ -477,6 +483,12 @@ export interface ClaudeSession {
   pid: number | null
   startedAt: string | null // ISO 8601
   error: string | null
+}
+
+/** Claude Code 認証ステータス */
+export interface ClaudeAuthStatus {
+  authenticated: boolean
+  accountEmail?: string
 }
 
 /** Claude Code コマンド */

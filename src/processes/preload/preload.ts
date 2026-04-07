@@ -114,6 +114,8 @@ const electronAPI: ElectronAPI = {
     getAllSessions: () => ipcRenderer.invoke('claude:get-all-sessions'),
     sendCommand: (command) => ipcRenderer.invoke('claude:send-command', command),
     getOutput: (args) => ipcRenderer.invoke('claude:get-output', args),
+    checkAuth: () => ipcRenderer.invoke('claude:check-auth'),
+    login: () => ipcRenderer.invoke('claude:login'),
     onOutput: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
         callback(data)

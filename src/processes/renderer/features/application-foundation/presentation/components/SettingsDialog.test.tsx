@@ -4,6 +4,15 @@ import * as useSettingsViewModelModule from '../use-settings-viewmodel'
 import { SettingsDialog } from './SettingsDialog'
 
 vi.mock('../use-settings-viewmodel')
+vi.mock('@renderer/features/claude-code-integration/presentation/use-claude-auth', () => ({
+  useClaudeAuth: () => ({
+    authStatus: { authenticated: true, accountEmail: 'test@example.com' },
+    isAuthChecking: false,
+    isLoggingIn: false,
+    checkAuth: vi.fn(),
+    login: vi.fn(),
+  }),
+}))
 
 describe('SettingsDialog', () => {
   const mockUpdateSettings = vi.fn()

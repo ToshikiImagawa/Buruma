@@ -1,9 +1,8 @@
-const MAX_DIFF_LENGTH = 100000
+import { DEFAULT_COMMIT_MESSAGE_RULES } from '@domain'
 
-export const DEFAULT_COMMIT_MESSAGE_RULES = `- 日本語で記述
-- プレフィックス付き: [add], [update], [fix], [refactoring], [remove], [docs], [test]
-- 簡潔に変更内容を説明（1〜2行）
-- コミットメッセージのみを出力し、説明や装飾は含めない`
+export { DEFAULT_COMMIT_MESSAGE_RULES }
+
+const MAX_DIFF_LENGTH = 100000
 
 export function buildCommitMessagePrompt(diffText: string, customRules?: string | null): string {
   const truncated =

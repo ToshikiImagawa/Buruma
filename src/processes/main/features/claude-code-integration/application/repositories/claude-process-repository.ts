@@ -1,4 +1,4 @@
-import type { ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
+import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
 
 export interface ClaudeProcessRepository {
   startSession(worktreePath: string): Promise<ClaudeSession>
@@ -11,4 +11,6 @@ export interface ClaudeProcessRepository {
   onOutput(listener: (output: ClaudeOutput) => void): () => void
   onSessionChanged(listener: (session: ClaudeSession) => void): () => void
   generateText(worktreePath: string, prompt: string): Promise<string>
+  checkAuth(): Promise<ClaudeAuthStatus>
+  login(): Promise<void>
 }

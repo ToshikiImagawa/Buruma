@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { Button } from '@renderer/components/ui/button'
-import { FileSearch, GitBranch, GitCommit } from 'lucide-react'
+import { FileSearch, GitBranch, GitCommit, Loader2, LogIn } from 'lucide-react'
+import { useClaudeAuth } from '../use-claude-auth'
 import { useClaudeSessionViewModel } from '../use-claude-session-viewmodel'
 import { ClaudeOutputView } from './ClaudeOutputView'
 import { CommandInput } from './CommandInput'
@@ -31,6 +32,7 @@ const QUICK_ACTIONS = [
 
 export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeSessionPanelProps) {
   const { status, outputs, isSessionActive, startSession, stopSession, sendCommand } = useClaudeSessionViewModel()
+  const { authStatus, isAuthChecking, isLoggingIn, login } = useClaudeAuth()
 
   const isRunning = status === 'running'
 
@@ -44,6 +46,38 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
     })
     return unsub
   }, [worktreePath, onCommandCompleted])
+
+  // 認証チェック中
+  if (isAuthChecking && authStatus === null) {
+    return (
+      <div className="flex h-full items-center justify-center">
+        <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
+
+  // 未認証
+  if (authStatus?.authenticated === false) {
+    return (
+      <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
+        <p className="text-sm text-muted-foreground">Claude Code にログインしていません</p>
+        <Button onClick={login} disabled={isLoggingIn} className="gap-2">
+          {isLoggingIn ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              ログイン中...
+            </>
+          ) : (
+            <>
+              <LogIn className="h-4 w-4" />
+              ログイン
+            </>
+          )}
+        </Button>
+        {isLoggingIn && <p className="text-xs text-muted-foreground">ブラウザで認証を完了してください</p>}
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full flex-col">

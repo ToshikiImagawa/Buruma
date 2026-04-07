@@ -1,4 +1,4 @@
-import type { ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
+import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
 import type { ClaudeRepository } from '../../application/repositories/claude-repository'
 
 export class ClaudeDefaultRepository implements ClaudeRepository {
@@ -46,5 +46,16 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
 
   onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void {
     return window.electronAPI.claude.onCommandCompleted(callback)
+  }
+
+  async checkAuth(): Promise<ClaudeAuthStatus> {
+    const result = await window.electronAPI.claude.checkAuth()
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
+  async login(): Promise<void> {
+    const result = await window.electronAPI.claude.login()
+    if (result.success === false) throw new Error(result.error.message)
   }
 }

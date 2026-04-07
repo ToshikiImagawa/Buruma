@@ -23,22 +23,24 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 Phase 1-3 実装完了 + コミットメッセージ生成
+**ステータス:** 🟡 Phase 1-3 実装完了 + コミットメッセージ生成 + 認証管理
 
 ## 1.1. 実装進捗
 
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装。ワンショット generateText メソッドも提供 |
+| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装。ワンショット generateText、認証管理（checkAuth/login）も提供 |
 | SessionStore | 🟢 | インメモリセッション管理（max 1000 出力バッファ） |
 | GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
 | commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
+| CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
 | OutputParser | 🔴 | CLI 出力の解析・構造化（Phase 4 で実装予定） |
-| IPC ハンドラー（claude:*） | 🟢 | 7 チャネル + 3 イベント登録済み |
-| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（8 メソッド + 3 イベント） |
-| ClaudeSessionPanel | 🟢 | セッション操作 UI（開始/停止/入力/状態表示） |
+| IPC ハンドラー（claude:*） | 🟢 | 9 チャネル + 3 イベント登録済み |
+| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（10 メソッド + 3 イベント） |
+| ClaudeSessionPanel | 🟢 | セッション操作 UI + 未認証時ログインボタン表示 |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
 | コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
+| Settings UI (commitMessageRules) | 🟢 | SettingsDialog に textarea でカスタムルール編集 |
 | ReviewCommentList | 🔴 | レビューコメント一覧 UI（Phase 4 で実装予定） |
 
 ---
@@ -443,6 +445,10 @@ claude: {
     ipcRenderer.invoke('claude:get-output', args),
   generateCommitMessage: (args: GenerateCommitMessageArgs): Promise<IPCResult<string>> =>
     ipcRenderer.invoke('claude:generate-commit-message', args),
+  checkAuth: (): Promise<IPCResult<ClaudeAuthStatus>> =>
+    ipcRenderer.invoke('claude:check-auth'),
+  login: (): Promise<IPCResult<void>> =>
+    ipcRenderer.invoke('claude:login'),
   reviewDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
     ipcRenderer.invoke('claude:review-diff', args),
   explainDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>

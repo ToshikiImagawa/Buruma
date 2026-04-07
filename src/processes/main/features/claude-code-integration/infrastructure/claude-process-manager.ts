@@ -1,4 +1,4 @@
-import type { ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
+import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession } from '@domain'
 import type { ClaudeProcessRepository } from '../application/repositories/claude-process-repository'
 import type { ClaudeSessionStore, InternalSession } from '../application/services/claude-session-store-interface'
 import { spawn } from 'child_process'
@@ -209,6 +209,61 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
           reject(new Error(stderr.trim() || `Claude CLI がコード ${code} で終了しました`))
         } else {
           resolve(stdout)
+        }
+      })
+
+      child.on('error', (err: Error) => {
+        reject(new Error(`Claude CLI の実行に失敗しました: ${err.message}`))
+      })
+    })
+  }
+
+  async checkAuth(): Promise<ClaudeAuthStatus> {
+    return new Promise<ClaudeAuthStatus>((resolve, reject) => {
+      const stdoutChunks: Buffer[] = []
+
+      const child = spawn('claude', ['auth', 'status'], {
+        shell: false,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: this.buildEnv(),
+      })
+
+      child.stdout?.on('data', (data: Buffer) => {
+        stdoutChunks.push(data)
+      })
+
+      child.on('exit', (code) => {
+        const authenticated = code === 0
+        const stdout = Buffer.concat(stdoutChunks).toString()
+        let accountEmail: string | undefined
+        try {
+          const parsed = JSON.parse(stdout)
+          accountEmail = parsed.email ?? parsed.account?.email
+        } catch {
+          // JSON パース失敗は無視し、exit code のみで判定
+        }
+        resolve({ authenticated, accountEmail })
+      })
+
+      child.on('error', (err: Error) => {
+        reject(new Error(`Claude CLI の実行に失敗しました: ${err.message}`))
+      })
+    })
+  }
+
+  async login(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const child = spawn('claude', ['auth', 'login'], {
+        shell: false,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: this.buildEnv(),
+      })
+
+      child.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`ログインに失敗しました（コード ${code}）`))
+        } else {
+          resolve()
         }
       })
 

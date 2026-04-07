@@ -181,6 +181,14 @@ export interface IPCChannelMap {
     args: [{ worktreePath: string }]
     result: IPCResult<import('@domain').ClaudeOutput[]>
   }
+  'claude:check-auth': {
+    args: []
+    result: IPCResult<import('@domain').ClaudeAuthStatus>
+  }
+  'claude:login': {
+    args: []
+    result: IPCResult<void>
+  }
   'claude:generate-commit-message': {
     args: [import('@domain').GenerateCommitMessageArgs]
     result: IPCResult<string>
@@ -396,6 +404,8 @@ export interface ElectronAPI {
     getAllSessions(): Promise<IPCResult<import('@domain').ClaudeSession[]>>
     sendCommand(command: import('@domain').ClaudeCommand): Promise<IPCResult<void>>
     getOutput(args: { worktreePath: string }): Promise<IPCResult<import('@domain').ClaudeOutput[]>>
+    checkAuth(): Promise<IPCResult<import('@domain').ClaudeAuthStatus>>
+    login(): Promise<IPCResult<void>>
     onOutput(callback: (output: import('@domain').ClaudeOutput) => void): () => void
     onSessionChanged(callback: (session: import('@domain').ClaudeSession) => void): () => void
     onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void

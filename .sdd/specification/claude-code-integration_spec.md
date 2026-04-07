@@ -104,6 +104,13 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 |-----------|------|------|------|--------|
 | `claude:get-output` | renderer → main | 指定セッションの出力履歴を取得する | `{ worktreePath: string }` | `IPCResult<ClaudeOutput[]>` |
 
+### 認証管理
+
+| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|------|--------|
+| `claude:check-auth` | renderer → main | Claude Code CLI の認証状態を確認する | なし | `IPCResult<ClaudeAuthStatus>` |
+| `claude:login` | renderer → main | ブラウザ OAuth でログインする（プロセス完了まで待機） | なし | `IPCResult<void>` |
+
 ### コミットメッセージ生成
 
 | チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
@@ -168,6 +175,12 @@ interface ClaudeOutput {
   stream: 'stdout' | 'stderr';
   content: string;
   timestamp: string;        // ISO 8601
+}
+
+// 認証ステータス
+interface ClaudeAuthStatus {
+  authenticated: boolean;
+  accountEmail?: string;
 }
 
 // コミットメッセージ生成リクエスト

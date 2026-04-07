@@ -1,5 +1,5 @@
-import type { ClaudeCommand, ClaudeOutput, ClaudeSession, SessionStatus } from '@domain'
-import type { ConsumerUseCase, ObservableStoreUseCase } from '@lib/usecase/types'
+import type { ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, SessionStatus } from '@domain'
+import type { ConsumerUseCase, ObservableStoreUseCase, SupplierUseCase } from '@lib/usecase/types'
 import type { ClaudeRepository } from './application/repositories/claude-repository'
 import type { ClaudeService } from './application/services/claude-service-interface'
 import type { ClaudeSessionViewModel } from './presentation/viewmodel-interfaces'
@@ -16,6 +16,8 @@ export type SendCommandRendererUseCase = ConsumerUseCase<ClaudeCommand>
 export type GetSessionStatusRendererUseCase = ObservableStoreUseCase<SessionStatus>
 export type GetCurrentSessionRendererUseCase = ObservableStoreUseCase<ClaudeSession | null>
 export type GetOutputsRendererUseCase = ObservableStoreUseCase<ClaudeOutput[]>
+export type CheckAuthRendererUseCase = SupplierUseCase<Promise<ClaudeAuthStatus>>
+export type LoginRendererUseCase = SupplierUseCase<Promise<void>>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
@@ -31,5 +33,8 @@ export const GetCurrentSessionRendererUseCaseToken = createToken<GetCurrentSessi
   'GetCurrentSessionRendererUseCase',
 )
 export const GetOutputsRendererUseCaseToken = createToken<GetOutputsRendererUseCase>('GetOutputsRendererUseCase')
+
+export const CheckAuthRendererUseCaseToken = createToken<CheckAuthRendererUseCase>('CheckAuthRendererUseCase')
+export const LoginRendererUseCaseToken = createToken<LoginRendererUseCase>('LoginRendererUseCase')
 
 export const ClaudeSessionViewModelToken = createToken<ClaudeSessionViewModel>('ClaudeSessionViewModel')

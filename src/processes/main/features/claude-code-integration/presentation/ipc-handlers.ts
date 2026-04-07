@@ -1,10 +1,12 @@
 import type { ClaudeCommand, GenerateCommitMessageArgs } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
+  CheckAuthMainUseCase,
   GenerateCommitMessageMainUseCase,
   GetAllSessionsMainUseCase,
   GetOutputMainUseCase,
   GetSessionMainUseCase,
+  LoginMainUseCase,
   SendCommandMainUseCase,
   StartSessionMainUseCase,
   StopSessionMainUseCase,
@@ -39,6 +41,8 @@ const CHANNELS = [
   'claude:send-command',
   'claude:get-output',
   'claude:generate-commit-message',
+  'claude:check-auth',
+  'claude:login',
 ] as const
 
 export function registerClaudeIPCHandlers(
@@ -49,6 +53,8 @@ export function registerClaudeIPCHandlers(
   sendCommandUseCase: SendCommandMainUseCase,
   getOutputUseCase: GetOutputMainUseCase,
   generateCommitMessageUseCase: GenerateCommitMessageMainUseCase,
+  checkAuthUseCase: CheckAuthMainUseCase,
+  loginUseCase: LoginMainUseCase,
 ): () => void {
   ipcMain.handle('claude:start-session', (_event, args: { worktreePath: string }) =>
     wrapHandler(() => {
@@ -96,6 +102,10 @@ export function registerClaudeIPCHandlers(
       return generateCommitMessageUseCase.invoke(args)
     }),
   )
+
+  ipcMain.handle('claude:check-auth', () => wrapHandler(() => checkAuthUseCase.invoke()))
+
+  ipcMain.handle('claude:login', () => wrapHandler(() => loginUseCase.invoke()))
 
   return () => {
     for (const channel of CHANNELS) {
