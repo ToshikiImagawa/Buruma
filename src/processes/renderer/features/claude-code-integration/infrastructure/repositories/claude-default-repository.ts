@@ -58,4 +58,9 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     const result = await window.electronAPI.claude.login()
     if (result.success === false) throw new Error(result.error.message)
   }
+
+  async logout(): Promise<void> {
+    const result = await window.electronAPI.claude.logout()
+    if (result.success === false) throw new Error(result.error.message)
+  }
 }

@@ -116,6 +116,7 @@ const electronAPI: ElectronAPI = {
     getOutput: (args) => ipcRenderer.invoke('claude:get-output', args),
     checkAuth: () => ipcRenderer.invoke('claude:check-auth'),
     login: () => ipcRenderer.invoke('claude:login'),
+    logout: () => ipcRenderer.invoke('claude:logout'),
     onOutput: (callback) => {
       const handler = (_event: Electron.IpcRendererEvent, data: Parameters<typeof callback>[0]) => {
         callback(data)

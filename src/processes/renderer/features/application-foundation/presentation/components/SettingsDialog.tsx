@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Separator } from '@renderer/components/ui/separator'
 import { Textarea } from '@renderer/components/ui/textarea'
 import { useClaudeAuth } from '@renderer/features/claude-code-integration/presentation/use-claude-auth'
-import { CheckCircle2, Loader2, LogIn } from 'lucide-react'
+import { CheckCircle2, Loader2, LogIn, LogOut } from 'lucide-react'
 import { useSettingsViewModel } from '../use-settings-viewmodel'
 
 interface SettingsDialogProps {
@@ -18,7 +18,7 @@ interface SettingsDialogProps {
 
 export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
   const { settings, updateSettings, setTheme } = useSettingsViewModel()
-  const { authStatus, isAuthChecking, isLoggingIn, login } = useClaudeAuth()
+  const { authStatus, isAuthChecking, isLoggingIn, login, logout } = useClaudeAuth()
 
   const handleThemeChange = (value: string) => {
     setTheme(value as Theme)
@@ -111,9 +111,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     確認中...
                   </div>
                 ) : authStatus?.authenticated ? (
-                  <div className="flex items-center gap-2 text-sm text-green-600">
-                    <CheckCircle2 className="h-4 w-4" />
-                    認証済み{authStatus.accountEmail && `（${authStatus.accountEmail}）`}
+                  <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 text-sm text-green-600">
+                      <CheckCircle2 className="h-4 w-4" />
+                      認証済み{authStatus.accountEmail && `（${authStatus.accountEmail}）`}
+                    </div>
+                    <Button size="sm" variant="outline" onClick={logout} className="gap-1.5">
+                      <LogOut className="h-3.5 w-3.5" />
+                      ログアウト
+                    </Button>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">

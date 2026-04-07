@@ -18,6 +18,7 @@ export type GetCurrentSessionRendererUseCase = ObservableStoreUseCase<ClaudeSess
 export type GetOutputsRendererUseCase = ObservableStoreUseCase<ClaudeOutput[]>
 export type CheckAuthRendererUseCase = SupplierUseCase<Promise<ClaudeAuthStatus>>
 export type LoginRendererUseCase = SupplierUseCase<Promise<void>>
+export type LogoutRendererUseCase = SupplierUseCase<Promise<void>>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
@@ -36,5 +37,6 @@ export const GetOutputsRendererUseCaseToken = createToken<GetOutputsRendererUseC
 
 export const CheckAuthRendererUseCaseToken = createToken<CheckAuthRendererUseCase>('CheckAuthRendererUseCase')
 export const LoginRendererUseCaseToken = createToken<LoginRendererUseCase>('LoginRendererUseCase')
+export const LogoutRendererUseCaseToken = createToken<LogoutRendererUseCase>('LogoutRendererUseCase')
 
 export const ClaudeSessionViewModelToken = createToken<ClaudeSessionViewModel>('ClaudeSessionViewModel')

@@ -8,6 +8,7 @@ import { GetAllSessionsMainUseCase } from './application/usecases/get-all-sessio
 import { GetOutputMainUseCase } from './application/usecases/get-output-main-usecase'
 import { GetSessionMainUseCase } from './application/usecases/get-session-main-usecase'
 import { LoginMainUseCase } from './application/usecases/login-main-usecase'
+import { LogoutMainUseCase } from './application/usecases/logout-main-usecase'
 import { SendCommandMainUseCase } from './application/usecases/send-command-main-usecase'
 import { StartSessionMainUseCase } from './application/usecases/start-session-main-usecase'
 import { StopSessionMainUseCase } from './application/usecases/stop-session-main-usecase'
@@ -20,6 +21,7 @@ import {
   GetOutputMainUseCaseToken,
   GetSessionMainUseCaseToken,
   LoginMainUseCaseToken,
+  LogoutMainUseCaseToken,
   SendCommandMainUseCaseToken,
   StartSessionMainUseCaseToken,
   StopSessionMainUseCaseToken,
@@ -44,6 +46,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       ])
       .registerSingleton(CheckAuthMainUseCaseToken, CheckAuthMainUseCase, [ClaudeProcessRepositoryToken])
       .registerSingleton(LoginMainUseCaseToken, LoginMainUseCase, [ClaudeProcessRepositoryToken])
+      .registerSingleton(LogoutMainUseCaseToken, LogoutMainUseCase, [ClaudeProcessRepositoryToken])
   },
 
   setUp: async (container) => {
@@ -84,6 +87,7 @@ export const claudeCodeIntegrationMainConfig: VContainerConfig = {
       container.resolve(GenerateCommitMessageMainUseCaseToken),
       container.resolve(CheckAuthMainUseCaseToken),
       container.resolve(LoginMainUseCaseToken),
+      container.resolve(LogoutMainUseCaseToken),
     )
 
     return async () => {

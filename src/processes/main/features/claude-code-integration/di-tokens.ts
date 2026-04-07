@@ -18,6 +18,7 @@ export type GetOutputMainUseCase = FunctionUseCase<string, ClaudeOutput[]>
 export type GenerateCommitMessageMainUseCase = FunctionUseCase<GenerateCommitMessageArgs, Promise<string>>
 export type CheckAuthMainUseCase = SupplierUseCase<Promise<ClaudeAuthStatus>>
 export type LoginMainUseCase = SupplierUseCase<Promise<void>>
+export type LogoutMainUseCase = SupplierUseCase<Promise<void>>
 
 // Application UseCase Tokens
 export const StartSessionMainUseCaseToken = createToken<StartSessionMainUseCase>('StartSessionMainUseCase')
@@ -31,3 +32,4 @@ export const GenerateCommitMessageMainUseCaseToken = createToken<GenerateCommitM
 )
 export const CheckAuthMainUseCaseToken = createToken<CheckAuthMainUseCase>('CheckAuthMainUseCase')
 export const LoginMainUseCaseToken = createToken<LoginMainUseCase>('LoginMainUseCase')
+export const LogoutMainUseCaseToken = createToken<LogoutMainUseCase>('LogoutMainUseCase')

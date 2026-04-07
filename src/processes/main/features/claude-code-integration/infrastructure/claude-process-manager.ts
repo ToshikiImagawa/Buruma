@@ -273,6 +273,28 @@ export class ClaudeProcessManager implements ClaudeProcessRepository {
     })
   }
 
+  async logout(): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const child = spawn('claude', ['auth', 'logout'], {
+        shell: false,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: this.buildEnv(),
+      })
+
+      child.on('exit', (code) => {
+        if (code !== 0) {
+          reject(new Error(`ログアウトに失敗しました（コード ${code}）`))
+        } else {
+          resolve()
+        }
+      })
+
+      child.on('error', (err: Error) => {
+        reject(new Error(`Claude CLI の実行に失敗しました: ${err.message}`))
+      })
+    })
+  }
+
   private notifyOutput(output: ClaudeOutput): void {
     for (const listener of this.outputListeners) {
       listener(output)

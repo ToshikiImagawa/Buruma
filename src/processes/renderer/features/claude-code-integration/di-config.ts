@@ -5,6 +5,7 @@ import { GetCurrentSessionUseCase } from './application/usecases/get-current-ses
 import { GetOutputsUseCase } from './application/usecases/get-outputs-usecase'
 import { GetSessionStatusUseCase } from './application/usecases/get-session-status-usecase'
 import { LoginUseCase } from './application/usecases/login-usecase'
+import { LogoutUseCase } from './application/usecases/logout-usecase'
 import { SendCommandUseCase } from './application/usecases/send-command-usecase'
 import { StartSessionUseCase } from './application/usecases/start-session-usecase'
 import { StopSessionUseCase } from './application/usecases/stop-session-usecase'
@@ -17,6 +18,7 @@ import {
   GetOutputsRendererUseCaseToken,
   GetSessionStatusRendererUseCaseToken,
   LoginRendererUseCaseToken,
+  LogoutRendererUseCaseToken,
   SendCommandRendererUseCaseToken,
   StartSessionRendererUseCaseToken,
   StopSessionRendererUseCaseToken,
@@ -43,6 +45,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       .registerSingleton(GetOutputsRendererUseCaseToken, GetOutputsUseCase, [ClaudeServiceToken])
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LoginRendererUseCaseToken, LoginUseCase, [ClaudeRepositoryToken])
+      .registerSingleton(LogoutRendererUseCaseToken, LogoutUseCase, [ClaudeRepositoryToken])
       .registerTransient(ClaudeSessionViewModelToken, ClaudeSessionDefaultViewModel, [
         StartSessionRendererUseCaseToken,
         StopSessionRendererUseCaseToken,

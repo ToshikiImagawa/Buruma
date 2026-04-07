@@ -13,4 +13,5 @@ export interface ClaudeProcessRepository {
   generateText(worktreePath: string, prompt: string): Promise<string>
   checkAuth(): Promise<ClaudeAuthStatus>
   login(): Promise<void>
+  logout(): Promise<void>
 }
