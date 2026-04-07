@@ -43,7 +43,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
           <DialogTitle>設定</DialogTitle>
           <DialogDescription>アプリケーションの動作をカスタマイズします</DialogDescription>
         </DialogHeader>
-        <div className="space-y-6 py-4">
+        <div className="max-h-[60vh] overflow-y-auto space-y-6 px-2 py-4">
           <div className="space-y-4">
             <div>
               <Label htmlFor="theme">テーマ</Label>
