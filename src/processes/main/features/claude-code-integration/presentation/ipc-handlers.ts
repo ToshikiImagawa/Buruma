@@ -1,19 +1,21 @@
-import type { ClaudeCommand, GenerateCommitMessageArgs } from '@domain'
+import type { ClaudeCommand, DiffTarget, GenerateCommitMessageArgs } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
   CheckAuthMainUseCase,
+  ExplainDiffMainUseCaseType,
   GenerateCommitMessageMainUseCase,
   GetAllSessionsMainUseCase,
   GetOutputMainUseCase,
   GetSessionMainUseCase,
   LoginMainUseCase,
   LogoutMainUseCase,
+  ReviewDiffMainUseCaseType,
   SendCommandMainUseCase,
   StartSessionMainUseCase,
   StopSessionMainUseCase,
 } from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
-import { ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 
 function validatePath(value: string | undefined, name: string): void {
   if (!value || typeof value !== 'string' || value.trim() === '') {
@@ -45,6 +47,8 @@ const CHANNELS = [
   'claude:check-auth',
   'claude:login',
   'claude:logout',
+  'claude:review-diff',
+  'claude:explain-diff',
 ] as const
 
 export function registerClaudeIPCHandlers(
@@ -58,6 +62,8 @@ export function registerClaudeIPCHandlers(
   checkAuthUseCase: CheckAuthMainUseCase,
   loginUseCase: LoginMainUseCase,
   logoutUseCase: LogoutMainUseCase,
+  reviewDiffUseCase: ReviewDiffMainUseCaseType,
+  explainDiffUseCase: ExplainDiffMainUseCaseType,
 ): () => void {
   ipcMain.handle('claude:start-session', (_event, args: { worktreePath: string }) =>
     wrapHandler(() => {
@@ -111,6 +117,46 @@ export function registerClaudeIPCHandlers(
   ipcMain.handle('claude:login', () => wrapHandler(() => loginUseCase.invoke()))
 
   ipcMain.handle('claude:logout', () => wrapHandler(() => logoutUseCase.invoke()))
+
+  ipcMain.handle(
+    'claude:review-diff',
+    (_event, args: { worktreePath: string; diffTarget: DiffTarget; diffText: string }) =>
+      wrapHandler(async () => {
+        validatePath(args.worktreePath, 'worktreePath')
+        if (!args.diffText || typeof args.diffText !== 'string' || args.diffText.trim() === '') {
+          throw new Error('diffText は必須です')
+        }
+        const result = await reviewDiffUseCase.invoke({
+          worktreePath: args.worktreePath,
+          diffTarget: args.diffTarget,
+          diffText: args.diffText,
+        })
+        const win = BrowserWindow.getAllWindows()[0]
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('claude:review-result', result)
+        }
+      }),
+  )
+
+  ipcMain.handle(
+    'claude:explain-diff',
+    (_event, args: { worktreePath: string; diffTarget: DiffTarget; diffText: string }) =>
+      wrapHandler(async () => {
+        validatePath(args.worktreePath, 'worktreePath')
+        if (!args.diffText || typeof args.diffText !== 'string' || args.diffText.trim() === '') {
+          throw new Error('diffText は必須です')
+        }
+        const result = await explainDiffUseCase.invoke({
+          worktreePath: args.worktreePath,
+          diffTarget: args.diffTarget,
+          diffText: args.diffText,
+        })
+        const win = BrowserWindow.getAllWindows()[0]
+        if (win && !win.isDestroyed()) {
+          win.webContents.send('claude:explain-result', result)
+        }
+      }),
+  )
 
   return () => {
     for (const channel of CHANNELS) {

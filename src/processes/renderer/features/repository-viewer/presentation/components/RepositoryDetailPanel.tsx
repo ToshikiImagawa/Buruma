@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import type { FileDiff } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
 import { Button } from '@renderer/components/ui/button'
@@ -29,17 +30,21 @@ import {
   GitCommit,
   GitMerge,
   GitPullRequest,
+  List,
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
+  SplitSquareVertical,
   Tag,
 } from 'lucide-react'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
+import { useDiffViewMode } from '../use-diff-view-mode'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
 import { CommitLog } from './CommitLog'
 import { DiffView } from './DiffView'
 import { FileTree } from './FileTree'
+import { MultiFileDiffPanel } from './MultiFileDiffPanel'
 
 export function RepositoryDetailPanel() {
   const { selectedWorktree } = useWorktreeDetailViewModel()
@@ -55,6 +60,9 @@ export function RepositoryDetailPanel() {
   // Status tab state
   const [statusFilePath, setStatusFilePath] = useState<string | null>(null)
   const [statusFileStaged, setStatusFileStaged] = useState(false)
+  const { mode: statusViewMode, setMode: setStatusViewMode } = useDiffViewMode('hunk')
+  const [allDiffs, setAllDiffs] = useState<FileDiff[]>([])
+  const [statusSelectedFiles, setStatusSelectedFiles] = useState<Set<string>>(new Set())
 
   // Commits tab state
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null)
@@ -69,6 +77,18 @@ export function RepositoryDetailPanel() {
 
   const worktreePath = selectedWorktree?.path ?? ''
 
+  const loadAllDiffs = useCallback(async () => {
+    if (!worktreePath) return
+    const [unstagedResult, stagedResult] = await Promise.all([
+      window.electronAPI.git.diff({ worktreePath }),
+      window.electronAPI.git.diffStaged({ worktreePath }),
+    ])
+    const diffs: FileDiff[] = []
+    if (unstagedResult.success) diffs.push(...unstagedResult.data)
+    if (stagedResult.success) diffs.push(...stagedResult.data)
+    setAllDiffs(diffs)
+  }, [worktreePath])
+
   useEffect(() => {
     if (worktreePath) {
       loadStatus(worktreePath)
@@ -77,14 +97,23 @@ export function RepositoryDetailPanel() {
     }
   }, [worktreePath, loadStatus, loadBranches, tagList])
 
+  useEffect(() => {
+    if (statusViewMode === 'hunk' && worktreePath) {
+      loadAllDiffs()
+    }
+  }, [statusViewMode, worktreePath, loadAllDiffs])
+
   const handleRefresh = useCallback(() => {
     if (worktreePath) {
       loadStatus(worktreePath)
       loadBranches(worktreePath)
       tagList(worktreePath)
       commitLogRef.current?.refresh()
+      if (statusViewMode === 'hunk') {
+        loadAllDiffs()
+      }
     }
-  }, [worktreePath, loadStatus, loadBranches, tagList])
+  }, [worktreePath, loadStatus, loadBranches, tagList, statusViewMode, loadAllDiffs])
 
   const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
     setStatusFilePath(filePath)
@@ -175,6 +204,7 @@ export function RepositoryDetailPanel() {
                   untracked={status?.untracked ?? []}
                   onRefresh={handleRefresh}
                   onFileSelect={handleStatusFileSelect}
+                  onSelectionChange={setStatusSelectedFiles}
                 />
                 <Separator />
                 <CommitForm
@@ -194,14 +224,64 @@ export function RepositoryDetailPanel() {
             </ResizablePanel>
             <ResizableHandle withHandle />
             <ResizablePanel defaultSize={67} minSize={10}>
-              <div className="h-full overflow-hidden">
-                {statusFilePath ? (
-                  <DiffView worktreePath={selectedWorktree.path} filePath={statusFilePath} staged={statusFileStaged} />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
+              <div className="flex h-full flex-col overflow-hidden">
+                <TooltipProvider delayDuration={300}>
+                  <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">
+                    <span className="flex-1 text-xs text-muted-foreground">差分表示</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={statusViewMode === 'hunk' ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setStatusViewMode('hunk')}
+                        >
+                          <List className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>ハンク表示</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={statusViewMode === 'monaco' ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setStatusViewMode('monaco')}
+                        >
+                          <SplitSquareVertical className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Monaco 表示</p>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
-                )}
+                </TooltipProvider>
+                <div className="min-h-0 flex-1">
+                  {statusViewMode === 'hunk' ? (
+                    <MultiFileDiffPanel
+                      worktreePath={selectedWorktree.path}
+                      diffs={
+                        statusSelectedFiles.size > 0
+                          ? allDiffs.filter((d) => statusSelectedFiles.has(d.filePath))
+                          : allDiffs
+                      }
+                    />
+                  ) : statusFilePath ? (
+                    <DiffView
+                      worktreePath={selectedWorktree.path}
+                      filePath={statusFilePath}
+                      staged={statusFileStaged}
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
+                    </div>
+                  )}
+                </div>
               </div>
             </ResizablePanel>
           </ResizablePanelGroup>

@@ -12,6 +12,28 @@ vi.mock('@monaco-editor/react', () => ({
   ),
 }))
 
+// Mock Claude hooks
+vi.mock('@renderer/features/claude-code-integration/presentation/use-claude-auth', () => ({
+  useClaudeAuth: () => ({ authStatus: { authenticated: false }, isAuthChecking: false, isLoggingIn: false }),
+}))
+
+vi.mock('@renderer/features/claude-code-integration/presentation/use-claude-review-viewmodel', () => ({
+  useClaudeReviewViewModel: () => ({
+    reviewComments: [],
+    reviewSummary: '',
+    isReviewing: false,
+    requestReview: vi.fn(),
+  }),
+}))
+
+vi.mock('@renderer/features/claude-code-integration/presentation/use-claude-explain-viewmodel', () => ({
+  useClaudeExplainViewModel: () => ({
+    explanation: '',
+    isExplaining: false,
+    requestExplain: vi.fn(),
+  }),
+}))
+
 describe('DiffView', () => {
   beforeEach(() => {
     vi.clearAllMocks()

@@ -513,3 +513,36 @@ export interface ClaudeOutput {
   content: string
   timestamp: string // ISO 8601
 }
+
+/** 差分ターゲット（レビュー・解説対象の指定） */
+export type DiffTarget =
+  | { type: 'working'; staged: boolean }
+  | { type: 'commits'; from: string; to: string }
+  | { type: 'branches'; from: string; to: string }
+
+/** レビューコメント重大度 */
+export type ReviewSeverity = 'info' | 'warning' | 'error'
+
+/** レビューコメント */
+export interface ReviewComment {
+  id: string
+  filePath: string
+  lineStart: number
+  lineEnd: number
+  severity: ReviewSeverity
+  message: string
+  suggestion?: string
+}
+
+/** レビュー結果 */
+export interface ReviewResult {
+  worktreePath: string
+  comments: ReviewComment[]
+  summary: string
+}
+
+/** 解説結果 */
+export interface ExplainResult {
+  worktreePath: string
+  explanation: string
+}

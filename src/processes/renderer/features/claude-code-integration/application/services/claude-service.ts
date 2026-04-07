@@ -1,4 +1,12 @@
-import type { ClaudeAuthStatus, ClaudeOutput, ClaudeSession, SessionStatus } from '@domain'
+import type {
+  ClaudeAuthStatus,
+  ClaudeOutput,
+  ClaudeSession,
+  ExplainResult,
+  ReviewComment,
+  ReviewResult,
+  SessionStatus,
+} from '@domain'
 import type { Observable } from 'rxjs'
 import type { ClaudeService } from './claude-service-interface'
 import { BehaviorSubject } from 'rxjs'
@@ -12,6 +20,11 @@ export class ClaudeDefaultService implements ClaudeService {
   private readonly _authStatus$ = new BehaviorSubject<ClaudeAuthStatus | null>(null)
   private readonly _isAuthChecking$ = new BehaviorSubject<boolean>(false)
   private readonly _isLoggingIn$ = new BehaviorSubject<boolean>(false)
+  private readonly _reviewComments$ = new BehaviorSubject<ReviewComment[]>([])
+  private readonly _reviewSummary$ = new BehaviorSubject<string>('')
+  private readonly _isReviewing$ = new BehaviorSubject<boolean>(false)
+  private readonly _explanation$ = new BehaviorSubject<string>('')
+  private readonly _isExplaining$ = new BehaviorSubject<boolean>(false)
 
   readonly currentSession$: Observable<ClaudeSession | null>
   readonly outputs$: Observable<ClaudeOutput[]>
@@ -19,6 +32,11 @@ export class ClaudeDefaultService implements ClaudeService {
   readonly authStatus$: Observable<ClaudeAuthStatus | null>
   readonly isAuthChecking$: Observable<boolean>
   readonly isLoggingIn$: Observable<boolean>
+  readonly reviewComments$: Observable<ReviewComment[]>
+  readonly reviewSummary$: Observable<string>
+  readonly isReviewing$: Observable<boolean>
+  readonly explanation$: Observable<string>
+  readonly isExplaining$: Observable<boolean>
 
   constructor() {
     this.currentSession$ = this._currentSession$.asObservable()
@@ -27,6 +45,11 @@ export class ClaudeDefaultService implements ClaudeService {
     this.authStatus$ = this._authStatus$.asObservable()
     this.isAuthChecking$ = this._isAuthChecking$.asObservable()
     this.isLoggingIn$ = this._isLoggingIn$.asObservable()
+    this.reviewComments$ = this._reviewComments$.asObservable()
+    this.reviewSummary$ = this._reviewSummary$.asObservable()
+    this.isReviewing$ = this._isReviewing$.asObservable()
+    this.explanation$ = this._explanation$.asObservable()
+    this.isExplaining$ = this._isExplaining$.asObservable()
   }
 
   setUp(): void {
@@ -39,6 +62,11 @@ export class ClaudeDefaultService implements ClaudeService {
     this._authStatus$.complete()
     this._isAuthChecking$.complete()
     this._isLoggingIn$.complete()
+    this._reviewComments$.complete()
+    this._reviewSummary$.complete()
+    this._isReviewing$.complete()
+    this._explanation$.complete()
+    this._isExplaining$.complete()
   }
 
   updateSession(session: ClaudeSession | null): void {
@@ -68,5 +96,22 @@ export class ClaudeDefaultService implements ClaudeService {
 
   setLoggingIn(loggingIn: boolean): void {
     this._isLoggingIn$.next(loggingIn)
+  }
+
+  setReviewResult(result: ReviewResult): void {
+    this._reviewComments$.next(result.comments)
+    this._reviewSummary$.next(result.summary)
+  }
+
+  setReviewing(reviewing: boolean): void {
+    this._isReviewing$.next(reviewing)
+  }
+
+  setExplainResult(result: ExplainResult): void {
+    this._explanation$.next(result.explanation)
+  }
+
+  setExplaining(explaining: boolean): void {
+    this._isExplaining$.next(explaining)
   }
 }
