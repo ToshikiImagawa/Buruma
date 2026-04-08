@@ -66,6 +66,18 @@ export function useMultiFileSelection(fileList: string[]) {
     [fileList],
   )
 
+  const toggleFileSelect = useCallback((filePath: string) => {
+    setState((prev) => {
+      const newSelected = new Set(prev.selectedFiles)
+      if (newSelected.has(filePath)) {
+        newSelected.delete(filePath)
+      } else {
+        newSelected.add(filePath)
+      }
+      return { selectedFiles: newSelected, lastSelectedFile: filePath }
+    })
+  }, [])
+
   const handleSelectAll = useCallback(() => {
     setState((prev) => {
       if (prev.selectedFiles.size === fileList.length) {
@@ -82,6 +94,7 @@ export function useMultiFileSelection(fileList: string[]) {
   return {
     selectedFiles: state.selectedFiles,
     handleFileSelect,
+    toggleFileSelect,
     handleSelectAll,
     clearSelection,
     isAllSelected: fileList.length > 0 && state.selectedFiles.size === fileList.length,

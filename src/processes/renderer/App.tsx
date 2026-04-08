@@ -35,7 +35,7 @@ function AppContent() {
             <aside
               className={`shrink-0 border-r transition-all duration-200 ${sidebarCollapsed ? 'w-0 overflow-hidden border-r-0' : 'w-64'}`}
             >
-              <WorktreeList repoPath={currentRepository.path} />
+              <WorktreeList repoPath={currentRepository.path} onWorktreeSelected={() => setSidebarCollapsed(true)} />
             </aside>
             <div className="flex-1 overflow-hidden">
               <RepositoryDetailPanel />

@@ -31,15 +31,20 @@ export class RemoteOpsDefaultViewModel implements RemoteOpsViewModel {
     this.lastError$ = getLastErrorUseCase.store
   }
 
-  push(worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean): void {
-    this.pushUseCase
-      .invoke({ worktreePath, remote, branch, setUpstream })
-      .then((result) => {
-        this._lastPushResult$.next(result)
-      })
-      .catch(() => {
-        this._lastPushResult$.next(null)
-      })
+  async push(
+    worktreePath: string,
+    remote?: string,
+    branch?: string,
+    setUpstream?: boolean,
+  ): Promise<PushResult | null> {
+    try {
+      const result = await this.pushUseCase.invoke({ worktreePath, remote, branch, setUpstream })
+      this._lastPushResult$.next(result)
+      return result
+    } catch {
+      this._lastPushResult$.next(null)
+      return null
+    }
   }
 
   pull(worktreePath: string, remote?: string, branch?: string): void {

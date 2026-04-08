@@ -9,14 +9,20 @@ import { WorktreeListItem } from './WorktreeListItem'
 
 interface WorktreeListProps {
   repoPath: string
+  onWorktreeSelected?: () => void
 }
 
-export function WorktreeList({ repoPath }: WorktreeListProps) {
+export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps) {
   const { worktrees, selectedPath, selectWorktree, createWorktree, deleteWorktree, refreshWorktrees } =
     useWorktreeListViewModel()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
+
+  const handleSelect = (path: string) => {
+    selectWorktree(path)
+    onWorktreeSelected?.()
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -48,7 +54,7 @@ export function WorktreeList({ repoPath }: WorktreeListProps) {
                 key={wt.path}
                 worktree={wt}
                 selected={wt.path === selectedPath}
-                onSelect={selectWorktree}
+                onSelect={handleSelect}
                 onDelete={setDeleteTarget}
               />
             ))}

@@ -221,6 +221,7 @@ export function RepositoryDetailPanel() {
                 <CommitForm
                   worktreePath={selectedWorktree.path}
                   hasStagedFiles={(status?.staged.length ?? 0) > 0}
+                  currentBranch={branches?.local.find((b) => b.isHead)}
                   onCommitted={handleRefresh}
                 />
                 <Separator />

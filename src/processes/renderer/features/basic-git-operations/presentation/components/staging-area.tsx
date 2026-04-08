@@ -161,11 +161,10 @@ export function StagingArea({
                   <button
                     className="flex-1 truncate text-left"
                     onClick={(e) => {
-                      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                      if (e.shiftKey) {
                         stagedSelection.handleFileSelect(file.path, e)
                       } else {
-                        stagedSelection.clearSelection()
-                        unstagedSelection.clearSelection()
+                        stagedSelection.toggleFileSelect(file.path)
                         onFileSelect?.(file.path, true)
                       }
                     }}
@@ -255,11 +254,10 @@ export function StagingArea({
                   <button
                     className="flex-1 truncate text-left"
                     onClick={(e) => {
-                      if (e.ctrlKey || e.metaKey || e.shiftKey) {
+                      if (e.shiftKey) {
                         unstagedSelection.handleFileSelect(file.path, e)
                       } else {
-                        stagedSelection.clearSelection()
-                        unstagedSelection.clearSelection()
+                        unstagedSelection.toggleFileSelect(file.path)
                         onFileSelect?.(file.path, false)
                       }
                     }}

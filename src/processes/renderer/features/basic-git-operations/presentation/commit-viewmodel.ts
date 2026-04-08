@@ -24,15 +24,15 @@ export class CommitDefaultViewModel implements CommitViewModel {
     this.loading$ = getOperationLoadingUseCase.store
   }
 
-  commit(worktreePath: string, message: string, amend?: boolean): void {
-    this.commitUseCase
-      .invoke({ worktreePath, message, amend })
-      .then((result) => {
-        this._lastCommitResult$.next(result)
-      })
-      .catch(() => {
-        this._lastCommitResult$.next(null)
-      })
+  async commit(worktreePath: string, message: string, amend?: boolean): Promise<CommitResult | null> {
+    try {
+      const result = await this.commitUseCase.invoke({ worktreePath, message, amend })
+      this._lastCommitResult$.next(result)
+      return result
+    } catch {
+      this._lastCommitResult$.next(null)
+      return null
+    }
   }
 
   async generateCommitMessage(worktreePath: string): Promise<string> {

@@ -15,7 +15,7 @@ export interface CommitViewModel {
   readonly generating$: Observable<boolean>
   readonly generateError$: Observable<string | null>
   readonly lastCommitResult$: Observable<CommitResult | null>
-  commit(worktreePath: string, message: string, amend?: boolean): void
+  commit(worktreePath: string, message: string, amend?: boolean): Promise<CommitResult | null>
   generateCommitMessage(worktreePath: string): Promise<string>
 }
 
@@ -24,7 +24,7 @@ export interface RemoteOpsViewModel {
   readonly lastError$: Observable<IPCError | null>
   readonly lastPushResult$: Observable<PushResult | null>
   readonly lastPullResult$: Observable<PullResult | null>
-  push(worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean): void
+  push(worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean): Promise<PushResult | null>
   pull(worktreePath: string, remote?: string, branch?: string): void
   fetch(worktreePath: string, remote?: string): void
 }
