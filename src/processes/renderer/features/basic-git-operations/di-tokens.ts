@@ -6,6 +6,7 @@ import type {
   CommitResult,
   FetchArgs,
   FetchResult,
+  GitOperationCompletedEvent,
   PullArgs,
   PullResult,
   PushArgs,
@@ -45,6 +46,7 @@ export type DeleteBranchRendererUseCase = ConsumerUseCase<BranchDeleteArgs>
 export type ResetRendererUseCase = ConsumerUseCase<ResetArgs>
 export type GetOperationLoadingUseCase = ObservableStoreUseCase<boolean>
 export type GetLastErrorUseCase = ObservableStoreUseCase<IPCError | null>
+export type ObserveOperationCompletedUseCase = ObservableStoreUseCase<GitOperationCompletedEvent>
 
 // UseCase Tokens
 export const StageFilesRendererUseCaseToken = createToken<StageFilesRendererUseCase>('StageFilesRendererUseCase')
@@ -63,6 +65,9 @@ export const DeleteBranchRendererUseCaseToken = createToken<DeleteBranchRenderer
 export const ResetRendererUseCaseToken = createToken<ResetRendererUseCase>('ResetRendererUseCase')
 export const GetOperationLoadingUseCaseToken = createToken<GetOperationLoadingUseCase>('GetOperationLoadingUseCase')
 export const GetLastErrorUseCaseToken = createToken<GetLastErrorUseCase>('GetLastErrorUseCase')
+export const ObserveOperationCompletedUseCaseToken = createToken<ObserveOperationCompletedUseCase>(
+  'BasicGitOperationsObserveOperationCompletedUseCase',
+)
 
 // ViewModel Tokens
 export const StagingViewModelToken = createToken<StagingViewModel>('StagingViewModel')

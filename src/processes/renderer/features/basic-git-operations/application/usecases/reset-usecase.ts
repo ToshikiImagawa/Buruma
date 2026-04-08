@@ -22,6 +22,7 @@ export class ResetUseCase implements ConsumerUseCase<ResetArgs> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'reset' })
       })
   }
 }

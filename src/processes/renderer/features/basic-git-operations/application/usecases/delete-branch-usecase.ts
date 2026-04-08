@@ -22,6 +22,7 @@ export class DeleteBranchUseCase implements ConsumerUseCase<BranchDeleteArgs> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'branch-delete' })
       })
   }
 }

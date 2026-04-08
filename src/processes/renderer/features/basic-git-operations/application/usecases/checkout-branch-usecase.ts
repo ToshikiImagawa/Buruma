@@ -22,6 +22,7 @@ export class CheckoutBranchUseCase implements ConsumerUseCase<BranchCheckoutArgs
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'branch-checkout' })
       })
   }
 }

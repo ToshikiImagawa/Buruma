@@ -23,6 +23,7 @@ export class RebaseInteractiveUseCase implements FunctionUseCase<InteractiveReba
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'rebase' })
       })
   }
 }

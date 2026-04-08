@@ -22,6 +22,7 @@ export class CreateBranchUseCase implements ConsumerUseCase<BranchCreateArgs> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'branch-create' })
       })
   }
 }

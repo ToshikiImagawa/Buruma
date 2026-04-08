@@ -22,6 +22,7 @@ export class ConflictResolveUseCase implements ConsumerUseCase<ConflictResolveOp
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'conflict-resolve' })
       })
   }
 }

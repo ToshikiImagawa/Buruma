@@ -4,6 +4,7 @@ import type {
   ConflictFile,
   ConflictResolveAllOptions,
   ConflictResolveOptions,
+  GitOperationCompletedEvent,
   InteractiveRebaseOptions,
   MergeOptions,
   MergeResult,
@@ -94,6 +95,7 @@ export type GetAdvancedOperationLoadingUseCase = ObservableStoreUseCase<boolean>
 export type GetAdvancedLastErrorUseCase = ObservableStoreUseCase<IPCError | null>
 export type GetAdvancedOperationProgressUseCase = ObservableStoreUseCase<OperationProgress | null>
 export type GetAdvancedCurrentOperationUseCase = ObservableStoreUseCase<string | null>
+export type ObserveAdvancedOperationCompletedUseCase = ObservableStoreUseCase<GitOperationCompletedEvent>
 
 // --- UseCase Tokens ---
 
@@ -159,6 +161,9 @@ export const GetAdvancedOperationProgressUseCaseToken = createToken<GetAdvancedO
 )
 export const GetAdvancedCurrentOperationUseCaseToken = createToken<GetAdvancedCurrentOperationUseCase>(
   'GetAdvancedCurrentOperationUseCase',
+)
+export const ObserveAdvancedOperationCompletedUseCaseToken = createToken<ObserveAdvancedOperationCompletedUseCase>(
+  'AdvancedGitOperationsObserveOperationCompletedUseCase',
 )
 
 // --- ViewModel Tokens ---

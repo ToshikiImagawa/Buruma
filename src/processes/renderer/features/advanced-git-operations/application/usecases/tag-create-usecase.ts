@@ -22,6 +22,7 @@ export class TagCreateUseCase implements ConsumerUseCase<TagCreateOptions> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'tag-create' })
       })
   }
 }

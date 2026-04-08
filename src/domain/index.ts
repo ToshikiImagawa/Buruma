@@ -546,3 +546,39 @@ export interface ExplainResult {
   worktreePath: string
   explanation: string
 }
+
+/** Git 書き込み操作の種類（UI 自動更新トリガーで利用） */
+export type GitOperationType =
+  | 'stage'
+  | 'unstage'
+  | 'commit'
+  | 'push'
+  | 'pull'
+  | 'fetch'
+  | 'branch-create'
+  | 'branch-checkout'
+  | 'branch-delete'
+  | 'reset'
+  | 'cherry-pick'
+  | 'cherry-pick-abort'
+  | 'merge'
+  | 'merge-abort'
+  | 'rebase'
+  | 'rebase-abort'
+  | 'rebase-continue'
+  | 'stash-save'
+  | 'stash-pop'
+  | 'stash-apply'
+  | 'stash-drop'
+  | 'stash-clear'
+  | 'tag-create'
+  | 'tag-delete'
+  | 'conflict-resolve'
+  | 'conflict-resolve-all'
+  | 'conflict-mark-resolved'
+
+/** Git 操作完了イベント */
+export interface GitOperationCompletedEvent {
+  worktreePath: string
+  operation: GitOperationType
+}

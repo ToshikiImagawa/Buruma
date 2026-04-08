@@ -21,6 +21,7 @@ export class StageAllUseCase implements ConsumerUseCase<{ worktreePath: string }
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'stage' })
       })
   }
 }

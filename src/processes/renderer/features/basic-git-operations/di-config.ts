@@ -7,6 +7,7 @@ import { DeleteBranchUseCase } from './application/usecases/delete-branch-usecas
 import { FetchUseCase } from './application/usecases/fetch-usecase'
 import { GetLastErrorUseCase } from './application/usecases/get-last-error-usecase'
 import { GetOperationLoadingUseCase } from './application/usecases/get-operation-loading-usecase'
+import { ObserveOperationCompletedUseCase } from './application/usecases/observe-operation-completed-usecase'
 import { PullUseCase } from './application/usecases/pull-usecase'
 import { PushUseCase } from './application/usecases/push-usecase'
 import { ResetUseCase } from './application/usecases/reset-usecase'
@@ -26,6 +27,7 @@ import {
   GetOperationLoadingUseCaseToken,
   GitOperationsRepositoryToken,
   GitOperationsServiceToken,
+  ObserveOperationCompletedUseCaseToken,
   PullRendererUseCaseToken,
   PushRendererUseCaseToken,
   RemoteOpsViewModelToken,
@@ -105,6 +107,9 @@ export const basicGitOperationsConfig: VContainerConfig = {
     container
       .registerSingleton(GetOperationLoadingUseCaseToken, GetOperationLoadingUseCase, [GitOperationsServiceToken])
       .registerSingleton(GetLastErrorUseCaseToken, GetLastErrorUseCase, [GitOperationsServiceToken])
+      .registerSingleton(ObserveOperationCompletedUseCaseToken, ObserveOperationCompletedUseCase, [
+        GitOperationsServiceToken,
+      ])
 
     // ViewModels (transient)
     container

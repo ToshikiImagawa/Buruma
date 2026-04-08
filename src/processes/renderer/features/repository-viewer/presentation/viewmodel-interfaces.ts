@@ -5,6 +5,7 @@ import type {
   DiffDisplayMode,
   FileDiff,
   FileTreeNode,
+  GitOperationCompletedEvent,
   GitStatus,
 } from '@domain'
 import type { Observable } from 'rxjs'
@@ -49,4 +50,8 @@ export interface FileTreeViewModel {
   readonly loading$: Observable<boolean>
   loadTree(worktreePath: string): void
   selectFile(filePath: string): void
+}
+
+export interface GitRefreshCoordinatorViewModel {
+  readonly operationCompleted$: Observable<GitOperationCompletedEvent>
 }

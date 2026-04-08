@@ -21,6 +21,10 @@ export class ConflictMarkResolvedUseCase implements ConsumerUseCase<{ worktreePa
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({
+          worktreePath: input.worktreePath,
+          operation: 'conflict-mark-resolved',
+        })
       })
   }
 }

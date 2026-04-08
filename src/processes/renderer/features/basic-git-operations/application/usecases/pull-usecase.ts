@@ -23,6 +23,7 @@ export class PullUseCase implements FunctionUseCase<PullArgs, Promise<PullResult
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'pull' })
       })
   }
 }

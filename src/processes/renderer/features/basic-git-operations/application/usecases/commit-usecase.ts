@@ -23,6 +23,7 @@ export class CommitUseCase implements FunctionUseCase<CommitArgs, Promise<Commit
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'commit' })
       })
   }
 }

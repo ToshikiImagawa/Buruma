@@ -21,6 +21,7 @@ import { StagingArea } from '@renderer/features/basic-git-operations/presentatio
 import { useBranchOpsViewModel } from '@renderer/features/basic-git-operations/presentation/use-branch-ops-viewmodel'
 import { ClaudeSessionPanel } from '@renderer/features/claude-code-integration/presentation/components'
 import { useWorktreeDetailViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel'
+import { useWorktreeListViewModel } from '@renderer/features/worktree-management/presentation/use-worktree-list-viewmodel'
 import {
   Archive,
   Bookmark,
@@ -39,6 +40,7 @@ import {
 } from 'lucide-react'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useDiffViewMode } from '../use-diff-view-mode'
+import { useGitRefreshCoordinator } from '../use-git-refresh-coordinator'
 import { useStatusViewModel } from '../use-status-viewmodel'
 import { CommitDetailView } from './CommitDetailView'
 import { CommitLog } from './CommitLog'
@@ -48,6 +50,7 @@ import { MultiFileDiffPanel } from './MultiFileDiffPanel'
 
 export function RepositoryDetailPanel() {
   const { selectedWorktree } = useWorktreeDetailViewModel()
+  const { refreshWorktrees } = useWorktreeListViewModel()
   const { status, loadStatus } = useStatusViewModel()
   const { branches, loadBranches } = useBranchListViewModel()
   const { tags, tagList } = useTagViewModel()
@@ -114,6 +117,14 @@ export function RepositoryDetailPanel() {
       }
     }
   }, [worktreePath, loadStatus, loadBranches, tagList, statusViewMode, loadAllDiffs])
+
+  // git 操作完了時の自動 refresh — handleRefresh に加えて worktree 一覧の isDirty も再取得
+  const handleAutoRefresh = useCallback(() => {
+    handleRefresh()
+    refreshWorktrees()
+  }, [handleRefresh, refreshWorktrees])
+
+  useGitRefreshCoordinator(worktreePath, handleAutoRefresh)
 
   const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
     setStatusFilePath(filePath)

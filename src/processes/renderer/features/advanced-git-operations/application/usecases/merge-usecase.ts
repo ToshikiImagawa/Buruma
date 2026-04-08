@@ -23,6 +23,7 @@ export class MergeUseCase implements FunctionUseCase<MergeOptions, Promise<Merge
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'merge' })
       })
   }
 }

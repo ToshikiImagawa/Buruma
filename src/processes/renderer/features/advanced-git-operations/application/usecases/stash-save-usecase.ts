@@ -22,6 +22,7 @@ export class StashSaveUseCase implements ConsumerUseCase<StashSaveOptions> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'stash-save' })
       })
   }
 }

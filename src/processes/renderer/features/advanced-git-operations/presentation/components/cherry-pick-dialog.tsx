@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { CherryPickResult } from '@domain'
 import { Button } from '@renderer/components/ui/button'
 import {
   Dialog,
@@ -28,12 +29,26 @@ export function CherryPickDialog({
 }: CherryPickDialogProps) {
   const { loading, cherryPickResult, cherryPick } = useCherryPickViewModel()
   const [commitInput, setCommitInput] = useState(defaultCommitHash)
+  const lastHandledResultRef = useRef<CherryPickResult | null>(null)
 
   useEffect(() => {
     if (open && defaultCommitHash) {
       setCommitInput(defaultCommitHash)
     }
   }, [open, defaultCommitHash])
+
+  // コンフリクト発生時に親コンポーネントへ通知（同じ result で複数回呼ばれないよう ref ガード）
+  useEffect(() => {
+    if (
+      cherryPickResult?.status === 'conflict' &&
+      cherryPickResult.conflictFiles &&
+      onConflict &&
+      lastHandledResultRef.current !== cherryPickResult
+    ) {
+      lastHandledResultRef.current = cherryPickResult
+      onConflict(cherryPickResult.conflictFiles)
+    }
+  }, [cherryPickResult, onConflict])
 
   const parseCommits = useCallback((input: string): string[] => {
     return input
@@ -59,11 +74,6 @@ export function CherryPickDialog({
     },
     [onOpenChange],
   )
-
-  // コンフリクト発生時にコールバック
-  if (cherryPickResult?.status === 'conflict' && cherryPickResult.conflictFiles && onConflict) {
-    onConflict(cherryPickResult.conflictFiles)
-  }
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>

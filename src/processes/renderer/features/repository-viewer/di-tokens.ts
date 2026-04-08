@@ -15,6 +15,7 @@ import type {
   CommitLogViewModel,
   DiffViewViewModel,
   FileTreeViewModel,
+  GitRefreshCoordinatorViewModel,
   StatusViewModel,
 } from './presentation/viewmodel-interfaces'
 import { createToken } from '@lib/di'
@@ -55,3 +56,6 @@ export const CommitLogViewModelToken = createToken<CommitLogViewModel>('CommitLo
 export const DiffViewViewModelToken = createToken<DiffViewViewModel>('DiffViewViewModel')
 export const BranchListViewModelToken = createToken<BranchListViewModel>('BranchListViewModel')
 export const FileTreeViewModelToken = createToken<FileTreeViewModel>('FileTreeViewModel')
+export const GitRefreshCoordinatorViewModelToken = createToken<GitRefreshCoordinatorViewModel>(
+  'GitRefreshCoordinatorViewModel',
+)

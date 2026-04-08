@@ -1,4 +1,6 @@
 import type { VContainerConfig } from '@lib/di'
+import { ObserveAdvancedOperationCompletedUseCaseToken } from '@renderer/features/advanced-git-operations/di-tokens'
+import { ObserveOperationCompletedUseCaseToken as BasicObserveOperationCompletedUseCaseToken } from '@renderer/features/basic-git-operations/di-tokens'
 import { RepositoryViewerDefaultService } from './application/services/repository-viewer-service'
 import { GetBranchesUseCase } from './application/usecases/get-branches-usecase'
 import { GetCommitDetailUseCase } from './application/usecases/get-commit-detail-usecase'
@@ -21,6 +23,7 @@ import {
   GetFileTreeUseCaseToken,
   GetLogUseCaseToken,
   GetStatusUseCaseToken,
+  GitRefreshCoordinatorViewModelToken,
   GitViewerRepositoryToken,
   RepositoryViewerServiceToken,
   StatusViewModelToken,
@@ -30,6 +33,7 @@ import { BranchListDefaultViewModel } from './presentation/branch-list-viewmodel
 import { CommitLogDefaultViewModel } from './presentation/commit-log-viewmodel'
 import { DiffViewDefaultViewModel } from './presentation/diff-view-viewmodel'
 import { FileTreeDefaultViewModel } from './presentation/file-tree-viewmodel'
+import { GitRefreshCoordinatorDefaultViewModel } from './presentation/git-refresh-coordinator-viewmodel'
 import { StatusDefaultViewModel } from './presentation/status-viewmodel'
 
 export const repositoryViewerConfig: VContainerConfig = {
@@ -75,6 +79,10 @@ export const repositoryViewerConfig: VContainerConfig = {
       .registerTransient(FileTreeViewModelToken, FileTreeDefaultViewModel, [
         GetFileTreeUseCaseToken,
         RepositoryViewerServiceToken,
+      ])
+      .registerTransient(GitRefreshCoordinatorViewModelToken, GitRefreshCoordinatorDefaultViewModel, [
+        BasicObserveOperationCompletedUseCaseToken,
+        ObserveAdvancedOperationCompletedUseCaseToken,
       ])
   },
 

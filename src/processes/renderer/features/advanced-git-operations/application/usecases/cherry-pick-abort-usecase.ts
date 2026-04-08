@@ -21,6 +21,7 @@ export class CherryPickAbortUseCase implements ConsumerUseCase<string> {
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input, operation: 'cherry-pick-abort' })
       })
   }
 }

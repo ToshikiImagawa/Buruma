@@ -21,6 +21,7 @@ export class UnstageFilesUseCase implements ConsumerUseCase<{ worktreePath: stri
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'unstage' })
       })
   }
 }

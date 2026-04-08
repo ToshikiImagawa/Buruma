@@ -23,6 +23,7 @@ export class PushUseCase implements FunctionUseCase<PushArgs, Promise<PushResult
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'push' })
       })
   }
 }

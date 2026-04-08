@@ -23,6 +23,7 @@ export class RebaseUseCase implements FunctionUseCase<RebaseOptions, Promise<Reb
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'rebase' })
       })
   }
 }

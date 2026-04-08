@@ -23,6 +23,7 @@ export class CherryPickUseCase implements FunctionUseCase<CherryPickOptions, Pro
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'cherry-pick' })
       })
   }
 }

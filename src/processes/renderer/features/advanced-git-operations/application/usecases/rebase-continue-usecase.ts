@@ -23,6 +23,7 @@ export class RebaseContinueUseCase implements FunctionUseCase<string, Promise<Re
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input, operation: 'rebase-continue' })
       })
   }
 }

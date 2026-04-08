@@ -23,6 +23,7 @@ export class FetchUseCase implements FunctionUseCase<FetchArgs, Promise<FetchRes
       })
       .finally(() => {
         this.service.setLoading(false)
+        this.service.notifyOperationCompleted({ worktreePath: input.worktreePath, operation: 'fetch' })
       })
   }
 }

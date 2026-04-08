@@ -16,6 +16,7 @@ import { MergeAbortUseCase } from './application/usecases/merge-abort-usecase'
 import { MergeStatusUseCase } from './application/usecases/merge-status-usecase'
 // UseCases
 import { MergeUseCase } from './application/usecases/merge-usecase'
+import { ObserveOperationCompletedUseCase } from './application/usecases/observe-operation-completed-usecase'
 import { RebaseAbortUseCase } from './application/usecases/rebase-abort-usecase'
 import { RebaseContinueUseCase } from './application/usecases/rebase-continue-usecase'
 import { RebaseInteractiveUseCase } from './application/usecases/rebase-interactive-usecase'
@@ -51,6 +52,7 @@ import {
   MergeRendererUseCaseToken,
   MergeStatusRendererUseCaseToken,
   MergeViewModelToken,
+  ObserveAdvancedOperationCompletedUseCaseToken,
   RebaseAbortRendererUseCaseToken,
   RebaseContinueRendererUseCaseToken,
   RebaseInteractiveRendererUseCaseToken,
@@ -131,6 +133,9 @@ export const advancedGitOperationsConfig: VContainerConfig = {
         AdvancedOperationsServiceToken,
       ])
       .registerSingleton(GetAdvancedCurrentOperationUseCaseToken, GetCurrentOperationUseCase, [
+        AdvancedOperationsServiceToken,
+      ])
+      .registerSingleton(ObserveAdvancedOperationCompletedUseCaseToken, ObserveOperationCompletedUseCase, [
         AdvancedOperationsServiceToken,
       ])
 
