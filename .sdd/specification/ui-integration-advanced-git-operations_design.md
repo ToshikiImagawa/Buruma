@@ -4,11 +4,11 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "not-implemented"
 created: "2026-04-04"
-updated: "2026-04-05"
+updated: "2026-04-09"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
-tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag" ]
+tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration"]
 category: "ui-integration"
 priority: "high"
 risk: "low"
@@ -65,8 +65,8 @@ risk: "low"
 
 | ファイル                                                                                                  | 変更内容                                                                          |
 |-------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------|
-| `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags を「リファレンス」タブに統合、コンフリクトオーバーレイ状態管理、ResizablePanelGroup による分割パネルリサイズ対応 |
-| `src/processes/renderer/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加、MergeDialog/RebaseEditor の open 状態管理                            |
+| `src/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Stash/Tags を「リファレンス」タブに統合、コンフリクトオーバーレイ状態管理、ResizablePanelGroup による分割パネルリサイズ対応 |
+| `src/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加、MergeDialog/RebaseEditor の open 状態管理                            |
 
 ## 4.2. タブ構成（変更後）
 
@@ -256,6 +256,51 @@ const BranchOperations = ({ onConflict }) => (<>
 ---
 
 # 9. 変更履歴
+
+## v4.0 (2026-04-09)
+
+**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
+
+- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
+- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
+- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
+- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
+- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
+- Preload API ブロックを削除（Tauri では preload 不要）
+- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
+- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
+- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
+- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
+- `electron-store` → `tauri-plugin-store` に置換
+- `child_process.spawn` → `tokio::process::Command` に置換
+- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
+
+**移行ガイド:**
+
+```typescript
+// ❌ 旧コード (Electron)
+const result = await window.electronAPI.repository.open()
+if (result.success) { /* ... */ }
+
+// ✅ 新コード (Tauri)
+import { invokeCommand } from '@/shared/lib/invoke'
+const result = await invokeCommand<RepositoryInfo | null>('repository_open')
+if (result.success) { /* ... */ }
+```
+
+```rust
+// ✅ Rust 側 (新規)
+#[tauri::command]
+pub async fn repository_open(
+    state: State<'_, AppState>,
+) -> AppResult<Option<RepositoryInfo>> {
+    state.open_repository_dialog_usecase.invoke().await
+}
+```
+
+> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
+
+---
 
 ## v1.1 (2026-04-05)
 
