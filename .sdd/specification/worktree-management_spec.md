@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-04-04"
+updated: "2026-04-09"
 depends-on: ["prd-worktree-management"]
 tags: ["worktree", "core", "ui"]
 category: "core"
@@ -36,7 +36,7 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 4. **ワークツリー切り替え** — 一覧からの選択で右パネルの詳細表示を切り替える（FR_104）
 5. **ワークツリー状態監視** — ファイルシステム監視による状態変化のリアルタイム反映（FR_105）
 
-すべての操作は Electron のプロセス分離（原則 A-001）を遵守し、Git 操作はメインプロセスで `git worktree` コマンド経由で実行する（DC_101）。不可逆な操作（削除）には確認ステップを設ける（原則 B-002）。
+すべての操作は Tauri の境界分離（原則 A-001）を遵守し、Git 操作は Tauri Core (Rust) で `tokio::process::Command` 経由の `git worktree` コマンドで実行する（DC_101）。不可逆な操作（削除）には確認ステップを設ける（原則 B-002）。
 
 # 3. 要求定義
 
@@ -74,34 +74,37 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 
 # 4. API
 
-## 4.1. IPC API（メインプロセス ↔ レンダラー）
+## 4.1. IPC API（Tauri Core ↔ Webview）
 
-### ワークツリー一覧・状態取得
+### 4.1.1. ワークツリー一覧・状態取得（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `worktree:list` | renderer → main | リポジトリの全ワークツリー一覧を取得する | `string` (リポジトリパス) | `IPCResult<WorktreeInfo[]>` |
-| `worktree:status` | renderer → main | 指定ワークツリーの詳細ステータスを取得する | `{ repoPath: string; worktreePath: string }` | `IPCResult<WorktreeStatus>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `worktree_list` | リポジトリの全ワークツリー一覧を取得する | `{ repoPath: string }` | `WorktreeInfo[]` |
+| `worktree_status` | 指定ワークツリーの詳細ステータスを取得する | `{ repoPath: string; worktreePath: string }` | `WorktreeStatus` |
 
-### ワークツリー作成・削除
+### 4.1.2. ワークツリー作成・削除（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `worktree:create` | renderer → main | 新規ワークツリーを作成する | `WorktreeCreateParams` | `IPCResult<WorktreeInfo>` |
-| `worktree:delete` | renderer → main | ワークツリーを削除する | `WorktreeDeleteParams` | `IPCResult<void>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `worktree_create` | 新規ワークツリーを作成する | `WorktreeCreateParams` | `WorktreeInfo` |
+| `worktree_delete` | ワークツリーを削除する | `WorktreeDeleteParams` | `void` |
 
-### ワークツリー状態監視（メインプロセス → レンダラー）
+### 4.1.3. ワークツリー状態監視（Events, Core → Webview `emit` / `listen`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `worktree:changed` | main → renderer | ワークツリーの状態変化を通知する | `WorktreeChangeEvent` | - |
+| Event 名 | 概要 | ペイロード |
+|---------|------|-----------|
+| `worktree-changed` | ワークツリーの状態変化を通知する（`.git/worktrees` の変更を `notify` crate で監視） | `WorktreeChangeEvent` |
 
-### ワークツリーユーティリティ
+### 4.1.4. ワークツリーユーティリティ（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `worktree:suggest-path` | renderer → main | デフォルト作成先パスを提案する | `{ repoPath: string; branch: string }` | `IPCResult<string>` |
-| `worktree:check-dirty` | renderer → main | ワークツリーに未コミット変更があるか確認する | `string` (ワークツリーパス) | `IPCResult<boolean>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `worktree_suggest_path` | デフォルト作成先パスを提案する | `{ repoPath: string; branch: string }` | `string` |
+| `worktree_check_dirty` | ワークツリーに未コミット変更があるか確認する | `{ worktreePath: string }` | `boolean` |
+| `worktree_default_branch` | リポジトリのデフォルトブランチ名を取得する | `{ repoPath: string }` | `string` |
+
+> **IPCResult<T> 互換**: Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出し、Rust 側の `Result<T, AppError>` を `IPCResult<T>` 形式に変換する。
 
 ## 4.2. React コンポーネント API
 
@@ -190,35 +193,39 @@ type WorktreeSortOrder = 'name' | 'last-updated';
 # 6. 使用例
 
 ```tsx
-// レンダラー側：ワークツリー一覧を取得
-const result = await window.electronAPI.worktree.list(repoPath);
+import { invokeCommand, listenEvent } from '@/shared/lib/invoke'
+import type { WorktreeInfo, WorktreeChangeEvent } from '@/shared/domain'
+
+// Webview 側：ワークツリー一覧を取得
+const result = await invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath })
 if (result.success) {
-  setWorktrees(result.data);
+  setWorktrees(result.data)
 }
 
-// レンダラー側：ワークツリーを作成
-const created = await window.electronAPI.worktree.create({
-  repoPath,
-  worktreePath: '/path/to/new-worktree',
-  branch: 'feature/new-feature',
-  createNewBranch: true,
-  startPoint: 'main',
-});
+// Webview 側：ワークツリーを作成
+const created = await invokeCommand<WorktreeInfo>('worktree_create', {
+  params: {
+    repoPath,
+    worktreePath: '/path/to/new-worktree',
+    branch: 'feature/new-feature',
+    createNewBranch: true,
+    startPoint: 'main',
+  },
+})
 if (created.success) {
-  setSelectedWorktree(created.data);
+  setSelectedWorktree(created.data)
 }
 
-// レンダラー側：ワークツリーを削除（確認後）
-const deleted = await window.electronAPI.worktree.delete({
-  repoPath,
-  worktreePath: worktree.path,
-  force: false,
-});
+// Webview 側：ワークツリーを削除（確認後）
+const deleted = await invokeCommand<void>('worktree_delete', {
+  params: { repoPath, worktreePath: worktree.path, force: false },
+})
 
-// レンダラー側：ワークツリー状態変化の購読
-window.electronAPI.worktree.onChanged((event: WorktreeChangeEvent) => {
-  refreshWorktreeList();
-});
+// Webview 側：ワークツリー状態変化の購読
+const unlisten = await listenEvent<WorktreeChangeEvent>('worktree-changed', (event) => {
+  refreshWorktreeList()
+})
+// クリーンアップ時: unlisten()
 
 // React コンポーネントの使用例
 <WorktreeList
@@ -239,94 +246,94 @@ window.electronAPI.worktree.onChanged((event: WorktreeChangeEvent) => {
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as Git CLI
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
 
-    Renderer ->> Preload: worktree.list(repoPath)
-    Preload ->> Main: ipcRenderer.invoke('worktree:list', repoPath)
-    Main ->> Git: git worktree list --porcelain
-    Git -->> Main: ワークツリー一覧（raw）
+    Webview ->> Invoke: invoke<WorktreeInfo[]>('worktree_list', { repoPath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git worktree list --porcelain
+    Git -->> Core: ワークツリー一覧（raw）
     loop 各ワークツリー
-        Main ->> Git: git -C <path> status --porcelain
-        Git -->> Main: 変更状態
+        Core ->> Git: tokio::process::Command: git -C <path> status --porcelain
+        Git -->> Core: 変更状態
     end
-    Main -->> Preload: { success: true, data: WorktreeInfo[] }
-    Preload -->> Renderer: IPCResult<WorktreeInfo[]>
-    Renderer ->> Renderer: 左パネルに一覧を描画
+    Core -->> Invoke: Ok(Vec<WorktreeInfo>)
+    Invoke -->> Webview: IPCResult<WorktreeInfo[]>
+    Webview ->> Webview: 左パネルに一覧を描画
 ```
 
 ## 7.2. ワークツリー作成フロー
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
+    participant Webview as Webview (React)
     participant Dialog as WorktreeCreateDialog
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as Git CLI
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
 
-    Renderer ->> Dialog: 作成ボタンクリック
-    Dialog ->> Preload: worktree.suggestPath(repoPath, branch)
-    Preload ->> Main: ipcRenderer.invoke('worktree:suggest-path', ...)
-    Main -->> Preload: { success: true, data: suggestedPath }
-    Preload -->> Dialog: デフォルトパスを表示
+    Webview ->> Dialog: 作成ボタンクリック
+    Dialog ->> Invoke: invoke<string>('worktree_suggest_path', { repoPath, branch })
+    Invoke ->> Core: Tauri IPC
+    Core -->> Invoke: Ok(suggestedPath)
+    Invoke -->> Dialog: デフォルトパスを表示
 
     Dialog ->> Dialog: ユーザーがパラメータを入力
-    Dialog ->> Preload: worktree.create(params)
-    Preload ->> Main: ipcRenderer.invoke('worktree:create', params)
+    Dialog ->> Invoke: invoke<WorktreeInfo>('worktree_create', { params })
+    Invoke ->> Core: Tauri IPC
 
     alt 新規ブランチ作成
-        Main ->> Git: git worktree add -b <branch> <path> <start-point>
+        Core ->> Git: tokio::process::Command: git worktree add -b <branch> <path> <start-point>
     else 既存ブランチ
-        Main ->> Git: git worktree add <path> <branch>
+        Core ->> Git: tokio::process::Command: git worktree add <path> <branch>
     end
 
-    Git -->> Main: 作成結果
-    Main -->> Preload: { success: true, data: WorktreeInfo }
-    Preload -->> Dialog: 作成完了
-    Dialog ->> Renderer: onCreated(worktreeInfo)
-    Renderer ->> Renderer: 作成されたワークツリーを選択状態にする
+    Git -->> Core: 作成結果
+    Core -->> Invoke: Ok(WorktreeInfo)
+    Invoke -->> Dialog: 作成完了
+    Dialog ->> Webview: onCreated(worktreeInfo)
+    Webview ->> Webview: 作成されたワークツリーを選択状態にする
 ```
 
 ## 7.3. ワークツリー削除フロー
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
+    participant Webview as Webview (React)
     participant Dialog as WorktreeDeleteDialog
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as Git CLI
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
 
-    Renderer ->> Dialog: 削除ボタンクリック
-    Dialog ->> Preload: worktree.checkDirty(worktreePath)
-    Preload ->> Main: ipcRenderer.invoke('worktree:check-dirty', path)
-    Main ->> Git: git -C <path> status --porcelain
-    Git -->> Main: 変更状態
-    Main -->> Preload: { success: true, data: isDirty }
-    Preload -->> Dialog: dirty 状態を表示
+    Webview ->> Dialog: 削除ボタンクリック
+    Dialog ->> Invoke: invoke<boolean>('worktree_check_dirty', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git -C <path> status --porcelain
+    Git -->> Core: 変更状態
+    Core -->> Invoke: Ok(isDirty)
+    Invoke -->> Dialog: dirty 状態を表示
 
     alt isDirty かつ force=false
         Dialog ->> Dialog: 警告メッセージを表示
         Dialog ->> Dialog: ユーザーが強制削除を選択または中止
     end
 
-    Dialog ->> Preload: worktree.delete(params)
-    Preload ->> Main: ipcRenderer.invoke('worktree:delete', params)
+    Dialog ->> Invoke: invoke<void>('worktree_delete', { params })
+    Invoke ->> Core: Tauri IPC
 
     alt force=true
-        Main ->> Git: git worktree remove --force <path>
+        Core ->> Git: tokio::process::Command: git worktree remove --force <path>
     else force=false
-        Main ->> Git: git worktree remove <path>
+        Core ->> Git: tokio::process::Command: git worktree remove <path>
     end
 
-    Git -->> Main: 削除結果
-    Main -->> Preload: { success: true, data: void }
-    Preload -->> Dialog: 削除完了
-    Dialog ->> Renderer: onDeleted()
-    Renderer ->> Renderer: 一覧を更新、別のワークツリーを選択
+    Git -->> Core: 削除結果
+    Core -->> Invoke: Ok(())
+    Invoke -->> Dialog: 削除完了
+    Dialog ->> Webview: onDeleted()
+    Webview ->> Webview: 一覧を更新、別のワークツリーを選択
 ```
 
 ## 7.4. ワークツリー状態監視フロー
@@ -334,29 +341,30 @@ sequenceDiagram
 ```mermaid
 sequenceDiagram
     participant FS as ファイルシステム
-    participant Main as メインプロセス
-    participant Preload as Preload
-    participant Renderer as レンダラー (React)
+    participant Core as Tauri Core (Rust)
+    participant Listen as "@tauri-apps/api/event"
+    participant Webview as Webview (React)
 
-    Main ->> FS: FSWatcher 開始（.git/worktrees ディレクトリ）
-    FS -->> Main: ファイル変更イベント
+    Core ->> FS: notify::Watcher + debouncer 開始（.git/worktrees ディレクトリ）
+    FS -->> Core: ファイル変更イベント
 
-    Main ->> Main: デバウンス処理
-    Main ->> Main: WorktreeChangeEvent 生成
-    Main ->> Preload: webContents.send('worktree:changed', event)
-    Preload ->> Renderer: onChanged コールバック
-    Renderer ->> Renderer: ワークツリー一覧を再取得・更新
+    Core ->> Core: 300ms debounce 処理
+    Core ->> Core: WorktreeChangeEvent 生成
+    Core ->> Listen: app_handle.emit('worktree-changed', event)
+    Listen ->> Webview: listen callback
+    Webview ->> Webview: ワークツリー一覧を再取得・更新
 ```
 
 # 8. 制約事項
 
-- レンダラーから Node.js API に直接アクセスしない（原則 A-001）
-- Git 操作は必ずメインプロセスで実行する（原則 A-001）
+- Webview から OS API（fs / process / shell）に直接アクセスしない（原則 A-001）
+- Git 操作は必ず Tauri Core (Rust) で実行する（原則 A-001）
 - ワークツリー操作は `git worktree` コマンド経由で実行し、`.git` ディレクトリへの直接ファイル操作は行わない（DC_101）
-- IPC 通信は `IPCResult<T>` 型で統一し、エラーハンドリングを一貫させる（原則 T-002）
+- IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一し、エラーハンドリングを一貫させる（原則 T-002）
 - 不可逆操作（ワークツリー削除）には確認ダイアログを必ず表示する（原則 B-002）
 - メインワークツリーの削除は常に防止する（FR_103_04）
 - Git 2.5 以上が前提（`git worktree` コマンドの互換性）
+- ファイル監視には `notify` + `notify-debouncer-full` crate を使用する（原則 A-002）
 
 ---
 

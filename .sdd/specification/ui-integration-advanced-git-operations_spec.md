@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-04-04"
-updated: "2026-04-05"
+updated: "2026-04-09"
 depends-on: [ "prd-ui-integration-advanced-git-operations" ]
 tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag" ]
 category: "ui-integration"
@@ -59,8 +59,8 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 
 | コンポーネント               | ファイル                                                                                                  | 変更内容                             |
 |-----------------------|-------------------------------------------------------------------------------------------------------|----------------------------------|
-| RepositoryDetailPanel | `src/processes/renderer/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Refs タブ（Stash/Tags 統合）追加、コンフリクトオーバーレイ状態管理 |
-| BranchOperations      | `src/processes/renderer/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加                    |
+| RepositoryDetailPanel | `src/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Refs タブ（Stash/Tags 統合）追加、コンフリクトオーバーレイ状態管理 |
+| BranchOperations      | `src/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加                    |
 
 ## 4.2. 状態管理
 

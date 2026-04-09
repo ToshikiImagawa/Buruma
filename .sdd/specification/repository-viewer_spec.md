@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-04-01"
+updated: "2026-04-09"
 depends-on: [ "prd-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff" ]
 category: "viewer"
@@ -38,8 +38,8 @@ NFR_201〜NFR_203）を実現するための論理設計を定義する。表示
 4. **ブランチ一覧表示** — ローカル/リモートブランチの一覧と現在のブランチのハイライトを提供する（FR_204）
 5. **ファイルツリー表示** — ワークツリー内のファイル構造をツリー形式で表示する（FR_205）
 
-すべてのサブシステムは Electron のマルチプロセスアーキテクチャ（main / preload / renderer）に準拠し、原則 A-001（Electron
-プロセス分離）を遵守する。Git 操作はメインプロセスで simple-git を介して実行し、結果を `IPCResult<T>` 型で返却する。
+すべてのサブシステムは Tauri のアーキテクチャ（Webview / Tauri Core）に準拠し、原則 A-001（Tauri プロセス分離 /
+Rust-TypeScript 境界）を遵守する。Git 操作は Tauri Core (Rust) で `tokio::process::Command` 経由の `git` CLI を介して実行し、結果を `IPCResult<T>` 互換ラッパー経由で返却する。
 
 # 3. 要求定義
 
@@ -80,47 +80,49 @@ NFR_201〜NFR_203）を実現するための論理設計を定義する。表示
 
 # 4. API
 
-## 4.1. IPC API（メインプロセス ↔ レンダラー）
+## 4.1. IPC API（Tauri Core ↔ Webview）
 
-### ステータス取得
+すべて Commands（Webview → Core, `invoke`）。Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。
 
-| チャネル名        | 方向              | 概要                | 引数                         | 戻り値                    |
-|--------------|-----------------|-------------------|----------------------------|------------------------|
-| `git:status` | renderer → main | ワークツリーのステータスを取得する | `{ worktreePath: string }` | `IPCResult<GitStatus>` |
+### 4.1.1. ステータス取得
 
-### コミットログ取得
+| Command 名   | 概要                | 引数                         | 戻り値        |
+|--------------|-------------------|----------------------------|--------------|
+| `git_status` | ワークツリーのステータスを取得する | `{ worktreePath: string }` | `GitStatus`  |
 
-| チャネル名               | 方向              | 概要                      | 引数                                       | 戻り値                       |
-|---------------------|-----------------|-------------------------|------------------------------------------|---------------------------|
-| `git:log`           | renderer → main | コミットログを取得する（ページネーション対応） | `GitLogQuery`                            | `IPCResult<GitLogResult>` |
-| `git:commit-detail` | renderer → main | 特定コミットの詳細情報を取得する        | `{ worktreePath: string; hash: string }` | `IPCResult<CommitDetail>` |
+### 4.1.2. コミットログ取得
 
-### 差分取得
+| Command 名            | 概要                      | 引数                                       | 戻り値            |
+|-----------------------|-------------------------|------------------------------------------|------------------|
+| `git_log`             | コミットログを取得する（ページネーション対応） | `GitLogQuery`                            | `GitLogResult`   |
+| `git_commit_detail`   | 特定コミットの詳細情報を取得する        | `{ worktreePath: string; hash: string }` | `CommitDetail`   |
 
-| チャネル名             | 方向              | 概要               | 引数                                                          | 戻り値                     |
-|-------------------|-----------------|------------------|-------------------------------------------------------------|-------------------------|
-| `git:diff`        | renderer → main | ワーキングツリーの差分を取得する | `GitDiffQuery`                                              | `IPCResult<FileDiff[]>` |
-| `git:diff-staged` | renderer → main | ステージ済みの差分を取得する   | `GitDiffQuery`                                              | `IPCResult<FileDiff[]>` |
-| `git:diff-commit` | renderer → main | 特定コミットの差分を取得する   | `{ worktreePath: string; hash: string; filePath?: string }` | `IPCResult<FileDiff[]>` |
+### 4.1.3. 差分取得
 
-### ブランチ一覧取得
+| Command 名          | 概要               | 引数                                                          | 戻り値          |
+|---------------------|------------------|-------------------------------------------------------------|----------------|
+| `git_diff`          | ワーキングツリーの差分を取得する | `GitDiffQuery`                                              | `FileDiff[]`   |
+| `git_diff_staged`   | ステージ済みの差分を取得する   | `GitDiffQuery`                                              | `FileDiff[]`   |
+| `git_diff_commit`   | 特定コミットの差分を取得する   | `{ worktreePath: string; hash: string; filePath?: string }` | `FileDiff[]`   |
 
-| チャネル名          | 方向              | 概要          | 引数                         | 戻り値                     |
-|----------------|-----------------|-------------|----------------------------|-------------------------|
-| `git:branches` | renderer → main | ブランチ一覧を取得する | `{ worktreePath: string }` | `IPCResult<BranchList>` |
+### 4.1.4. ブランチ一覧取得
 
-### ファイルツリー取得
+| Command 名     | 概要          | 引数                         | 戻り値        |
+|----------------|-------------|----------------------------|--------------|
+| `git_branches` | ブランチ一覧を取得する | `{ worktreePath: string }` | `BranchList` |
 
-| チャネル名           | 方向              | 概要                  | 引数                         | 戻り値                       |
-|-----------------|-----------------|---------------------|----------------------------|---------------------------|
-| `git:file-tree` | renderer → main | ワークツリーのファイルツリーを取得する | `{ worktreePath: string }` | `IPCResult<FileTreeNode>` |
+### 4.1.5. ファイルツリー取得
 
-### ファイルコンテンツ取得
+| Command 名      | 概要                  | 引数                         | 戻り値          |
+|-----------------|---------------------|----------------------------|----------------|
+| `git_file_tree` | ワークツリーのファイルツリーを取得する | `{ worktreePath: string }` | `FileTreeNode` |
 
-| チャネル名                      | 方向              | 概要                                                   | 引数                                                             | 戻り値                       |
-|----------------------------|-----------------|------------------------------------------------------|----------------------------------------------------------------|---------------------------|
-| `git:file-contents`        | renderer → main | Monaco DiffEditor 用のファイル全体テキストを取得する（ワーキングツリーまたはステージ） | `{ worktreePath: string; filePath: string; staged?: boolean }` | `IPCResult<FileContents>` |
-| `git:file-contents-commit` | renderer → main | 特定コミット時点のファイル全体テキストを取得する                             | `{ worktreePath: string; hash: string; filePath: string }`     | `IPCResult<FileContents>` |
+### 4.1.6. ファイルコンテンツ取得
+
+| Command 名                   | 概要                                                   | 引数                                                             | 戻り値          |
+|------------------------------|------------------------------------------------------|----------------------------------------------------------------|----------------|
+| `git_file_contents`          | Monaco DiffEditor 用のファイル全体テキストを取得する（ワーキングツリーまたはステージ） | `{ worktreePath: string; filePath: string; staged?: boolean }` | `FileContents` |
+| `git_file_contents_commit`   | 特定コミット時点のファイル全体テキストを取得する                             | `{ worktreePath: string; hash: string; filePath: string }`     | `FileContents` |
 
 ## 4.2. React コンポーネント API
 
@@ -316,38 +318,36 @@ interface IPCError {
 # 6. 使用例
 
 ```tsx
-// レンダラー側：ステータスを取得
-const status = await window.electronAPI.git.status({worktreePath: '/path/to/worktree'});
+import { invokeCommand } from '@/shared/lib/invoke'
+import type { GitStatus, GitLogResult, FileDiff, BranchList } from '@/shared/domain'
+
+// Webview 側：ステータスを取得
+const status = await invokeCommand<GitStatus>('git_status', { worktreePath: '/path/to/worktree' })
 if (status.success) {
-    console.log('staged:', status.data.staged);
-    console.log('unstaged:', status.data.unstaged);
-    console.log('untracked:', status.data.untracked);
+    console.log('staged:', status.data.staged)
+    console.log('unstaged:', status.data.unstaged)
+    console.log('untracked:', status.data.untracked)
 }
 
-// レンダラー側：コミットログを取得（最新50件）
-const log = await window.electronAPI.git.log({
-    worktreePath: '/path/to/worktree',
-    offset: 0,
-    limit: 50,
-});
+// Webview 側：コミットログを取得（最新50件）
+const log = await invokeCommand<GitLogResult>('git_log', {
+    query: { worktreePath: '/path/to/worktree', offset: 0, limit: 50 },
+})
 
-// レンダラー側：ページネーションで次の50件を取得
-const nextPage = await window.electronAPI.git.log({
-    worktreePath: '/path/to/worktree',
-    offset: 50,
-    limit: 50,
-});
+// Webview 側：ページネーションで次の50件を取得
+const nextPage = await invokeCommand<GitLogResult>('git_log', {
+    query: { worktreePath: '/path/to/worktree', offset: 50, limit: 50 },
+})
 
-// レンダラー側：差分を取得
-const diff = await window.electronAPI.git.diff({
-    worktreePath: '/path/to/worktree',
-    filePath: 'src/main.ts',
-});
+// Webview 側：差分を取得
+const diff = await invokeCommand<FileDiff[]>('git_diff', {
+    query: { worktreePath: '/path/to/worktree', filePath: 'src/main.ts' },
+})
 
-// レンダラー側：ブランチ一覧を取得
-const branches = await window.electronAPI.git.branches({
+// Webview 側：ブランチ一覧を取得
+const branches = await invokeCommand<BranchList>('git_branches', {
     worktreePath: '/path/to/worktree',
-});
+})
 
 // React コンポーネントの使用例
 <StatusView
@@ -373,87 +373,87 @@ const branches = await window.electronAPI.git.branches({
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as simple-git
-    Renderer ->> Preload: git.status({ worktreePath })
-    Preload ->> Main: ipcRenderer.invoke('git:status', args)
-    Main ->> Git: git.status()
-    Git -->> Main: StatusResult
-    Main ->> Main: StatusResult → GitStatus に変換
-    Main -->> Preload: { success: true, data: GitStatus }
-    Preload -->> Renderer: IPCResult<GitStatus>
-    Renderer ->> Renderer: StatusView を更新
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+    Webview ->> Invoke: invoke<GitStatus>('git_status', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git status --porcelain
+    Git -->> Core: ステータス出力
+    Core ->> Core: parsePorcelainOutput で GitStatus に変換
+    Core -->> Invoke: Ok(GitStatus)
+    Invoke -->> Webview: IPCResult<GitStatus>
+    Webview ->> Webview: StatusView を更新
 ```
 
 ## 7.2. コミットログ取得フロー（ページネーション付き）
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as simple-git
-    Renderer ->> Preload: git.log({ worktreePath, offset: 0, limit: 50 })
-    Preload ->> Main: ipcRenderer.invoke('git:log', query)
-    Main ->> Git: git.log({ maxCount: 50 })
-    Git -->> Main: LogResult
-    Main -->> Preload: { success: true, data: GitLogResult }
-    Preload -->> Renderer: IPCResult<GitLogResult>
-    Renderer ->> Renderer: CommitLog を描画
-    Note over Renderer: ユーザーがスクロールで追加読み込み
-    Renderer ->> Preload: git.log({ worktreePath, offset: 50, limit: 50 })
-    Preload ->> Main: ipcRenderer.invoke('git:log', query)
-    Main ->> Git: git.log({ maxCount: 50, '--skip': 50 })
-    Git -->> Main: LogResult
-    Main -->> Preload: { success: true, data: GitLogResult }
-    Preload -->> Renderer: IPCResult<GitLogResult>
-    Renderer ->> Renderer: CommitLog に追記
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+    Webview ->> Invoke: invoke<GitLogResult>('git_log', { query: { offset: 0, limit: 50 } })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git log --max-count=50
+    Git -->> Core: LogResult
+    Core -->> Invoke: Ok(GitLogResult)
+    Invoke -->> Webview: IPCResult<GitLogResult>
+    Webview ->> Webview: CommitLog を描画
+    Note over Webview: ユーザーがスクロールで追加読み込み
+    Webview ->> Invoke: invoke<GitLogResult>('git_log', { query: { offset: 50, limit: 50 } })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git log --max-count=50 --skip=50
+    Git -->> Core: LogResult
+    Core -->> Invoke: Ok(GitLogResult)
+    Invoke -->> Webview: IPCResult<GitLogResult>
+    Webview ->> Webview: CommitLog に追記
 ```
 
 ## 7.3. 差分表示フロー
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as simple-git
-    Note over Renderer: StatusView でファイルを選択
-    Renderer ->> Preload: git.diff({ worktreePath, filePath })
-    Preload ->> Main: ipcRenderer.invoke('git:diff', query)
-    Main ->> Git: git.diff([filePath])
-    Git -->> Main: diff 文字列
-    Main ->> Main: diff 文字列をパースして FileDiff[] に変換
-    Main -->> Preload: { success: true, data: FileDiff[] }
-    Preload -->> Renderer: IPCResult<FileDiff[]>
-    Renderer ->> Renderer: DiffView (Monaco Editor) で差分を描画
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+    Note over Webview: StatusView でファイルを選択
+    Webview ->> Invoke: invoke<FileDiff[]>('git_diff', { query: { worktreePath, filePath } })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git diff <filePath>
+    Git -->> Core: diff 文字列
+    Core ->> Core: parse_diff_output で FileDiff[] に変換
+    Core -->> Invoke: Ok(Vec<FileDiff>)
+    Invoke -->> Webview: IPCResult<FileDiff[]>
+    Webview ->> Webview: DiffView (Monaco Editor) で差分を描画
 ```
 
 ## 7.4. ブランチ一覧取得フロー
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as simple-git
-    Renderer ->> Preload: git.branches({ worktreePath })
-    Preload ->> Main: ipcRenderer.invoke('git:branches', args)
-    Main ->> Git: git.branch(['-a', '-v'])
-    Git -->> Main: BranchSummary
-    Main ->> Main: BranchSummary → BranchList に変換
-    Main -->> Preload: { success: true, data: BranchList }
-    Preload -->> Renderer: IPCResult<BranchList>
-    Renderer ->> Renderer: BranchList を描画
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+    Webview ->> Invoke: invoke<BranchList>('git_branches', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git branch -a -v
+    Git -->> Core: ブランチ出力
+    Core ->> Core: parse_branches で BranchList に変換
+    Core -->> Invoke: Ok(BranchList)
+    Invoke -->> Webview: IPCResult<BranchList>
+    Webview ->> Webview: BranchList を描画
 ```
 
 # 8. 制約事項
 
-- レンダラーから Node.js API に直接アクセスしない（原則 A-001）
-- Git 操作は必ずメインプロセスで実行する（原則 A-001, A-002）
-- IPC 通信は `IPCResult<T>` 型で統一する（application-foundation FR_604 準拠）
+- Webview から OS API（fs / process / shell）に直接アクセスしない（原則 A-001）
+- Git 操作は必ず Tauri Core (Rust) で実行する（原則 A-001, A-002）
+- IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一する（application-foundation FR_604 準拠）
 - 差分表示には Monaco Editor を使用する（原則 A-002、CONSTITUTION 技術スタック制約）
 - 大規模リポジトリ対応のためページネーション・仮想スクロールを適用する
 - ワークツリー管理機能（prd-worktree-management）および IPC 通信基盤（application-foundation FR_604）が前提

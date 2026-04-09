@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-04-05"
+updated: "2026-04-09"
 depends-on: ["prd-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session"]
 category: "ai-integration"
@@ -24,7 +24,7 @@ risk: "high"
 
 Buruma は Git ワークツリーの並行管理を主軸とする GUI アプリケーションである。開発者はワークツリーごとに異なるブランチで作業を行うが、Git 操作の実行やコード変更の理解には一定のコンテキスト理解が求められる。
 
-Claude Code CLI は Anthropic が提供する AI コーディングアシスタントであり、自然言語による Git 操作委譲、コードレビュー、差分解説などの機能を CLI インターフェースで提供する。本仕様は、Claude Code CLI を子プロセスとして Buruma に統合し、ワークツリーごとに独立した AI 支援セッションを提供するための論理設計を定義する。
+Claude Code CLI は Anthropic が提供する AI コーディングアシスタントであり、自然言語による Git 操作委譲、コードレビュー、差分解説などの機能を CLI インターフェースで提供する。本仕様は、Claude Code CLI をサブプロセスとして Buruma に統合し、ワークツリーごとに独立した AI 支援セッションを提供するための論理設計を定義する。
 
 本仕様は PRD [claude-code-integration.md](../requirement/claude-code-integration.md) の要求（UR_501〜UR_504, FR_501〜FR_505, DC_501〜DC_503, NFR_501）を実現する。
 
@@ -38,7 +38,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 4. **差分解説** — コミット/ブランチ間の差分内容を Claude Code に解説させる（FR_504）
 5. **セッション出力表示** — Claude Code の出力をリアルタイムでストリーミング表示（FR_505）
 
-すべてのサブシステムは Electron のマルチプロセスアーキテクチャ（main / preload / renderer）に準拠し、Claude Code CLI はメインプロセスから子プロセスとして実行される（DC_501）。レンダラーから直接 child_process を使用してはならない（DC_503）。各ワークツリーのセッションは独立しており、コンテキストを共有しない（DC_502）。
+すべてのサブシステムは Tauri のアーキテクチャ（Webview / Tauri Core）に準拠し、Claude Code CLI は Tauri Core (Rust) から `tokio::process::Command` 経由でサブプロセスとして実行される（DC_501）。Webview から直接 OS のプロセス実行 API を使用してはならない（DC_503）。各ワークツリーのセッションは独立しており、コンテキストを共有しない（DC_502）。
 
 # 3. 要求定義
 
@@ -77,62 +77,65 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | NFR-001 | 性能 | セッション起動からUI反映までの時間 | 30秒以内 |
 | NFR-002 | 性能 | ストリーミング出力のレンダリング遅延 | 100ms以内 |
 | NFR-003 | 安定性 | セッション異常終了時の自動再接続 | 3回までリトライ |
-| NFR-004 | セキュリティ | 子プロセスのサンドボックス化 | ワークツリーの CWD に限定 |
+| NFR-004 | セキュリティ | サブプロセスの実行範囲制限 | ワークツリーの CWD に限定、実行ファイルは `claude` のみ allowlist |
 
 # 4. API
 
-## 4.1. IPC API（メインプロセス ↔ レンダラー）
+## 4.1. IPC API（Tauri Core ↔ Webview）
 
-### セッション管理
+### 4.1.1. セッション管理（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:start-session` | renderer → main | 指定ワークツリーで Claude Code セッションを起動する | `{ worktreePath: string }` | `IPCResult<ClaudeSession>` |
-| `claude:stop-session` | renderer → main | 指定ワークツリーのセッションを終了する | `{ worktreePath: string }` | `IPCResult<void>` |
-| `claude:get-session` | renderer → main | 指定ワークツリーのセッション情報を取得する | `{ worktreePath: string }` | `IPCResult<ClaudeSession \| null>` |
-| `claude:get-all-sessions` | renderer → main | 全セッション情報を取得する | なし | `IPCResult<ClaudeSession[]>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_start_session` | 指定ワークツリーで Claude Code セッションを起動する | `{ worktreePath: string }` | `ClaudeSession` |
+| `claude_stop_session` | 指定ワークツリーのセッションを終了する | `{ worktreePath: string }` | `void` |
+| `claude_get_session` | 指定ワークツリーのセッション情報を取得する | `{ worktreePath: string }` | `ClaudeSession \| null` |
+| `claude_get_all_sessions` | 全セッション情報を取得する | なし | `ClaudeSession[]` |
 
-### コマンド実行
+### 4.1.2. コマンド実行（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:send-command` | renderer → main | Claude Code にコマンド（自然言語指示）を送信する | `ClaudeCommand` | `IPCResult<void>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_send_command` | Claude Code にコマンド（自然言語指示）を送信する | `ClaudeCommand` | `void` |
 
-### 出力取得
+### 4.1.3. 出力取得（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:get-output` | renderer → main | 指定セッションの出力履歴を取得する | `{ worktreePath: string }` | `IPCResult<ClaudeOutput[]>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_get_output` | 指定セッションの出力履歴を取得する | `{ worktreePath: string }` | `ClaudeOutput[]` |
 
-### 認証管理
+### 4.1.4. 認証管理（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:check-auth` | renderer → main | Claude Code CLI の認証状態を確認する | なし | `IPCResult<ClaudeAuthStatus>` |
-| `claude:login` | renderer → main | ブラウザ OAuth でログインする（プロセス完了まで待機） | なし | `IPCResult<void>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_check_auth` | Claude Code CLI の認証状態を確認する | なし | `ClaudeAuthStatus` |
+| `claude_login` | ブラウザ OAuth でログインする（プロセス完了まで待機） | なし | `void` |
+| `claude_logout` | ログアウトする | なし | `void` |
 
-### コミットメッセージ生成
+### 4.1.5. コミットメッセージ生成（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:generate-commit-message` | renderer → main | ステージング差分テキストからコミットメッセージを生成する（ワンショット） | `GenerateCommitMessageArgs` | `IPCResult<string>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_generate_commit_message` | ステージング差分テキストからコミットメッセージを生成する（ワンショット） | `GenerateCommitMessageArgs` | `string` |
 
-### レビュー・解説
+### 4.1.6. レビュー・解説（Commands, Webview → Core `invoke`）
 
-| チャネル名 | 方向 | 概要 | 引数 | 戻り値 |
-|-----------|------|------|------|--------|
-| `claude:review-diff` | renderer → main | 差分をClaude Codeに送信しレビューを取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `IPCResult<void>` |
-| `claude:explain-diff` | renderer → main | 差分をClaude Codeに送信し解説を取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `IPCResult<void>` |
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_review_diff` | 差分を Claude Code に送信しレビューを取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `void` |
+| `claude_explain_diff` | 差分を Claude Code に送信し解説を取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `void` |
 
-### イベント通知（メインプロセス → レンダラー）
+### 4.1.7. イベント通知（Events, Core → Webview `emit` / `listen`）
 
-| チャネル名 | 方向 | 概要 | ペイロード |
-|-----------|------|------|----------|
-| `claude:session-changed` | main → renderer | セッション状態が変化した | `ClaudeSession` |
-| `claude:output` | main → renderer | Claude Code から出力が発生した | `ClaudeOutput` |
-| `claude:command-completed` | main → renderer | コマンド実行が完了した | `{ worktreePath: string }` |
-| `claude:review-result` | main → renderer | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
-| `claude:explain-result` | main → renderer | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
+| Event 名 | 概要 | ペイロード |
+|---------|------|-----------|
+| `claude-session-changed` | セッション状態が変化した | `ClaudeSession` |
+| `claude-output` | Claude Code から出力が発生した | `ClaudeOutput` |
+| `claude-command-completed` | コマンド実行が完了した | `{ worktreePath: string }` |
+| `claude-review-result` | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
+| `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
+
+> **IPCResult<T> 互換**: Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/shared/lib/invoke/events.ts` の `listenEvent<T>` を使用する。
 
 ## 4.2. React コンポーネント API
 
@@ -186,7 +189,7 @@ interface ClaudeAuthStatus {
 // コミットメッセージ生成リクエスト
 interface GenerateCommitMessageArgs {
   worktreePath: string;
-  diffText: string;           // unified diff 形式のテキスト（レンダラー側で FileDiff[] から変換済み）
+  diffText: string;           // unified diff 形式のテキスト（Webview 側で FileDiff[] から変換済み）
 }
 
 // AppSettings 拡張（コミットメッセージルールのカスタマイズ）
@@ -230,47 +233,55 @@ interface IPCError {
 | Claude Code | Anthropic が提供する CLI ベースの AI コーディングアシスタント |
 | セッション | Claude Code CLI の1つの子プロセスインスタンス。ワークツリーに1対1で紐づく |
 | Git 操作委譲 | ユーザーの自然言語指示を Claude Code が解釈し、適切な Git コマンドを実行すること |
-| ストリーミング表示 | 子プロセスの stdout/stderr 出力をリアルタイムでレンダラーに逐次送信・表示すること |
+| ストリーミング表示 | サブプロセスの stdout/stderr 出力を Tauri イベントでリアルタイムに Webview へ逐次送信・表示すること |
 | CWD | Current Working Directory。子プロセスの作業ディレクトリ。ワークツリーのパスを設定する |
 | DiffTarget | レビューまたは解説対象の差分を指定する型。作業ツリー差分、コミット間、ブランチ間を区別する |
 
 # 6. 使用例
 
 ```typescript
-// レンダラー側：セッション起動
-const session = await window.electronAPI.claude.startSession({
+import { invokeCommand, listenEvent } from '@/shared/lib/invoke'
+import type { ClaudeSession, ClaudeOutput } from '@/shared/domain'
+
+// Webview 側：セッション起動
+const session = await invokeCommand<ClaudeSession>('claude_start_session', {
   worktreePath: '/path/to/worktree',
-});
+})
 
-// レンダラー側：自然言語で Git 操作を委譲
-await window.electronAPI.claude.sendCommand({
-  worktreePath: '/path/to/worktree',
-  type: 'git-delegation',
-  input: 'main ブランチにマージして',
-});
+// Webview 側：自然言語で Git 操作を委譲
+await invokeCommand<void>('claude_send_command', {
+  command: {
+    worktreePath: '/path/to/worktree',
+    type: 'git-delegation',
+    input: 'main ブランチにマージして',
+  },
+})
 
-// レンダラー側：ストリーミング出力の購読
-window.electronAPI.claude.onOutput((output: ClaudeOutput) => {
-  appendToTerminal(output.content);
-});
+// Webview 側：ストリーミング出力の購読
+const unlistenOutput = await listenEvent<ClaudeOutput>('claude-output', (output) => {
+  appendToTerminal(output.content)
+})
 
-// レンダラー側：コードレビューをリクエスト
-await window.electronAPI.claude.reviewDiff({
+// Webview 側：コードレビューをリクエスト
+await invokeCommand<void>('claude_review_diff', {
   worktreePath: '/path/to/worktree',
   diffTarget: { type: 'working', staged: false },
-});
+})
 
-// レンダラー側：レビュー結果の購読
-window.electronAPI.claude.onReviewResult((result) => {
-  displayReviewComments(result.comments);
-  displaySummary(result.summary);
-});
+// Webview 側：レビュー結果の購読
+const unlistenReview = await listenEvent<{ worktreePath: string; comments: ReviewComment[]; summary: string }>(
+  'claude-review-result',
+  (result) => {
+    displayReviewComments(result.comments)
+    displaySummary(result.summary)
+  },
+)
 
-// レンダラー側：差分解説をリクエスト
-await window.electronAPI.claude.explainDiff({
+// Webview 側：差分解説をリクエスト
+await invokeCommand<void>('claude_explain_diff', {
   worktreePath: '/path/to/worktree',
   diffTarget: { type: 'commits', from: 'abc123', to: 'def456' },
-});
+})
 
 // React コンポーネントの使用例
 <ClaudeSessionPanel worktreePath={selectedWorktree.path} />
@@ -284,108 +295,104 @@ await window.electronAPI.claude.explainDiff({
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant CLI as Claude Code CLI<br/>(子プロセス)
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant CLI as Claude Code CLI<br/>(サブプロセス)
 
-    Renderer ->> Preload: claude.startSession({ worktreePath })
-    Preload ->> Main: ipcRenderer.invoke('claude:start-session', args)
-    Main ->> Main: セッション重複チェック
-    Main ->> CLI: child_process.spawn('claude', [], { cwd: worktreePath })
-    CLI -->> Main: プロセス起動確認
-    Main ->> Main: セッション情報を SessionStore に保存
-    Main -->> Preload: { success: true, data: ClaudeSession }
-    Preload -->> Renderer: ClaudeSession
-    Main ->> Preload: webContents.send('claude:session-changed', session)
-    Preload ->> Renderer: onSessionChanged コールバック
+    Webview ->> Invoke: invoke<ClaudeSession>('claude_start_session', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Core: セッション重複チェック
+    Core ->> CLI: tokio::process::Command::new('claude').current_dir(worktreePath).spawn()
+    CLI -->> Core: プロセス起動確認
+    Core ->> Core: セッション情報を ClaudeSessionStore に保存
+    Core -->> Invoke: Ok(ClaudeSession)
+    Invoke -->> Webview: ClaudeSession
+    Core ->> Webview: app_handle.emit('claude-session-changed', session)
 
-    Note over Main, CLI: ストリーミング出力
+    Note over Core, CLI: ストリーミング出力
 
-    CLI ->> Main: stdout データ
-    Main ->> Preload: webContents.send('claude:output', output)
-    Preload ->> Renderer: onOutput コールバック
-    Renderer ->> Renderer: ClaudeOutputView に表示
+    CLI ->> Core: stdout データ (tokio::io::BufReader)
+    Core ->> Webview: app_handle.emit('claude-output', output)
+    Webview ->> Webview: ClaudeOutputView に表示
 
-    Note over Renderer, CLI: セッション終了
+    Note over Webview, CLI: セッション終了
 
-    Renderer ->> Preload: claude.stopSession({ worktreePath })
-    Preload ->> Main: ipcRenderer.invoke('claude:stop-session', args)
-    Main ->> CLI: process.kill()
-    CLI -->> Main: プロセス終了
-    Main ->> Main: SessionStore からセッション削除
-    Main -->> Preload: { success: true, data: void }
-    Main ->> Preload: webContents.send('claude:session-changed', session)
-    Preload ->> Renderer: onSessionChanged コールバック
+    Webview ->> Invoke: invoke<void>('claude_stop_session', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> CLI: child.kill().await
+    CLI -->> Core: プロセス終了
+    Core ->> Core: ClaudeSessionStore からセッション削除
+    Core -->> Invoke: Ok(())
+    Core ->> Webview: app_handle.emit('claude-session-changed', session)
 ```
 
 ## 7.2. コマンド実行フロー（Git 操作委譲）
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant CLI as Claude Code CLI<br/>(子プロセス)
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant CLI as Claude Code CLI<br/>(サブプロセス)
 
-    Renderer ->> Preload: claude.sendCommand({ type: 'git-delegation', input: '...' })
-    Preload ->> Main: ipcRenderer.invoke('claude:send-command', command)
-    Main ->> Main: セッション存在確認
-    Main ->> CLI: stdin に指示を書き込み
-    Main -->> Preload: { success: true, data: void }
-    Preload -->> Renderer: void
+    Webview ->> Invoke: invoke<void>('claude_send_command', { command: { type: 'git-delegation', input: '...' } })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Core: セッション存在確認
+    Core ->> CLI: tokio::process::Command で claude -p "<指示>" を新規 spawn
+    Core -->> Invoke: Ok(())
+    Invoke -->> Webview: void
 
-    Note over Main, CLI: Claude Code が応答をストリーミング
+    Note over Core, CLI: Claude Code が応答をストリーミング
 
     loop 出力チャンク
-        CLI ->> Main: stdout データ（応答の一部）
-        Main ->> Main: OutputParser で解析
-        Main ->> Preload: webContents.send('claude:output', output)
-        Preload ->> Renderer: onOutput コールバック
-        Renderer ->> Renderer: ClaudeOutputView に逐次追加
+        CLI ->> Core: stdout データ（応答の一部）（tokio::io::BufReader）
+        Core ->> Core: ClaudeOutputParser で解析
+        Core ->> Webview: app_handle.emit('claude-output', output)
+        Webview ->> Webview: ClaudeOutputView に逐次追加
     end
+
+    Core ->> Webview: app_handle.emit('claude-command-completed', { worktreePath })
 ```
 
 ## 7.3. コードレビューフロー
 
 ```mermaid
 sequenceDiagram
-    participant Renderer as レンダラー (React)
-    participant Preload as Preload
-    participant Main as メインプロセス
-    participant Git as Git
-    participant CLI as Claude Code CLI<br/>(子プロセス)
+    participant Webview as Webview (React)
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+    participant CLI as Claude Code CLI<br/>(サブプロセス)
 
-    Renderer ->> Preload: claude.reviewDiff({ diffTarget: { type: 'working', staged: false } })
-    Preload ->> Main: ipcRenderer.invoke('claude:review-diff', args)
-    Main ->> Git: git diff（差分取得）
-    Git -->> Main: 差分テキスト
-    Main ->> CLI: stdin にレビュープロンプト + 差分を書き込み
-    Main -->> Preload: { success: true, data: void }
+    Webview ->> Invoke: invoke<void>('claude_review_diff', { diffTarget: { type: 'working', staged: false } })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git diff（差分取得）
+    Git -->> Core: 差分テキスト
+    Core ->> CLI: tokio::process::Command: claude -p "<レビュープロンプト + 差分>"
+    Core -->> Invoke: Ok(())
 
-    Note over Main, CLI: Claude Code がレビュー結果をストリーミング
+    Note over Core, CLI: Claude Code がレビュー結果をストリーミング
 
     loop 出力チャンク
-        CLI ->> Main: stdout データ
-        Main ->> Preload: webContents.send('claude:output', output)
-        Preload ->> Renderer: onOutput コールバック
+        CLI ->> Core: stdout データ
+        Core ->> Webview: app_handle.emit('claude-output', output)
     end
 
-    Main ->> Main: OutputParser でレビューコメントを構造化
-    Main ->> Preload: webContents.send('claude:review-result', result)
-    Preload ->> Renderer: onReviewResult コールバック
-    Renderer ->> Renderer: ReviewCommentList に表示
+    Core ->> Core: ClaudeOutputParser でレビューコメントを構造化
+    Core ->> Webview: app_handle.emit('claude-review-result', result)
+    Webview ->> Webview: ReviewCommentList に表示
 ```
 
 # 8. 制約事項
 
-- Claude Code CLI はメインプロセスの子プロセスとしてのみ実行する（DC_501、原則 A-001）
-- レンダラーから Node.js の `child_process` に直接アクセスしない（DC_503、原則 A-001、T-003）
+- Claude Code CLI は Tauri Core (Rust) のサブプロセスとしてのみ実行する（DC_501、原則 A-001）
+- Webview から OS のプロセス実行 API に直接アクセスしない（DC_503、原則 A-001、T-003）
 - 各ワークツリーのセッションは独立し、コンテキストを共有しない（DC_502）
-- 子プロセスの CWD はワークツリーのパスに設定する（DC_502）
+- サブプロセスの CWD はワークツリーのパスに設定する（DC_502）
 - Claude Code CLI がユーザー環境にインストール・認証済みであることが前提
-- IPC 通信は `IPCResult<T>` 型で統一する（[application-foundation_spec.md](./application-foundation_spec.md) の FR-011〜FR-013）
-- ストリーミング出力は IPC イベント通知パターンで送信する（FR-013）
+- IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一する（[application-foundation_spec.md](./application-foundation_spec.md) の FR-011〜FR-013）
+- ストリーミング出力は `app_handle.emit` / `listen` による Tauri イベント通知パターンで送信する（FR-013）
 - Git 操作委譲時は実行前確認を必須とする（原則 B-002: Git 操作の安全性）
 
 ---
@@ -426,7 +433,7 @@ sequenceDiagram
 | FR_505_02 | FR-021 | 対応済み |
 | FR_505_03 | FR-022 | 対応済み |
 | FR_505_04 | FR-023 | 対応済み |
-| DC_501 | 制約事項 + 振る舞い図（子プロセス実行） | 対応済み |
+| DC_501 | 制約事項 + 振る舞い図（サブプロセス実行） | 対応済み |
 | DC_502 | 制約事項 + セッション分離設計 | 対応済み |
-| DC_503 | 制約事項（レンダラーから child_process 直接使用禁止） | 対応済み |
+| DC_503 | 制約事項（Webview から OS プロセス実行 API 直接使用禁止） | 対応済み |
 | NFR_501 | NFR-001（セッション起動時間 30秒以内） | 対応済み |
