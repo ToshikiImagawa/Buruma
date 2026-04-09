@@ -117,13 +117,13 @@ Phase I: 実装移行
 
 | Phase | 内容 | 状態 |
 |:---|:---|:---|
-| P0 | RFC 配置 | ✅ 完了 |
-| P1 | CONSTITUTION.md v2.0.0 | 🔴 未着手 |
-| P2 | TEMPLATE 3 種 | 🔴 未着手 |
-| P3 | PRD 7 + tauri-migration.md | 🔴 未着手 |
-| P4 | Spec 7 + tauri-migration_spec.md | 🔴 未着手 |
-| P5 | Design 7 + tauri-migration_design.md | 🔴 未着手 |
-| P6 | 全体検証 | 🔴 未着手 |
+| P0 | RFC 配置 | ✅ 完了 (2026-04-09) |
+| P1 | CONSTITUTION.md v2.0.0 | ✅ 完了 (2026-04-09) |
+| P2 | TEMPLATE 3 種 | ✅ 完了 (2026-04-09) |
+| P3 | PRD 7 + tauri-migration.md | ✅ 完了 (2026-04-09) |
+| P4 | Spec 7 + tauri-migration_spec.md | ✅ 完了 (2026-04-09) |
+| P5 | Design 7 + tauri-migration_design.md | ✅ 完了 (2026-04-09) |
+| P6 | 全体検証 | ✅ 完了 (2026-04-09) |
 | IA | Tauri 初期化 + ディレクトリ再配置 + 疎通 | 🔴 未着手 |
 | IB | application-foundation | 🔴 未着手 |
 | IC | worktree-management | 🔴 未着手 |
@@ -133,10 +133,58 @@ Phase I: 実装移行
 | IG | claude-code-integration | 🔴 未着手 |
 | IH | クリーンアップ | 🔴 未着手 |
 
+## Phase P6 検証結果 (2026-04-09)
+
+### grep による残存 Electron キーワード確認
+
+検証パターン: `ipcMain|ipcRenderer|contextBridge|window.electronAPI|electron-store|simple-git|chokidar|nodeIntegration|contextIsolation|FusesPlugin|BrowserWindow|webContents|processes/main/features|processes/renderer/features|processes/preload|Electron 41|Electron Forge`
+
+**結果**: 64 件の残存がヒット。すべて**意図的**な歴史的記録または移行元の参照記述で、実装コードとしての Electron 依存記述はゼロ。
+
+残存の内訳:
+- `CONSTITUTION.md` (9 件): 技術スタック表の「禁止事項」列、および変更履歴 v2.0.0 内の「Electron からの移行」記述
+- 各 `*_design.md` (35 件, 5 × 7 ファイル): 変更履歴 v4.0 (2026-04-09) の「移行前/移行後」対比で引用している旧コード参照
+- `tauri-migration_design.md` (12 件): 技術スタック選定理由、設計判断、Phase IH の依存削除手順、未解決課題 (electron-store データ移行) での引用
+- `tauri-migration_spec.md` (1 件), `requirement/tauri-migration.md` (4 件), `task/tauri-migration/migration-rfc.md` (3 件): 移行背景の説明
+
+### ドキュメント status 一覧
+
+| カテゴリ | ファイル数 | status | impl-status |
+|:---|:---|:---|:---|
+| CONSTITUTION | 1 | v2.0.0 有効 | - |
+| TEMPLATE | 3 | draft (テンプレート) | not-implemented (テンプレート) |
+| requirement (既存) | 7 | approved | - |
+| requirement (新規 tauri-migration) | 1 | draft | - |
+| specification/_spec.md (既存) | 7 | approved | - |
+| specification/_design.md (既存) | 7 | approved | not-implemented |
+| specification/tauri-migration_spec.md | 1 | draft | - |
+| specification/tauri-migration_design.md | 1 | draft | in-progress |
+
+### クロスリファレンス確認
+
+- 全 `depends-on` 参照の ID が存在する: ✅
+- 既存 requirement ID (UR_001, FR_601, DC_501 等) は全て維持: ✅ (DC_M01 準拠)
+- 新規 requirement ID (UR_M01〜M04, FR_M01〜M04, NFR_M01〜M03, DC_M01〜M04) が追加: ✅
+- CONSTITUTION v2.0.0 の原則 (A-007, T-004, T-005) が新規追加: ✅
+
+### Phase P 完了判定
+
+- [x] Phase P0: RFC 配置
+- [x] Phase P1: CONSTITUTION.md v2.0.0 全面刷新 (A-001〜A-007, T-001〜T-005)
+- [x] Phase P2: TEMPLATE 3 種 (PRD / SPEC / DESIGN)
+- [x] Phase P3: PRD 7 ファイル技術中立化 + tauri-migration.md 新規作成
+- [x] Phase P4: Spec 7 ファイル + tauri-migration_spec.md (83 IPC チャネルマッピング表)
+- [x] Phase P5: Design 7 ファイル + tauri-migration_design.md
+- [x] Phase P6: 全体検証 (本セクション)
+
+**Phase P (SDD ドキュメント修正) は完了。次は Phase I (実装移行) に着手可能。**
+
 ## 本 RFC の削除タイミング
 
-Phase P6（全体検証）完了時に以下のいずれかを実施:
+Phase P6 完了時点で以下のいずれかを実施予定:
 
-1. 本ファイル内の重要な設計判断（「ユーザー確定事項」「命名変換ルール」等）を `.sdd/specification/tauri-migration_design.md` の「変更履歴」「設計判断」セクションに統合
-2. 本ファイル (`migration-rfc.md`) を削除
-3. `.sdd/task/tauri-migration/` ディレクトリ自体も削除
+1. ~~本ファイル内の重要な設計判断を `.sdd/specification/tauri-migration_design.md` の「変更履歴」「設計判断」セクションに統合~~ ✅ 完了
+2. Phase I (実装移行) 完了後、本ファイル (`migration-rfc.md`) を削除
+3. Phase I 完了後、`.sdd/task/tauri-migration/` ディレクトリ自体も削除
+
+**現時点では Phase I の参照用として保持。Phase IH 完了時に削除する。**
