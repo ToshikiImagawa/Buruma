@@ -25,10 +25,10 @@ function AppContent() {
     <>
       <AppLayout
         onSettingsClick={() => setSettingsOpen(true)}
-        repositoryName={currentRepository?.name}
-        onRepositorySwitch={() => setRepositorySelectorOpen(true)}
+        hasCurrentRepository={!!currentRepository}
         sidebarCollapsed={sidebarCollapsed}
         onSidebarToggle={() => setSidebarCollapsed((prev) => !prev)}
+        onWorktreeSelected={() => setSidebarCollapsed(true)}
       >
         {currentRepository ? (
           <div className="flex h-full">

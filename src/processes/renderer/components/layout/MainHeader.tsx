@@ -1,27 +1,29 @@
 import { Button } from '@renderer/components/ui/button'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
-import { FolderOpen, PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { PanelLeftClose, PanelLeftOpen, Settings } from 'lucide-react'
+import { RepositorySwitcher } from './RepositorySwitcher'
+import { WorktreeSwitcher } from './WorktreeSwitcher'
 
 interface MainHeaderProps {
   onSettingsClick: () => void
-  repositoryName?: string
-  onRepositorySwitch?: () => void
+  hasCurrentRepository?: boolean
   sidebarCollapsed?: boolean
   onSidebarToggle?: () => void
+  onWorktreeSelected?: () => void
 }
 
 export function MainHeader({
   onSettingsClick,
-  repositoryName,
-  onRepositorySwitch,
+  hasCurrentRepository,
   sidebarCollapsed,
   onSidebarToggle,
+  onWorktreeSelected,
 }: MainHeaderProps) {
   return (
     <TooltipProvider delayDuration={300}>
-      <header className="flex items-center justify-between border-b px-4 py-2">
-        <div className="flex items-center gap-2">
-          {onSidebarToggle && repositoryName && (
+      <header className="flex items-center justify-between border-b px-2 py-1.5">
+        <div className="flex items-center gap-1">
+          {onSidebarToggle && hasCurrentRepository && (
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -37,34 +39,10 @@ export function MainHeader({
               <TooltipContent>{sidebarCollapsed ? 'サイドバーを開く' : 'サイドバーを閉じる'}</TooltipContent>
             </Tooltip>
           )}
-          <div>
-            <h1 className="text-lg font-bold leading-tight">Buruma</h1>
-            {repositoryName ? (
-              <p className="text-xs text-muted-foreground">{repositoryName}</p>
-            ) : (
-              <p className="text-xs text-muted-foreground">
-                Branch-United Real-time Understanding & Multi-worktree Analyzer
-              </p>
-            )}
-          </div>
+          <RepositorySwitcher />
+          {hasCurrentRepository && <WorktreeSwitcher onWorktreeSelected={onWorktreeSelected} />}
         </div>
         <div className="flex items-center gap-1">
-          {onRepositorySwitch && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={onRepositorySwitch}
-                  aria-label="リポジトリを開く"
-                >
-                  <FolderOpen className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>リポジトリを開く</TooltipContent>
-            </Tooltip>
-          )}
           <Tooltip>
             <TooltipTrigger asChild>
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={onSettingsClick} aria-label="設定を開く">

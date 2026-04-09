@@ -152,8 +152,9 @@ export function StagingArea({
                     )}
                     onClick={(e) => {
                       e.stopPropagation()
-                      stagedSelection.handleFileSelect(file.path, e)
+                      stagedSelection.toggleFileSelect(file.path)
                     }}
+                    aria-label={isSelected ? '選択解除' : '選択'}
                   >
                     {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                   </button>
@@ -245,8 +246,9 @@ export function StagingArea({
                     )}
                     onClick={(e) => {
                       e.stopPropagation()
-                      unstagedSelection.handleFileSelect(file.path, e)
+                      unstagedSelection.toggleFileSelect(file.path)
                     }}
+                    aria-label={isSelected ? '選択解除' : '選択'}
                   >
                     {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                   </button>

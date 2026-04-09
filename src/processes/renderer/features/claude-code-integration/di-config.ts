@@ -64,8 +64,14 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LoginRendererUseCaseToken, LoginUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LogoutRendererUseCaseToken, LogoutUseCase, [ClaudeRepositoryToken])
-      .registerSingleton(ReviewDiffRendererUseCaseToken, ReviewDiffUseCase, [ClaudeRepositoryToken])
-      .registerSingleton(ExplainDiffRendererUseCaseToken, ExplainDiffUseCase, [ClaudeRepositoryToken])
+      .registerSingleton(ReviewDiffRendererUseCaseToken, ReviewDiffUseCase, [
+        ClaudeRepositoryToken,
+        ClaudeServiceToken,
+      ])
+      .registerSingleton(ExplainDiffRendererUseCaseToken, ExplainDiffUseCase, [
+        ClaudeRepositoryToken,
+        ClaudeServiceToken,
+      ])
       .registerSingleton(GetReviewCommentsRendererUseCaseToken, GetReviewCommentsUseCase, [ClaudeServiceToken])
       .registerSingleton(GetReviewSummaryRendererUseCaseToken, GetReviewSummaryUseCase, [ClaudeServiceToken])
       .registerSingleton(GetIsReviewingRendererUseCaseToken, GetIsReviewingUseCase, [ClaudeServiceToken])
