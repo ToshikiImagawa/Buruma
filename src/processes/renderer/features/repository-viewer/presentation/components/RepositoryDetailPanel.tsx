@@ -424,28 +424,31 @@ export function RepositoryDetailPanel() {
                 <ResizablePanel defaultSize={50} minSize={10}>
                   <div className="h-full overflow-hidden">
                     {selectedCommitHash ? (
-                      <div className="flex h-full flex-col">
-                        <div className="shrink-0 max-h-[40%] overflow-auto border-b">
-                          <CommitDetailView
-                            worktreePath={selectedWorktree.path}
-                            commitHash={selectedCommitHash}
-                            onFileSelect={handleCommitFileSelect}
-                          />
-                        </div>
-                        {commitFilePath ? (
-                          <div className="flex-1 min-h-0">
+                      <ResizablePanelGroup direction="vertical">
+                        <ResizablePanel defaultSize={40} minSize={10}>
+                          <div className="h-full overflow-auto">
+                            <CommitDetailView
+                              worktreePath={selectedWorktree.path}
+                              commitHash={selectedCommitHash}
+                              onFileSelect={handleCommitFileSelect}
+                            />
+                          </div>
+                        </ResizablePanel>
+                        <ResizableHandle withHandle />
+                        <ResizablePanel defaultSize={60} minSize={10}>
+                          {commitFilePath ? (
                             <DiffView
                               worktreePath={selectedWorktree.path}
                               filePath={commitFilePath}
                               commitHash={selectedCommitHash}
                             />
-                          </div>
-                        ) : (
-                          <div className="flex flex-1 items-center justify-center">
-                            <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
-                          </div>
-                        )}
-                      </div>
+                          ) : (
+                            <div className="flex h-full items-center justify-center">
+                              <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
+                            </div>
+                          )}
+                        </ResizablePanel>
+                      </ResizablePanelGroup>
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <p className="text-sm text-muted-foreground">コミットを選択して詳細を表示</p>

@@ -4,6 +4,7 @@ import type { editor } from 'monaco-editor'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { DiffEditor } from '@monaco-editor/react'
 import { Button } from '@renderer/components/ui/button'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@renderer/components/ui/resizable'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@renderer/components/ui/tooltip'
 import { DiffExplanationView } from '@renderer/features/claude-code-integration/presentation/components/DiffExplanationView'
 import { ReviewCommentList } from '@renderer/features/claude-code-integration/presentation/components/ReviewCommentList'
@@ -215,47 +216,58 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
         </TooltipProvider>
       </div>
       <div className="min-h-0 flex-1">
-        <DiffEditor
-          height="100%"
-          original={contents.original}
-          modified={contents.modified}
-          language={contents.language}
-          theme="vs-dark"
-          onMount={handleEditorMount}
-          keepCurrentOriginalModel={true}
-          keepCurrentModifiedModel={true}
-          options={{
-            readOnly: true,
-            renderSideBySide: isSideBySide,
-            useInlineViewWhenSpaceIsLimited: false,
-            minimap: { enabled: false },
-            scrollBeyondLastLine: false,
-            fontSize: 12,
-            lineHeight: 18,
-            automaticLayout: true,
-          }}
-        />
+        <ResizablePanelGroup direction="vertical">
+          <ResizablePanel id="editor" defaultSize={aiPanelMode ? 70 : 100} minSize={20}>
+            <DiffEditor
+              height="100%"
+              original={contents.original}
+              modified={contents.modified}
+              language={contents.language}
+              theme="vs-dark"
+              onMount={handleEditorMount}
+              keepCurrentOriginalModel={true}
+              keepCurrentModifiedModel={true}
+              options={{
+                readOnly: true,
+                renderSideBySide: isSideBySide,
+                useInlineViewWhenSpaceIsLimited: false,
+                minimap: { enabled: false },
+                scrollBeyondLastLine: false,
+                fontSize: 12,
+                lineHeight: 18,
+                automaticLayout: true,
+              }}
+            />
+          </ResizablePanel>
+          {aiPanelMode && (
+            <>
+              <ResizableHandle withHandle />
+              <ResizablePanel id="ai-panel" defaultSize={30} minSize={10}>
+                <div className="flex h-full flex-col border-t">
+                  <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
+                    <span className="flex-1 text-xs font-medium">
+                      {aiPanelMode === 'review' ? 'AI レビュー' : 'AI 解説'}
+                    </span>
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAiPanelMode(null)}>
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                  <div className="min-h-0 flex-1 overflow-auto px-3 pb-3">
+                    {aiPanelMode === 'review' && (
+                      <ReviewCommentList
+                        comments={reviewComments}
+                        summary={reviewSummary}
+                        onCommentClick={handleCommentClick}
+                      />
+                    )}
+                    {aiPanelMode === 'explain' && <DiffExplanationView explanation={explanation} />}
+                  </div>
+                </div>
+              </ResizablePanel>
+            </>
+          )}
+        </ResizablePanelGroup>
       </div>
-      {aiPanelMode && (
-        <div className="shrink-0 border-t">
-          <div className="flex items-center gap-2 px-3 py-1.5">
-            <span className="flex-1 text-xs font-medium">{aiPanelMode === 'review' ? 'AI レビュー' : 'AI 解説'}</span>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setAiPanelMode(null)}>
-              <X className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-          <div className="max-h-64 overflow-auto px-3 pb-3">
-            {aiPanelMode === 'review' && (
-              <ReviewCommentList
-                comments={reviewComments}
-                summary={reviewSummary}
-                onCommentClick={handleCommentClick}
-              />
-            )}
-            {aiPanelMode === 'explain' && <DiffExplanationView explanation={explanation} />}
-          </div>
-        </div>
-      )}
     </div>
   )
 }
