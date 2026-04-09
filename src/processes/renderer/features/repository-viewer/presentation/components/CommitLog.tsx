@@ -58,7 +58,7 @@ function RefBadges({ refInfo }: { refInfo: RefInfo }) {
   const overflow = badges.length - MAX_BADGES
 
   return (
-    <span className="inline-flex items-center gap-1 flex-wrap">
+    <span className="inline-flex min-w-0 items-center gap-1 overflow-hidden">
       {visible.map((badge) => (
         <span
           key={badge.label}
@@ -106,11 +106,11 @@ function CommitItem({
         >
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              {refInfo && <RefBadges refInfo={refInfo} />}
               <span className="truncate font-medium">{commit.message}</span>
               <span className="shrink-0 text-xs text-muted-foreground ml-auto">{dateStr}</span>
             </div>
             <div className="flex items-center gap-2 text-xs text-muted-foreground">
+              {refInfo && <RefBadges refInfo={refInfo} />}
               <span className="font-mono">{commit.hashShort}</span>
               <span className="truncate">{commit.author}</span>
             </div>
