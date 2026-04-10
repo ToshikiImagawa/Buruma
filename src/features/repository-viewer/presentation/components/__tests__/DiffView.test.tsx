@@ -12,6 +12,12 @@ vi.mock('@monaco-editor/react', () => ({
   ),
 }))
 
+// Mock invokeCommand
+const mockInvokeCommand = vi.fn()
+vi.mock('@/shared/lib/invoke/commands', () => ({
+  invokeCommand: (...args: unknown[]) => mockInvokeCommand(...args),
+}))
+
 // Mock Claude hooks
 vi.mock('@/features/claude-code-integration/presentation/use-claude-auth', () => ({
   useClaudeAuth: () => ({ authStatus: { authenticated: false }, isAuthChecking: false, isLoggingIn: false }),
@@ -37,16 +43,6 @@ vi.mock('@/features/claude-code-integration/presentation/use-claude-explain-view
 describe('DiffView', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Mock window.electronAPI.git
-    Object.defineProperty(window, 'electronAPI', {
-      value: {
-        git: {
-          fileContents: vi.fn(),
-          fileContentsCommit: vi.fn(),
-        },
-      },
-      writable: true,
-    })
   })
 
   it('filePath がない場合にプレースホルダーを表示', () => {
@@ -55,13 +51,13 @@ describe('DiffView', () => {
   })
 
   it('読み込み中にメッセージを表示', () => {
-    vi.mocked(window.electronAPI.git.fileContents).mockReturnValue(new Promise(() => {}))
+    mockInvokeCommand.mockReturnValue(new Promise(() => {}))
     render(<DiffView worktreePath="/repo" filePath="src/main.ts" />)
     expect(screen.getByText('差分を読み込み中...')).toBeDefined()
   })
 
   it('差分がない場合にメッセージを表示', async () => {
-    vi.mocked(window.electronAPI.git.fileContents).mockResolvedValue({
+    mockInvokeCommand.mockResolvedValue({
       success: true,
       data: { original: 'same', modified: 'same', language: 'typescript' },
     })
@@ -71,7 +67,7 @@ describe('DiffView', () => {
   })
 
   it('差分がある場合に Monaco DiffEditor を表示', async () => {
-    vi.mocked(window.electronAPI.git.fileContents).mockResolvedValue({
+    mockInvokeCommand.mockResolvedValue({
       success: true,
       data: { original: 'old', modified: 'new', language: 'typescript' },
     })

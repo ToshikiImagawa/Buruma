@@ -1,9 +1,10 @@
-import type { CommitResult } from '@domain'
+import type { CommitResult, FileDiff } from '@domain'
 import type { Observable } from 'rxjs'
 import type { CommitRendererUseCase, GetOperationLoadingUseCase } from '../di-tokens'
 import type { CommitViewModel } from './viewmodel-interfaces'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { BehaviorSubject } from 'rxjs'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 
 export class CommitDefaultViewModel implements CommitViewModel {
   readonly loading$: Observable<boolean>
@@ -39,13 +40,13 @@ export class CommitDefaultViewModel implements CommitViewModel {
     this._generating$.next(true)
     this._generateError$.next(null)
     try {
-      const diffResult = await window.electronAPI.git.diffStaged({ worktreePath })
+      const diffResult = await invokeCommand<FileDiff[]>('git_diff_staged', { query: { worktreePath } })
       if (diffResult.success === false) {
         this._generateError$.next(diffResult.error.message)
         return ''
       }
       const diffText = formatDiffsAsText(diffResult.data)
-      const result = await window.electronAPI.claude.generateCommitMessage({ worktreePath, diffText })
+      const result = await invokeCommand<string>('claude_generate_commit_message', { args: { worktreePath, diffText } })
       if (result.success === false) {
         this._generateError$.next(result.error.message)
         return ''

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileDiff } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import type { CommitLogHandle } from './CommitLog'
 import {
   Archive,
@@ -83,8 +84,8 @@ export function RepositoryDetailPanel() {
   const loadAllDiffs = useCallback(async () => {
     if (!worktreePath) return
     const [unstagedResult, stagedResult] = await Promise.all([
-      window.electronAPI.git.diff({ worktreePath }),
-      window.electronAPI.git.diffStaged({ worktreePath }),
+      invokeCommand<FileDiff[]>('git_diff', { query: { worktreePath } }),
+      invokeCommand<FileDiff[]>('git_diff_staged', { query: { worktreePath } }),
     ])
     const diffs: FileDiff[] = []
     if (unstagedResult.success) diffs.push(...unstagedResult.data)

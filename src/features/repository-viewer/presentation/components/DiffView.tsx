@@ -3,6 +3,7 @@ import type { DiffDisplayMode, DiffTarget, FileContents, FileDiff, ReviewComment
 import type { editor } from 'monaco-editor'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { DiffEditor } from '@monaco-editor/react'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { BookOpen, Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
@@ -56,10 +57,8 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
     setError(null)
     try {
       if (commitHash) {
-        const result = await window.electronAPI.git.fileContentsCommit({
-          worktreePath,
-          hash: commitHash,
-          filePath,
+        const result = await invokeCommand<FileContents>('git_file_contents_commit', {
+          args: { worktreePath, hash: commitHash, filePath },
         })
         if (result.success === false) {
           setError(result.error.message)
@@ -67,10 +66,8 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
           setContents(result.data)
         }
       } else {
-        const result = await window.electronAPI.git.fileContents({
-          worktreePath,
-          filePath,
-          staged,
+        const result = await invokeCommand<FileContents>('git_file_contents', {
+          args: { worktreePath, filePath, staged },
         })
         if (result.success === false) {
           setError(result.error.message)
@@ -98,15 +95,15 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
     if (!filePath) return null
     let diffs: FileDiff[]
     if (commitHash) {
-      const result = await window.electronAPI.git.diffCommit({ worktreePath, hash: commitHash, filePath })
+      const result = await invokeCommand<FileDiff[]>('git_diff_commit', { args: { worktreePath, hash: commitHash, filePath } })
       if (result.success === false) return null
       diffs = result.data
     } else if (staged) {
-      const result = await window.electronAPI.git.diffStaged({ worktreePath, filePath })
+      const result = await invokeCommand<FileDiff[]>('git_diff_staged', { query: { worktreePath, filePath } })
       if (result.success === false) return null
       diffs = result.data
     } else {
-      const result = await window.electronAPI.git.diff({ worktreePath, filePath })
+      const result = await invokeCommand<FileDiff[]>('git_diff', { query: { worktreePath, filePath } })
       if (result.success === false) return null
       diffs = result.data
     }

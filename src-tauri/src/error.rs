@@ -1,10 +1,9 @@
 //! Application-wide error type.
 //!
-//! Phase IA では skeleton のみ。各 feature の移行 (Phase IB〜IG) に合わせて variant を追加する。
 //! `AppError` は `Serialize` を実装し、`#[tauri::command]` の戻り値 `Result<T, AppError>` として
 //! Webview 側に JSON (`{ code, message, detail? }` 形状) で渡る。
 //! Webview 側の `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` がこれを `IPCResult<T>` に
-//! ラップし、既存 `ElectronAPI` 呼び出しと互換な形状で返す。
+//! ラップして返す。
 
 use serde::{Serialize, Serializer};
 use thiserror::Error;
