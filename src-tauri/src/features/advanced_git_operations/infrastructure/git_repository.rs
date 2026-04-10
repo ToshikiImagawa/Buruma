@@ -199,21 +199,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     async fn rebase_get_commits(&self, worktree_path: &str, onto: &str) -> AppResult<Vec<RebaseStep>> {
         let range = format!("{onto}..HEAD");
         let output = raw(worktree_path, &["log", "--format=%H%n%s", "--reverse", &range]).await?;
-        let lines: Vec<&str> = output.lines().collect();
-        let mut steps = Vec::new();
-        let mut i = 0;
-        let mut order = 0u32;
-        while i + 1 < lines.len() {
-            steps.push(RebaseStep {
-                hash: lines[i].to_string(),
-                message: lines[i + 1].to_string(),
-                action: RebaseAction::Pick,
-                order,
-            });
-            order += 1;
-            i += 2;
-        }
-        Ok(steps)
+        Ok(parse_rebase_commits(&output))
     }
 
     // --- Stash ---
@@ -491,7 +477,11 @@ async fn get_conflicted_files(worktree_path: &str) -> Vec<String> {
     let output = raw(worktree_path, &["status", "--porcelain=v1"])
         .await
         .unwrap_or_default();
-    output
+    parse_conflict_file_paths(&output)
+}
+
+fn parse_conflict_file_paths(porcelain: &str) -> Vec<String> {
+    porcelain
         .lines()
         .filter(|line| {
             if line.len() < 3 {
@@ -505,6 +495,24 @@ async fn get_conflicted_files(worktree_path: &str) -> Vec<String> {
         })
         .map(|line| line[3..].to_string())
         .collect()
+}
+
+fn parse_rebase_commits(log_output: &str) -> Vec<RebaseStep> {
+    let lines: Vec<&str> = log_output.lines().collect();
+    let mut steps = Vec::new();
+    let mut i = 0;
+    let mut order = 0u32;
+    while i + 1 < lines.len() {
+        steps.push(RebaseStep {
+            hash: lines[i].to_string(),
+            message: lines[i + 1].to_string(),
+            action: RebaseAction::Pick,
+            order,
+        });
+        order += 1;
+        i += 2;
+    }
+    steps
 }
 
 fn parse_stash_list(output: &str) -> Vec<StashEntry> {
@@ -543,5 +551,64 @@ mod tests {
     #[test]
     fn test_parse_stash_list_empty() {
         assert!(parse_stash_list("").is_empty());
+    }
+
+    #[test]
+    fn test_parse_stash_list_multiple() {
+        let output = "abc123\nWIP on main: fix A\n2026-04-10T12:00:00+09:00\nstash@{0}\ndef456\nWIP on main: fix B\n2026-04-10T13:00:00+09:00\nstash@{1}\n";
+        let entries = parse_stash_list(output);
+        assert_eq!(entries.len(), 2);
+        assert_eq!(entries[0].index, 0);
+        assert_eq!(entries[0].hash, "abc123");
+        assert_eq!(entries[1].index, 1);
+        assert_eq!(entries[1].hash, "def456");
+    }
+
+    #[test]
+    fn test_parse_conflict_file_paths_uu() {
+        let porcelain = "UU src/conflict.rs\n";
+        let paths = parse_conflict_file_paths(porcelain);
+        assert_eq!(paths, vec!["src/conflict.rs"]);
+    }
+
+    #[test]
+    fn test_parse_conflict_file_paths_all_types() {
+        let porcelain = "AA both.txt\nDD del.txt\nAU ours.txt\nUA theirs.txt\nDU d_ours.txt\nUD d_theirs.txt\n";
+        let paths = parse_conflict_file_paths(porcelain);
+        assert_eq!(paths.len(), 6);
+    }
+
+    #[test]
+    fn test_parse_conflict_file_paths_ignores_non_conflict() {
+        let porcelain = "M  normal.rs\n?? new.txt\nUU conflict.rs\n";
+        let paths = parse_conflict_file_paths(porcelain);
+        assert_eq!(paths, vec!["conflict.rs"]);
+    }
+
+    #[test]
+    fn test_parse_conflict_file_paths_empty() {
+        assert!(parse_conflict_file_paths("").is_empty());
+    }
+
+    #[test]
+    fn test_parse_rebase_commits_single() {
+        let output = "abc123def456\nfix: typo in readme\n";
+        let steps = parse_rebase_commits(output);
+        assert_eq!(steps.len(), 1);
+        assert_eq!(steps[0].hash, "abc123def456");
+        assert_eq!(steps[0].message, "fix: typo in readme");
+        assert_eq!(steps[0].order, 0);
+        assert_eq!(steps[0].action.as_str(), "pick");
+    }
+
+    #[test]
+    fn test_parse_rebase_commits_multiple() {
+        let output = "abc123\nfirst commit\ndef456\nsecond commit\n";
+        let steps = parse_rebase_commits(output);
+        assert_eq!(steps.len(), 2);
+        assert_eq!(steps[0].order, 0);
+        assert_eq!(steps[0].hash, "abc123");
+        assert_eq!(steps[1].order, 1);
+        assert_eq!(steps[1].hash, "def456");
     }
 }

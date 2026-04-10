@@ -85,3 +85,64 @@ impl Serialize for AppError {
 
 /// アプリケーション共通 Result 型エイリアス。
 pub type AppResult<T> = Result<T, AppError>;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_code_returns_correct_strings() {
+        assert_eq!(AppError::NotFound("x".into()).code(), "NOT_FOUND");
+        assert_eq!(AppError::GitError("x".into()).code(), "GIT_ERROR");
+        assert_eq!(
+            AppError::GitOperation {
+                code: "X".into(),
+                message: "m".into()
+            }
+            .code(),
+            "GIT_OPERATION_ERROR"
+        );
+        assert_eq!(AppError::Repository("x".into()).code(), "REPOSITORY_ERROR");
+        assert_eq!(AppError::DialogCancelled.code(), "DIALOG_CANCELLED");
+        assert_eq!(AppError::Claude("x".into()).code(), "CLAUDE_ERROR");
+        assert_eq!(AppError::Internal("x".into()).code(), "INTERNAL_ERROR");
+    }
+
+    #[test]
+    fn test_serialize_standard_variant() {
+        let err = AppError::NotFound("item missing".into());
+        let val = serde_json::to_value(&err).unwrap();
+        assert_eq!(val["code"], "NOT_FOUND");
+        assert_eq!(val["message"], "item missing");
+        assert!(val["detail"].is_null());
+    }
+
+    #[test]
+    fn test_serialize_git_operation_uses_inner_code() {
+        let err = AppError::GitOperation {
+            code: "PUSH_REJECTED".into(),
+            message: "rejected by remote".into(),
+        };
+        let val = serde_json::to_value(&err).unwrap();
+        // GitOperation は code() の "GIT_OPERATION_ERROR" ではなく内部の code フィールドを使う
+        assert_eq!(val["code"], "PUSH_REJECTED");
+        assert_eq!(val["message"], "rejected by remote");
+        assert!(val["detail"].is_null());
+    }
+
+    #[test]
+    fn test_serialize_git_error() {
+        let err = AppError::GitError("fatal: not a git repository".into());
+        let val = serde_json::to_value(&err).unwrap();
+        assert_eq!(val["code"], "GIT_ERROR");
+        assert_eq!(val["message"], "fatal: not a git repository");
+    }
+
+    #[test]
+    fn test_serialize_dialog_cancelled() {
+        let err = AppError::DialogCancelled;
+        let val = serde_json::to_value(&err).unwrap();
+        assert_eq!(val["code"], "DIALOG_CANCELLED");
+        assert_eq!(val["message"], "dialog cancelled");
+    }
+}

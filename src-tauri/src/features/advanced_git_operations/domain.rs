@@ -300,3 +300,18 @@ pub struct TagDeleteArgs {
     pub worktree_path: String,
     pub tag_name: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_rebase_action_as_str() {
+        assert_eq!(RebaseAction::Pick.as_str(), "pick");
+        assert_eq!(RebaseAction::Reword.as_str(), "reword");
+        assert_eq!(RebaseAction::Edit.as_str(), "edit");
+        assert_eq!(RebaseAction::Squash.as_str(), "squash");
+        assert_eq!(RebaseAction::Fixup.as_str(), "fixup");
+        assert_eq!(RebaseAction::Drop.as_str(), "drop");
+    }
+}

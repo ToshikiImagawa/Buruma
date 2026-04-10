@@ -547,4 +547,156 @@ mod tests {
         assert_eq!(detect_language("Cargo.toml"), "toml");
         assert_eq!(detect_language("unknownfile"), "plaintext");
     }
+
+    #[test]
+    fn test_to_file_change_status_all_variants() {
+        assert_eq!(to_file_change_status('A'), FileChangeStatus::Added);
+        assert_eq!(to_file_change_status('M'), FileChangeStatus::Modified);
+        assert_eq!(to_file_change_status('D'), FileChangeStatus::Deleted);
+        assert_eq!(to_file_change_status('R'), FileChangeStatus::Renamed);
+        assert_eq!(to_file_change_status('C'), FileChangeStatus::Copied);
+    }
+
+    #[test]
+    fn test_to_file_change_status_unknown_defaults_to_modified() {
+        assert_eq!(to_file_change_status('U'), FileChangeStatus::Modified);
+        assert_eq!(to_file_change_status('X'), FileChangeStatus::Modified);
+    }
+
+    #[test]
+    fn test_build_status_map_empty() {
+        let map = build_status_map("");
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_build_status_map_staged_file() {
+        let map = build_status_map("M  src/lib.rs\n");
+        assert_eq!(map.len(), 1);
+        assert_eq!(map["src/lib.rs"], FileChangeStatus::Modified);
+    }
+
+    #[test]
+    fn test_build_status_map_unstaged_file() {
+        let map = build_status_map(" M src/lib.rs\n");
+        assert_eq!(map.len(), 1);
+        assert_eq!(map["src/lib.rs"], FileChangeStatus::Modified);
+    }
+
+    #[test]
+    fn test_build_status_map_ignores_untracked() {
+        let map = build_status_map("?? new.txt\n");
+        assert!(map.is_empty());
+    }
+
+    #[test]
+    fn test_insert_path_single_file() {
+        let mut root = FileTreeNode {
+            name: "root".to_string(),
+            path: String::new(),
+            node_type: FileTreeNodeType::Directory,
+            children: Some(Vec::new()),
+            change_status: None,
+        };
+        insert_path(&mut root, "README.md", Some(FileChangeStatus::Added));
+        let children = root.children.as_ref().unwrap();
+        assert_eq!(children.len(), 1);
+        assert_eq!(children[0].name, "README.md");
+        assert_eq!(children[0].node_type, FileTreeNodeType::File);
+        assert_eq!(children[0].change_status, Some(FileChangeStatus::Added));
+    }
+
+    #[test]
+    fn test_insert_path_nested() {
+        let mut root = FileTreeNode {
+            name: "root".to_string(),
+            path: String::new(),
+            node_type: FileTreeNodeType::Directory,
+            children: Some(Vec::new()),
+            change_status: None,
+        };
+        insert_path(&mut root, "src/main.rs", Some(FileChangeStatus::Modified));
+        let children = root.children.as_ref().unwrap();
+        assert_eq!(children.len(), 1);
+        assert_eq!(children[0].name, "src");
+        assert_eq!(children[0].node_type, FileTreeNodeType::Directory);
+        let src_children = children[0].children.as_ref().unwrap();
+        assert_eq!(src_children.len(), 1);
+        assert_eq!(src_children[0].name, "main.rs");
+        assert_eq!(src_children[0].change_status, Some(FileChangeStatus::Modified));
+    }
+
+    #[test]
+    fn test_sort_tree_dirs_first() {
+        let mut root = FileTreeNode {
+            name: "root".to_string(),
+            path: String::new(),
+            node_type: FileTreeNodeType::Directory,
+            children: Some(vec![
+                FileTreeNode {
+                    name: "b.txt".to_string(),
+                    path: "b.txt".to_string(),
+                    node_type: FileTreeNodeType::File,
+                    children: None,
+                    change_status: None,
+                },
+                FileTreeNode {
+                    name: "a_dir".to_string(),
+                    path: "a_dir".to_string(),
+                    node_type: FileTreeNodeType::Directory,
+                    children: Some(Vec::new()),
+                    change_status: None,
+                },
+                FileTreeNode {
+                    name: "a.txt".to_string(),
+                    path: "a.txt".to_string(),
+                    node_type: FileTreeNodeType::File,
+                    children: None,
+                    change_status: None,
+                },
+            ]),
+            change_status: None,
+        };
+        sort_tree(&mut root);
+        let children = root.children.as_ref().unwrap();
+        assert_eq!(children[0].name, "a_dir");
+        assert_eq!(children[1].name, "a.txt");
+        assert_eq!(children[2].name, "b.txt");
+    }
+
+    #[test]
+    fn test_sort_tree_recursive() {
+        let mut root = FileTreeNode {
+            name: "root".to_string(),
+            path: String::new(),
+            node_type: FileTreeNodeType::Directory,
+            children: Some(vec![FileTreeNode {
+                name: "src".to_string(),
+                path: "src".to_string(),
+                node_type: FileTreeNodeType::Directory,
+                children: Some(vec![
+                    FileTreeNode {
+                        name: "z.rs".to_string(),
+                        path: "src/z.rs".to_string(),
+                        node_type: FileTreeNodeType::File,
+                        children: None,
+                        change_status: None,
+                    },
+                    FileTreeNode {
+                        name: "a.rs".to_string(),
+                        path: "src/a.rs".to_string(),
+                        node_type: FileTreeNodeType::File,
+                        children: None,
+                        change_status: None,
+                    },
+                ]),
+                change_status: None,
+            }]),
+            change_status: None,
+        };
+        sort_tree(&mut root);
+        let src_children = root.children.as_ref().unwrap()[0].children.as_ref().unwrap();
+        assert_eq!(src_children[0].name, "a.rs");
+        assert_eq!(src_children[1].name, "z.rs");
+    }
 }

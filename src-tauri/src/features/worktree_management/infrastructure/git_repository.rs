@@ -346,4 +346,30 @@ mod tests {
         assert_eq!(untracked.len(), 1);
         assert_eq!(untracked[0], "new_file.txt");
     }
+
+    #[test]
+    fn test_to_file_change_status() {
+        assert_eq!(to_file_change_status('A'), FileChangeStatus::Added);
+        assert_eq!(to_file_change_status('D'), FileChangeStatus::Deleted);
+        assert_eq!(to_file_change_status('R'), FileChangeStatus::Renamed);
+        assert_eq!(to_file_change_status('C'), FileChangeStatus::Copied);
+        // M やマッチしない文字は Modified にフォールバック
+        assert_eq!(to_file_change_status('M'), FileChangeStatus::Modified);
+        assert_eq!(to_file_change_status('?'), FileChangeStatus::Modified);
+    }
+
+    #[test]
+    fn test_parse_porcelain_no_trailing_newline() {
+        let raw = "worktree /path/to/main\nHEAD abc1234\nbranch refs/heads/main";
+        let entries = parse_porcelain_output(raw);
+        assert_eq!(entries.len(), 1);
+        assert_eq!(entries[0].worktree, "/path/to/main");
+        assert_eq!(entries[0].branch, Some("main".to_string()));
+    }
+
+    #[test]
+    fn test_parse_porcelain_empty() {
+        let entries = parse_porcelain_output("");
+        assert!(entries.is_empty());
+    }
 }

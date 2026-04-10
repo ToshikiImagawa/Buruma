@@ -145,3 +145,15 @@ pub struct PullSummary {
 pub struct FetchResult {
     pub remote: String,
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_reset_mode_as_flag() {
+        assert_eq!(ResetMode::Soft.as_flag(), "--soft");
+        assert_eq!(ResetMode::Mixed.as_flag(), "--mixed");
+        assert_eq!(ResetMode::Hard.as_flag(), "--hard");
+    }
+}

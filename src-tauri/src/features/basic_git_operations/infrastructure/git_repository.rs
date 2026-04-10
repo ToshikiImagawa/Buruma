@@ -276,4 +276,31 @@ mod tests {
         assert_eq!(summary.insertions, 0);
         assert_eq!(summary.deletions, 0);
     }
+
+    #[test]
+    fn test_parse_pull_summary_insertions_only() {
+        let output = " 1 file changed, 5 insertions(+)";
+        let summary = parse_pull_summary(output);
+        assert_eq!(summary.changes, 1);
+        assert_eq!(summary.insertions, 5);
+        assert_eq!(summary.deletions, 0);
+    }
+
+    #[test]
+    fn test_parse_pull_summary_deletions_only() {
+        let output = " 2 files changed, 3 deletions(-)";
+        let summary = parse_pull_summary(output);
+        assert_eq!(summary.changes, 2);
+        assert_eq!(summary.insertions, 0);
+        assert_eq!(summary.deletions, 3);
+    }
+
+    #[test]
+    fn test_parse_pull_summary_multiline() {
+        let output = "Updating abc..def\nFast-forward\n 1 file changed, 1 insertion(+)\n";
+        let summary = parse_pull_summary(output);
+        assert_eq!(summary.changes, 1);
+        assert_eq!(summary.insertions, 1);
+        assert_eq!(summary.deletions, 0);
+    }
 }
