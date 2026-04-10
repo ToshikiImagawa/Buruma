@@ -10,13 +10,13 @@ class ResizeObserverMock {
 }
 
 class IntersectionObserverMock {
-  root = null
+  root: Element | Document | null = null
   rootMargin = ''
   thresholds: ReadonlyArray<number> = []
   observe = vi.fn()
   unobserve = vi.fn()
   disconnect = vi.fn()
-  takeRecords = vi.fn(() => [])
+  takeRecords = vi.fn((): IntersectionObserverEntry[] => [])
 }
 
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
