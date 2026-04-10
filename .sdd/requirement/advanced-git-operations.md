@@ -4,9 +4,9 @@ title: "高度な Git 操作"
 type: "prd"
 status: "approved"
 created: "2026-03-25"
-updated: "2026-04-04"
+updated: "2026-04-09"
 depends-on: ["prd-basic-git-operations"]
-tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict"]
+tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tauri-migration"]
 category: "git-operations"
 priority: "medium"
 risk: "high"
@@ -28,7 +28,7 @@ risk: "high"
 - **functionalRequirement**: 機能要求（Git操作、UI操作、IPC通信など）
 - **performanceRequirement**: パフォーマンス要求（応答時間、メモリ使用量など）
 - **interfaceRequirement**: インターフェース要求（IPC API、UI仕様など）
-- **designConstraint**: 設計制約（Electronセキュリティ、プロセス分離など）
+- **designConstraint**: 設計制約（IPC セキュリティ、プロセス分離、データ永続化など）
 
 ## 1.2. リスクレベル
 

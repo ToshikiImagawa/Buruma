@@ -28,7 +28,7 @@ risk: "medium"
 - **functionalRequirement**: 機能要求（Git操作、UI操作、IPC通信など）
 - **performanceRequirement**: パフォーマンス要求（応答時間、メモリ使用量など）
 - **interfaceRequirement**: インターフェース要求（IPC API、UI仕様など）
-- **designConstraint**: 設計制約（Electronセキュリティ、プロセス分離など）
+- **designConstraint**: 設計制約（IPC セキュリティ、プロセス分離、データ永続化など）
 
 ## 1.2. リスクレベル
 
@@ -149,9 +149,9 @@ requirementDiagram
         verifymethod: test
     }
 
-    designConstraint ElectronSecurity {
+    designConstraint IpcSecurity {
         id: DC_001
-        text: "Electronセキュリティ制約: preload + contextBridge 経由の通信必須"
+        text: "IPC セキュリティ制約: フロントエンドから OS API を直接使用せず、型安全な IPC コマンド層を経由して通信する"
         risk: high
         verifymethod: inspection
     }
@@ -160,7 +160,7 @@ requirementDiagram
     SystemRequirement - contains -> Quality
     CoreFunctionality - contains -> Function1
     Quality - contains -> Performance1
-    Quality - contains -> ElectronSecurity
+    Quality - contains -> IpcSecurity
 ```
 
 ## 3.2. 主要サブシステム詳細図 `<OPTIONAL>`
@@ -219,9 +219,9 @@ requirementDiagram
 
 ## 4.4. 設計制約 `<OPTIONAL>`
 
-### DC_001: Electronセキュリティ制約
+### DC_001: IPC セキュリティ制約
 
-メインプロセスとレンダラープロセスの通信は preload + contextBridge を経由すること。レンダラーから Node.js API を直接使用しない。
+フロントエンド（Webview）はバックエンドとの通信に型安全な IPC コマンド層を使用し、OS API（ファイルシステム、プロセス実行等）を直接使用しない。IPC コマンドの引数はバックエンド側でバリデーションする。
 
 **検証方法:** インスペクションによる検証
 
@@ -231,7 +231,7 @@ requirementDiagram
 
 ## 5.1. 技術的制約
 
-- Electron 41 + Electron Forge + Vite 5 のビルドチェーンに依存
+- Tauri 2 + Vite 6 のビルドチェーンに依存
 - `@tailwindcss/vite` は ESM only のため `@tailwindcss/postcss` を使用
 - Shadcn/ui は `rsc: false`（Server Components 無効）で使用
 
@@ -263,9 +263,9 @@ requirementDiagram
 | 用語 | 定義 |
 |------|------|
 | ワークツリー | Git worktree。同一リポジトリの複数チェックアウトを管理する仕組み |
-| メインプロセス | Electron の Node.js 実行環境。Git 操作等のバックエンド処理を担当 |
-| レンダラープロセス | Electron のブラウザ環境。React による UI 表示を担当 |
-| IPC | Inter-Process Communication。メインプロセスとレンダラー間の通信 |
+| Tauri バックエンド | Rust で記述されたネイティブ処理層。Git 操作・永続化等のバックエンド処理を担当 |
+| Webview フロントエンド | React で構成される UI 層。WKWebView / WebView2 等のネイティブ WebView 上で動作 |
+| IPC | Inter-Process Communication。Tauri の invoke（Webview → Core）と emit（Core → Webview）による通信 |
 
 ---
 
@@ -296,8 +296,8 @@ requirementDiagram
 - 技術的な実装詳細
 - アーキテクチャ・モジュール構成
 - 技術スタックの選定
-- API定義・型定義
-- IPC チャネルの設計
+- API 定義・型定義
+- Tauri command / event の設計
 
 ---
 

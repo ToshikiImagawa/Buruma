@@ -4,11 +4,11 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-04-07"
+updated: "2026-04-09"
 depends-on: ["spec-claude-code-integration"]
-tags: ["claude-code", "ai", "cli", "session", "child-process"]
+tags: ["claude-code", "ai", "cli", "session", "child-process", "tauri-migration"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"
@@ -36,7 +36,7 @@ risk: "high"
 | CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
 | OutputParser (ClaudeDefaultOutputParser) | 🟢 | CLI 出力の JSON 解析・構造化。フォールバック付き |
 | IPC ハンドラー（claude:*） | 🟢 | 9 チャネル + 3 イベント登録済み |
-| Preload API（claude） | 🟢 | contextBridge 経由の API 公開済み（10 メソッド + 3 イベント） |
+| Tauri invoke/listen API（claude） | 🟢 | 型安全な  API 公開済み（10 メソッド + 3 イベント） |
 | ClaudeSessionPanel | 🟢 | セッション操作 UI + 未認証時ログインボタン表示 |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
 | コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
@@ -44,7 +44,7 @@ risk: "high"
 | ReviewCommentList | 🟢 | レビューコメント一覧 UI。severity 別アイコン + suggestion 表示 |
 | DiffExplanationView | 🟢 | 差分解説表示 UI。コピーボタン付き |
 | ReviewDiffMainUseCase / ExplainDiffMainUseCase | 🟢 | レビュー/解説 UseCase + プロンプトビルダー |
-| ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | レンダラー側 ViewModel + Hook ラッパー |
+| ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | Webview 側 ViewModel + Hook ラッパー |
 
 ---
 
@@ -52,8 +52,8 @@ risk: "high"
 
 1. **ワークツリー単位のセッション分離** — 各ワークツリーに独立した Claude Code CLI 子プロセスを割り当て、コンテキストの混在を防ぐ（DC_502）
 2. **CLI ベースの統合** — Claude API の直接呼び出しではなく、Claude Code CLI を子プロセスとして利用し、認証管理を CLI に委譲する（DC_501）
-3. **リアルタイムストリーミング** — 子プロセスの stdout/stderr を IPC イベントでレンダラーに逐次送信し、ユーザーに即座にフィードバックを提供する
-4. **Electron セキュリティ準拠** — 子プロセス管理はメインプロセスのみで行い、レンダラーから child_process を直接使用しない（DC_503、原則 A-001, T-003）
+3. **リアルタイムストリーミング** — 子プロセスの stdout/stderr を IPC イベントでWebviewに逐次送信し、ユーザーに即座にフィードバックを提供する
+4. **Tauri セキュリティ準拠** — 子プロセス管理はTauri Core (Rust)のみで行い、Webviewから tokio::process::Command を直接使用しない（DC_503、原則 A-001, T-003）
 5. **Git 操作の安全性** — Git 操作委譲時は実行前確認を必須とし、不可逆操作を保護する（原則 B-002）
 
 ---
@@ -64,22 +64,31 @@ risk: "high"
 
 | 領域 | 採用技術 | 選定理由 |
 |------|----------|----------|
-| 子プロセス管理 | Node.js `child_process`（spawn） | Electron メインプロセスで利用可能な標準 API。ストリーミング I/O をサポート |
+| 子プロセス管理 | Node.js `tokio::process::Command`（spawn） | Electron Tauri Core (Rust)で利用可能な標準 API。ストリーミング I/O をサポート |
 | ANSI パース | ansi-to-html または strip-ansi | Claude Code CLI の出力に含まれる ANSI カラーコードの処理（原則 A-002: Library-First） |
 | マークダウン表示 | react-markdown | 解説・レビュー結果のマークダウンレンダリング（原則 A-002） |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
 
-| 領域 | 採用技術 |
-|------|----------|
-| フレームワーク | Electron 41 + Electron Forge 7 |
-| バンドラー | Vite 5 |
-| UI | React 19 + TypeScript |
-| スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
-| UIコンポーネント | Shadcn/ui |
-| Git操作 | simple-git（予定） |
-| エディタ | Monaco Editor（予定） |
+| 領域              | 採用技術                                     |
+|----------------|------------------------------------------|
+| フレームワーク      | Tauri 2.x                                |
+| バックエンド言語    | Rust (edition 2021+)                     |
+| バンドラー          | Vite 6                                   |
+| UI                | React 19 + TypeScript 5.x                |
+| スタイリング        | Tailwind CSS v4 (`@tailwindcss/postcss`) |
+| UIコンポーネント    | Shadcn/ui                                |
+| Git 操作            | `tokio::process::Command` 経由の `git` CLI   |
+| ファイル監視        | `notify` + `notify-debouncer-full` crate |
+| 永続化              | `tauri-plugin-store`                     |
+| ダイアログ          | `tauri-plugin-dialog`                    |
+| エディタ            | Monaco Editor                            |
+| Rust 非同期        | `tokio`                                  |
+| Rust エラー        | `thiserror` + `AppError`                 |
+| Rust テスト        | `cargo test` + `mockall`                 |
+| DI (Webview)        | VContainer                               |
+| DI (Rust)           | `tauri::State<T>` + `Arc<dyn Trait>`     |
 
 </details>
 
@@ -107,8 +116,8 @@ graph TD
         SessionPanel --> StatusInd
     end
 
-    subgraph "Preload"
-        Bridge[contextBridge API]
+    subgraph "Tauri Runtime"
+        Runtime["Tauri Runtime<br/>(Webview ↔ Core IPC)"]
         ClaudeAPI["claude.* API"]
         Bridge --> ClaudeAPI
     end
@@ -130,41 +139,41 @@ graph TD
     end
 
     React -->|"invoke"| Bridge
-    Bridge -->|"ipcRenderer"| IPCHandler
+    Runtime -->|"invoke<T>"| IPCHandler
     IPCHandler -->|"response"| Bridge
-    Bridge -->|"result"| React
+    Runtime -->|"result"| React
 
     ProcessMgr -->|"spawn"| CLI1
     ProcessMgr -->|"spawn"| CLI2
     CLI1 -->|"stdout/stderr"| ProcessMgr
     CLI2 -->|"stdout/stderr"| ProcessMgr
-    ProcessMgr -->|"webContents.send"| Bridge
-    Bridge -->|"onOutput/onSessionChanged"| OutputView
+    ProcessMgr -->|"app_handle.emit"| Event
+    Runtime -->|"onOutput/onSessionChanged"| OutputView
 ```
 
 ## 4.2. モジュール分割
 
 | モジュール名 | プロセス | 責務 | 配置場所 |
 |------------|---------|------|---------|
-| ClaudeProcessManager | main (infrastructure) | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src/processes/main/features/claude-code-integration/infrastructure/claude-process-manager.ts` |
-| SessionStore | main (application/services) | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src/processes/main/features/claude-code-integration/application/services/claude-session-store.ts` |
-| OutputParser | main (infrastructure) | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src/processes/main/features/claude-code-integration/infrastructure/claude-output-parser.ts` |
-| Claude IPC Handler | main (presentation) | `claude:*` IPC チャネルの登録・ルーティング | `src/processes/main/features/claude-code-integration/presentation/ipc-handlers.ts` |
+| ClaudeProcessManager | main (infrastructure) | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-process-manager.ts` |
+| SessionStore | main (application/services) | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src-tauri/src/features/claude-code-integration/application/services/claude-session-store.ts` |
+| OutputParser | main (infrastructure) | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-output-parser.ts` |
+| Claude IPC Handler | main (presentation) | `claude:*` IPC チャネルの登録・ルーティング | `src-tauri/src/features/claude-code-integration/presentation/ipc-handlers.ts` |
 | Claude 型定義 | domain | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/domain/index.ts`（既存ファイルに追加） |
-| Preload Claude API | preload | contextBridge 経由で claude.* API を公開 | `src/processes/preload/preload.ts`（既存ファイルに追加） |
-| ClaudeSessionPanel | renderer (presentation) | セッション操作 UI（起動/停止/入力/状態） | `src/processes/renderer/features/claude-code-integration/presentation/components/ClaudeSessionPanel.tsx` |
-| ClaudeOutputView | renderer (presentation) | ストリーミング出力表示 | `src/processes/renderer/features/claude-code-integration/presentation/components/ClaudeOutputView.tsx` |
-| ReviewCommentList | renderer (presentation) | レビューコメント一覧 | `src/processes/renderer/features/claude-code-integration/presentation/components/ReviewCommentList.tsx` |
-| DiffExplanationView | renderer (presentation) | 差分解説マークダウン表示 | `src/processes/renderer/features/claude-code-integration/presentation/components/DiffExplanationView.tsx` |
-| SessionStatusIndicator | renderer (presentation) | セッション状態インジケーター | `src/processes/renderer/features/claude-code-integration/presentation/components/SessionStatusIndicator.tsx` |
-| CommandInput | renderer (presentation) | 自然言語入力フィールド | `src/processes/renderer/features/claude-code-integration/presentation/components/CommandInput.tsx` |
+| Preload Claude API | preload | 型安全な IPC で claude.* API を公開 | （preload 層は Tauri では不要）（既存ファイルに追加） |
+| ClaudeSessionPanel | renderer (presentation) | セッション操作 UI（起動/停止/入力/状態） | `src/features/claude-code-integration/presentation/components/ClaudeSessionPanel.tsx` |
+| ClaudeOutputView | renderer (presentation) | ストリーミング出力表示 | `src/features/claude-code-integration/presentation/components/ClaudeOutputView.tsx` |
+| ReviewCommentList | renderer (presentation) | レビューコメント一覧 | `src/features/claude-code-integration/presentation/components/ReviewCommentList.tsx` |
+| DiffExplanationView | renderer (presentation) | 差分解説マークダウン表示 | `src/features/claude-code-integration/presentation/components/DiffExplanationView.tsx` |
+| SessionStatusIndicator | renderer (presentation) | セッション状態インジケーター | `src/features/claude-code-integration/presentation/components/SessionStatusIndicator.tsx` |
+| CommandInput | renderer (presentation) | 自然言語入力フィールド | `src/features/claude-code-integration/presentation/components/CommandInput.tsx` |
 
 ---
 
 # 5. データモデル
 
 ```typescript
-// セッション管理（インメモリ、メインプロセス側）
+// セッション管理（インメモリ、Tauri Core (Rust)側）
 // SessionStore が管理する内部データ構造
 interface InternalSession {
   worktreePath: string;
@@ -196,8 +205,8 @@ interface GenerateCommitMessageArgs {
 ## 6.1. ClaudeProcessManager
 
 ```typescript
-// src/processes/main/services/claude-process-manager.ts
-import { ChildProcess, spawn } from 'child_process';
+// src-tauri/src/services/claude-process-manager.ts
+import { ChildProcess, spawn } from 'tokio::process::Command';
 import type { ClaudeSession, ClaudeCommand, ClaudeOutput } from '../../types/claude';
 
 export class ClaudeProcessManager {
@@ -248,7 +257,7 @@ export class ClaudeProcessManager {
 ## 6.2. SessionStore
 
 ```typescript
-// src/processes/main/services/claude-session-store.ts
+// src-tauri/src/services/claude-session-store.ts
 import type { ClaudeSession, ClaudeOutput } from '../../types/claude';
 
 export class SessionStore {
@@ -292,7 +301,7 @@ export class SessionStore {
 ## 6.3. OutputParser
 
 ```typescript
-// src/processes/main/services/claude-output-parser.ts
+// src-tauri/src/services/claude-output-parser.ts
 import type { ReviewComment } from '../../types/claude';
 
 export class OutputParser {
@@ -320,20 +329,20 @@ export class OutputParser {
 }
 ```
 
-## 6.4. IPC ハンドラー（メインプロセス側）
+## 6.4. IPC ハンドラー（Tauri Core (Rust)側）
 
 ```typescript
-// src/processes/main/ipc/claude-handler.ts
-import { ipcMain, BrowserWindow } from 'electron';
+// src-tauri/src/ipc/claude-handler.ts
+// Tauri (@tauri-apps/api): #[tauri::command], Tauri Window;
 import type { IPCResult } from '../../types/ipc';
 import type { ClaudeSession, ClaudeCommand, ClaudeOutput, ReviewComment } from '../../types/claude';
 
 export function registerClaudeIPCHandlers(
   processManager: ClaudeProcessManager,
-  mainWindow: BrowserWindow,
+  mainWindow: Tauri Window,
 ): void {
   // セッション管理
-  ipcMain.handle('claude:start-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeSession>> => {
+  #[tauri::command]('claude:start-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeSession>> => {
     try {
       const session = await processManager.startSession(args.worktreePath);
       return { success: true, data: session };
@@ -343,7 +352,7 @@ export function registerClaudeIPCHandlers(
     }
   });
 
-  ipcMain.handle('claude:stop-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<void>> => {
+  #[tauri::command]('claude:stop-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<void>> => {
     try {
       await processManager.stopSession(args.worktreePath);
       return { success: true, data: undefined };
@@ -353,17 +362,17 @@ export function registerClaudeIPCHandlers(
     }
   });
 
-  ipcMain.handle('claude:get-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeSession | null>> => {
+  #[tauri::command]('claude:get-session', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeSession | null>> => {
     const session = processManager.getSession(args.worktreePath);
     return { success: true, data: session };
   });
 
-  ipcMain.handle('claude:get-all-sessions', async (): Promise<IPCResult<ClaudeSession[]>> => {
+  #[tauri::command]('claude:get-all-sessions', async (): Promise<IPCResult<ClaudeSession[]>> => {
     return { success: true, data: processManager.getAllSessions() };
   });
 
   // コマンド実行
-  ipcMain.handle('claude:send-command', async (_event, command: ClaudeCommand): Promise<IPCResult<void>> => {
+  #[tauri::command]('claude:send-command', async (_event, command: ClaudeCommand): Promise<IPCResult<void>> => {
     try {
       await processManager.sendCommand(command);
       return { success: true, data: undefined };
@@ -374,7 +383,7 @@ export function registerClaudeIPCHandlers(
   });
 
   // 出力取得
-  ipcMain.handle('claude:get-output', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeOutput[]>> => {
+  #[tauri::command]('claude:get-output', async (_event, args: { worktreePath: string }): Promise<IPCResult<ClaudeOutput[]>> => {
     const session = processManager.getSession(args.worktreePath);
     if (!session) {
       return { success: false, error: { code: 'SESSION_NOT_FOUND', message: 'セッションが見つかりません' } };
@@ -384,7 +393,7 @@ export function registerClaudeIPCHandlers(
   });
 
   // レビュー・解説（非同期、結果はイベントで通知）
-  ipcMain.handle('claude:review-diff', async (_event, args): Promise<IPCResult<void>> => {
+  #[tauri::command]('claude:review-diff', async (_event, args): Promise<IPCResult<void>> => {
     try {
       // 差分取得 → プロンプト構築 → sendCommand
       // 結果は claude:review-result イベントで非同期通知
@@ -395,7 +404,7 @@ export function registerClaudeIPCHandlers(
     }
   });
 
-  ipcMain.handle('claude:explain-diff', async (_event, args): Promise<IPCResult<void>> => {
+  #[tauri::command]('claude:explain-diff', async (_event, args): Promise<IPCResult<void>> => {
     try {
       // 差分取得 → プロンプト構築 → sendCommand
       // 結果は claude:explain-result イベントで非同期通知
@@ -407,7 +416,7 @@ export function registerClaudeIPCHandlers(
   });
 
   // コミットメッセージ生成（ワンショット）
-  ipcMain.handle('claude:generate-commit-message', async (_event, args: GenerateCommitMessageArgs): Promise<IPCResult<string>> => {
+  #[tauri::command]('claude:generate-commit-message', async (_event, args: GenerateCommitMessageArgs): Promise<IPCResult<string>> => {
     try {
       const result = await generateCommitMessageUseCase.invoke(args);
       return { success: true, data: result };
@@ -419,74 +428,74 @@ export function registerClaudeIPCHandlers(
 
   // ストリーミング出力のイベント転送
   processManager.onOutput((output: ClaudeOutput) => {
-    mainWindow.webContents.send('claude:output', output);
+    mainWindow.app_handle.emit('claude:output', output);
   });
 
   processManager.onSessionChanged((session: ClaudeSession) => {
-    mainWindow.webContents.send('claude:session-changed', session);
+    mainWindow.app_handle.emit('claude:session-changed', session);
   });
 }
 ```
 
-## 6.5. Preload API（contextBridge 経由）
+## 6.5. Tauri invoke/listen API
 
 ```typescript
-// src/preload.ts に追加
+// src/(削除: Tauri では preload 不要) に追加
 // claude 名前空間
 claude: {
   startSession: (args: { worktreePath: string }): Promise<IPCResult<ClaudeSession>> =>
-    ipcRenderer.invoke('claude:start-session', args),
+    invoke<T>('claude_start_session', args),
   stopSession: (args: { worktreePath: string }): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('claude:stop-session', args),
+    invoke<T>('claude_stop_session', args),
   getSession: (args: { worktreePath: string }): Promise<IPCResult<ClaudeSession | null>> =>
-    ipcRenderer.invoke('claude:get-session', args),
+    invoke<T>('claude_get_session', args),
   getAllSessions: (): Promise<IPCResult<ClaudeSession[]>> =>
-    ipcRenderer.invoke('claude:get-all-sessions'),
+    invoke<T>('claude_get_all_sessions'),
   sendCommand: (command: ClaudeCommand): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('claude:send-command', command),
+    invoke<T>('claude_send_command', command),
   getOutput: (args: { worktreePath: string }): Promise<IPCResult<ClaudeOutput[]>> =>
-    ipcRenderer.invoke('claude:get-output', args),
+    invoke<T>('claude_get_output', args),
   generateCommitMessage: (args: GenerateCommitMessageArgs): Promise<IPCResult<string>> =>
-    ipcRenderer.invoke('claude:generate-commit-message', args),
+    invoke<T>('claude_generate_commit_message', args),
   checkAuth: (): Promise<IPCResult<ClaudeAuthStatus>> =>
-    ipcRenderer.invoke('claude:check-auth'),
+    invoke<T>('claude_check_auth'),
   login: (): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('claude:login'),
+    invoke<T>('claude_login'),
   reviewDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('claude:review-diff', args),
+    invoke<T>('claude_review_diff', args),
   explainDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
-    ipcRenderer.invoke('claude:explain-diff', args),
+    invoke<T>('claude_explain_diff', args),
 
   // イベント購読
   onOutput: (callback: (output: ClaudeOutput) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, output: ClaudeOutput) => callback(output);
-    ipcRenderer.on('claude:output', handler);
-    return () => ipcRenderer.removeListener('claude:output', handler);
+    await listen('claude:output', handler)  // Tauri;
+    return () => await unlisten()  // Tauri;
   },
   onSessionChanged: (callback: (session: ClaudeSession) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, session: ClaudeSession) => callback(session);
-    ipcRenderer.on('claude:session-changed', handler);
-    return () => ipcRenderer.removeListener('claude:session-changed', handler);
+    await listen('claude:session-changed', handler)  // Tauri;
+    return () => await unlisten()  // Tauri;
   },
   onCommandCompleted: (callback: (data: { worktreePath: string }) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: { worktreePath: string }) => callback(data);
-    ipcRenderer.on('claude:command-completed', handler);
-    return () => ipcRenderer.removeListener('claude:command-completed', handler);
+    await listen('claude:command-completed', handler)  // Tauri;
+    return () => await unlisten()  // Tauri;
   },
   onReviewResult: (callback: (result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => callback(result);
-    ipcRenderer.on('claude:review-result', handler);
-    return () => ipcRenderer.removeListener('claude:review-result', handler);
+    await listen('claude:review-result', handler)  // Tauri;
+    return () => await unlisten()  // Tauri;
   },
   onExplainResult: (callback: (result: { worktreePath: string; explanation: string }) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, result: { worktreePath: string; explanation: string }) => callback(result);
-    ipcRenderer.on('claude:explain-result', handler);
-    return () => ipcRenderer.removeListener('claude:explain-result', handler);
+    await listen('claude:explain-result', handler)  // Tauri;
+    return () => await unlisten()  // Tauri;
   },
 },
 ```
 
-## 6.6. レンダラー側の型定義
+## 6.6. Webview 側の型定義
 
 ```typescript
 // src/types/electron.d.ts に追加
@@ -527,11 +536,11 @@ interface ElectronAPI {
 
 | テストレベル | 対象 | カバレッジ目標 |
 |------------|------|------------|
-| ユニットテスト | ClaudeProcessManager（モック child_process） | >= 80% |
+| ユニットテスト | ClaudeProcessManager（モック tokio::process::Command） | >= 80% |
 | ユニットテスト | SessionStore（インメモリ状態管理） | >= 80% |
 | ユニットテスト | OutputParser（レビューコメント/解説パース） | >= 80% |
 | ユニットテスト | Claude IPC Handler（モック ProcessManager） | >= 80% |
-| 結合テスト | メインプロセス ↔ Preload ↔ レンダラー間の IPC 連携 | 主要フロー |
+| 結合テスト | Tauri Core (Rust) ↔ Preload ↔ Webview間の IPC 連携 | 主要フロー |
 | E2Eテスト | セッション起動/停止、コマンド送信、出力表示 | 主要ユースケース |
 | コンポーネントテスト | ClaudeSessionPanel, ClaudeOutputView, ReviewCommentList | >= 60% |
 
@@ -544,20 +553,20 @@ interface ElectronAPI {
 | 決定事項 | 選択肢 | 決定内容 | 理由 |
 |----------|--------|----------|------|
 | Claude Code との通信方式 | A) Claude API 直接呼び出し / B) Claude Code CLI 子プロセス | B) CLI 子プロセス | DC_501 の制約。認証管理を CLI に委譲でき、CLI のバージョンアップに追従しやすい。ユーザーが既にインストール・認証済みの CLI をそのまま利用 |
-| セッション管理の永続化 | A) electron-store で永続化 / B) インメモリのみ | B) インメモリのみ | セッション（子プロセス）はアプリ終了時に消滅するため永続化不要。アプリ起動時はクリーンな状態から開始 |
+| セッション管理の永続化 | A) tauri-plugin-store で永続化 / B) インメモリのみ | B) インメモリのみ | セッション（子プロセス）はアプリ終了時に消滅するため永続化不要。アプリ起動時はクリーンな状態から開始 |
 | 出力のバッファリング | A) 全出力を保持 / B) 最大件数で制限 | B) 最大1000件で制限 | メモリ使用量の制御。長時間のセッションで出力が蓄積しすぎることを防ぐ |
 | レビュー結果の取得方式 | A) リクエスト/レスポンス（同期的） / B) リクエスト→イベント通知（非同期的） | B) イベント通知 | CLI の出力はストリーミングであり、完了タイミングが不定。IPC invoke は即座に応答を返し、結果は別イベントで通知 |
 | 子プロセスの終了方式 | A) SIGKILL 即座 / B) SIGTERM → タイムアウト → SIGKILL | B) SIGTERM + タイムアウト | グレースフルシャットダウン。Claude Code CLI にクリーンアップの機会を与える。タイムアウトは5秒 |
-| ストリーミング出力の転送 | A) IPC invoke のポーリング / B) IPC イベント（webContents.send）/ C) MessagePort | B) IPC イベント | リアルタイム性が求められる。ポーリングは遅延が大きい。MessagePort は複雑すぎる。webContents.send が最もシンプル |
-| ANSI カラーコード処理 | A) メインプロセスで変換 / B) レンダラーで変換 / C) 除去のみ | B) レンダラーで変換 | メインプロセスの負荷軽減。レンダラー側で HTML に変換して表示 |
+| ストリーミング出力の転送 | A) invoke のポーリング / B) Tauri event（`app_handle.emit`） / C) MessagePort | B) Tauri event | リアルタイム性が求められる。ポーリングは遅延が大きい。MessagePort は複雑すぎる。Tauri の `app_handle.emit` + Webview 側 `listen` が最もシンプル |
+| ANSI カラーコード処理 | A) Tauri Core (Rust)で変換 / B) Webviewで変換 / C) 除去のみ | B) Webviewで変換 | Tauri Core (Rust)の負荷軽減。Webview 側で HTML に変換して表示 |
 
 ## 9.2. 未解決の課題
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
 | Claude Code CLI の出力フォーマット仕様 | 高 | CLI の出力は非構造化テキスト。OutputParser のパースロジックは CLI バージョンに依存する可能性がある。初期実装では正規表現ベースのパースとし、パース失敗時は生テキストをフォールバック表示 |
-| Claude Code CLI のインタラクティブモード対応 | 中 | CLI が確認プロンプト（y/n）を出す場合の stdin 制御。初期実装では `--yes` フラグ等の非対話オプションを調査し、対話が必要な場合はレンダラーに確認を委譲 |
-| 大量出力時のレンダラーパフォーマンス | 中 | 仮想スクロール（react-window 等）の導入を検討。初期実装では出力件数制限（1000件）で対応 |
+| Claude Code CLI のインタラクティブモード対応 | 中 | CLI が確認プロンプト（y/n）を出す場合の stdin 制御。初期実装では `--yes` フラグ等の非対話オプションを調査し、対話が必要な場合はWebviewに確認を委譲 |
+| 大量出力時のWebviewパフォーマンス | 中 | 仮想スクロール（react-window 等）の導入を検討。初期実装では出力件数制限（1000件）で対応 |
 | Claude Code CLI のバージョン互換性 | 中 | 起動時に `claude --version` でバージョンチェックを行い、非互換バージョンの場合は警告を表示 |
 
 ---
@@ -579,18 +588,63 @@ interface ElectronAPI {
 
 ## 10.3. 出力の安全性
 
-- CLI からの出力をレンダラーに送信する際、XSS 攻撃を防ぐために HTML エスケープを行う
+- CLI からの出力をWebviewに送信する際、XSS 攻撃を防ぐために HTML エスケープを行う
 - ANSI → HTML 変換は信頼できるライブラリを使用する
 
 ---
 
 # 11. 変更履歴
 
+## v4.0 (2026-04-09)
+
+**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
+
+- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
+- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
+- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
+- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
+- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
+- Preload API ブロックを削除（Tauri では preload 不要）
+- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
+- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
+- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
+- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
+- `electron-store` → `tauri-plugin-store` に置換
+- `child_process.spawn` → `tokio::process::Command` に置換
+- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
+
+**移行ガイド:**
+
+```typescript
+// ❌ 旧コード (Electron)
+const result = await window.electronAPI.repository.open()
+if (result.success) { /* ... */ }
+
+// ✅ 新コード (Tauri)
+import { invokeCommand } from '@/shared/lib/invoke'
+const result = await invokeCommand<RepositoryInfo | null>('repository_open')
+if (result.success) { /* ... */ }
+```
+
+```rust
+// ✅ Rust 側 (新規)
+#[tauri::command]
+pub async fn repository_open(
+    state: State<'_, AppState>,
+) -> AppResult<Option<RepositoryInfo>> {
+    state.open_repository_dialog_usecase.invoke().await
+}
+```
+
+> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
+
+---
+
 ## v1.1 (2026-04-05)
 
 **変更内容:**
 
-- PRD レビュー指摘反映: DC_503（レンダラーからの child_process 直接使用禁止）を設計目標に追加
+- PRD レビュー指摘反映: DC_503（Webviewからの tokio::process::Command 直接使用禁止）を設計目標に追加
 - NFR_501（セッション起動30秒以内）を NFR 実現方針に反映
 - モジュール配置パスを Clean Architecture 4層 + feature ディレクトリ構成に修正
 - status を approved に変更
@@ -601,5 +655,5 @@ interface ElectronAPI {
 
 - 初版作成
 - ClaudeProcessManager、SessionStore、OutputParser の設計を定義
-- IPC ハンドラー、Preload API、レンダラー型定義を定義
+- IPC ハンドラー、Tauri invoke/listen API、Webview型定義を定義
 - セキュリティ考慮事項を記載

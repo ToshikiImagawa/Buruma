@@ -4,9 +4,9 @@ title: "Claude Code 連携"
 type: "prd"
 status: "approved"
 created: "2026-03-25"
-updated: "2026-04-05"
+updated: "2026-04-09"
 depends-on: ["prd-worktree-management", "prd-application-foundation"]
-tags: ["claude-code", "ai", "cli", "session"]
+tags: ["claude-code", "ai", "cli", "session", "tauri-migration"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"
@@ -28,7 +28,7 @@ risk: "high"
 - **functionalRequirement**: 機能要求（Git操作、UI操作、IPC通信など）
 - **performanceRequirement**: パフォーマンス要求（応答時間、メモリ使用量など）
 - **interfaceRequirement**: インターフェース要求（IPC API、UI仕様など）
-- **designConstraint**: 設計制約（Electronセキュリティ、プロセス分離など）
+- **designConstraint**: 設計制約（IPC セキュリティ、プロセス分離、データ永続化など）
 
 ## 1.2. リスクレベル
 
@@ -234,9 +234,9 @@ requirementDiagram
         verifymethod: inspection
     }
 
-    designConstraint MainProcessExecution {
+    designConstraint BackendProcessExecution {
         id: DC_503
-        text: "Claude Code CLI の子プロセス実行はメインプロセスでのみ行い、レンダラーから直接 child_process を使用しない"
+        text: "Claude Code CLI のサブプロセス実行はバックエンドでのみ行い、フロントエンドから OS のプロセス実行 API を直接使用しない"
         risk: high
         verifymethod: inspection
     }
@@ -257,7 +257,7 @@ requirementDiagram
     AICodeReview - contains -> CodeReview
     AICodeReview - contains -> DiffExplanation
     ClaudeCodeIntegration - traces -> CLISubprocess
-    ClaudeCodeIntegration - traces -> MainProcessExecution
+    ClaudeCodeIntegration - traces -> BackendProcessExecution
     SessionManagement - traces -> SessionIsolation
     SessionManagement - contains -> SessionStartupTime
 ```
@@ -368,9 +368,9 @@ Claude Code は `claude` コマンドを子プロセスとして実行する。C
 
 **検証方法:** インスペクションによる検証
 
-### DC_503: メインプロセス実行制約
+### DC_503: バックエンド実行制約
 
-Claude Code CLI の子プロセス実行はメインプロセスでのみ行い、レンダラーから直接 child_process を使用しない。IPC 経由でメインプロセスに委譲する（CONSTITUTION.md A-001 準拠）。
+Claude Code CLI のサブプロセス実行はバックエンド（Tauri Core / Rust）でのみ行い、フロントエンド（Webview）から OS のプロセス実行 API を直接使用しない。IPC（Tauri command）経由でバックエンドに委譲する（CONSTITUTION.md A-001 準拠）。
 
 **検証方法:** インスペクションによる検証
 

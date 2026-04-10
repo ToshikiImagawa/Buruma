@@ -54,13 +54,23 @@ risk: "medium"
 
 | 領域 | 採用技術 |
 |------|----------|
-| フレームワーク | Electron 41 + Electron Forge 7 |
-| バンドラー | Vite 5 |
-| UI | React 19 + TypeScript |
+| フレームワーク | Tauri 2.x |
+| バックエンド言語 | Rust (edition 2021+) |
+| バンドラー | Vite 6 |
+| UI | React 19 + TypeScript 5.x |
 | スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
 | UIコンポーネント | Shadcn/ui |
-| Git操作 | simple-git（予定） |
-| エディタ | Monaco Editor（予定） |
+| Git 操作 | `tokio::process::Command` 経由の `git` CLI |
+| ファイル監視 | `notify` + `notify-debouncer-full` crate |
+| 永続化 | `tauri-plugin-store` |
+| ダイアログ | `tauri-plugin-dialog` |
+| エディタ | Monaco Editor |
+| Rust 非同期 | `tokio` |
+| Rust エラー | `thiserror` + `AppError` enum |
+| Rust テスト | `cargo test` + `mockall` |
+| TS テスト | Vitest + Testing Library |
+| DI (Webview) | VContainer |
+| DI (Rust) | `tauri::State<T>` + `Arc<dyn Trait>` |
 
 </details>
 
@@ -70,37 +80,36 @@ risk: "medium"
 
 ## 4.1. システム構成図
 
-Electron のマルチプロセスアーキテクチャに基づいて記述します。
+Tauri の Webview ↔ Core アーキテクチャに基づいて記述します。
 
 ```mermaid
 graph TD
-    subgraph "Renderer Process"
-        React[React UI]
-        Components[Components]
-        React --> Components
+    subgraph "Webview (React)"
+        UI[React UI]
+        VM[ViewModels / Hooks]
+        Repo[Infrastructure Repository]
+        UI --> VM --> Repo
     end
 
-    subgraph "Preload"
-        Bridge[contextBridge API]
+    subgraph "Tauri Core (Rust)"
+        Commands["#[tauri::command]<br/>presentation"]
+        UseCases[UseCases<br/>application]
+        Trait["Repository trait<br/>application"]
+        Impl["Repository impl<br/>infrastructure"]
+        Commands --> UseCases --> Trait
+        Trait -.->|DI via AppState| Impl
     end
 
-    subgraph "Main Process"
-        IPC[IPC Handler]
-        Service[Service Layer]
-        IPC --> Service
-    end
-
-    React -->|"invoke"| Bridge
-    Bridge -->|"ipcRenderer"| IPC
-    IPC -->|"response"| Bridge
-    Bridge -->|"result"| React
+    Repo -->|"invoke&lt;T&gt;('snake_command', args)"| Commands
+    Impl -.->|"app_handle.emit('kebab-event', payload)"| Repo
 ```
 
 ## 4.2. モジュール分割
 
-| モジュール名 | プロセス | 責務 | 配置場所 |
-|------------|---------|------|---------|
-| [名前] | main / preload / renderer | [責務] | `src/...` |
+| モジュール名 | 境界 | 責務 | 配置場所 |
+|------------|------|------|---------|
+| [Rust モジュール名] | Rust (Tauri Core) | [責務] | `src-tauri/src/features/{feature}/...` |
+| [TS クラス名] | TypeScript (Webview) | [責務] | `src/features/{feature}/...` |
 
 ---
 
@@ -117,37 +126,71 @@ interface SomeEntity {
 
 # 6. インターフェース定義 `<OPTIONAL>`
 
-## 6.1. IPC ハンドラー（メインプロセス側）
+## 6.1. Tauri Command（Rust presentation 層）
 
-```typescript
-// src/main.ts または src/processes/main/handlers/
-ipcMain.handle('channel-name', async (_event, args: ArgType): Promise<ReturnType> => {
-  // ...
-});
-```
+```rust
+// src-tauri/src/features/{feature}/presentation/commands.rs
+use tauri::State;
+use crate::state::AppState;
+use crate::error::AppResult;
+use super::super::domain::{ArgType, ReturnType};
 
-## 6.2. Preload API（contextBridge 経由）
-
-```typescript
-// src/preload.ts
-contextBridge.exposeInMainWorld('electronAPI', {
-  methodName: (args: ArgType) => ipcRenderer.invoke('channel-name', args),
-});
-```
-
-## 6.3. レンダラー側の型定義
-
-```typescript
-// src/types/electron.d.ts
-interface ElectronAPI {
-  methodName(args: ArgType): Promise<ReturnType>;
+#[tauri::command]
+pub async fn some_command(
+    state: State<'_, AppState>,
+    args: ArgType,
+) -> AppResult<ReturnType> {
+    state.some_usecase.invoke(args).await
 }
+```
 
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI;
+`src-tauri/src/lib.rs` の `invoke_handler!` に登録します。
+
+```rust
+.invoke_handler(tauri::generate_handler![
+    features::{feature}::presentation::commands::some_command,
+])
+```
+
+## 6.2. Invoke クライアント（TypeScript infrastructure 層）
+
+```typescript
+// src/features/{feature}/infrastructure/repositories/some-default-repository.ts
+import { invokeCommand } from '@/shared/lib/invoke'
+import type { ArgType, ReturnType } from '@/shared/domain'
+import type { SomeRepository } from '../../application/repositories'
+
+export class SomeDefaultRepository implements SomeRepository {
+  async doSomething(args: ArgType): Promise<ReturnType> {
+    const result = await invokeCommand<ReturnType>('some_command', { args })
+    if (!result.success) {
+      throw new Error(result.error.message)
+    }
+    return result.data
   }
 }
+```
+
+## 6.3. イベント購読（Core → Webview）
+
+```rust
+// Rust 側: event を emit
+use tauri::{AppHandle, Emitter};
+
+app_handle.emit("some-event", payload)
+    .map_err(|e| AppError::Internal(e.to_string()))?;
+```
+
+```typescript
+// TypeScript 側: listen で購読
+import { listenEvent } from '@/shared/lib/invoke'
+
+const unlisten = await listenEvent<EventPayload>('some-event', (payload) => {
+  // handle event
+})
+
+// クリーンアップ
+unlisten()
 ```
 
 ---
@@ -220,16 +263,17 @@ newFunction();
 
 - 実装ステータス・進捗
 - 機能固有の技術スタック選定理由
-- Electron プロセス間アーキテクチャ（main / preload / renderer）
-- IPC ハンドラー / Preload API / 型定義
-- モジュール分割とファイル配置
+- Tauri Webview ↔ Core アーキテクチャ
+- `#[tauri::command]` 定義 / invoke クライアント / listen 購読 / 型定義
+- Rust 側 4 層構成 (domain / application / infrastructure / presentation) のモジュール分割
+- TypeScript 側 4 層構成のモジュール分割
 - 設計判断の記録
 
 ## 含めないべき内容（→ Spec へ）
 
 - 機能の目的と背景
 - ユーザーストーリー・ユースケース
-- 公開 API の論理定義（IPC チャネルの抽象定義は Spec）
+- 公開 API の論理定義（Tauri command / event の抽象定義は Spec）
 - データモデルの論理構造
 - 機能要件・非機能要件の定義
 

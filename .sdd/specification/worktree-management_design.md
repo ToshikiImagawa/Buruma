@@ -4,11 +4,11 @@ title: "ワークツリー管理"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-03-29"
+updated: "2026-04-09"
 depends-on: ["spec-worktree-management"]
-tags: ["worktree", "core", "ui"]
+tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
 priority: "critical"
 risk: "high"
@@ -36,8 +36,8 @@ risk: "high"
 | SuggestPathMainUseCase | main | application | 🟢 | パス提案（メイン WT パス解決） |
 | CheckDirtyMainUseCase | main | application | 🟢 | dirty チェック |
 | GetDefaultBranchMainUseCase | main | application | 🟢 | デフォルトブランチ検出 |
-| WorktreeGitDefaultRepository | main | infrastructure | 🟢 | simple-git ラッパー |
-| WorktreeWatcher | main | infrastructure | 🟢 | chokidar ファイルシステム監視 |
+| WorktreeGitDefaultRepository | main | infrastructure | 🟢 | git CLI (tokio::process::Command) ラッパー |
+| WorktreeWatcher | main | infrastructure | 🟢 | notify + notify-debouncer-full ファイルシステム監視 |
 | IPC Handlers (worktree:*) | main | presentation | 🟢 | IPC チャネル登録・ルーティング |
 | DI 設定 (main) | main | — | 🟢 | di-tokens.ts / di-config.ts |
 | WorktreeService | renderer | application | 🟢 | BehaviorSubject 状態管理 |
@@ -55,7 +55,7 @@ risk: "high"
 
 1. **Worktree-First UX** — ワークツリーを UI の主軸に据え、左パネル一覧 + 右パネル詳細の2カラムレイアウトを実現する（原則 B-001）
 2. **安全な Git 操作** — 不可逆操作（削除）には確認ステップを設け、メインワークツリーの削除を防止する（原則 B-002）
-3. **Electron プロセス分離** — すべての Git 操作をメインプロセスで実行し、preload + contextBridge 経由でレンダラーに API を公開する（原則 A-001, T-003）
+3. **Electron プロセス分離** — すべての Git 操作をTauri Core (Rust)で実行し、型安全な invoke/listen ラッパー 経由でWebviewに API を公開する（原則 A-001, T-003）
 4. **型安全な IPC 通信** — `IPCResult<T>` パターンですべてのレスポンスを統一し、コンパイル時にエラーを検出する（原則 T-001, T-002）
 5. **リアルタイム状態反映** — ファイルシステム監視によりワークツリーの状態変化を自動検出・UI 反映する
 
@@ -67,22 +67,31 @@ risk: "high"
 
 | 領域 | 採用技術 | 選定理由 |
 |------|----------|----------|
-| Git 操作 | simple-git | Git CLI のラッパー。`worktree list --porcelain` のパース、`worktree add/remove` の実行に使用。メンテナンスが活発で API が直感的（原則 A-002: Library-First） |
-| ファイルシステム監視 | chokidar | Node.js のクロスプラットフォームファイル監視。macOS FSEvents / Linux inotify / Windows ReadDirectoryChangesW を抽象化。デバウンス機能内蔵（原則 A-002） |
+| Git 操作 | git CLI (tokio::process::Command) | Git CLI のラッパー。`worktree list --porcelain` のパース、`worktree add/remove` の実行に使用。メンテナンスが活発で API が直感的（原則 A-002: Library-First） |
+| ファイルシステム監視 | notify + notify-debouncer-full | Node.js のクロスプラットフォームファイル監視。macOS FSEvents / Linux inotify / Windows ReadDirectoryChangesW を抽象化。デバウンス機能内蔵（原則 A-002） |
 | ダイアログ UI | Shadcn/ui Dialog | Shadcn/ui が提供するアクセシブルなダイアログコンポーネント。Tailwind CSS との統合が良好 |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
 
-| 領域 | 採用技術 |
-|------|----------|
-| フレームワーク | Electron 41 + Electron Forge 7 |
-| バンドラー | Vite 5 |
-| UI | React 19 + TypeScript |
-| スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
-| UIコンポーネント | Shadcn/ui |
-| Git操作 | simple-git（予定） |
-| エディタ | Monaco Editor（予定） |
+| 領域              | 採用技術                                     |
+|----------------|------------------------------------------|
+| フレームワーク      | Tauri 2.x                                |
+| バックエンド言語    | Rust (edition 2021+)                     |
+| バンドラー          | Vite 6                                   |
+| UI                | React 19 + TypeScript 5.x                |
+| スタイリング        | Tailwind CSS v4 (`@tailwindcss/postcss`) |
+| UIコンポーネント    | Shadcn/ui                                |
+| Git 操作            | `tokio::process::Command` 経由の `git` CLI   |
+| ファイル監視        | `notify` + `notify-debouncer-full` crate |
+| 永続化              | `tauri-plugin-store`                     |
+| ダイアログ          | `tauri-plugin-dialog`                    |
+| エディタ            | Monaco Editor                            |
+| Rust 非同期        | `tokio`                                  |
+| Rust エラー        | `thiserror` + `AppError`                 |
+| Rust テスト        | `cargo test` + `mockall`                 |
+| DI (Webview)        | VContainer                               |
+| DI (Rust)           | `tauri::State<T>` + `Arc<dyn Trait>`     |
 
 </details>
 
@@ -116,13 +125,13 @@ graph TD
         end
     end
 
-    subgraph "Preload"
-        Bridge["contextBridge API<br/>(electronAPI.worktree)"]
+    subgraph "Tauri Runtime"
+        Runtime["Tauri Runtime<br/>(invoke/emit bridge)"]
     end
 
     subgraph "Main Process"
         subgraph "Presentation 層 (Main)"
-            IPCHandlers["IPC Handlers<br/>(wrapHandler + ipcMain.handle)"]
+            IPCHandlers["IPC Handlers<br/>(wrapHandler + #[tauri::command])"]
         end
         subgraph "Application 層 (Main)"
             MUC["UseCases<br/>(List, Status, Create, Delete,<br/>SuggestPath, CheckDirty, DefaultBranch)"]
@@ -132,8 +141,8 @@ graph TD
             MUC --> MGitIF
         end
         subgraph "Infrastructure 層 (Main)"
-            MGitDefault["WorktreeGitDefaultRepository<br/>(simple-git)"]
-            MWatcher["WorktreeWatcher<br/>(chokidar)"]
+            MGitDefault["WorktreeGitDefaultRepository<br/>(git CLI (tokio::process::Command))"]
+            MWatcher["WorktreeWatcher<br/>(notify + notify-debouncer-full)"]
             MGitIF -.->|"実装"| MGitDefault
             MWatcherIF -.->|"実装"| MWatcher
         end
@@ -145,51 +154,51 @@ graph TD
     end
 
     RRepoDefault -->|"invoke"| Bridge
-    Bridge -->|"ipcRenderer.invoke"| IPCHandlers
+    Runtime -->|"invoke<T>"| IPCHandlers
     IPCHandlers -->|"IPCResult"| Bridge
-    Bridge -->|"result"| RRepoDefault
-    MWatcher -->|"webContents.send"| Bridge
-    Bridge -->|"onChanged"| RRepoDefault
+    Runtime -->|"result"| RRepoDefault
+    MWatcher -->|"app_handle.emit"| Bridge
+    Runtime -->|"onChanged"| RRepoDefault
     MGitDefault -->|"git worktree"| Git
-    MWatcher -->|"chokidar watch"| FS
+    MWatcher -->|"notify + notify-debouncer-full watch"| FS
 ```
 
 ## 4.2. モジュール分割
 
-### メインプロセス側
+### Tauri Core (Rust)側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src/processes/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts` |
-| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src/processes/main/features/worktree-management/application/usecases/get-worktree-status-main-usecase.ts` |
-| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src/processes/main/features/worktree-management/application/usecases/create-worktree-main-usecase.ts` |
-| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src/processes/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts` |
-| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src/processes/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts` |
-| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src/processes/main/features/worktree-management/application/usecases/check-dirty-main-usecase.ts` |
-| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src/processes/main/features/worktree-management/application/usecases/get-default-branch-main-usecase.ts` |
-| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース | `src/processes/main/features/worktree-management/application/worktree-interfaces.ts` |
-| WorktreeWatcher IF | application | ファイル監視の抽象インターフェース | `src/processes/main/features/worktree-management/application/worktree-interfaces.ts` |
-| WorktreeGitDefaultRepository | infrastructure | simple-git ラッパー（list, add, remove, status） | `src/processes/main/features/worktree-management/infrastructure/worktree-git-service.ts` |
-| WorktreeWatcher | infrastructure | chokidar による `.git/worktrees` 監視 | `src/processes/main/features/worktree-management/infrastructure/worktree-watcher.ts` |
-| IPC Handlers | presentation | worktree:* チャネル登録、wrapHandler パターン | `src/processes/main/features/worktree-management/presentation/ipc-handlers.ts` |
-| DI Tokens (main) | — | createToken 定義 | `src/processes/main/features/worktree-management/di-tokens.ts` |
-| DI Config (main) | — | VContainerConfig { register, setUp } | `src/processes/main/features/worktree-management/di-config.ts` |
+| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src-tauri/src/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts` |
+| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src-tauri/src/features/worktree-management/application/usecases/get-worktree-status-main-usecase.ts` |
+| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src-tauri/src/features/worktree-management/application/usecases/create-worktree-main-usecase.ts` |
+| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src-tauri/src/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts` |
+| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src-tauri/src/features/worktree-management/application/usecases/suggest-path-main-usecase.ts` |
+| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src-tauri/src/features/worktree-management/application/usecases/check-dirty-main-usecase.ts` |
+| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src-tauri/src/features/worktree-management/application/usecases/get-default-branch-main-usecase.ts` |
+| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース | `src-tauri/src/features/worktree-management/application/worktree-interfaces.ts` |
+| WorktreeWatcher IF | application | ファイル監視の抽象インターフェース | `src-tauri/src/features/worktree-management/application/worktree-interfaces.ts` |
+| WorktreeGitDefaultRepository | infrastructure | git CLI (tokio::process::Command) ラッパー（list, add, remove, status） | `src-tauri/src/features/worktree-management/infrastructure/worktree-git-service.ts` |
+| WorktreeWatcher | infrastructure | notify + notify-debouncer-full による `.git/worktrees` 監視 | `src-tauri/src/features/worktree-management/infrastructure/worktree-watcher.ts` |
+| IPC Handlers | presentation | worktree:* チャネル登録、wrapHandler パターン | `src-tauri/src/features/worktree-management/presentation/ipc-handlers.ts` |
+| DI Tokens (main) | — | createToken 定義 | `src-tauri/src/features/worktree-management/di-tokens.ts` |
+| DI Config (main) | — | VContainerConfig { register, setUp } | `src-tauri/src/features/worktree-management/di-config.ts` |
 
-### レンダラー側
+### Webview 側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| WorktreeService | application | BehaviorSubject による状態管理（worktrees$, selectedPath$） | `src/processes/renderer/features/worktree-management/application/worktree-service.ts` |
-| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/processes/renderer/features/worktree-management/di-tokens.ts` |
-| UseCases | application | List, Create, Delete, Select, Refresh, SuggestPath, CheckDirty | `src/processes/renderer/features/worktree-management/application/usecases/*.ts` |
-| WorktreeDefaultRepository | infrastructure | window.electronAPI.worktree 経由の IPC クライアント | `src/processes/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts` |
-| WorktreeListViewModel | presentation | 一覧画面の ViewModel（UseCase 経由で Observable 公開） | `src/processes/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts` |
-| WorktreeDetailViewModel | presentation | 詳細パネルの ViewModel | `src/processes/renderer/features/worktree-management/presentation/worktree-detail-viewmodel.ts` |
-| useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/processes/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
-| useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/processes/renderer/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
-| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/processes/renderer/features/worktree-management/presentation/components/*.tsx` |
-| DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/processes/renderer/features/worktree-management/di-tokens.ts` |
-| DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/processes/renderer/features/worktree-management/di-config.ts` |
+| WorktreeService | application | BehaviorSubject による状態管理（worktrees$, selectedPath$） | `src/features/worktree-management/application/worktree-service.ts` |
+| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/features/worktree-management/di-tokens.ts` |
+| UseCases | application | List, Create, Delete, Select, Refresh, SuggestPath, CheckDirty | `src/features/worktree-management/application/usecases/*.ts` |
+| WorktreeDefaultRepository | infrastructure | invokeCommand / listenEvent ラッパー.worktree 経由の IPC クライアント | `src/features/worktree-management/infrastructure/worktree-default-repository.ts` |
+| WorktreeListViewModel | presentation | 一覧画面の ViewModel（UseCase 経由で Observable 公開） | `src/features/worktree-management/presentation/worktree-list-viewmodel.ts` |
+| WorktreeDetailViewModel | presentation | 詳細パネルの ViewModel | `src/features/worktree-management/presentation/worktree-detail-viewmodel.ts` |
+| useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
+| useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
+| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/features/worktree-management/presentation/components/*.tsx` |
+| DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/features/worktree-management/di-tokens.ts` |
+| DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/features/worktree-management/di-config.ts` |
 
 ### 共有
 
@@ -197,14 +206,14 @@ graph TD
 |------------|------|---------|
 | Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/domain/index.ts` に追加 |
 | IPC 型拡張 | IPCChannelMap, IPCEventMap, ElectronAPI への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
-| Preload API (worktree) | contextBridge 経由の worktree API | `src/processes/preload/preload.ts` に追加 |
+| Tauri invoke/listen API (worktree) | 型安全な  worktree API | （preload 層は Tauri では不要） に追加 |
 
 ## 4.3. DI 設計
 
-### メインプロセス側 DI Tokens
+### Tauri Core (Rust)側 DI Tokens
 
 ```typescript
-// src/processes/main/features/worktree-management/di-tokens.ts
+// src-tauri/src/features/worktree-management/di-tokens.ts
 import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus } from '@domain'
 import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository, WorktreeWatcher } from './application/worktree-interfaces'
@@ -237,10 +246,10 @@ export const CheckDirtyMainUseCaseToken = createToken<CheckDirtyMainUseCase>('Ch
 export const GetDefaultBranchMainUseCaseToken = createToken<GetDefaultBranchMainUseCase>('GetDefaultBranchMainUseCase')
 ```
 
-### メインプロセス側 DI Config
+### Tauri Core (Rust)側 DI Config
 
 ```typescript
-// src/processes/main/features/worktree-management/di-config.ts
+// src-tauri/src/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@lib/di'
 import { CheckDirtyMainUseCase } from './application/usecases/check-dirty-main-usecase'
 import { CreateWorktreeMainUseCase } from './application/usecases/create-worktree-main-usecase'
@@ -302,10 +311,10 @@ export const worktreeManagementMainConfig: VContainerConfig = {
 }
 ```
 
-### レンダラー側 DI Tokens
+### Webview 側 DI Tokens
 
 ```typescript
-// src/processes/renderer/features/worktree-management/di-tokens.ts
+// src/features/worktree-management/di-tokens.ts
 import { createToken } from '@lib/di'
 import type { Observable } from 'rxjs'
 import type {
@@ -397,10 +406,10 @@ export const WorktreeListViewModelToken = createToken<WorktreeListViewModel>('Wo
 export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>('WorktreeDetailViewModel')
 ```
 
-### レンダラー側 DI Config
+### Webview 側 DI Config
 
 ```typescript
-// src/processes/renderer/features/worktree-management/di-config.ts
+// src/features/worktree-management/di-config.ts
 import type { VContainerConfig } from '@lib/di'
 import { RepositoryServiceToken } from '@renderer/features/application-foundation/di-tokens'
 import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
@@ -529,17 +538,17 @@ export const worktreeManagementConfig: VContainerConfig = {
 - ViewModel: `transient`（useResolve 呼び出しごとに新規作成）
 
 **DI 統合エントリーポイント:**
-- `src/processes/main/di/configs.ts` に `worktreeManagementMainConfig` を追加
-- `src/processes/renderer/di/configs.ts` に `worktreeManagementConfig` を追加
+- `src-tauri/src/di/configs.ts` に `worktreeManagementMainConfig` を追加
+- `src/di/configs.ts` に `worktreeManagementConfig` を追加
 
-## 4.4. レンダラー側 Clean Architecture 設計
+## 4.4. Webview 側 Clean Architecture 設計
 
 ### Application 層: WorktreeService
 
 BehaviorSubject でワークツリーの状態を管理するステートフルサービス。`ParameterizedService<WorktreeInfo[]>` を extends する。
 
 ```typescript
-// src/processes/renderer/features/worktree-management/application/services/worktree-service.ts
+// src/features/worktree-management/application/services/worktree-service.ts
 import { BehaviorSubject, combineLatest, type Observable } from 'rxjs'
 import { map } from 'rxjs/operators'
 import type { WorktreeInfo, WorktreeSortOrder } from '@domain'
@@ -641,34 +650,34 @@ export class SuggestPathDefaultUseCase implements FunctionUseCase<{ repoPath: st
 
 ### Infrastructure 層: WorktreeDefaultRepository
 
-IPC クライアントとして `window.electronAPI.worktree` を呼び出し、`IPCResult<T>` を例外に変換する。
+IPC クライアントとして `invokeCommand / listenEvent ラッパー.worktree` を呼び出し、`IPCResult<T>` を例外に変換する。
 
 ```typescript
-// src/processes/renderer/features/worktree-management/infrastructure/worktree-default-repository.ts
+// src/features/worktree-management/infrastructure/worktree-default-repository.ts
 import type { WorktreeRepository } from '../di-tokens'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {
-    const result = await window.electronAPI.worktree.list(repoPath)
+    const result = await invokeCommand<T>('worktree_list'(repoPath)
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const result = await window.electronAPI.worktree.create(params)
+    const result = await invokeCommand<T>('worktree_create'(params)
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async delete(params: WorktreeDeleteParams): Promise<void> {
-    const result = await window.electronAPI.worktree.delete(params)
+    const result = await invokeCommand<T>('worktree_delete'(params)
     if (result.success === false) throw new Error(result.error.message)
   }
 
   // ... getStatus, suggestPath, checkDirty も同パターン
 
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void {
-    return window.electronAPI.worktree.onChanged(callback)
+    return invokeCommand<T>('worktree_on_changed'(callback)
   }
 }
 ```
@@ -678,7 +687,7 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
 ViewModel は UseCase を集約し、Observable でデータを公開する。
 
 ```typescript
-// src/processes/renderer/features/worktree-management/presentation/worktree-list-viewmodel.ts
+// src/features/worktree-management/presentation/worktree-list-viewmodel.ts
 export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
   constructor(
     private readonly listUseCase: ListWorktreesUseCase,
@@ -723,7 +732,7 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
 ### Presentation 層: Hook ラッパー
 
 ```typescript
-// src/processes/renderer/features/worktree-management/presentation/use-worktree-list-viewmodel.ts
+// src/features/worktree-management/presentation/use-worktree-list-viewmodel.ts
 import { useCallback } from 'react'
 import { useResolve } from '@lib/di/v-container-provider'
 import { useObservable } from '@lib/hooks/use-observable'
@@ -750,8 +759,8 @@ export function useWorktreeListViewModel() {
 
 ワークツリー状態変化のリアルタイム更新パイプライン:
 
-1. **Main Process**: `WorktreeWatcher`（chokidar）が `.git/worktrees` の変更を検出
-2. **Main → Renderer**: `window.webContents.send('worktree:changed', event)` で IPC イベント送信
+1. **Main Process**: `WorktreeWatcher`（notify + notify-debouncer-full）が `.git/worktrees` の変更を検出
+2. **Main → Renderer**: `window.app_handle.emit('worktree:changed', event)` で IPC イベント送信
 3. **Renderer Infrastructure**: `WorktreeDefaultRepository.onChanged` コールバック発火
 4. **Renderer Application**: `RefreshWorktreesUseCase.invoke()` → `WorktreeRepository.list()` → `WorktreeService.updateWorktrees()` で BehaviorSubject 更新
 5. **Renderer Presentation**: `WorktreeListViewModel.worktrees$` が再発行 → `useObservable` で React state 更新 → UI 再レンダリング
@@ -760,7 +769,7 @@ export function useWorktreeListViewModel() {
 sequenceDiagram
     participant FS as ファイルシステム
     participant Watcher as WorktreeWatcher<br/>(main/infrastructure)
-    participant IPC as IPC<br/>(webContents.send)
+    participant Event as "@tauri-apps/api/event"<br/>(listen)
     participant RepoDefault as WorktreeDefaultRepository<br/>(renderer/infrastructure)
     participant Refresh as RefreshWorktreesUseCase<br/>(renderer/application)
     participant Service as WorktreeService<br/>(renderer/application)
@@ -852,12 +861,12 @@ export type WorktreeSortOrder = 'name' | 'last-updated';
 
 # 6. インターフェース定義
 
-## 6.1. IPC ハンドラー（メインプロセス presentation 層）
+## 6.1. IPC ハンドラー（Tauri Core (Rust) presentation 層）
 
 `wrapHandler<T>()` ユーティリティを使い、UseCase の戻り値を `IPCResult<T>` に統一する。ハンドラーは7つの個別 UseCase を受け取り、各 UseCase の `invoke()` メソッドを呼び出す。
 
 ```typescript
-// src/processes/main/features/worktree-management/presentation/ipc-handlers.ts
+// src-tauri/src/features/worktree-management/presentation/ipc-handlers.ts
 import type { WorktreeCreateParams, WorktreeDeleteParams } from '@domain'
 import type { IPCResult } from '@lib/ipc'
 import type {
@@ -870,7 +879,7 @@ import type {
   SuggestPathMainUseCase,
 } from '../di-tokens'
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
-import { ipcMain } from 'electron'
+// Tauri (@tauri-apps/api): #[tauri::command]
 
 // wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に���換する
 function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaited<T>>> {
@@ -892,41 +901,41 @@ export function registerIPCHandlers(
   checkDirtyUseCase: CheckDirtyMainUseCase,
   getDefaultBranchUseCase: GetDefaultBranchMainUseCase,
 ): void {
-  ipcMain.handle('worktree:list', (_event, repoPath: string) =>
+  #[tauri::command]('worktree:list', (_event, repoPath: string) =>
     wrapHandler(() => listUseCase.invoke(repoPath)),
   )
 
-  ipcMain.handle('worktree:status', (_event, params: { repoPath: string; worktreePath: string }) =>
+  #[tauri::command]('worktree:status', (_event, params: { repoPath: string; worktreePath: string }) =>
     wrapHandler(() => getStatusUseCase.invoke(params)),
   )
 
-  ipcMain.handle('worktree:create', (_event, params: WorktreeCreateParams) =>
+  #[tauri::command]('worktree:create', (_event, params: WorktreeCreateParams) =>
     wrapHandler(() => createUseCase.invoke(params)),
   )
 
-  ipcMain.handle('worktree:delete', (_event, params: WorktreeDeleteParams) =>
+  #[tauri::command]('worktree:delete', (_event, params: WorktreeDeleteParams) =>
     wrapHandler(() => deleteUseCase.invoke(params)),
   )
 
-  ipcMain.handle('worktree:suggest-path', (_event, params: { repoPath: string; branch: string }) =>
+  #[tauri::command]('worktree:suggest-path', (_event, params: { repoPath: string; branch: string }) =>
     wrapHandler(() => suggestPathUseCase.invoke(params)),
   )
 
-  ipcMain.handle('worktree:check-dirty', (_event, worktreePath: string) =>
+  #[tauri::command]('worktree:check-dirty', (_event, worktreePath: string) =>
     wrapHandler(() => checkDirtyUseCase.invoke(worktreePath)),
   )
 
-  ipcMain.handle('worktree:default-branch', (_event, repoPath: string) =>
+  #[tauri::command]('worktree:default-branch', (_event, repoPath: string) =>
     wrapHandler(() => getDefaultBranchUseCase.invoke(repoPath)),
   )
 }
 ```
 
-## 6.2. メインプロセス Application 層
+## 6.2. Tauri Core (Rust) Application 層
 
 ### 個別 UseCase クラス（7つ）
 
-各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `WorktreeGitRepository` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src/processes/main/features/worktree-management/application/usecases/` ディレクトリ。
+各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `WorktreeGitRepository` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src-tauri/src/features/worktree-management/application/usecases/` ディレクトリ。
 
 | UseCase クラス | 型パラメータ | 責務 |
 |---------------|------------|------|
@@ -941,7 +950,7 @@ export function registerIPCHandlers(
 代表的な実装例:
 
 ```typescript
-// src/processes/main/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts
+// src-tauri/src/features/worktree-management/application/usecases/list-worktrees-main-usecase.ts
 import type { WorktreeInfo } from '@domain'
 import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
@@ -962,7 +971,7 @@ export class ListWorktreesMainUseCase implements FunctionUseCase<string, Promise
   }
 }
 
-// src/processes/main/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts
+// src-tauri/src/features/worktree-management/application/usecases/delete-worktree-main-usecase.ts
 import type { WorktreeDeleteParams } from '@domain'
 import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
@@ -982,7 +991,7 @@ export class DeleteWorktreeMainUseCase
   }
 }
 
-// src/processes/main/features/worktree-management/application/usecases/suggest-path-main-usecase.ts
+// src-tauri/src/features/worktree-management/application/usecases/suggest-path-main-usecase.ts
 import type { FunctionUseCase } from '@lib/usecase/types'
 import type { WorktreeGitRepository } from '../worktree-interfaces'
 import path from 'node:path'
@@ -1009,9 +1018,9 @@ export class SuggestPathMainUseCase
 ### WorktreeGitRepository インターフェース
 
 ```typescript
-// src/processes/main/features/worktree-management/application/worktree-interfaces.ts
+// src-tauri/src/features/worktree-management/application/worktree-interfaces.ts
 import type { WorktreeInfo, WorktreeStatus, WorktreeCreateParams } from '@domain'
-import type { BrowserWindow } from 'electron'
+import type { Tauri Window } from 'electron'
 
 export interface WorktreeGitRepository {
   listWorktrees(repoPath: string): Promise<WorktreeInfo[]>
@@ -1024,18 +1033,18 @@ export interface WorktreeGitRepository {
 }
 
 export interface WorktreeWatcher {
-  start(repoPath: string, window: BrowserWindow): void
+  start(repoPath: string, window: Tauri Window): void
   stop(): void
 }
 ```
 
-## 6.3. メインプロセス Infrastructure 層
+## 6.3. Tauri Core (Rust) Infrastructure 層
 
 ### WorktreeGitDefaultRepository
 
 ```typescript
-// src/processes/main/features/worktree-management/infrastructure/worktree-git-service.ts
-import simpleGit from 'simple-git'
+// src-tauri/src/features/worktree-management/infrastructure/worktree-git-service.ts
+import simpleGit // Rust 側: tokio::process::Command 経由の git CLI
 import type { WorktreeGitRepository } from '../application/worktree-interfaces'
 
 export class WorktreeGitDefaultRepository implements WorktreeGitRepository {
@@ -1070,24 +1079,24 @@ export class WorktreeGitDefaultRepository implements WorktreeGitRepository {
 }
 ```
 
-> **設計判断:** `isDirty(worktreePath)` は `repoPath` を受け取らない。simple-git は `simpleGit(worktreePath)` でワークツリーパスを直接指定して初期化でき、`.git` ファイル経由で親リポジトリを自動的に解決する。
+> **設計判断:** `isDirty(worktreePath)` は `repoPath` を受け取らない。git CLI (tokio::process::Command) は `simpleGit(worktreePath)` でワークツリーパスを直接指定して初期化でき、`.git` ファイル経由で親リポジトリを自動的に解決する。
 
 ### WorktreeWatcher
 
 ```typescript
-// src/processes/main/features/worktree-management/infrastructure/worktree-watcher.ts
-import chokidar, { type FSWatcher } from 'chokidar'
-import type { BrowserWindow } from 'electron'
+// src-tauri/src/features/worktree-management/infrastructure/worktree-watcher.ts
+import notify + notify-debouncer-full, { type FSWatcher } from 'notify + notify-debouncer-full'
+import type { Tauri Window } from 'electron'
 import type { WorktreeWatcher } from '../application/worktree-interfaces'
 
 export class WorktreeDefaultWatcher implements WorktreeWatcher {
   private watcher: FSWatcher | null = null
   private debounceTimer: NodeJS.Timeout | null = null
 
-  start(repoPath: string, window: BrowserWindow): void {
-    // .git/worktrees ディレクトリを chokidar で監視
+  start(repoPath: string, window: Tauri Window): void {
+    // .git/worktrees ディレクトリを notify + notify-debouncer-full で監視
     // デバウンス: 300ms（短時間の連続イベントを集約）
-    // 変更検出時: window.webContents.send('worktree:changed', event)
+    // 変更検出時: window.app_handle.emit('worktree:changed', event)
   }
 
   stop(): void {
@@ -1103,34 +1112,42 @@ export class WorktreeDefaultWatcher implements WorktreeWatcher {
 - `stop()`: DI Config の tearDown 関数内で呼び出す
 - リポジトリ切り替え時: `stop()` → 新しい `repoPath` で `start()` を再呼び出し
 
-## 6.4. Preload API（contextBridge 経由）
+## 6.4. Tauri invoke/listen API
 
-> **重要:** `contextBridge.exposeInMainWorld('electronAPI', ...)` はアプリケーション全体で **1回だけ** 呼び出される（`src/processes/preload/preload.ts`）。worktree 名前空間は既存の `electronAPI` オブジェクトのプロパティとして追加する。
+> **重要:** Tauri 移行後は `@tauri-apps/api` を直接 import し、`src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。preload 層は Tauri では不要のため削除する。worktree 名前空間は `src/shared/lib/invoke/tauri-api.ts` にヘルパー関数として集約する。
 
 ```typescript
-// src/processes/preload/preload.ts に追加する worktree プロパティ
-worktree: {
+// src/shared/lib/invoke/tauri-api.ts の worktree セクション
+import { invokeCommand } from './commands'
+import type {
+  WorktreeInfo,
+  WorktreeStatus,
+  WorktreeCreateParams,
+  WorktreeDeleteParams,
+} from '@/shared/domain'
+
+export const worktreeApi = {
   list: (repoPath: string) =>
-    ipcRenderer.invoke('worktree:list', repoPath),
+    invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath }),
   status: (repoPath: string, worktreePath: string) =>
-    ipcRenderer.invoke('worktree:status', { repoPath, worktreePath }),
+    invokeCommand<WorktreeStatus>('worktree_status', { repoPath, worktreePath }),
   create: (params: WorktreeCreateParams) =>
-    ipcRenderer.invoke('worktree:create', params),
+    invokeCommand<WorktreeInfo>('worktree_create', { params }),
   delete: (params: WorktreeDeleteParams) =>
-    ipcRenderer.invoke('worktree:delete', params),
+    invoke<T>('worktree_delete', params),
   suggestPath: (repoPath: string, branch: string) =>
-    ipcRenderer.invoke('worktree:suggest-path', { repoPath, branch }),
+    invoke<T>('worktree_suggest_path', { repoPath, branch }),
   checkDirty: (worktreePath: string) =>
-    ipcRenderer.invoke('worktree:check-dirty', worktreePath),
+    invoke<T>('worktree_check_dirty', worktreePath),
   defaultBranch: (repoPath: string) =>
-    ipcRenderer.invoke('worktree:default-branch', repoPath),
+    invoke<T>('worktree_default_branch', repoPath),
   onChanged: (callback: (event: WorktreeChangeEvent) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, data: WorktreeChangeEvent) => {
       callback(data)
     }
-    ipcRenderer.on('worktree:changed', handler)
+    await listen('worktree:changed', handler)  // Tauri
     return () => {
-      ipcRenderer.removeListener('worktree:changed', handler)
+      await unlisten()  // Tauri
     }
   },
 },
@@ -1174,8 +1191,8 @@ worktree: {
 |------|----------|
 | 一覧表示1秒以内 (NFR_101) | `git worktree list --porcelain` は高速。dirty チェックは並列実行（Promise.all）。50ワークツリーまでは問題なし |
 | 切り替え500ms以内 (NFR_102) | `worktree:status` は単一ワークツリーの `git status --porcelain` のみ。軽量操作 |
-| リアルタイム更新 (FR_105) | chokidar の `.git/worktrees` 監視 + 300ms デバウンス。不要な再取得を防止 |
-| Electron セキュリティ (A-001, T-003) | すべての Git 操作はメインプロセスで実行。preload 経由の API 公開のみ |
+| リアルタイム更新 (FR_105) | notify + notify-debouncer-full の `.git/worktrees` 監視 + 300ms デバウンス。不要な再取得を防止 |
+| Tauri セキュリティ (A-001, T-003) | すべての Git 操作はTauri Core (Rust)で実行。preload 経由の API 公開のみ |
 | 安全性 (B-002) | 削除前に dirty チェック + 確認ダイアログ。メインワークツリー削除はサービス層で防止 |
 
 ---
@@ -1200,9 +1217,9 @@ worktree: {
 **テスト環境の注意事項:**
 
 - ユニットテスト: WorktreeGitRepository / WorktreeRepository をモック化（DI で注入）
-- 結合テスト: simple-git をモック化し、実際の Git リポジトリを使用しない
+- 結合テスト: git CLI (tokio::process::Command) をモック化し、実際の Git リポジトリを使用しない
 - E2E テスト: 一時ディレクトリに Git リポジトリを作成してテスト
-- WorktreeWatcher テスト: chokidar のイベントをモック化
+- WorktreeWatcher テスト: notify + notify-debouncer-full のイベントをモック化
 
 ---
 
@@ -1212,14 +1229,14 @@ worktree: {
 
 | 決定事項 | 選択肢 | 決定内容 | 理由 |
 |----------|--------|----------|------|
-| Git 操作ライブラリ | simple-git / nodegit / isomorphic-git / 生の child_process | simple-git | メンテナンスが活発、API が直感的、`worktree` サブコマンドをサポート。CONSTITUTION.md の技術スタック制約で指定済み（原則 A-002） |
-| ファイルシステム監視ライブラリ | chokidar / Node.js fs.watch / nsfw | chokidar | クロスプラットフォーム対応、デバウンス内蔵、安定した API。fs.watch は OS 間の挙動差が大きい（原則 A-002） |
+| Git 操作ライブラリ | git CLI (tokio::process::Command) / nodegit / isomorphic-git / 生の tokio::process::Command | git CLI (tokio::process::Command) | メンテナンスが活発、API が直感的、`worktree` サブコマンドをサポート。CONSTITUTION.md の技術スタック制約で指定済み（原則 A-002） |
+| ファイルシステム監視ライブラリ | notify + notify-debouncer-full / Node.js fs.watch / nsfw | notify + notify-debouncer-full | クロスプラットフォーム対応、デバウンス内蔵、安定した API。fs.watch は OS 間の挙動差が大きい（原則 A-002） |
 | worktree list のパース方法 | `--porcelain` 出力パース / `git worktree list` テキストパース | `--porcelain` 出力 | 機械可読フォーマット。テキスト出力は locale 依存のリスクあり |
 | dirty チェックの実行タイミング | 一覧取得時に一括 / 個別に遅延取得 | 一覧取得時に並列一括実行 | 50ワークツリーまでは Promise.all で十分高速（NFR_101: 1秒以内）。UX として一覧表示時に dirty 状態を即座に把握できる方が有用 |
 | デフォルトパスの提案ロジック | リポジトリ隣接 / リポジトリ内 / 設定パス | リポジトリの親ディレクトリ + ブランチ名のサニタイズ | Git worktree の一般的な配置パターン。リポジトリ名_ブランチ名 の形式（例: `myrepo_feature-foo`） |
 | メインワークツリー削除防止の実装箇所 | UI のみ / サービス層のみ / 両方 | UI + サービス層の両方 | 防御的プログラミング。UI でボタンを無効化しつつ、サービス層でもチェック（原則 B-002） |
 | IPC チャネル命名 | `worktree-list` / `worktree:list` | `worktree:list`（名前空間方式） | application-foundation と一貫した命名規則。ドメインごとのグルーピング |
-| checkDirty の引数設計 | `(repoPath, worktreePath)` / `(worktreePath)` のみ | `(worktreePath)` のみ | simple-git は `simpleGit(worktreePath)` でワークツリーパスを直接指定して初期化でき、`.git` ファイル経由で親リポジトリを自動解決する。repoPath は冗長 |
+| checkDirty の引数設計 | `(repoPath, worktreePath)` / `(worktreePath)` のみ | `(worktreePath)` のみ | git CLI (tokio::process::Command) は `simpleGit(worktreePath)` でワークツリーパスを直接指定して初期化でき、`.git` ファイル経由で親リポジトリを自動解決する。repoPath は冗長 |
 | WorktreeDetail のスコープ | 基本情報のみ / 詳細（ログ、差分、ファイルツリー）含む | 基本情報のみ（ブランチ、HEAD、dirty 状態、staged/unstaged 件数） | 詳細なコミットログ・差分表示は repository-viewer feature の責務（PRD スコープ外 → FG-2）。本フェーズはワークツリーライフサイクル管理に集中する |
 | SortOrder 'last-updated' の定義 | コミット日時 / ファイル更新日時 / 選択日時 | latest commit author date（`git log -1 --format=%aI`） | author date はユーザーが作業を行った時点を反映する。ファイル更新日時はビルド成果物等で不安定 |
 | Service の Observable 公開方法 | getter で都度生成 / constructor でフィールド化 | constructor でフィールドとして1回だけ生成 | getter（`get worktrees$() { return combineLatest(...) }`）はアクセスのたびに新しい Observable 参照を返す。`useObservable` Hook が `useEffect` の依存配列で参照比較するため、毎回再購読 → state 更新 → 再レンダリング → 無限ループが発生する。フィールドとして保持することで参照が安定する |
@@ -1228,8 +1245,8 @@ worktree: {
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
-| simple-git の `worktree list --porcelain` サポート状況 | 中 | simple-git が直接サポートしない場合は `git.raw()` で生コマンドを実行し、出力をパースする |
-| chokidar の Electron 41 + Vite 5 との互換性 | 中 | 実装時に検証。問題がある場合は Node.js 標準の `fs.watch` + 自前デバウンスを代替案とする |
+| git CLI (tokio::process::Command) の `worktree list --porcelain` サポート状況 | 中 | git CLI (tokio::process::Command) が直接サポートしない場合は `git.raw()` で生コマンドを実行し、出力をパースする |
+| notify + notify-debouncer-full の Tauri 2.x + Vite 6 との互換性 | 中 | 実装時に検証。問題がある場合は Node.js 標準の `fs.watch` + 自前デバウンスを代替案とする |
 | ワークツリー数が多い場合（50超）のパフォーマンス | 低 | 初期は50以下を想定。超過時は仮想スクロール + dirty チェックの遅延実行を検討 |
 | detached HEAD 状態のワークツリーの表示方法 | 低 | ブランチ名の代わりに HEAD の短縮 SHA を表示。UI 上で視覚的に区別可能にする |
 | RefreshWorktreesUseCase の repoPath 取得方法 | 中 | application-foundation の RepositoryService（currentRepository$）から repoPath を取得する。feature 間依存は shared インターフェース経由で解決し、直接参照は避ける。実装時に DI 設計を確定する |
@@ -1239,13 +1256,58 @@ worktree: {
 
 # 10. 変更履歴
 
+## v4.0 (2026-04-09)
+
+**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
+
+- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
+- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
+- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
+- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
+- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
+- Preload API ブロックを削除（Tauri では preload 不要）
+- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
+- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
+- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
+- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
+- `electron-store` → `tauri-plugin-store` に置換
+- `child_process.spawn` → `tokio::process::Command` に置換
+- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
+
+**移行ガイド:**
+
+```typescript
+// ❌ 旧コード (Electron)
+const result = await window.electronAPI.repository.open()
+if (result.success) { /* ... */ }
+
+// ✅ 新コード (Tauri)
+import { invokeCommand } from '@/shared/lib/invoke'
+const result = await invokeCommand<RepositoryInfo | null>('repository_open')
+if (result.success) { /* ... */ }
+```
+
+```rust
+// ✅ Rust 側 (新規)
+#[tauri::command]
+pub async fn repository_open(
+    state: State<'_, AppState>,
+) -> AppResult<Option<RepositoryInfo>> {
+    state.open_repository_dialog_usecase.invoke().await
+}
+```
+
+> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
+
+---
+
 ## v1.3 (2026-03-29)
 
 **変更内容:**
 
-- [FIX-023] メインプロセス側 di-tokens で UseCase IF 型を `FunctionUseCase` の型エイリアスとして定義（具象クラスからの import を排除）
+- [FIX-023] Tauri Core (Rust)側 di-tokens で UseCase IF 型を `FunctionUseCase` の型エイリアスとして定義（具象クラスからの import を排除）
 - [FIX-024] メインプ��セス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
-- [FIX-025] レンダラー側 DI Config を `useClass + deps` パターンに統一（RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数を維持）
+- [FIX-025] Webview 側 DI Config を `useClass + deps` パターンに統一（RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数を維持）
 - [FIX-026] ViewModel から Service 直参照を排除（GetSelectedPathUseCase, SetSortOrderUseCase を追加し UseCase 経由に統一）
 - [FIX-027] WorktreeDetailViewModel 簡素化（worktreeStatus$/refreshStatus() を削除、selectedWorktree$ のみ）
 - [FIX-028] WorktreeService の Observable 公開方法を getter から constructor フィールド化に変更（参照安定性のため）
@@ -1256,17 +1318,17 @@ worktree: {
 
 **変更内容:**
 
-- [FIX-011] メインプロセス側 WorktreeMainUseCase を7つの個別 UseCase クラスに分割（FunctionUseCase パターン統一）
-- [FIX-012] メインプロセス側 DI Tokens を7つの個別 UseCase Token に更新
-- [FIX-013] メインプロセス側 DI Config を7つの個別 UseCase 登録に更新
+- [FIX-011] Tauri Core (Rust)側 WorktreeMainUseCase を7つの個別 UseCase クラスに分割（FunctionUseCase パターン統一）
+- [FIX-012] Tauri Core (Rust)側 DI Tokens を7つの個別 UseCase Token に更新
+- [FIX-013] Tauri Core (Rust)側 DI Config を7つの個別 UseCase 登録に更新
 - [FIX-014] IPC Handlers を7つの個別 UseCase パラメータ受け取りに更新、各ハンドラーで `useCase.invoke()` 呼び出しに統一
 - [FIX-015] `worktree:default-branch` IPC チャネルを追加（GetDefaultBranchMainUseCase）
 - [FIX-016] WorktreeGitRepository に `getDefaultBranch()` メソッドを追加
-- [FIX-017] Preload API / IPCChannelMap / ElectronAPI に `defaultBranch` を追加
-- [FIX-018] レンダラー側 DI Config に RepositoryService.currentRepository$ 購読パターンを追加（リポジトリ変更時の自動読み込み）
+- [FIX-017] Tauri invoke/listen API / IPCChannelMap / ElectronAPI に `defaultBranch` を追加
+- [FIX-018] Webview 側 DI Config に RepositoryService.currentRepository$ 購読パターンを追加（リポジトリ変更時の自動読み込み）
 - [FIX-019] RefreshWorktreesUseCase に `getRepoPath` コールバック（RepositoryService 連携）を追加
 - [FIX-020] WorktreeListViewModel のコンストラクタに WorktreeService パラメータを追加（setSortOrder, selectedPath$ 用）
-- [FIX-021] システム構成図のメインプロセス Application 層を個別 UseCase 表記に更新
+- [FIX-021] システム構成図のTauri Core (Rust) Application 層を個別 UseCase 表記に更新
 - [FIX-022] 実装進捗テーブルを7つの個別 UseCase に更新
 
 ## v1.1 (2026-03-27)
@@ -1275,7 +1337,7 @@ worktree: {
 
 - [FIX-001] モジュール分割・ディレクトリ構造を Clean Architecture 4層構成（A-004）に準拠
 - [FIX-002] DI 設計セクション追加（Main/Renderer 両側の tokens, di-config）
-- [FIX-003] レンダラー側 Clean Architecture 設計を追加（Service, UseCases, Repository, ViewModel, Hooks）
+- [FIX-003] Webview 側 Clean Architecture 設計を追加（Service, UseCases, Repository, ViewModel, Hooks）
 - [FIX-004] WorktreeWatcher のライフサイクルを明確化（setUp/tearDown 連動）
 - [FIX-005] Preload 統合方法を明確化（単一 electronAPI オブジェクトへの追加）
 - [FIX-006] checkDirty の worktreePath のみ引数設計の根拠を追記
@@ -1290,5 +1352,5 @@ worktree: {
 
 - 初版作成
 - WorktreeService、WorktreeWatcher、IPC ハンドラー、React コンポーネントの設計を定義
-- simple-git + chokidar の技術選定
+- git CLI (tokio::process::Command) + notify + notify-debouncer-full の技術選定
 - テスト戦略の策定

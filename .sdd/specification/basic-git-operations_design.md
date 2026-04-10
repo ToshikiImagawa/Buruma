@@ -4,11 +4,11 @@ title: "基本 Git 操作"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "not-implemented"
 created: "2026-03-25"
-updated: "2026-04-05"
+updated: "2026-04-09"
 depends-on: ["spec-basic-git-operations"]
-tags: ["git", "staging", "commit", "push", "pull", "branch", "simple-git"]
+tags: ["git", "staging", "commit", "push", "pull", "branch", "git CLI (tokio::process::Command)", "tauri-migration"]
 category: "git-operations"
 priority: "high"
 risk: "high"
@@ -31,9 +31,9 @@ risk: "high"
 |--------------|----------|------|
 | domain 型追加（CommitResult 等） | 🟢 | src/domain/ に追加済み |
 | IPC 型追加（git:stage 等のチャネル） | 🟢 | src/lib/ipc.ts に追加済み |
-| メインプロセス feature（4層） | 🟢 | GitWriteRepository + UseCases + IPC Handler 実装済み |
-| レンダラー feature（4層） | 🟢 | Repository + Service + UseCases + ViewModel 実装済み |
-| Preload API 拡張 | 🟢 | git.stage / git.commit 等 追加済み |
+| Tauri Core (Rust) feature（4層） | 🟢 | GitWriteRepository + UseCases + IPC Handler 実装済み |
+| Webview feature（4層） | 🟢 | Repository + Service + UseCases + ViewModel 実装済み |
+| Tauri invoke/listen API 拡張 | 🟢 | git.stage / git.commit 等 追加済み |
 | UI コンポーネント | 🟢 | StagingArea, CommitForm, PushPullButtons, BranchOperations 実装済み |
 
 ---
@@ -54,19 +54,29 @@ risk: "high"
 
 | 領域 | 採用技術 | 選定理由 |
 |------|----------|----------|
-| Git 操作 | simple-git | Node.js 向け Git クライアントライブラリ。型安全な API、Promise ベース、進捗コールバック対応（原則 A-002: Library-First） |
+| Git 操作 | git CLI (tokio::process::Command) | Node.js 向け Git クライアントライブラリ。型安全な API、Promise ベース、進捗コールバック対応（原則 A-002: Library-First） |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
 
-| 領域 | 採用技術 |
-|------|----------|
-| フレームワーク | Electron 41 + Electron Forge 7 |
-| バンドラー | Vite 5 |
-| UI | React 19 + TypeScript |
-| スタイリング | Tailwind CSS v4 (`@tailwindcss/postcss`) |
-| UIコンポーネント | Shadcn/ui |
-| リアクティブ | RxJS |
+| 領域              | 採用技術                                     |
+|----------------|------------------------------------------|
+| フレームワーク      | Tauri 2.x                                |
+| バックエンド言語    | Rust (edition 2021+)                     |
+| バンドラー          | Vite 6                                   |
+| UI                | React 19 + TypeScript 5.x                |
+| スタイリング        | Tailwind CSS v4 (`@tailwindcss/postcss`) |
+| UIコンポーネント    | Shadcn/ui                                |
+| Git 操作            | `tokio::process::Command` 経由の `git` CLI   |
+| ファイル監視        | `notify` + `notify-debouncer-full` crate |
+| 永続化              | `tauri-plugin-store`                     |
+| ダイアログ          | `tauri-plugin-dialog`                    |
+| エディタ            | Monaco Editor                            |
+| Rust 非同期        | `tokio`                                  |
+| Rust エラー        | `thiserror` + `AppError`                 |
+| Rust テスト        | `cargo test` + `mockall`                 |
+| DI (Webview)        | VContainer                               |
+| DI (Rust)           | `tauri::State<T>` + `Arc<dyn Trait>`     |
 
 </details>
 
@@ -76,12 +86,12 @@ risk: "high"
 
 ## 4.1. ディレクトリ構成
 
-### メインプロセス側
+### Tauri Core (Rust)側
 
-メインプロセス側の application 層は UseCase + GitWriteRepository IF のみで構成する。レンダラーとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git:progress`）経由でレンダラーに通知する。
+Tauri Core (Rust)側の application 層は UseCase + GitWriteRepository IF のみで構成する。Webviewとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git:progress`）経由でWebviewに通知する。
 
 ```
-src/processes/main/features/basic-git-operations/
+src-tauri/src/features/basic-git-operations/
 ├── application/
 │   ├── repositories/
 │   │   └── git-write-repository.ts          # GitWriteRepository IF
@@ -100,17 +110,17 @@ src/processes/main/features/basic-git-operations/
 │       └── reset-usecase.ts                # ResetUseCase
 ├── infrastructure/
 │   └── repositories/
-│       └── git-write-default-repository.ts  # simple-git による実装
+│       └── git-write-default-repository.ts  # git CLI (tokio::process::Command) による実装
 ├── presentation/
 │   └── ipc-handlers.ts                      # IPC Handler（git:stage 等）
 ├── di-tokens.ts
 └── di-config.ts
 ```
 
-### レンダラー側
+### Webview 側
 
 ```
-src/processes/renderer/features/basic-git-operations/
+src/features/basic-git-operations/
 ├── application/
 │   ├── repositories/
 │   │   └── git-operations-repository.ts     # GitOperationsRepository IF
@@ -180,8 +190,8 @@ graph TD
         end
     end
 
-    subgraph "Preload"
-        Bridge["contextBridge git.* API"]
+    subgraph "Tauri Runtime"
+        Runtime["Tauri Runtime<br/>(invoke/emit bridge)"]
     end
 
     subgraph "Main Process"
@@ -195,7 +205,7 @@ graph TD
         end
         subgraph "infrastructure (main)"
             GitWriteRepoImpl[GitWriteDefaultRepository]
-            SimpleGit[simple-git]
+            SimpleGit[git CLI (tokio::process::Command)]
         end
     end
 
@@ -211,7 +221,7 @@ graph TD
     PushUC --> GitOpsRepoIF
     GitOpsRepoIF -.-> GitOpsRepoImpl
     GitOpsRepoImpl -->|"invoke"| Bridge
-    Bridge -->|"ipcRenderer"| IPCHandler
+    Runtime -->|"invoke<T>"| IPCHandler
     IPCHandler --> MainStageUC
     IPCHandler --> MainCommitUC
     MainStageUC --> GitWriteRepoIF
@@ -224,16 +234,16 @@ graph TD
 
 | モジュール名 | プロセス | 層 | 責務 | 配置場所 |
 |------------|---------|-----|------|---------|
-| GitWriteRepository IF | main | application | Git 書き込み操作の抽象 | `src/processes/main/features/basic-git-operations/application/repositories/` |
-| GitWriteDefaultRepository | main | infrastructure | simple-git による実装 | `src/processes/main/features/basic-git-operations/infrastructure/repositories/` |
-| Git Write UseCases | main | application | 1操作1クラス（stage, commit, push等） | `src/processes/main/features/basic-git-operations/application/usecases/` |
-| Git IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src/processes/main/features/basic-git-operations/presentation/` |
-| GitOperationsRepository IF | renderer | application | Git 操作 IPC クライアントの抽象 | `src/processes/renderer/features/basic-git-operations/application/repositories/` |
-| GitOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/processes/renderer/features/basic-git-operations/infrastructure/repositories/` |
-| GitOperationsService | renderer | application | 操作進捗・エラー状態管理（BehaviorSubject） | `src/processes/renderer/features/basic-git-operations/application/services/` |
-| Git Operations UseCases | renderer | application | 1操作1クラス | `src/processes/renderer/features/basic-git-operations/application/usecases/` |
-| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/processes/renderer/features/basic-git-operations/presentation/` |
-| React Components | renderer | presentation | UI コンポーネント | `src/processes/renderer/features/basic-git-operations/presentation/components/` |
+| GitWriteRepository IF | main | application | Git 書き込み操作の抽象 | `src-tauri/src/features/basic-git-operations/application/repositories/` |
+| GitWriteDefaultRepository | main | infrastructure | git CLI (tokio::process::Command) による実装 | `src-tauri/src/features/basic-git-operations/infrastructure/repositories/` |
+| Git Write UseCases | main | application | 1操作1クラス（stage, commit, push等） | `src-tauri/src/features/basic-git-operations/application/usecases/` |
+| Git IPC Handler | main | presentation | IPC ルーティング + バリデーション | `src-tauri/src/features/basic-git-operations/presentation/` |
+| GitOperationsRepository IF | renderer | application | Git 操作 IPC クライアントの抽象 | `src/features/basic-git-operations/application/repositories/` |
+| GitOperationsDefaultRepository | renderer | infrastructure | IPC クライアント実装 | `src/features/basic-git-operations/infrastructure/repositories/` |
+| GitOperationsService | renderer | application | 操作進捗・エラー状態管理（BehaviorSubject） | `src/features/basic-git-operations/application/services/` |
+| Git Operations UseCases | renderer | application | 1操作1クラス | `src/features/basic-git-operations/application/usecases/` |
+| ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/features/basic-git-operations/presentation/` |
+| React Components | renderer | presentation | UI コンポーネント | `src/features/basic-git-operations/presentation/components/` |
 | domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/domain/index.ts` |
 | IPC 型追加 | shared | - | 新規チャネル定義 | `src/lib/ipc.ts` |
 
@@ -340,12 +350,12 @@ export interface GitProgressEvent {
 
 # 6. インターフェース定義
 
-## 6.1. メインプロセス側
+## 6.1. Tauri Core (Rust)側
 
 ### GitWriteRepository（application 層）
 
 ```typescript
-// src/processes/main/features/basic-git-operations/application/repositories/git-write-repository.ts
+// src-tauri/src/features/basic-git-operations/application/repositories/git-write-repository.ts
 export interface GitWriteRepository {
   stage(worktreePath: string, files: string[]): Promise<void>
   stageAll(worktreePath: string): Promise<void>
@@ -364,7 +374,7 @@ export interface GitWriteRepository {
 ### UseCase 例（application 層）
 
 ```typescript
-// src/processes/main/features/basic-git-operations/application/usecases/stage-files-usecase.ts
+// src-tauri/src/features/basic-git-operations/application/usecases/stage-files-usecase.ts
 export class StageFilesUseCase implements ConsumerUseCase<{ worktreePath: string; files: string[] }> {
   constructor(private readonly repository: GitWriteRepository) {}
 
@@ -377,7 +387,7 @@ export class StageFilesUseCase implements ConsumerUseCase<{ worktreePath: string
 ### IPC Handler（presentation 層）
 
 ```typescript
-// src/processes/main/features/basic-git-operations/presentation/ipc-handlers.ts
+// src-tauri/src/features/basic-git-operations/presentation/ipc-handlers.ts
 export function registerGitWriteIPCHandlers(
   stageFilesUseCase: StageFilesMainUseCase,
   unstageFilesUseCase: UnstageFilesMainUseCase,
@@ -391,7 +401,7 @@ export function registerGitWriteIPCHandlers(
   checkoutBranchUseCase: CheckoutBranchMainUseCase,
   deleteBranchUseCase: DeleteBranchMainUseCase,
 ): () => void {
-  ipcMain.handle('git:stage', (_event, args) =>
+  #[tauri::command]('git:stage', (_event, args) =>
     wrapHandler(() => {
       validatePath(args.worktreePath, 'worktreePath')
       return stageFilesUseCase.invoke(args)
@@ -402,12 +412,12 @@ export function registerGitWriteIPCHandlers(
 }
 ```
 
-## 6.2. レンダラー側
+## 6.2. Webview 側
 
 ### GitOperationsRepository（application 層）
 
 ```typescript
-// src/processes/renderer/features/basic-git-operations/application/repositories/git-operations-repository.ts
+// src/features/basic-git-operations/application/repositories/git-operations-repository.ts
 export interface GitOperationsRepository {
   stage(worktreePath: string, files: string[]): Promise<void>
   stageAll(worktreePath: string): Promise<void>
@@ -426,7 +436,7 @@ export interface GitOperationsRepository {
 ### GitOperationsService（application 層 — ステートフル）
 
 ```typescript
-// src/processes/renderer/features/basic-git-operations/application/services/git-operations-service-interface.ts
+// src/features/basic-git-operations/application/services/git-operations-service-interface.ts
 export interface GitOperationsService extends BaseService {
   readonly loading$: Observable<boolean>
   readonly lastError$: Observable<IPCError | null>
@@ -439,7 +449,7 @@ export interface GitOperationsService extends BaseService {
 ### ViewModel 例
 
 ```typescript
-// src/processes/renderer/features/basic-git-operations/presentation/staging-viewmodel.ts
+// src/features/basic-git-operations/presentation/staging-viewmodel.ts
 export interface StagingViewModel {
   /** GetOperationLoadingUseCase 経由で取得（A-004: ViewModel は UseCase のみ参照） */
   readonly loading$: Observable<boolean>
@@ -453,7 +463,7 @@ export interface StagingViewModel {
 ### Hook ラッパー例
 
 ```typescript
-// src/processes/renderer/features/basic-git-operations/presentation/use-staging-viewmodel.ts
+// src/features/basic-git-operations/presentation/use-staging-viewmodel.ts
 export function useStagingViewModel() {
   const vm = useResolve(StagingViewModelToken)
   const loading = useObservable(vm.loading$, false)
@@ -476,10 +486,10 @@ export function useStagingViewModel() {
 
 ## 6.3. DI 構成
 
-### メインプロセス側 di-tokens.ts
+### Tauri Core (Rust)側 di-tokens.ts
 
 ```typescript
-// src/processes/main/features/basic-git-operations/di-tokens.ts
+// src-tauri/src/features/basic-git-operations/di-tokens.ts
 import { createToken } from '@lib/di'
 
 export const GitWriteRepositoryToken = createToken<GitWriteRepository>('GitWriteRepository')
@@ -490,10 +500,10 @@ export const StageFilesMainUseCaseToken = createToken<StageFilesMainUseCase>('St
 // ... 他の UseCase Token も同様
 ```
 
-### メインプロセス側 di-config.ts
+### Tauri Core (Rust)側 di-config.ts
 
 ```typescript
-// src/processes/main/features/basic-git-operations/di-config.ts
+// src-tauri/src/features/basic-git-operations/di-config.ts
 export const basicGitOperationsMainConfig: VContainerConfig = {
   register(container) {
     container.registerSingleton(GitWriteRepositoryToken, GitWriteDefaultRepository)
@@ -512,10 +522,10 @@ export const basicGitOperationsMainConfig: VContainerConfig = {
 }
 ```
 
-### レンダラー側 di-config.ts
+### Webview 側 di-config.ts
 
 ```typescript
-// src/processes/renderer/features/basic-git-operations/di-config.ts
+// src/features/basic-git-operations/di-config.ts
 export const basicGitOperationsConfig: VContainerConfig = {
   register(container) {
     // Repository
@@ -564,14 +574,14 @@ export const basicGitOperationsConfig: VContainerConfig = {
 ### DI 統合エントリーポイントへの追加
 
 ```typescript
-// src/processes/main/di/configs.ts に追加
+// src-tauri/src/di/configs.ts に追加
 import { basicGitOperationsMainConfig } from '../features/basic-git-operations/di-config'
 export const mainConfigs = [
   // ... 既存 config
   basicGitOperationsMainConfig,
 ]
 
-// src/processes/renderer/di/configs.ts に追加
+// src/di/configs.ts に追加
 import { basicGitOperationsConfig } from '../features/basic-git-operations/di-config'
 export const rendererConfigs = [
   // ... 既存 config
@@ -585,10 +595,10 @@ export const rendererConfigs = [
 
 | 要件 | 実現方針 |
 |------|----------|
-| Git 操作応答3秒以内 (NFR_301) | simple-git の非同期 API を使用。各操作を UseCase に分離して軽量に保つ |
-| リモート操作の進捗フィードバック (NFR_302) | simple-git の progress イベントを `git:progress` IPC イベントでレンダラーに転送 |
+| Git 操作応答3秒以内 (NFR_301) | git CLI (tokio::process::Command) の非同期 API を使用。各操作を UseCase に分離して軽量に保つ |
+| リモート操作の進捗フィードバック (NFR_302) | git CLI (tokio::process::Command) の progress イベントを `git:progress` IPC イベントでWebviewに転送 |
 | 不可逆操作の安全性 (DC_301, B-002) | Shadcn/ui の AlertDialog をベースにした ConfirmDialog。destructive バリアントで視覚的に危険性を示す |
-| メインプロセス実行 (DC_302, A-001) | GitWriteRepository をメインプロセスの infrastructure 層にのみ配置。レンダラーからは IPC 経由でのみアクセス |
+| Tauri Core (Rust)実行 (DC_302, A-001) | GitWriteRepository をTauri Core (Rust)の infrastructure 層にのみ配置。Webviewからは IPC 経由でのみアクセス |
 
 ---
 
@@ -596,10 +606,10 @@ export const rendererConfigs = [
 
 | テストレベル | 対象 | カバレッジ目標 |
 |------------|------|------------|
-| ユニットテスト | GitWriteDefaultRepository（simple-git をモック） | ≥ 80% |
-| ユニットテスト | メインプロセス UseCases | ≥ 80% |
+| ユニットテスト | GitWriteDefaultRepository（git CLI (tokio::process::Command) をモック） | ≥ 80% |
+| ユニットテスト | Tauri Core (Rust) UseCases | ≥ 80% |
 | ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
-| ユニットテスト | レンダラー UseCases + ViewModel | ≥ 60% |
+| ユニットテスト | Webview UseCases + ViewModel | ≥ 60% |
 | 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
 | 結合テスト | GitWriteDefaultRepository と実際の Git リポジトリ | 主要操作 |
 
@@ -611,7 +621,7 @@ export const rendererConfigs = [
 
 | 決定事項 | 選択肢 | 決定内容 | 理由 |
 |----------|--------|----------|------|
-| Git ライブラリ | simple-git / nodegit / child_process | simple-git | CONSTITUTION A-002 で推奨。Promise ベース、型定義付き |
+| Git ライブラリ | git CLI (tokio::process::Command) / nodegit / tokio::process::Command | git CLI (tokio::process::Command) | CONSTITUTION A-002 で推奨。Promise ベース、型定義付き |
 | Repository の命名 | GitService / GitWriteRepository | GitWriteRepository | ステートレスな外部 API ラッパーは「Repository」と命名する（CLAUDE.md 命名ルール） |
 | 既存 read API との統合 | 別 Repository / 同一 Repository | 別 Repository（GitWriteRepository） | repository-viewer の GitReadRepository と分離。feature ごとに独立した Repository を持つ |
 | ViewModel の分割 | 単一 ViewModel / 機能別分割 | 機能別分割（Staging, Commit, RemoteOps, BranchOps） | 各ドメインの関心事を分離。コンポーネントの再利用性向上 |
@@ -619,7 +629,7 @@ export const rendererConfigs = [
 | エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（STAGE_FAILED, NO_UPSTREAM 等） | IPC チャネルの名前空間方式に合わせた管理性 |
 | ConsumerUseCase の戻り値 | `void` / `Promise<void>` | `void` | 既存パターン（worktree-management）に準拠。内部で Promise チェーンを処理する |
 | IPCResult ナローイング | `!result.success` / `result.success === false` | `result.success === false` で分岐 | TypeScript の型ナローイングが正しく動作するパターン |
-| GitOperationError の設計 | 汎用 Error / カスタムエラー | メインプロセス側に `code` 付きカスタムエラーを定義 | IPC Handler で `ipcFailure(error.code, error.message)` にマッピングし、レンダラー側でエラーコード別の処理を可能にする |
+| GitOperationError の設計 | 汎用 Error / カスタムエラー | Tauri Core (Rust)側に `code` 付きカスタムエラーを定義 | IPC Handler で `ipcFailure(error.code, error.message)` にマッピングし、Webview 側でエラーコード別の処理を可能にする |
 
 ## 9.2. 解決済みの課題（Clarify で決定）
 
@@ -628,19 +638,64 @@ export const rendererConfigs = [
 | worktreePath の定義 | ワークツリーの絶対パスを指す。ワークツリー選択時に切り替わる | B-001: Worktree-First UX |
 | ハンク単位ステージングのスコープ | Phase 1 ではスキップ。ファイル単位のみ実装し、Phase 2 で対応 | FR_301_03/04 は優先度「推奨」 |
 | チェックアウト時の未コミット変更 | キャンセルのみ提供。stash・強制チェックアウトは提供しない | stash は Advanced Git Operations のスコープ |
-| 自動リフレッシュの仕組み | 操作完了時に明示的リフレッシュ。IPC レスポンス受信後にレンダラー側で既存 git:status / git:branches を呼び出す | シンプルで予測可能な方式 |
+| 自動リフレッシュの仕組み | 操作完了時に明示的リフレッシュ。IPC レスポンス受信後にWebview 側で既存 git:status / git:branches を呼び出す | シンプルで予測可能な方式 |
 
 ## 9.3. 未解決の課題
 
 | 課題 | 影響度 | 対応方針 |
 |------|--------|----------|
-| simple-git の progress イベントの粒度 | 低 | リモート操作での進捗表示。実装時に確認 |
+| git CLI (tokio::process::Command) の progress イベントの粒度 | 低 | リモート操作での進捗表示。実装時に確認 |
 | コンフリクト発生時の UI フロー | 中 | 本機能では通知のみ。解決 UI は Advanced Git Operations |
 | 大規模リポジトリでのパフォーマンス | 中 | ファイル数が多い場合の仮想スクロール等は実装時に検討 |
 
 ---
 
 # 10. 変更履歴
+
+## v4.0 (2026-04-09)
+
+**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
+
+- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
+- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
+- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
+- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
+- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
+- Preload API ブロックを削除（Tauri では preload 不要）
+- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
+- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
+- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
+- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
+- `electron-store` → `tauri-plugin-store` に置換
+- `child_process.spawn` → `tokio::process::Command` に置換
+- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
+
+**移行ガイド:**
+
+```typescript
+// ❌ 旧コード (Electron)
+const result = await window.electronAPI.repository.open()
+if (result.success) { /* ... */ }
+
+// ✅ 新コード (Tauri)
+import { invokeCommand } from '@/shared/lib/invoke'
+const result = await invokeCommand<RepositoryInfo | null>('repository_open')
+if (result.success) { /* ... */ }
+```
+
+```rust
+// ✅ Rust 側 (新規)
+#[tauri::command]
+pub async fn repository_open(
+    state: State<'_, AppState>,
+) -> AppResult<Option<RepositoryInfo>> {
+    state.open_repository_dialog_usecase.invoke().await
+}
+```
+
+> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
+
+---
 
 ## v2.0 (2026-04-02)
 
