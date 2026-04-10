@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useCallback } from 'react'
 import { cn } from '@lib/utils'
 import { Check, FileEdit, FilePlus, FileX } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
@@ -9,9 +9,15 @@ interface CommitDetailViewProps {
   worktreePath: string
   commitHash: string
   onFileSelect: (filePath: string) => void
+  onSelectionChange?: (selectedFiles: Set<string>) => void
 }
 
-export function CommitDetailView({ worktreePath, commitHash, onFileSelect }: CommitDetailViewProps) {
+export function CommitDetailView({
+  worktreePath,
+  commitHash,
+  onFileSelect,
+  onSelectionChange,
+}: CommitDetailViewProps) {
   const { selectedCommit, selectCommit } = useCommitLogViewModel()
   const fileList = selectedCommit?.files.map((f) => f.path) ?? []
   const { selectedFiles, handleFileSelect, toggleFileSelect } = useMultiFileSelection(fileList)
@@ -19,6 +25,10 @@ export function CommitDetailView({ worktreePath, commitHash, onFileSelect }: Com
   useEffect(() => {
     selectCommit(worktreePath, commitHash)
   }, [worktreePath, commitHash, selectCommit])
+
+  useEffect(() => {
+    onSelectionChange?.(selectedFiles)
+  }, [selectedFiles, onSelectionChange])
 
   if (!selectedCommit) {
     return <div className="p-4 text-sm text-muted-foreground">読み込み中...</div>

@@ -73,6 +73,7 @@ export function RepositoryDetailPanel() {
   const [commitFilePath, setCommitFilePath] = useState<string | undefined>(undefined)
   const { mode: commitViewMode, setMode: setCommitViewMode } = useDiffViewMode('hunk')
   const [commitDiffs, setCommitDiffs] = useState<FileDiff[]>([])
+  const [commitSelectedFiles, setCommitSelectedFiles] = useState<Set<string>>(new Set())
 
   // Files tab state
   const [treeFilePath, setTreeFilePath] = useState<string | null>(null)
@@ -486,6 +487,7 @@ export function RepositoryDetailPanel() {
                                   worktreePath={selectedWorktree.path}
                                   commitHash={selectedCommitHash}
                                   onFileSelect={handleCommitFileSelect}
+                                  onSelectionChange={setCommitSelectedFiles}
                                 />
                               </div>
                             </ResizablePanel>
@@ -494,7 +496,11 @@ export function RepositoryDetailPanel() {
                               {commitViewMode === 'hunk' ? (
                                 <MultiFileDiffPanel
                                   worktreePath={selectedWorktree.path}
-                                  diffs={commitDiffs}
+                                  diffs={
+                                    commitSelectedFiles.size > 0
+                                      ? commitDiffs.filter((d) => commitSelectedFiles.has(d.filePath))
+                                      : commitDiffs
+                                  }
                                   diffTarget={{
                                     type: 'commits',
                                     from: `${selectedCommitHash}^`,
