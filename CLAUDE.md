@@ -4,127 +4,142 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Electron ベースの Git GUI アプリケーション。
+Buruma (Branch-United Real-time Understanding & Multi-worktree Analyzer) — Tauri v2 ベースの Git GUI デスクトップアプリケーション。フロントエンドは React + TypeScript、バックエンドは Rust。
 
 ## Commands
 
-- `npm start` — 開発サーバー起動（Electron + Vite HMR）
-- `npm run package` — アプリのパッケージング（out/ に出力）
-- `npm run make` — 配布用インストーラー作成
-- `npm run lint` — ESLint 実行 (`eslint .`)
+- `npm run tauri:dev` — 開発サーバー起動（Tauri + Vite HMR、ポート 1420）
+- `npm run tauri:build` — Tauri リリースビルド
+- `npm run dev` — Vite dev server のみ起動（フロントエンド単体、Tauri なし）
+- `npm run build` — フロントエンドビルド（dist/ に出力）
+- `npm run lint` — ESLint 実行
 - `npm run typecheck` — TypeScript 型チェック (`tsc --noEmit`)
 - `npm run format` — Prettier でフォーマット適用
 - `npm run format:check` — フォーマット差分チェック（CI 向け）
 - `npm run test` — Vitest でテスト実行
 - `npm run test:watch` — Vitest ウォッチモード
 
+単一テストファイルの実行: `npx vitest run src/path/to/__tests__/xxx.test.ts`
+
+Rust バックエンドのビルド・テスト: `cd src-tauri && cargo build` / `cargo test`
+
 ## Architecture
 
-Electron のマルチプロセスアーキテクチャ（main / preload / renderer）を採用。ソースコードはプロセス別にディレクトリを分離する。
+Tauri v2 の Webview + Rust バックエンドアーキテクチャ。フロントエンド（React）と Rust バックエンドの両方で feature 単位の Clean Architecture 4層構成を採用。
 
 ```
-src/
-├── processes/           # プロセス別ディレクトリ（実行単位）
-│   ├── main/            # メインプロセス
-│   ├── preload/         # Preload スクリプト
-│   └── renderer/        # レンダラープロセス
-├── domain/              # プロセス間共有のドメインモデル（純粋 TypeScript）
-└── lib/                 # プロセス間共有ライブラリ（DI, hooks, IPC 型等）
+src/                        # フロントエンド（React + TypeScript）
+├── features/               # feature 単位モジュール
+├── shared/
+│   ├── domain/             # 共有ドメイン型（純粋 TypeScript、外部ライブラリ依存禁止）
+│   └── lib/                # 共有ライブラリ（DI, hooks, IPC 型, UseCase/Service 型等）
+├── components/             # 共通 UI コンポーネント（Shadcn/ui 含む）
+├── di/configs.ts           # 全 feature の DI 設定を集約
+├── App.tsx                 # ルートコンポーネント
+└── main.tsx                # エントリーポイント
+
+src-tauri/src/              # バックエンド（Rust）
+├── main.rs                 # エントリーポイント（lib::run() を呼ぶだけ）
+├── lib.rs                  # Tauri ビルダー、全コマンド登録（67 コマンド）
+├── state.rs                # グローバル AppState（Arc<dyn Trait> でリポジトリ注入）
+├── error.rs                # 統一 AppError 型（{ code, message, detail } にシリアライズ）
+├── git/                    # Git CLI ラッパーユーティリティ
+└── features/               # feature 単位モジュール（フロントと対称）
 ```
 
-- **Main process** (`src/processes/main/main.ts`): アプリライフサイクル管理、BrowserWindow 作成。Clean Architecture 4層構成で
-  feature を実装。Vite 設定は `vite.main.config.ts`
-- **Preload** (`src/processes/preload/preload.ts`): contextBridge 経由でレンダラーに API を公開する。Vite 設定は
-  `vite.preload.config.ts`
-- **Renderer** (`src/processes/renderer/App.tsx`): React UI。Clean Architecture 4層構成で feature を実装。Vite 設定は
-  `vite.renderer.config.ts`
-- **Domain** (`src/domain/`): プロセス間共有のエンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
-- **Lib** (`src/lib/`): DI ライブラリ、IPC 型定義、共有 hooks、UseCase/Service 型、ユーティリティ
+### IPC 通信
 
-Forge 設定（`forge.config.ts`）で VitePlugin が 3 つのエントリ（main, preload, renderer）を束ねる。FusesPlugin
-でセキュリティオプション（RunAsNode: false 等）を適用。
+Tauri コマンドによる型安全な IPC。フロントエンドは `invokeCommand()` ラッパーを通じて Rust バックエンドの `#[tauri::command]` を呼び出す。
 
-### Electron Forge ビルドエントリーの命名制約
+- **コマンド定義**: `src/shared/lib/ipc.ts` の `IPCChannelMap` で全 67 コマンドの引数・戻り値型を定義
+- **イベント定義**: `src/shared/lib/ipc.ts` の `IPCEventMap` で Tauri イベント型を定義
+- **結果型**: `IPCResult<T>` = `{ success: true; data: T } | { success: false; error: IPCError }`
+- **呼び出し**: `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>(cmd, args)` を使用
+- **イベント受信**: `src/shared/lib/invoke/events.ts` の `listenEvent<T>()` / `listenEventSync<T>()` を使用
 
-Electron Forge の VitePlugin は **エントリーファイルのベース名** でビルド出力ファイル名を決定する（`src/processes/main/main.ts` →
-`.vite/build/main.js`）。`package.json` の `"main"` フィールドはこの出力パスを参照する。
+### Features（6 モジュール）
 
-- **エントリーファイル名はプロセスごとに一意にする**（`index.ts` にしない）。同名ファイルはビルド出力が衝突する
-- `package.json` の `"main"` はメインプロセスのビルド出力（`.vite/build/main.js`）を指す
-- `BrowserWindow` の `preload` オプションは preload のビルド出力（`preload.js`）を指す
+| Feature | 説明 |
+|:---|:---|
+| `application-foundation` | リポジトリ管理、設定、エラー通知 |
+| `repository-viewer` | Git 履歴、差分、ブランチ閲覧 |
+| `basic-git-operations` | ステージ、コミット、プッシュ、プル、ブランチ操作 |
+| `advanced-git-operations` | マージ、リベース、スタッシュ、チェリーピック、コンフリクト解決 |
+| `worktree-management` | Worktree の CRUD と監視 |
+| `claude-code-integration` | AI アシスタント統合（レビュー、解説、コミットメッセージ生成） |
 
-| エントリー                              | ビルド出力                    | 参照元                                    |
-|:------------------------------------|:-------------------------|:---------------------------------------|
-| `src/processes/main/main.ts`        | `.vite/build/main.js`    | `package.json` の `"main"`              |
-| `src/processes/preload/preload.ts`   | `.vite/build/preload.js` | `BrowserWindow.webPreferences.preload` |
-| `src/processes/renderer/`            | Vite dev server          | `forge.config.ts` の `renderer`         |
+各 feature はフロントエンド（`src/features/{name}/`）とバックエンド（`src-tauri/src/features/{name}/`）の両方に同名のディレクトリを持つ。
 
-`src/processes/renderer/` と `src/processes/main/` は互いに import しない（対等で独立）。両プロセスが使う型・ライブラリは `src/domain/` と `src/lib/` に配置する。
+### Clean Architecture（4層構成）
 
-### IPC 通信ルール
+フロントエンド・バックエンドの両方で同一パターン。依存方向は `domain ← application ← infrastructure / presentation` の一方向のみ。
 
-- メインプロセスとレンダラーの通信は必ず preload + contextBridge を経由する
-- レンダラーから Node.js API を直接使わない
-- IPC チャネルには型安全なインターフェースを `src/lib/ipc.ts` に定義する
-- レンダラー側: IPC クライアントは **infrastructure 層**（データアクセス手段として IPC を使用）
-- メインプロセス側: IPC Handler は **presentation 層**（リクエスト受付・ルーティング、Web の Controller に相当）
+**フロントエンド feature 構成**:
+
+```
+src/features/{feature-name}/
+├── application/
+│   ├── repositories/        # リポジトリ IF 定義
+│   ├── services/            # Service IF 定義（*-interface.ts）+ Service 実装
+│   └── usecases/            # UseCase 実装（1クラス1操作）
+├── infrastructure/          # リポジトリ実装（Tauri IPC アダプター）
+├── presentation/
+│   ├── viewmodel-interfaces.ts  # ViewModel IF 定義
+│   ├── components/          # React コンポーネント
+│   ├── *-viewmodel.ts       # ViewModel 実装
+│   └── use-*-viewmodel.ts   # Hook ラッパー
+├── di-tokens.ts             # Token + UseCase 型エイリアス + re-export
+└── di-config.ts             # VContainerConfig（useClass + deps パターン）
+```
+
+**Rust バックエンド feature 構成**:
+
+```
+src-tauri/src/features/{feature-name}/
+├── domain/                  # エンティティ、値オブジェクト
+├── application/
+│   ├── repositories/        # リポジトリ trait 定義
+│   └── usecases/            # UseCase 実装
+├── infrastructure/          # リポジトリ実装（Git CLI、ファイルシステム等）
+└── presentation/            # #[tauri::command] ハンドラー
+```
+
+- **domain / application 層はフレームワーク非依存**の純粋な TypeScript（or Rust）で実装する（フロントエンド application 層は RxJS の Observable のみ許可）
+- リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
 
 ### DI（依存性注入）アーキテクチャ
 
-`src/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。メインプロセス・レンダラーの両方で使用する。
-
-**コア API**:
+**フロントエンド**: `src/shared/lib/di/` に軽量な DI コンテナライブラリ（VContainer）を内蔵。
 
 - `createToken<T>(key)` — 型安全な InjectionToken を作成
-- `container.register()` / `registerSingleton()` / `registerTransient()` — サービス登録
+- `container.registerSingleton()` / `registerTransient()` — サービス登録
 - `container.resolve<T>(token)` — サービス取得
-- `container.createScope()` — 親子コンテナ階層
-
-**React 統合**:
-
 - `VContainerProvider` — configs（register + setUp）でコンテナを初期化し React ツリーに提供
-- `useVContainer()` — コンポーネントからコンテナを取得
+- `useResolve<T>(token)` — DI コンテナからトークンでサービスを解決する Hook
+- `useObservable<T>(observable, initialValue)` — RxJS Observable を React state に変換する Hook
+- `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される
 - setUp 関数は priority で実行順制御、tearDown は `DisposableStack` で LIFO クリーンアップ
 
-**React Hooks**:
+**Rust バックエンド**: `AppState`（`src-tauri/src/state.rs`）で `Arc<dyn Trait>` パターンによるリポジトリ注入。
 
-- `useResolve<T>(token)` — DI コンテナからトークンでサービスを解決する Hook（`src/lib/di/v-container-provider.tsx`）
-- `useObservable<T>(observable, initialValue)` — RxJS Observable を React state に変換する Hook（
-  `src/lib/hooks/use-observable.ts`）
+**DI 登録パターン**:
 
-**ライフタイム**: `singleton`（デフォルト、インスタンス再利用）、`transient`（毎回新規作成）。`scoped` は未実装。
+- `registerSingleton(Token, Class, [deps])` の **useClass + deps** パターンを優先する
+- deps 配列はコンストラクタ引数の順序と一致させる
+- DI Token 以外の引数（外部インスタンス、コールバック等）が必要な場合のみファクトリー関数を使用する
 
-**遅延解決**: `asLazy(token)` で deps に指定すると `Lazy<T>` として注入され、`getValue()` 呼び出し時に解決される。
-
-### DI 統合エントリーポイント
-
-各プロセスの `di/` ディレクトリに全 feature の DI 設定を集約する。エントリーポイント（`main/main.ts`, `renderer/App.tsx`）は
-`di/` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
-
-```
-src/processes/main/di/
-└── configs.ts             ← メインプロセス側の全 feature VContainerConfig を集約
-
-src/processes/renderer/di/
-└── configs.ts             ← レンダラー側の全 feature VContainerConfig を集約
-```
+**DI 統合エントリーポイント**: `src/di/configs.ts` に全 feature の DI 設定を集約。`App.tsx` は `di/configs.ts` のみを参照し、各 feature の具象クラスや di-config を直接参照しない。
 
 **feature 追加時の手順**:
 
-1. `src/processes/renderer/features/{name}/di-config.ts` を作成（レンダラー側）
-2. `src/processes/main/features/{name}/di-config.ts` を作成（メインプロセス側、必要な場合のみ）
-3. `src/processes/renderer/di/configs.ts` に config を 1 行追加
-4. `src/processes/main/di/configs.ts` に config を 1 行追加（メインプロセス側がある場合）
-
-エントリーポイントは変更不要。
+1. `src/features/{name}/di-config.ts` を作成
+2. `src-tauri/src/features/{name}/` を作成（Rust 側）
+3. `src/di/configs.ts` に config を 1 行追加
+4. `src-tauri/src/lib.rs` にコマンドを登録
 
 ### Composition Root（依存関係の組み立て）
 
 各 feature は Composition Root として `di-config.ts` と `di-tokens.ts` を持つ。
-
-- レンダラー側: `src/processes/renderer/features/{name}/di-config.ts`, `di-tokens.ts`
-- メインプロセス側: `src/processes/main/features/{name}/di-config.ts`, `di-tokens.ts`
-- 両プロセスとも `VContainerConfig`（register + setUp）パターンで統一
 
 **エントリーポイントが infrastructure 層の具象クラスを直接参照してはならない。**
 
@@ -135,37 +150,28 @@ src/processes/renderer/di/
 - 各層のインターフェースファイルからの re-export
 - **インターフェース定義を直接記述しない**（各層の専用ファイルに配置）
 
-**DI 登録パターン**:
-
-- `registerSingleton(Token, Class, [deps])` の **useClass + deps** パターンを優先する
-- deps 配列はコンストラクタ引数の順序と一致させる
-- DI Token 以外の引数（外部インスタンス、コールバック等）が必要な場合のみファクトリー関数を使用する
-
 ### ViewModel + Hook パターン
 
-ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook
-ラッパー経由で利用する:
+ViewModel は純粋な TypeScript クラスとして実装し、RxJS Observable でデータを公開する。React コンポーネントからは Hook ラッパー経由で利用する:
 
 ```typescript
 // ViewModel（純粋 TS クラス、DI で transient 登録）
 class XxxViewModel {
     readonly items$: Observable<Item[]>
-
-    constructor(useCase: GetItemsUseCase) { 
-    }
+    constructor(useCase: GetItemsUseCase) { }
 }
 
 // Hook ラッパー（useResolve + useObservable で ViewModel を React に接続）
 function useXxxViewModel() {
     const vm = useResolve(xxxViewModelToken)
     const items = useObservable(vm.items$, [])
-    return {items}
+    return { items }
 }
 ```
 
 ### UseCase 型定義
 
-`src/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
+`src/shared/lib/usecase/types.ts` に共通 UseCase インターフェースを定義:
 
 - `ConsumerUseCase<T>` / `RunnableUseCase` — 副作用のみ（戻り値なし）
 - `FunctionUseCase<T, R>` / `SupplierUseCase<T>` — 値を返す
@@ -180,118 +186,67 @@ function useXxxViewModel() {
 
 ### Service 型定義
 
-`src/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends
-する:
+`src/shared/lib/service/index.ts` に共通 Service インターフェースを定義。ステートフルな Service は必ずこれらを extends する:
 
 - `BaseService` — 引数なし同期 setUp + tearDown
 - `AsyncBaseService` — 引数なし非同期 setUp + tearDown
 - `ParameterizedService<T>` — パラメータ付き同期 setUp + tearDown
 - `AsyncParameterizedService<T>` — パラメータ付き非同期 setUp + tearDown
 
-すべて `TearDownable`（`src/lib/di/disposable-stack.ts`）を extends しており、`tearDown()` メソッドで
-BehaviorSubject の complete 等のリソース解放を行う。
-
 **ライフサイクルルール**:
 
 - Service IF は必ず上記の共通インターフェースを extends する（`dispose()` ではなく `tearDown()` に統一）
 - `setUp()` で初期データの注入を行い、`tearDown()` でリソースを解放する
-- DI コンテナの setUp/tearDown から Service の setUp/tearDown をインターフェース経由で呼び出す（具象クラスへのキャスト不要）
 - Observable プロパティは **constructor でフィールドとして1回だけ生成**する（getter で都度生成しない）
 
 **命名ルール**:
 
 - **Service**: ステートフルな状態管理を行うクラスのみ「Service」と命名する
-- **Repository**: ステートレスな外部 API ラッパー（IPC クライアント、Git CLI、ダイアログ、ファイルシステム等）は「Repository」と命名する
-- ステートレスなクラスに「Service」という名前を付けてはならない
-
-### Clean Architecture（4層構成）
-
-feature 単位で Clean Architecture を採用。依存方向は `domain ← application ← infrastructure / presentation`
-の一方向のみ。メインプロセス・レンダラーの両方に4層構成を適用する。
-
-**レンダラー側**:
-
-```
-src/processes/renderer/features/{feature-name}/
-├── application/
-│   ├── repositories/    # リポジトリ IF 定義
-│   ├── services/        # Service IF 定義（*-interface.ts）+ Service 実装
-│   └── usecases/        # UseCase 実装（1クラス1操作）
-├── infrastructure/      # リポジトリ実装（IPC クライアント経由）
-├── presentation/
-│   ├── viewmodel-interfaces.ts  # ViewModel IF 定義
-│   ├── components/      # React コンポーネント
-│   ├── *-viewmodel.ts   # ViewModel 実装
-│   └── use-*-viewmodel.ts  # Hook ラッパー
-├── di-tokens.ts         # Token + UseCase 型エイリアス + re-export
-└── di-config.ts         # VContainerConfig（useClass + deps パターン）
-```
-
-**メインプロセス側**:
-
-```
-src/processes/main/features/{feature-name}/
-├── application/
-│   ├── repositories/    # リポジトリ IF 定義（Git操作等の外部API抽象）
-│   └── usecases/        # UseCase 実装（1クラス1操作）
-├── infrastructure/      # リポジトリ実装（simple-git、electron-store 等）
-├── presentation/        # IPC Handler（リクエスト受付・ルーティング）
-├── di-tokens.ts         # Token + UseCase 型エイリアス
-└── di-config.ts         # VContainerConfig（useClass + deps パターン）
-```
-
-**共有コード**:
-
-```
-src/domain/    # エンティティ、値オブジェクト（純粋 TypeScript のみ、外部ライブラリ依存禁止）
-src/lib/       # DI, hooks, IPC 型, UseCase/Service 型, ユーティリティ
-```
-
-- **domain / application 層はフレームワーク非依存**の純粋な TypeScript で実装する（application 層は RxJS の Observable
-  のみ許可）
-- domain 型は `src/domain/` に配置し、両プロセスから参照する
-- リポジトリインターフェースは application 層に定義し、具象実装は infrastructure 層に配置、DI で注入する
-- 非同期データフロー・イベント駆動ロジックには **RxJS** の Observable パターンを使用する
-- feature 間の共有ロジックは `src/lib/` に配置する
+- **Repository**: ステートレスな外部 API ラッパー（Tauri IPC、Git CLI、ダイアログ、ファイルシステム等）は「Repository」と命名する
 
 ## Tech Stack
 
-- **Electron 41** + Electron Forge 7 + Vite 5
-- **React 19** + TypeScript 5.8
+**フロントエンド**:
+
+- **React 19** + TypeScript 5.8 + Vite 6
 - **RxJS** — 非同期データフロー、イベント駆動ロジック
-- **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）。`@tailwindcss/vite` は ESM only で Vite 5
-  と非互換のため使用不可
-- **Shadcn/ui** — `components.json` で設定。`npx shadcn@latest add <component>` でコンポーネント追加。`rsc: false`（Server
-  Components 無効）
+- **Tailwind CSS v4** — `@tailwindcss/postcss` 経由（`postcss.config.js`）
+- **Shadcn/ui** — `components.json` で設定（`rsc: false`）。`npx shadcn@latest add <component>` でコンポーネント追加
+- **Monaco Editor** — コード差分表示
+- **@tanstack/react-virtual** / **react-virtuoso** — 仮想スクロール
+- **dnd-kit** — ドラッグ&ドロップ
+
+**バックエンド**:
+
+- **Tauri v2** — デスクトップアプリフレームワーク
+- **Rust** (edition 2021) + tokio — 非同期ランタイム
+- **tauri-plugin-dialog** / **tauri-plugin-store** — ネイティブダイアログ・永続ストレージ
+- **notify** / **notify-debouncer-full** — ファイルシステム監視（Worktree 変更検知）
 
 ## Path Aliases
 
-パスエイリアスは `tsconfig.json` の `paths` と各 Vite 設定の `resolve.alias` で設定。
+`tsconfig.json` の `paths` と `vite.config.ts` の `resolve.alias` で設定。
 
-- `@domain/*` → `./src/domain/*`（全プロセスで有効）
-- `@lib/*` → `./src/lib/*`（全プロセスで有効）
-- `@main/*` → `./src/processes/main/*`（メインプロセスでのみ有効）
-- `@renderer/*` → `./src/processes/renderer/*`（レンダラーでのみ有効）
-- `@preload/*` → `./src/processes/preload/*`（preload でのみ有効）
+- `@/*` → `./src/*`
+- `@domain` / `@domain/*` → `./src/shared/domain/`
+- `@lib` / `@lib/*` → `./src/shared/lib/`
 
 ## ESLint 設定
 
-`eslint.config.mjs` でプロセスごとにグローバル変数を分離:
+`eslint.config.mjs` で用途ごとにグローバル変数を分離:
 
-- **main / preload**: Node.js グローバル許可
-- **renderer**: Browser グローバルのみ
+- **ビルド設定ファイル** (`vite.config.ts`, `vitest.config.ts` 等): Node.js グローバル許可
+- **src/**（Webview）: Browser グローバルのみ
 - `eslint-plugin-import-x` で未解決インポートと重複チェック
+- `src-tauri/` は ESLint 対象外（Rust は `cargo clippy` で lint）
 
 ## AI-SDD Instructions (v3.3.0)
-
-<!-- sdd-workflow version: "3.3.0" -->
 
 This project follows AI-SDD (AI-driven Specification-Driven Development) workflow.
 
 ### Document Operations
 
-When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.md` to ensure proper AI-SDD workflow
-compliance.
+When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.md` to ensure proper AI-SDD workflow compliance.
 
 **Trigger Conditions**:
 
