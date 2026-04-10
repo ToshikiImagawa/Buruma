@@ -28,7 +28,19 @@ pub fn run() {
             app.manage(app_state);
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![ping])
+        .invoke_handler(tauri::generate_handler![
+            ping,
+            features::application_foundation::presentation::commands::repository_open,
+            features::application_foundation::presentation::commands::repository_open_path,
+            features::application_foundation::presentation::commands::repository_validate,
+            features::application_foundation::presentation::commands::repository_get_recent,
+            features::application_foundation::presentation::commands::repository_remove_recent,
+            features::application_foundation::presentation::commands::repository_pin,
+            features::application_foundation::presentation::commands::settings_get,
+            features::application_foundation::presentation::commands::settings_set,
+            features::application_foundation::presentation::commands::settings_get_theme,
+            features::application_foundation::presentation::commands::settings_set_theme,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
