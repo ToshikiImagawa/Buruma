@@ -112,7 +112,7 @@ graph TD
         VM[ViewModels]
         Hook[Hook Wrappers]
         Repo[Infrastructure Repository]
-        InvokeWrap["invokeCommand<T> / listenEvent<T><br/>src/shared/lib/invoke/"]
+        InvokeWrap["invokeCommand<T> / listenEvent<T><br/>src/lib/invoke/"]
         API["@tauri-apps/api/core + /event"]
         UI --> Hook --> VM --> Repo
         Repo --> InvokeWrap
@@ -223,7 +223,7 @@ graph TD
 
 ## 4.3. 主要コンポーネントの役割
 
-### 4.3.1. `invokeCommand<T>` ラッパー（`src/shared/lib/invoke/commands.ts`）
+### 4.3.1. `invokeCommand<T>` ラッパー（`src/lib/invoke/commands.ts`）
 
 Webview 側の全 Repository 実装はこのラッパー経由で Tauri command を呼び出す。Rust 側の `Result<T, AppError>` を JavaScript の reject として受け取り、`IPCResult<T>` 形式に変換する。
 
@@ -248,7 +248,7 @@ export async function invokeCommand<T>(
 }
 ```
 
-### 4.3.2. `listenEvent<T>` ラッパー（`src/shared/lib/invoke/events.ts`）
+### 4.3.2. `listenEvent<T>` ラッパー（`src/lib/invoke/events.ts`）
 
 ```typescript
 import { listen, type UnlistenFn } from '@tauri-apps/api/event'
@@ -261,7 +261,7 @@ export async function listenEvent<T>(
 }
 ```
 
-### 4.3.3. 互換 shim（`src/shared/lib/invoke/electron-shim.ts`、Phase IA で追加）
+### 4.3.3. 互換 shim（`src/lib/invoke/electron-shim.ts`、Phase IA で追加）
 
 既存 renderer 側の `window.electronAPI.*` 呼び出しをそのまま動作させるための後方互換レイヤー。Phase IA で導入し、Phase IH で削除する。
 
@@ -413,12 +413,12 @@ pub type AppResult<T> = Result<T, AppError>;
    - `src/processes/renderer/features/*` → `src/features/*`
    - `src/processes/renderer/components/*` → `src/components/*`
    - `src/processes/renderer/di/*` → `src/di/*`
-   - `src/domain/*` → `src/shared/domain/*`
-   - `src/lib/*` → `src/shared/lib/*`
-8. `tsconfig.json` 更新: `@main/*` `@preload/*` `@renderer/*` 削除、`@/*` → `./src/*` 追加、`@domain/*` → `./src/shared/domain/*`、`@lib/*` → `./src/shared/lib/*`
+   - `src/domain/*` → `src/domain/*`
+   - `src/lib/*` → `src/lib/*`
+8. `tsconfig.json` 更新: `@main/*` `@preload/*` `@renderer/*` 削除、`@/*` → `./src/*` 追加、`@domain/*` → `./src/domain/*`、`@lib/*` → `./src/lib/*`
 9. `vite.config.ts` 統合: `vite.main.config.ts` / `vite.preload.config.ts` / `vite.renderer.config.ts` を削除して `vite.config.ts` 1 本に
 10. `package.json` scripts 変更: `dev`, `build`, `tauri dev`, `tauri build`, `lint` (eslint + cargo clippy), `typecheck` (tsc + cargo check), `test` (vitest + cargo test)
-11. `src/shared/lib/invoke/` 配下を新規作成: `commands.ts`, `events.ts`, `tauri-api.ts`, `electron-shim.ts`
+11. `src/lib/invoke/` 配下を新規作成: `commands.ts`, `events.ts`, `tauri-api.ts`, `electron-shim.ts`
 12. Phase IA 専用: `#[tauri::command] fn ping(msg: String) -> String` を `src-tauri/src/lib.rs` に追加
 13. `src/main.tsx` で `installElectronShim()` + 疎通 `invoke<string>('ping', { msg: 'hello' })`
 14. `npm run tauri dev` で起動確認、既存 UI の描画確認（IPC 呼び出しはこの時点ではエラーで OK）
@@ -434,7 +434,7 @@ pub type AppResult<T> = Result<T, AppError>;
 各 feature について以下のテンプレートに従う:
 
 1. **Rust 側**: `src-tauri/src/features/{feature_name}/` に 4 層ディレクトリを作成
-2. **domain.rs**: `src/shared/domain/` から該当型を serde 付き struct として移植
+2. **domain.rs**: `src/domain/` から該当型を serde 付き struct として移植
 3. **application/repositories.rs**: Repository trait を `async_trait` で定義
 4. **application/usecases/*.rs**: UseCase を `Arc<dyn Trait>` で配線
 5. **infrastructure/*.rs**: Repository impl（`tokio::process::Command` で git CLI 呼び出し、`parse_*` 関数を TypeScript から 1:1 移植）
@@ -457,7 +457,7 @@ pub type AppResult<T> = Result<T, AppError>;
 - 対象: `git_status`, `git_log`, `git_commit_detail`, `git_diff`, `git_diff_staged`, `git_diff_commit`, `git_branches`, `git_file_tree`, `git_file_contents`, `git_file_contents_commit` (10)
 - 最大の移植: `diff_parser.rs`（TypeScript `parseDiffOutput` を 1:1）、`log_parser.rs`（`parseLogOutput` を 1:1）、`file-tree-builder.ts` を Rust に
 - log ページング: `--skip=offset --max-count=limit` + `rev-list --count`
-- 言語検出は TypeScript 側（`src/shared/lib/detect-language.ts`）で継続
+- 言語検出は TypeScript 側（`src/lib/detect-language.ts`）で継続
 
 ### Phase IE: basic-git-operations
 - 対象: stage/stageAll/unstage/unstageAll/commit/push/pull/fetch/branchCreate/branchCheckout/branchDelete/reset (12), event `git-progress`
@@ -485,8 +485,8 @@ pub type AppResult<T> = Result<T, AppError>;
 ## Phase IH: クリーンアップ
 
 1. **依存削除**: `electron`, `@electron-forge/*`, `@electron/fuses`, `@types/electron-squirrel-startup`, `electron-squirrel-startup`, `electron-store`, `simple-git`, `chokidar` を `npm uninstall`
-2. **shim 削除**: `src/shared/lib/invoke/electron-shim.ts` を削除、`src/main.tsx` の `installElectronShim()` 呼び出しを削除
-3. **`src/shared/lib/ipc.ts` の整理**: `ElectronAPI` 型と `declare global { interface Window { electronAPI: ElectronAPI } }` を削除、`IPCResult<T>` / `IPCError` / `ipcSuccess` / `ipcFailure` は維持
+2. **shim 削除**: `src/lib/invoke/electron-shim.ts` を削除、`src/main.tsx` の `installElectronShim()` 呼び出しを削除
+3. **`src/lib/ipc.ts` の整理**: `ElectronAPI` 型と `declare global { interface Window { electronAPI: ElectronAPI } }` を削除、`IPCResult<T>` / `IPCError` / `ipcSuccess` / `ipcFailure` は維持
 4. **presentation 層の直接呼び出し書き換え**（shim 廃止に伴い必須）:
    - `src/features/basic-git-operations/presentation/commit-viewmodel.ts`
    - `src/features/basic-git-operations/presentation/components/push-pull-buttons.tsx`

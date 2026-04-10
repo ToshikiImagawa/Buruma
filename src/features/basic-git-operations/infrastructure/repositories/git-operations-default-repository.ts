@@ -14,7 +14,7 @@ import type {
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { GitOperationsRepository } from '../../application/repositories/git-operations-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 
 export class GitOperationsDefaultRepository implements GitOperationsRepository {
   async stage(worktreePath: string, files: string[]): Promise<void> {

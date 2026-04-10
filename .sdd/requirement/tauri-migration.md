@@ -235,7 +235,7 @@ Electron の Fuses + contextIsolation から、Tauri の CSP + capabilities allo
 
 - FR_M01_01: Command 名のマッピング表作成（`.sdd/specification/tauri-migration_spec.md`）
 - FR_M01_02: 各 feature の Spec ファイルに新しい Commands / Events テーブルを追加
-- FR_M01_03: `src/shared/lib/invoke/commands.ts` に全 command の TypeScript ラッパー関数を配置
+- FR_M01_03: `src/lib/invoke/commands.ts` に全 command の TypeScript ラッパー関数を配置
 
 **検証方法:** インスペクションによる検証
 
@@ -245,7 +245,7 @@ Electron の Fuses + contextIsolation から、Tauri の CSP + capabilities allo
 
 **含まれる機能:**
 
-- FR_M02_01: `src/shared/lib/invoke/commands.ts` に `invokeCommand<T>(cmd, args)` 関数を実装
+- FR_M02_01: `src/lib/invoke/commands.ts` に `invokeCommand<T>(cmd, args)` 関数を実装
 - FR_M02_02: Rust 側 `AppError` enum に `Serialize` を実装し、JSON 経由で TypeScript の `IPCError` と整合させる
 - FR_M02_03: 既存 Repository 実装の `if (result.success === false) throw` パターンをそのまま活用可能にする
 
@@ -267,7 +267,7 @@ CONSTITUTION.md を v2.0.0 に Major bump し、Electron 前提の原則（A-001
 
 ### FR_M04: 型同期
 
-Rust 側 struct と TypeScript 側 interface を `#[serde(rename_all = "camelCase")]` + 手動同期で整合させる。`src/shared/domain/` を真実の源とし、Rust 側 `src-tauri/src/domain/` または feature 別 `domain.rs` で対応する struct を定義する。Phase 1 では手動同期、Phase 2 以降で `specta` + `tauri-specta` 導入を検討する。
+Rust 側 struct と TypeScript 側 interface を `#[serde(rename_all = "camelCase")]` + 手動同期で整合させる。`src/domain/` を真実の源とし、Rust 側 `src-tauri/src/domain/` または feature 別 `domain.rs` で対応する struct を定義する。Phase 1 では手動同期、Phase 2 以降で `specta` + `tauri-specta` 導入を検討する。
 
 **検証方法:** インスペクション（Code review で両側の型を確認）
 
@@ -316,8 +316,8 @@ Phase 1 では Rust 側の Git 操作に `tokio::process::Command` 経由の `gi
 ディレクトリ構造を Tauri 標準に合わせて再配置する。
 
 - `src/processes/renderer/*` → `src/*`
-- `src/domain/*` → `src/shared/domain/*`
-- `src/lib/*` → `src/shared/lib/*`
+- `src/domain/*` → `src/domain/*`
+- `src/lib/*` → `src/lib/*`
 - 新規: `src-tauri/src/*`（Rust）
 
 `@main/*` `@preload/*` `@renderer/*` エイリアスを廃止し、`@domain/*` `@lib/*` を `./src/shared/...` に再マッピング、`@/*` を `./src/*` に追加する。

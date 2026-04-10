@@ -3,7 +3,7 @@ import type { DiffTarget, FileContents, FileDiff } from '@domain'
 import { DiffEditor } from '@monaco-editor/react'
 import { ChevronDown, ChevronRight, FileMinus, FilePen, FilePlus, FileSymlink } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface MultiFileMonacoPanelProps {

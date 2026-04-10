@@ -9,7 +9,7 @@ import type {
   GitStatus,
 } from '@domain'
 import type { GitViewerRepository } from '../../application/repositories/git-viewer-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 
 export class GitViewerDefaultRepository implements GitViewerRepository {
   async getStatus(worktreePath: string): Promise<GitStatus> {

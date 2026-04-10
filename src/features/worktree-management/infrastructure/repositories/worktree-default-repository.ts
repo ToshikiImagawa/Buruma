@@ -6,8 +6,8 @@ import type {
   WorktreeStatus,
 } from '@domain'
 import type { WorktreeRepository } from '../../application/repositories/worktree-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
-import { listenEventSync } from '@/shared/lib/invoke/events'
+import { invokeCommand } from '@lib/invoke/commands'
+import { listenEventSync } from '@lib/invoke/events'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {

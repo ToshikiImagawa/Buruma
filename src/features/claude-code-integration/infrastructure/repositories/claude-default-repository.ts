@@ -8,8 +8,8 @@ import type {
   ReviewResult,
 } from '@domain'
 import type { ClaudeRepository } from '../../application/repositories/claude-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
-import { listenEventSync } from '@/shared/lib/invoke/events'
+import { invokeCommand } from '@lib/invoke/commands'
+import { listenEventSync } from '@lib/invoke/events'
 
 export class ClaudeDefaultRepository implements ClaudeRepository {
   async startSession(worktreePath: string): Promise<ClaudeSession> {

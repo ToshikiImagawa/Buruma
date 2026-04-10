@@ -33,7 +33,7 @@ risk: "high"
 |----------------------------------------------|-------------------|---------------------------------------------------------------------------------------------------------------------|
 | DI コンテナ登録 (Webview)                          | 🟢                | 🟢 VContainerConfig は維持、パスを `src/features/application-foundation/` に更新                                                |
 | DI コンテナ登録 (Rust)                             | -                 | 🟢 `AppState::new(app_handle)` + `tauri::Builder::manage`                                                            |
-| domain 層（TypeScript エンティティ）                  | 🟢                | 🟢 `src/shared/domain/` に移動                                                                                          |
+| domain 層（TypeScript エンティティ）                  | 🟢                | 🟢 `src/domain/` に移動                                                                                          |
 | domain 層（Rust struct）                        | -                 | 🟢 `src-tauri/src/features/application_foundation/domain.rs` に serde 付きで定義                                            |
 | application 層（UseCase / Service, TS）         | 🟢                | 🟢 Webview 側はそのまま維持                                                                                                 |
 | application 層（UseCase / Rust trait）          | -                 | 🟢 `src-tauri/src/features/application_foundation/application/`                                                      |
@@ -71,7 +71,7 @@ risk: "high"
 | データ永続化 | tauri-plugin-store            | Tauri 向け JSON ベースの KV ストア。型安全な API、スキーマバリデーション付き |
 | トースト通知 | Sonner                    | Shadcn/ui 推奨のトーストライブラリ。Tailwind CSS との親和性が高い                 |
 | リアクティブ | RxJS 7.8                  | A-006 準拠。Observable ベースの非同期データフロー                            |
-| DI     | VContainer (`src/shared/lib/di`) | A-003 準拠。プロジェクト内製の軽量 DI コンテナ                                 |
+| DI     | VContainer (`src/lib/di`) | A-003 準拠。プロジェクト内製の軽量 DI コンテナ                                 |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
@@ -160,7 +160,7 @@ graph TD
 
 | モジュール名                                        | 層              | 責務                     | 配置場所                                                                |
 |-----------------------------------------------|----------------|------------------------|---------------------------------------------------------------------|
-| RepositoryInfo, RecentRepository, AppSettings | domain         | エンティティ・型定義             | `src/shared/domain/`                                                       |
+| RepositoryInfo, RecentRepository, AppSettings | domain         | エンティティ・型定義             | `src/domain/`                                                       |
 | RepositoryRepository (IF)                     | application    | リポジトリアクセス IF           | `src/features/application-foundation/application/`             |
 | SettingsRepository (IF)                       | application    | 設定アクセス IF              | `src/features/application-foundation/application/`             |
 | RepositoryService                             | application    | リポジトリ状態管理（ステートフル）      | `src/features/application-foundation/application/`             |
@@ -199,7 +199,7 @@ graph TD
 
 | モジュール名                              | 層              | 責務                                | 配置場所                                                   |
 |-------------------------------------|----------------|-----------------------------------|--------------------------------------------------------|
-| RepositoryInfo, AppSettings 等       | domain         | エンティティ（プロセス間共有）                   | `src/shared/domain/`                                          |
+| RepositoryInfo, AppSettings 等       | domain         | エンティティ（プロセス間共有）                   | `src/domain/`                                          |
 | IPC Handlers (commands.rs)          | presentation   | IPC チャネルの受付・ルーティング（Controller 相当） | `src-tauri/src/features/application_foundation/presentation/commands.rs`   |
 | OpenRepositoryWithDialogMainUseCase | application    | ダイアログ経由のリポジトリオープン                 | `src-tauri/src/features/application_foundation/application/`    |
 | OpenRepositoryByPathMainUseCase     | application    | パス指定でリポジトリオープン                    | `src-tauri/src/features/application_foundation/application/`    |
@@ -219,8 +219,8 @@ graph TD
 
 | モジュール名      | 責務                                    | 配置場所                               |
 |-------------|---------------------------------------|------------------------------------|
-| Domain 型    | エンティティ（RepositoryInfo, AppSettings 等） | `src/shared/domain/`                      |
-| IPC 型定義     | IPC チャネルの型定義                          | `src/shared/lib/ipc.ts`                   |
+| Domain 型    | エンティティ（RepositoryInfo, AppSettings 等） | `src/domain/`                      |
+| IPC 型定義     | IPC チャネルの型定義                          | `src/lib/ipc.ts`                   |
 | Tauri invoke/listen API | 型安全な  API 公開              | （preload 層は Tauri では不要） |
 
 ---

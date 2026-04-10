@@ -104,7 +104,7 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | `worktree_check_dirty` | ワークツリーに未コミット変更があるか確認する | `{ worktreePath: string }` | `boolean` |
 | `worktree_default_branch` | リポジトリのデフォルトブランチ名を取得する | `{ repoPath: string }` | `string` |
 
-> **IPCResult<T> 互換**: Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出し、Rust 側の `Result<T, AppError>` を `IPCResult<T>` 形式に変換する。
+> **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出し、Rust 側の `Result<T, AppError>` を `IPCResult<T>` 形式に変換する。
 
 ## 4.2. React コンポーネント API
 

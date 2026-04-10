@@ -50,13 +50,13 @@ Buruma の現行スタック (Electron 41 + Node.js + React 19) を Tauri 2 + Ru
 | 項目 | 決定 |
 |:---|:---|
 | **Git 実装方式** | `git` CLI shell out (`tokio::process::Command`) |
-| **ディレクトリ構造** | Option B: Tauri 標準構造 (`src/` 直下、`src/shared/domain` `src/shared/lib`) |
+| **ディレクトリ構造** | Option B: Tauri 標準構造 (`src/` 直下、`src/domain` `src/lib`) |
 | **メタ文書** | 新規 3 ファイル作成 (`.sdd/requirement/tauri-migration.md`, `.sdd/specification/tauri-migration_spec.md`, `tauri-migration_design.md`) |
 | **CONSTITUTION 新原則** | A-007 (Pure Rust ドメイン/アプリ層), T-004 (Rust Strict Compilation), T-005 (IPC 型同期) を追加 |
 | **CONSTITUTION version** | v1.0.0 → **v2.0.0** (Major bump) |
 | **移行戦略** | 互換 shim → feature 単位で段階置換 → Phase IH で shim 削除 |
 | **並行戦略** | 独立ブランチ (`feat/migrate-to-tauri`)、Phase 単位コミット |
-| **型同期** | Phase 1 は手動同期（既存 `src/shared/domain` が真実の源）、将来 `specta/tauri-specta` 検討 |
+| **型同期** | Phase 1 は手動同期（既存 `src/domain` が真実の源）、将来 `specta/tauri-specta` 検討 |
 | **IPCResult<T>** | 維持。Rust `Result<T, AppError>` を TS 側ラッパーで `IPCResult<T>` 互換に変換 |
 | **command 命名** | Rust snake_case (`repository_open`), event kebab-case (`worktree-changed`) |
 | **impl-status 扱い** | `implemented` → `not-implemented` にリセット、旧 Electron 実装は変更履歴へ退避 |

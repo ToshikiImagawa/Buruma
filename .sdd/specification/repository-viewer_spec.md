@@ -82,7 +82,7 @@ Rust-TypeScript 境界）を遵守する。Git 操作は Tauri Core (Rust) で `
 
 ## 4.1. IPC API（Tauri Core ↔ Webview）
 
-すべて Commands（Webview → Core, `invoke`）。Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。
+すべて Commands（Webview → Core, `invoke`）。Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。
 
 ### 4.1.1. ステータス取得
 

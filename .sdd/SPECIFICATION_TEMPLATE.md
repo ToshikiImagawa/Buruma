@@ -141,7 +141,7 @@ sequenceDiagram
 
 - Webview から OS API（fs / process / shell / child_process）に直接アクセスしない
 - Git 操作は必ず Rust 側で実行する
-- Tauri command / event は型安全なラッパー（`src/shared/lib/invoke/`）を経由する
+- Tauri command / event は型安全なラッパー（`src/lib/invoke/`）を経由する
 
 ---
 

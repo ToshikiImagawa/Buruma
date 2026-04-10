@@ -492,8 +492,8 @@ claude: {
 
 ```typescript
 // Tauri 移行後は不要。invokeCommand / listenEvent ラッパーを使用
-// 各コマンドの型は src/shared/lib/ipc.ts の IPCChannelMap で定義
-// イベントの型は src/shared/lib/ipc.ts の IPCEventMap で定義
+// 各コマンドの型は src/lib/ipc.ts の IPCChannelMap で定義
+// イベントの型は src/lib/ipc.ts の IPCEventMap で定義
 ```
 
 ---

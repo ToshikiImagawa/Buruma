@@ -3,7 +3,7 @@ import type { DiffDisplayMode, FileContents, FileDiff, ReviewComment } from '@do
 import type { editor } from 'monaco-editor'
 import { DiffEditor } from '@monaco-editor/react'
 import { Button } from '@/components/ui/button'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface DiffViewProps {

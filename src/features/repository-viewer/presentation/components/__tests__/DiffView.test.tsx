@@ -14,7 +14,7 @@ vi.mock('@monaco-editor/react', () => ({
 
 // Mock invokeCommand
 const mockInvokeCommand = vi.fn()
-vi.mock('@/shared/lib/invoke/commands', () => ({
+vi.mock('@lib/invoke/commands', () => ({
   invokeCommand: (...args: unknown[]) => mockInvokeCommand(...args),
 }))
 

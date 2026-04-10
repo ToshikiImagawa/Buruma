@@ -11,10 +11,10 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@domain": ["./src/shared/domain"],
-      "@domain/*": ["./src/shared/domain/*"],
-      "@lib": ["./src/shared/lib"],
-      "@lib/*": ["./src/shared/lib/*"]
+      "@domain": ["./src/domain"],
+      "@domain/*": ["./src/domain/*"],
+      "@lib": ["./src/lib"],
+      "@lib/*": ["./src/lib/*"]
     },
     "outDir": "dist",
     "moduleResolution": "bundler",

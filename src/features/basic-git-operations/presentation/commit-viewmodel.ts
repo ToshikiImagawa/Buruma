@@ -4,7 +4,7 @@ import type { CommitRendererUseCase, GetOperationLoadingUseCase } from '../di-to
 import type { CommitViewModel } from './viewmodel-interfaces'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { BehaviorSubject } from 'rxjs'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 
 export class CommitDefaultViewModel implements CommitViewModel {
   readonly loading$: Observable<boolean>

@@ -19,7 +19,7 @@ import type {
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { AdvancedOperationsRepository } from '../../application/repositories/advanced-operations-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 
 export class AdvancedOperationsDefaultRepository implements AdvancedOperationsRepository {
   async merge(options: MergeOptions): Promise<MergeResult> {

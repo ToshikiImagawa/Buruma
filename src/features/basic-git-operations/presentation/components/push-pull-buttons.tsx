@@ -3,7 +3,7 @@ import type { BranchInfo, GitProgressEvent } from '@domain'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { listenEventSync } from '@/shared/lib/invoke/events'
+import { listenEventSync } from '@lib/invoke/events'
 import { useRemoteOpsViewModel } from '../use-remote-ops-viewmodel'
 
 interface PushPullButtonsProps {
@@ -20,10 +20,9 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
   const [progress, setProgress] = useState<GitProgressEvent | null>(null)
 
   useEffect(() => {
-    const unsubscribe = listenEventSync<GitProgressEvent>('git-progress', (event) => {
+    return listenEventSync<GitProgressEvent>('git-progress', (event) => {
       setProgress(event)
     })
-    return unsubscribe
   }, [])
 
   // loading が false になったら進捗をクリア

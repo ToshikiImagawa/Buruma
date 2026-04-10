@@ -244,14 +244,14 @@ graph TD
 | Git Operations UseCases | renderer | application | 1操作1クラス | `src/features/basic-git-operations/application/usecases/` |
 | ViewModels | renderer | presentation | RxJS Observable で UI 状態を公開 | `src/features/basic-git-operations/presentation/` |
 | React Components | renderer | presentation | UI コンポーネント | `src/features/basic-git-operations/presentation/components/` |
-| domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/shared/domain/index.ts` |
-| IPC 型追加 | shared | - | 新規チャネル定義 | `src/shared/lib/ipc.ts` |
+| domain 型追加 | shared | domain | CommitResult, PushResult 等 | `src/domain/index.ts` |
+| IPC 型追加 | shared | - | 新規チャネル定義 | `src/lib/ipc.ts` |
 
 ---
 
 # 5. データモデル
 
-`src/shared/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `BranchInfo` 等はそのまま再利用する。
+`src/domain/index.ts` に以下の型を追加する。既存の `GitStatus`, `FileChange`, `BranchList`, `BranchInfo` 等はそのまま再利用する。
 
 ```typescript
 // --- 基本 Git 操作 ---
@@ -671,6 +671,7 @@ export const rendererConfigs = [
 **コード品質改善（/simplify レビュー）**
 
 - `StagingArea` コンポーネントから `FileChangeIcon` のローカル定義を削除し、`src/components/FileChangeIcon.tsx` の共有コンポーネントに置き換え（repository-viewer の `StatusView` と共有）
+- `src/shared/` フラット化: ドキュメント内パス参照を `src/domain/`・`src/lib/` に更新
 
 ## v4.0 (2026-04-09)
 

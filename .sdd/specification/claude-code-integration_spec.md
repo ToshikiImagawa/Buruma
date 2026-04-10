@@ -138,7 +138,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude-review-result` | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
 | `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
 
-> **IPCResult<T> 互換**: Webview 側は `src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/shared/lib/invoke/events.ts` の `listenEvent<T>` を使用する。
+> **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEvent<T>` を使用する。
 
 ## 4.2. React コンポーネント API
 

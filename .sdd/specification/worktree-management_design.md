@@ -203,8 +203,8 @@ graph TD
 
 | モジュール名 | 責務 | 配置場所 |
 |------------|------|---------|
-| Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/shared/domain/index.ts` に追加 |
-| IPC 型拡張 | IPCChannelMap, IPCEventMap への worktree 名前空間追加 | `src/shared/lib/ipc.ts` に追加 |
+| Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/domain/index.ts` に追加 |
+| IPC 型拡張 | IPCChannelMap, IPCEventMap への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
 | Tauri invoke/listen API (worktree) | 型安全な worktree API | `@tauri-apps/api` の invoke/listen を直接使用（preload 層は Tauri では不要） |
 
 ## 4.3. DI 設計
@@ -798,7 +798,7 @@ sequenceDiagram
 # 5. データモデル
 
 ```typescript
-// src/shared/domain/index.ts に追加
+// src/domain/index.ts に追加
 
 // ワークツリー情報（git worktree list --porcelain のパース結果）
 export interface WorktreeInfo {
@@ -1121,10 +1121,10 @@ export class WorktreeDefaultWatcher implements WorktreeWatcher {
 
 ## 6.4. Tauri invoke/listen API
 
-> **重要:** Tauri 移行後は `@tauri-apps/api` を直接 import し、`src/shared/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。preload 層は Tauri では不要のため削除する。worktree 名前空間は `src/shared/lib/invoke/tauri-api.ts` にヘルパー関数として集約する。
+> **重要:** Tauri 移行後は `@tauri-apps/api` を直接 import し、`src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。preload 層は Tauri では不要のため削除する。worktree 名前空間は `src/lib/invoke/tauri-api.ts` にヘルパー関数として集約する。
 
 ```typescript
-// src/shared/lib/invoke/tauri-api.ts の worktree セクション
+// src/lib/invoke/tauri-api.ts の worktree セクション
 import { invokeCommand } from './commands'
 import type {
   WorktreeInfo,
@@ -1158,7 +1158,7 @@ export const worktreeApi = {
 
 ### IPC 型定義の拡張
 
-`src/shared/lib/ipc.ts` に以下を追加:
+`src/lib/ipc.ts` に以下を追加:
 
 ```typescript
 // IPCChannelMap に追加
@@ -1173,7 +1173,7 @@ export const worktreeApi = {
 // IPCEventMap に追加
 'worktree-changed': WorktreeChangeEvent
 
-// Tauri invoke/listen API（src/shared/lib/invoke/tauri-api.ts で定義）
+// Tauri invoke/listen API（src/lib/invoke/tauri-api.ts で定義）
 // worktreeApi.list(), worktreeApi.status() 等の型安全なラッパー関数として公開
 ```
 

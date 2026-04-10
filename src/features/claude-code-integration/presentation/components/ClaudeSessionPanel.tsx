@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { FileSearch, GitBranch, GitCommit, Loader2, LogIn } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { listenEventSync } from '@/shared/lib/invoke/events'
+import { listenEventSync } from '@lib/invoke/events'
 import { useClaudeAuth } from '../use-claude-auth'
 import { useClaudeSessionViewModel } from '../use-claude-session-viewmodel'
 import { ClaudeOutputView } from './ClaudeOutputView'

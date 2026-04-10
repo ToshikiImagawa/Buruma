@@ -185,17 +185,17 @@ graph TD
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/features/repository-viewer/presentation/` |
 | RepositoryDetailPanel | presentation | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス）。ResizablePanelGroup による分割パネルリサイズ対応 | `src/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
 | BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画。RefMap でノード種別（HEAD=二重丸、ローカル=大円、タグ=角丸四角、リモート=菱形）を描き分け。マージ線は垂直区間（子の色）と斜め区間（第1親=子の色、第2親=親の色）の2色分割描画 | `src/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
-| RefMap (buildRefMap) | presentation | BranchList + TagInfo[] からハッシュ→ref情報のマッピングを構築する純粋関数（TagInfo は `src/shared/domain/index.ts` に定義） | `src/features/repository-viewer/presentation/ref-map.ts` |
+| RefMap (buildRefMap) | presentation | BranchList + TagInfo[] からハッシュ→ref情報のマッピングを構築する純粋関数（TagInfo は `src/domain/index.ts` に定義） | `src/features/repository-viewer/presentation/ref-map.ts` |
 | StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/features/repository-viewer/presentation/components/` |
 
 ### 共有
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
-| IPC チャネル型定義 | `git_*` 10 チャネルの型定義 | `src/shared/lib/ipc.ts` |
-| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
-| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
+| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/domain/index.ts` |
+| IPC チャネル型定義 | `git_*` 10 チャネルの型定義 | `src/lib/ipc.ts` |
+| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/lib/graph/types.ts` |
+| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/lib/graph/compute-graph-layout.ts` |
 | FileChangeIcon | ファイル変更ステータス（added/modified/deleted/renamed）に応じたアイコン表示コンポーネント。StatusView・StagingArea で共有 | `src/components/FileChangeIcon.tsx` |
 | Tauri invoke/listen API | 型安全な git.* API 公開 | （preload 層は Tauri では不要。`@tauri-apps/api` の invoke/listen を直接使用） |
 
@@ -351,7 +351,7 @@ interface GraphLayout {
 | ファイルツリー取得方式 | `git ls-tree` / fs.readdir 再帰 / git CLI (tokio::process::Command) raw | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現 |
 | Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Tauri + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
 | ブランチグラフ方式 | git log --graph + ASCII パース / クライアント側レーン計算 + Canvas 描画 / 外部ライブラリ | クライアント側レーン計算 + Canvas 描画 | `CommitSummary.parents` から `computeGraphLayout()` でレーン割り当てを計算し、`BranchGraphCanvas` で Canvas API 描画。ASCII パース方式より柔軟なレイアウト制御が可能で、大量コミットでも可視範囲のみ描画して高速 |
-| TagInfo / useTagViewModel の cross-feature 参照 | A) useTagViewModel を直接参照 / B) TagInfo を shared/domain に移動し props 経由 | B) TagInfo は `src/shared/domain/` に定義済み。useTagViewModel は cross-feature 参照として許容（タグデータを CommitLog に props で供給するため） | A-004 準拠: TagInfo はドメイン型として shared に属すべき。ViewModel の cross-feature import は UI 統合上の実用的判断として記録 |
+| TagInfo / useTagViewModel の cross-feature 参照 | A) useTagViewModel を直接参照 / B) TagInfo を shared/domain に移動し props 経由 | B) TagInfo は `src/domain/` に定義済み。useTagViewModel は cross-feature 参照として許容（タグデータを CommitLog に props で供給するため） | A-004 準拠: TagInfo はドメイン型として shared に属すべき。ViewModel の cross-feature import は UI 統合上の実用的判断として記録 |
 
 ## 9.2. 未解決の課題
 
@@ -373,6 +373,9 @@ interface GraphLayout {
 - `FileChangeIcon` を `StatusView.tsx` からローカル定義を削除し、`src/components/FileChangeIcon.tsx` に共有コンポーネントとして抽出（basic-git-operations の `StagingArea` と共有）
 - `RepositoryDetailPanel` の `loadAllDiffs` useEffect から不要な `statusViewMode` 依存を除去（表示モード切替時に同一データの不要な IPC 再取得が発生していたバグを修正）
 - `CommitLog` の不要な WHAT コメント（`// コンテナサイズの取得`、`// スクロール追跡`）を削除
+- `CommitDetailView` のインラインアイコン表示を共有 `FileChangeIcon` に置換
+- `FileChangeIcon` の `status` prop を `string` → `FileChangeStatus` に型安全化、`copied` ケースを追加
+- `src/shared/` フラット化: ドキュメント内パス参照を `src/domain/`・`src/lib/` に更新
 
 ## v4.0 (2026-04-09)
 

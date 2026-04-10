@@ -1,6 +1,6 @@
 import type { RecentRepository, RepositoryInfo } from '@domain'
 import type { RepositoryRepository } from '../../application/repositories/repository-repository'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { invokeCommand } from '@lib/invoke/commands'
 
 export class RepositoryDefaultRepository implements RepositoryRepository {
   async open(): Promise<RepositoryInfo | null> {
