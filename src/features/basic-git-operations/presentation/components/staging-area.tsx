@@ -153,6 +153,7 @@ export function StagingArea({
                     onClick={(e) => {
                       e.stopPropagation()
                       stagedSelection.toggleFileSelect(file.path)
+                      onFileSelect?.(file.path, true)
                     }}
                     aria-label={isSelected ? '選択解除' : '選択'}
                   >
@@ -247,6 +248,7 @@ export function StagingArea({
                     onClick={(e) => {
                       e.stopPropagation()
                       unstagedSelection.toggleFileSelect(file.path)
+                      onFileSelect?.(file.path, false)
                     }}
                     aria-label={isSelected ? '選択解除' : '選択'}
                   >

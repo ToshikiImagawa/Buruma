@@ -71,6 +71,8 @@ export function RepositoryDetailPanel() {
   // Commits tab state
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null)
   const [commitFilePath, setCommitFilePath] = useState<string | undefined>(undefined)
+  const { mode: commitViewMode, setMode: setCommitViewMode } = useDiffViewMode('hunk')
+  const [commitDiffs, setCommitDiffs] = useState<FileDiff[]>([])
 
   // Files tab state
   const [treeFilePath, setTreeFilePath] = useState<string | null>(null)
@@ -126,6 +128,23 @@ export function RepositoryDetailPanel() {
   }, [handleRefresh, refreshWorktrees])
 
   useGitRefreshCoordinator(worktreePath, handleAutoRefresh)
+
+  const loadCommitDiffs = useCallback(async () => {
+    if (!worktreePath || !selectedCommitHash) {
+      setCommitDiffs([])
+      return
+    }
+    const result = await invokeCommand<FileDiff[]>('git_diff_commit', {
+      args: { worktreePath, hash: selectedCommitHash },
+    })
+    if (result.success) setCommitDiffs(result.data)
+  }, [worktreePath, selectedCommitHash])
+
+  useEffect(() => {
+    if (selectedCommitHash && commitViewMode === 'hunk') {
+      loadCommitDiffs()
+    }
+  }, [selectedCommitHash, commitViewMode, loadCommitDiffs])
 
   const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
     setStatusFilePath(filePath)
@@ -423,33 +442,80 @@ export function RepositoryDetailPanel() {
                 </ResizablePanel>
                 <ResizableHandle withHandle />
                 <ResizablePanel defaultSize={50} minSize={10}>
-                  <div className="h-full overflow-hidden">
+                  <div className="flex h-full flex-col overflow-hidden">
                     {selectedCommitHash ? (
-                      <ResizablePanelGroup direction="vertical">
-                        <ResizablePanel defaultSize={40} minSize={10}>
-                          <div className="h-full overflow-auto">
-                            <CommitDetailView
+                      <>
+                        <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">
+                          <span className="flex-1 text-xs text-muted-foreground">差分表示</span>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={commitViewMode === 'hunk' ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setCommitViewMode('hunk')}
+                              >
+                                <List className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>ハンク表示</p>
+                            </TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant={commitViewMode === 'monaco' ? 'secondary' : 'ghost'}
+                                size="icon"
+                                className="h-6 w-6"
+                                onClick={() => setCommitViewMode('monaco')}
+                              >
+                                <SplitSquareVertical className="h-3.5 w-3.5" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Monaco 表示</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </div>
+                        <div className="min-h-0 flex-1">
+                          {commitViewMode === 'hunk' ? (
+                            <MultiFileDiffPanel
                               worktreePath={selectedWorktree.path}
-                              commitHash={selectedCommitHash}
-                              onFileSelect={handleCommitFileSelect}
-                            />
-                          </div>
-                        </ResizablePanel>
-                        <ResizableHandle withHandle />
-                        <ResizablePanel defaultSize={60} minSize={10}>
-                          {commitFilePath ? (
-                            <DiffView
-                              worktreePath={selectedWorktree.path}
-                              filePath={commitFilePath}
-                              commitHash={selectedCommitHash}
+                              diffs={commitDiffs}
+                              diffTarget={{ type: 'commits', from: `${selectedCommitHash}^`, to: selectedCommitHash }}
                             />
                           ) : (
-                            <div className="flex h-full items-center justify-center">
-                              <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
-                            </div>
+                            <ResizablePanelGroup direction="vertical">
+                              <ResizablePanel defaultSize={40} minSize={10}>
+                                <div className="h-full overflow-auto">
+                                  <CommitDetailView
+                                    worktreePath={selectedWorktree.path}
+                                    commitHash={selectedCommitHash}
+                                    onFileSelect={handleCommitFileSelect}
+                                  />
+                                </div>
+                              </ResizablePanel>
+                              <ResizableHandle withHandle />
+                              <ResizablePanel defaultSize={60} minSize={10}>
+                                {commitFilePath ? (
+                                  <DiffView
+                                    worktreePath={selectedWorktree.path}
+                                    filePath={commitFilePath}
+                                    commitHash={selectedCommitHash}
+                                  />
+                                ) : (
+                                  <div className="flex h-full items-center justify-center">
+                                    <p className="text-sm text-muted-foreground">
+                                      ファイルを選択して差分を表示
+                                    </p>
+                                  </div>
+                                )}
+                              </ResizablePanel>
+                            </ResizablePanelGroup>
                           )}
-                        </ResizablePanel>
-                      </ResizablePanelGroup>
+                        </div>
+                      </>
                     ) : (
                       <div className="flex h-full items-center justify-center">
                         <p className="text-sm text-muted-foreground">コミットを選択して詳細を表示</p>
