@@ -1,6 +1,6 @@
 //! UseCase ��装 — 旧 TS worktree-management を 1:1 移植。
 
-use crate::error::AppResult;
+use crate::error::{AppError, AppResult};
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
 use crate::features::worktree_management::domain::{
     WorktreeCreateParams, WorktreeInfo, WorktreeStatus,
@@ -32,6 +32,13 @@ pub async fn delete_worktree(
     worktree_path: &str,
     force: bool,
 ) -> AppResult<()> {
+    // メインワークツリーの削除を防止（安全性要件 B-002）
+    if repo.is_main_worktree(worktree_path).await? {
+        return Err(AppError::GitOperation {
+            code: "CANNOT_DELETE_MAIN_WORKTREE".to_string(),
+            message: "メインワークツリーは削除できません".to_string(),
+        });
+    }
     repo.remove_worktree(worktree_path, force).await
 }
 

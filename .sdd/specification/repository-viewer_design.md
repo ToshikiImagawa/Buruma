@@ -4,7 +4,7 @@ title: "リポジトリ閲覧"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: [ "spec-repository-viewer" ]
@@ -77,8 +77,8 @@ risk: "medium"
 
 | 領域       | 採用技術                      | 選定理由                                                                                        |
 |----------|---------------------------|---------------------------------------------------------------------------------------------|
-| Git 操作   | git CLI (tokio::process::Command)                | Node.js 向け Git CLI ラッパー。豊富な API、活発なメンテナンス、TypeScript 型定義付き（原則 A-002）                        |
-| 差分表示 | @monaco-editor/react + monaco-editor | React ラッパー経由で Monaco DiffEditor を統合。CDN から worker を自動ロードし、Electron + Vite 環境での worker 設定問題を回避。インライン/サイドバイサイド切替、シンタックスハイライトを標準サポート |
+| Git 操作   | git CLI (tokio::process::Command)                | Rust の tokio::process::Command 経由で git CLI を実行。非同期・並行処理に対応（原則 A-002）                        |
+| 差分表示 | @monaco-editor/react + monaco-editor | React ラッパー経由で Monaco DiffEditor を統合。CDN から worker を自動ロードし、Tauri + Vite 環境での worker 設定問題を回避。インライン/サイドバイサイド切替、シンタックスハイライトを標準サポート |
 | 仮想スクロール | @tanstack/react-virtual | 大規模コミットログの描画パフォーマンス確保。React 19 対応、軽量（原則 A-002） |
 | diff パース | 自前パーサー（diff-parser.ts） | `git diff` の raw 出力を `FileDiff[]` にパース。Monaco DiffEditor にはファイル全体テキストを IPC 経由で取得して渡す |
 
@@ -160,16 +160,18 @@ graph TD
 
 > **注記**: 初版設計書ではフラット構造（`src-tauri/src/services/git.ts` 等）で記述していたが、実装ではプロジェクトの Clean Architecture 4層 + feature ディレクトリ構成に合わせて再配置した。
 
+> **注記**: Tauri Core (Rust) 側の DI は `tauri::State<AppState>` + `Arc<dyn Trait>` パターンで実装。以下の TypeScript 風コード例は仕様の概要を示すものであり、実装は Rust で行われている。
+
 ### Tauri Core (Rust)側
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
-| GitReadRepository IF | application | Git 読み取り操作の抽象インターフェース | `src-tauri/src/features/repository-viewer/application/repositories/git-read-repository.ts` |
-| GitReadDefaultRepository | infrastructure | git CLI (tokio::process::Command) による Git 操作の実装 | `src-tauri/src/features/repository-viewer/infrastructure/repositories/git-read-default-repository.ts` |
-| diff-parser | infrastructure | `git diff` raw 出力の `FileDiff[]` パーサー | `src-tauri/src/features/repository-viewer/infrastructure/repositories/diff-parser.ts` |
-| file-tree-builder | infrastructure | `git ls-tree` + status からのファイルツリー構築 | `src-tauri/src/features/repository-viewer/infrastructure/repositories/file-tree-builder.ts` |
-| UseCase x10 | application | 各 Git 操作の UseCase（1クラス1操作） | `src-tauri/src/features/repository-viewer/application/usecases/` |
-| IPC ハンドラー | presentation | git:* IPC チャネル登録 + 入力バリデーション | `src-tauri/src/features/repository-viewer/presentation/ipc-handlers.ts` |
+| GitReadRepository IF | application | Git 読み取り操作の抽象インターフェース | `src-tauri/src/features/repository_viewer/application/repositories/git_read_repository.rs` |
+| GitReadDefaultRepository | infrastructure | git CLI (tokio::process::Command) による Git 操作の実装 | `src-tauri/src/features/repository_viewer/infrastructure/repositories/git_read_default_repository.rs` |
+| diff-parser | infrastructure | `git diff` raw 出力の `FileDiff[]` パーサー | `src-tauri/src/features/repository_viewer/infrastructure/repositories/diff_parser.rs` |
+| file-tree-builder | infrastructure | `git ls-tree` + status からのファイルツリー構築 | `src-tauri/src/features/repository_viewer/infrastructure/repositories/file_tree_builder.rs` |
+| UseCase x10 | application | 各 Git 操作の UseCase（1クラス1操作） | `src-tauri/src/features/repository_viewer/application/usecases/` |
+| IPC ハンドラー | presentation | git:* IPC チャネル登録 + 入力バリデーション | `src-tauri/src/features/repository_viewer/presentation/commands.rs` |
 
 ### Webview 側
 
@@ -189,11 +191,11 @@ graph TD
 
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
-| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/domain/index.ts` |
-| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/lib/ipc.ts` |
-| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/lib/graph/types.ts` |
-| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/lib/graph/compute-graph-layout.ts` |
-| Preload git API | 型安全な  git.* API 公開 | （preload 層は Tauri では不要） |
+| domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
+| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/shared/lib/ipc.ts` |
+| GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
+| computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
+| Tauri invoke/listen API | 型安全な git.* API 公開 | （preload 層は Tauri では不要。`@tauri-apps/api` の invoke/listen を直接使用） |
 
 ---
 
@@ -339,20 +341,20 @@ interface GraphLayout {
 
 | 決定事項           | 選択肢                                                           | 決定内容                               | 理由                                                                                                     |
 |----------------|---------------------------------------------------------------|------------------------------------|--------------------------------------------------------------------------------------------------------|
-| Git 操作ライブラリ    | git CLI (tokio::process::Command) / nodegit / isomorphic-git / tokio::process::Command 直接      | git CLI (tokio::process::Command)                         | CONSTITUTION 技術スタック制約で指定。Node.js 向けに最適化、TypeScript 型付き、活発なメンテナンス（原則 A-002）                             |
+| Git 操作ライブラリ    | git CLI (tokio::process::Command) / git2 crate / isomorphic-git / tokio::process::Command 直接      | git CLI (tokio::process::Command)                         | CONSTITUTION 技術スタック制約で指定。Rust の tokio::process::Command 経由で git CLI を非同期実行（原則 A-002）                             |
 | 差分表示エンジン       | Monaco Editor / CodeMirror / react-diff-viewer / 自前実装         | Monaco Editor                      | CONSTITUTION 技術スタック制約で指定。DiffEditor を標準搭載、シンタックスハイライト組み込み、VS Code との親和性（原則 A-002）                      |
 | コミットログの仮想スクロール | @tanstack/react-virtual / react-window / react-virtualized    | @tanstack/react-virtual            | React 19 対応、軽量（6KB gzip）、hooks ベース API。react-window は unmaintained（原則 A-002）                           |
 | IPC チャネル命名     | `git:status` / `repository-viewer:status`                     | `git:action` 形式                    | ドメイン（git）ベースの命名で直感的。application-foundation の `repository:action` と一貫性がある                               |
 | diff パース方式 | git CLI (tokio::process::Command) の diffSummary / raw diff をパース / unified-diff ライブラリ | 自前パーサー + ファイル全体取得 IPC | diffSummary はファイル統計のみ。Monaco DiffEditor にはファイル全体テキスト（`git show HEAD:path` + ファイル読み込み）を渡す方が正確な差分表示が可能 |
 | ファイルツリー取得方式 | `git ls-tree` / fs.readdir 再帰 / git CLI (tokio::process::Command) raw | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現 |
-| Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Electron + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
+| Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Tauri + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
 | ブランチグラフ方式 | git log --graph + ASCII パース / クライアント側レーン計算 + Canvas 描画 / 外部ライブラリ | クライアント側レーン計算 + Canvas 描画 | `CommitSummary.parents` から `computeGraphLayout()` でレーン割り当てを計算し、`BranchGraphCanvas` で Canvas API 描画。ASCII パース方式より柔軟なレイアウト制御が可能で、大量コミットでも可視範囲のみ描画して高速 |
 
 ## 9.2. 未解決の課題
 
 | 課題 | 影響度 | 対応状況 |
 |---|---|---|
-| Monaco Editor の Vite 6 + Electron での統合方法 | 高 | **解決済み**: `@monaco-editor/react` を使用し CDN 経由で worker を自動ロード |
+| Monaco Editor の Vite 6 + Tauri での統合方法 | 高 | **解決済み**: `@monaco-editor/react` を使用し CDN 経由で worker を自動ロード |
 | 大規模ファイル（10000行超）の差分表示パフォーマンス | 中 | Monaco Editor の minimap 無効化、scrollBeyondLastLine 無効化で対応。超大規模ファイルは今後の課題 |
 | ブランチグラフの描画ライブラリ | 低 | **解決済み**: `CommitSummary.parents` からレーン計算 + Canvas API 描画（`BranchGraphCanvas`） |
 | git CLI (tokio::process::Command) の同時実行制御 | 中 | 未対応。現時点で問題は報告されていないが、同一リポジトリへの並行操作でロック競合の可能性あり |

@@ -36,8 +36,15 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
                 head: entry.head.chars().take(7).collect(),
                 head_message,
                 is_main,
-                is_dirty: false, // 呼び出し側で別途チェック
+                is_dirty: false, // 後続の一括チェックで更新
             });
+        }
+        // 各ワークツリーの isDirty を一括チェック
+        for wt in &mut result {
+            wt.is_dirty = git_raw(&wt.path, &["status", "--porcelain=v1"])
+                .await
+                .map(|s| !s.trim().is_empty())
+                .unwrap_or(false);
         }
         Ok(result)
     }
@@ -126,6 +133,10 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
             return Ok("master".to_string());
         }
         Ok("main".to_string())
+    }
+
+    async fn is_main_worktree(&self, worktree_path: &str) -> AppResult<bool> {
+        Ok(is_main_worktree(worktree_path).await)
     }
 
     async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String> {

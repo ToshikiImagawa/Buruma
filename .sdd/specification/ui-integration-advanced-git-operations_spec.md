@@ -15,8 +15,7 @@ risk: "low"
 
 # 高度な Git 操作 UI 統合
 
-**関連 Design Doc:
-** [ui-integration-advanced-git-operations_design.md](./ui-integration-advanced-git-operations_design.md)
+**関連 Design Doc:** [ui-integration-advanced-git-operations_design.md](./ui-integration-advanced-git-operations_design.md)
 **関連 PRD:** [ui-integration-advanced-git-operations.md](../requirement/ui-integration-advanced-git-operations.md)
 
 ---

@@ -4,9 +4,9 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-10"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process", "tauri-migration"]
 category: "ai-integration"
@@ -158,6 +158,8 @@ graph TD
 | ClaudeProcessManager | main (infrastructure) | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-process-manager.ts` |
 | SessionStore | main (application/services) | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src-tauri/src/features/claude-code-integration/application/services/claude-session-store.ts` |
 | OutputParser | main (infrastructure) | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-output-parser.ts` |
+
+> **注記**: 実装では `ClaudeProcessManager` と `SessionStore` は `ClaudeSessionManager` (`session_manager.rs`) に統合され、`OutputParser` は `DefaultClaudeRepository` (`claude_repository.rs`) 内にインライン実装されている。
 | Claude IPC Handler | main (presentation) | `claude:*` IPC チャネルの登録・ルーティング | `src-tauri/src/features/claude-code-integration/presentation/ipc-handlers.ts` |
 | Claude 型定義 | domain | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/domain/index.ts`（既存ファイルに追加） |
 | Preload Claude API | preload | 型安全な IPC で claude.* API を公開 | （preload 層は Tauri では不要）（既存ファイルに追加） |
@@ -196,6 +198,7 @@ interface GenerateCommitMessageArgs {
 
 // AppSettings 拡張（commitMessageRules）
 // commitMessageRules: string | null — null はデフォルトルール使用
+// > **注記**: `commitMessageRules` のプロンプトへの反映は未実装。Rust 側の `generate_commit_message` はハードコードされたプロンプトを使用している。
 ```
 
 ---
@@ -428,7 +431,7 @@ export function registerClaudeIPCHandlers(
 
   // ストリーミング出力のイベント転送
   processManager.onOutput((output: ClaudeOutput) => {
-    mainWindow.app_handle.emit('claude:output', output);
+    mainWindow.app_handle.emit('claude-output', output);
   });
 
   processManager.onSessionChanged((session: ClaudeSession) => {
@@ -469,7 +472,7 @@ claude: {
   // イベント購読
   onOutput: (callback: (output: ClaudeOutput) => void): (() => void) => {
     const handler = (_event: Electron.IpcRendererEvent, output: ClaudeOutput) => callback(output);
-    await listen('claude:output', handler)  // Tauri;
+    await listen('claude-output', handler)  // Tauri;
     return () => await unlisten()  // Tauri;
   },
   onSessionChanged: (callback: (session: ClaudeSession) => void): (() => void) => {

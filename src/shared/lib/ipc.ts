@@ -23,8 +23,16 @@ export function ipcFailure<T>(code: string, message: string, detail?: string): I
 }
 
 /**
- * IPC チャネル定義
+ * IPC チャネル定義（ドキュメント用）
  * renderer → main (invoke/handle)
+ *
+ * NOTE: この型定義はドキュメントとしての役割のみ。実際の Tauri command 呼び出しは
+ * `invokeCommand<T>(cmd: string, args)` で snake_case のコマンド名を直接指定している。
+ *
+ * 命名規約の対応:
+ *   - この定義: コロン区切り (例: 'git:status')
+ *   - Tauri command: snake_case (例: 'git_status')
+ *   - Tauri event: ハイフン区切り (例: 'worktree-changed')
  */
 export interface IPCChannelMap {
   'repository:open': {
@@ -304,7 +312,12 @@ export interface IPCChannelMap {
   }
 }
 
-/** main → renderer イベント */
+/**
+ * main → renderer イベント（ドキュメント用）
+ *
+ * NOTE: 実際のイベント名はハイフン区切り（例: 'worktree-changed'）。
+ * listenEvent / listenEventSync で直接文字列を指定して使用している。
+ */
 export interface IPCEventMap {
   'error:notify': import('@domain').ErrorNotification
   'worktree:changed': import('@domain').WorktreeChangeEvent

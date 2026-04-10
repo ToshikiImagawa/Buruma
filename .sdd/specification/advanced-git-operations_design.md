@@ -4,11 +4,11 @@ title: "高度な Git 操作"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-10"
 depends-on: [ "spec-advanced-git-operations" ]
-tags: [ "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "refactoring-planned", "tauri-migration"]
+tags: [ "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration"]
 category: "git-operations"
 priority: "medium"
 risk: "high"
@@ -167,7 +167,8 @@ src/features/advanced-git-operations/
 │       ├── get-operation-loading-usecase.ts          # ObservableStoreUseCase<boolean>
 │       ├── get-last-error-usecase.ts                 # ObservableStoreUseCase<IPCError | null>
 │       ├── get-operation-progress-usecase.ts         # ObservableStoreUseCase<OperationProgress | null>
-│       └── get-current-operation-usecase.ts          # ObservableStoreUseCase<string | null>
+│       ├── get-current-operation-usecase.ts          # ObservableStoreUseCase<string | null>
+│       └── observe-operation-completed-usecase.ts    # ObservableStoreUseCase<GitOperationCompletedEvent>
 ├── infrastructure/
 │   └── repositories/
 │       └── advanced-operations-default-repository.ts  # IPC クライアント実装
@@ -466,6 +467,18 @@ export interface OperationProgress {
   currentStep?: number
   totalSteps?: number
 }
+
+// === 操作完了イベント ===
+
+/** Git 操作種別 */
+export type GitOperationType = 'merge' | 'rebase' | 'cherry-pick' | 'stash' | 'tag' | 'conflict-resolve' | 'reset'
+
+/** Git 操作完了イベント（操作後のリフレッシュトリガー用） */
+export interface GitOperationCompletedEvent {
+  operationType: GitOperationType
+  worktreePath: string
+  success: boolean
+}
 ```
 
 ---
@@ -610,11 +623,13 @@ export interface AdvancedOperationsService extends BaseService {
   readonly lastError$: Observable<IPCError | null>
   readonly operationProgress$: Observable<OperationProgress | null>
   readonly currentOperation$: Observable<string | null>
+  readonly operationCompleted$: Observable<GitOperationCompletedEvent>
   setLoading(loading: boolean): void
   setError(error: IPCError | null): void
   clearError(): void
   setOperationProgress(progress: OperationProgress | null): void
   setCurrentOperation(operation: string | null): void
+  notifyOperationCompleted(event: GitOperationCompletedEvent): void
 }
 ```
 

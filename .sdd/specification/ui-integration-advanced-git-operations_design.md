@@ -4,7 +4,7 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-04-04"
 updated: "2026-04-09"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
@@ -178,9 +178,9 @@ Hard リセットは不可逆操作のため、メニュー項目に `text-destr
 
 ```typescript
 // 追加 import
-import {StashManager} from '@renderer/features/advanced-git-operations/presentation/components/stash-manager'
-import {TagManager} from '@renderer/features/advanced-git-operations/presentation/components/tag-manager'
-import {ConflictResolver} from '@renderer/features/advanced-git-operations/presentation/components/conflict-resolver'
+import {StashManager} from '@/features/advanced-git-operations/presentation/components/stash-manager'
+import {TagManager} from '@/features/advanced-git-operations/presentation/components/tag-manager'
+import {ConflictResolver} from '@/features/advanced-git-operations/presentation/components/conflict-resolver'
 
 // 追加 state
 const [conflictState, setConflictState] = useState<{
@@ -237,6 +237,8 @@ const BranchOperations = ({ onConflict }) => (<>
 |--------|------------------------|---------|
 | 手動テスト  | 各タブの表示・ボタン動作・コンフリクトフロー | 主要フロー   |
 
+> **注記**: UI 統合コンポーネントであるため自動テストは最小限とし、主要フローは手動テストで検証する。CONSTITUTION.md D-002 のカバレッジ目標の例外として扱う。
+
 ---
 
 # 8. 設計判断
@@ -251,7 +253,7 @@ const BranchOperations = ({ onConflict }) => (<>
 | タブ追加数         | 全機能個別タブ / 最小限          | 1 タブ（Refs: Stash + Tags を内部トグルで統合） | マージ/リベース/チェリーピックはダイアログで十分。Stash と Tags は低頻度操作のため単一タブに統合しトグルで切り替え |
 | ブランチパネル折りたたみ方式 | CSS w-0 トグル / ResizablePanel collapsible | ResizablePanel collapsible | 既に ResizablePanelGroup 内にあるためネイティブサポートを利用。CSS 方式との競合を避ける |
 | コンテキストメニュー項目 | 統一メニュー / ブランチ種別ごと | ブランチ種別ごと（ローカル/リモート/HEAD） | ブランチ種別によって利用可能な操作が異なるため。不要な項目の disabled 表示を避ける |
-| ツールバーレイアウト | 垂直ストリップ / 水平アイコンバー | 水平アイコンバー + Tooltip | 現行ヘッダーからの最小変更。既存パターン（MainHeader の Tooltip）と一貫性がある |
+| ツールバーレイアウト | 垂直ストリップ / 水平アイコンバー | 縦アイコンバー（垂直ストリップ） | ブランチパネル折りたたみ時にアイコンのみの縦ストリップとして表示。FR-008/FR-010 と統合 |
 
 ---
 

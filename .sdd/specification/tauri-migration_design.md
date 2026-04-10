@@ -2,11 +2,11 @@
 id: "design-tauri-migration"
 title: "Tauri v2 + Rust への全面移行"
 type: "design"
-status: "draft"
+status: "approved"
 sdd-phase: "plan"
-impl-status: "in-progress"
+impl-status: "implemented"
 created: "2026-04-09"
-updated: "2026-04-09"
+updated: "2026-04-10"
 depends-on: ["spec-tauri-migration"]
 tags: ["migration", "tauri", "rust", "architecture", "tauri-migration"]
 category: "infrastructure"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 進行中（Phase P 完了、Phase I 未着手）
+**ステータス:** 🟡 進行中（Phase P 完了、Phase IA〜IG 完了、Phase IH 部分完了）
 
 ## 1.1. 実装進捗
 
@@ -36,14 +36,14 @@ risk: "high"
 | Phase P4 | Spec 7 ファイル刷新 + `tauri-migration_spec.md` 作成 | 🟢 完了 |
 | Phase P5 | Design 7 ファイル刷新 + 本ファイル作成 | 🟢 完了 |
 | Phase P6 | Phase P 全体検証 | 🟢 完了 |
-| Phase IA | Tauri 初期化 + ディレクトリ再配置 + 疎通確認 | 🔴 未着手 |
-| Phase IB | application-foundation feature 移行 | 🔴 未着手 |
-| Phase IC | worktree-management feature 移行 | 🔴 未着手 |
-| Phase ID | repository-viewer feature 移行 | 🔴 未着手 |
-| Phase IE | basic-git-operations feature 移行 | 🔴 未着手 |
-| Phase IF | advanced-git-operations feature 移行 | 🔴 未着手 |
-| Phase IG | claude-code-integration feature 移行 | 🔴 未着手 |
-| Phase IH | Electron 依存削除・shim 削除・CLAUDE.md 更新 | 🔴 未着手 |
+| Phase IA | Tauri 初期化 + ディレクトリ再配置 + 疎通確認 | 🟢 完了 |
+| Phase IB | application-foundation feature 移行 | 🟢 完了 |
+| Phase IC | worktree-management feature 移行 | 🟢 完了 |
+| Phase ID | repository-viewer feature 移行 | 🟢 完了 |
+| Phase IE | basic-git-operations feature 移行 | 🟢 完了 |
+| Phase IF | advanced-git-operations feature 移行 | 🟢 完了 |
+| Phase IG | claude-code-integration feature 移行 | 🟢 完了 |
+| Phase IH | Electron 依存削除・shim 削除・CLAUDE.md 更新 | 🟡 部分完了（Electron 依存パッケージ削除完了、残: CLAUDE.md パスエイリアス更新、IPCChannelMap 型安全化） |
 
 ---
 
@@ -188,7 +188,7 @@ graph TD
 │       ├── lib.rs                   # tauri::Builder + invoke_handler
 │       ├── error.rs                 # AppError (thiserror + Serialize)
 │       ├── state.rs                 # AppState
-│       ├── events.rs                # emit ヘルパー
+│       ├── events.rs                # emit ヘルパー（※注記参照）
 │       ├── git/                     # 共通 git CLI ラッパー
 │       │   ├── mod.rs
 │       │   ├── command.rs           # tokio::process::Command ヘルパー
@@ -218,6 +218,8 @@ graph TD
 ├── tsconfig.json                    # @/*, @domain, @lib エイリアス
 └── package.json
 ```
+
+> **注記**: 実装では `events.rs` は作成せず、各 infrastructure 実装内で直接 `app_handle.emit(...)` を呼び出している。
 
 ## 4.3. 主要コンポーネントの役割
 
@@ -297,6 +299,8 @@ export function installElectronShim(): void {
 ```
 
 ### 4.3.4. Rust 側 `AppState`（`src-tauri/src/state.rs`）
+
+> **注記**: 実装の `AppState` は `Arc<dyn Trait>` ベースの UseCase フィールドではなく、各 Repository trait object (`Arc<dyn XxxRepository>`) を直接保持し、command 関数内で UseCase を都度構築する方式を採用している。これにより `AppState::new` の引数が簡潔になり、Repository の追加・変更時の影響範囲が小さくなる。
 
 ```rust
 use std::sync::Arc;

@@ -4,9 +4,9 @@ title: "アプリケーション基盤"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "not-implemented"
+impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-10"
 depends-on: [ "spec-application-foundation" ]
 tags: [ "foundation", "ipc", "tauri", "tauri-migration", "error-handling", "clean-architecture", "di", "rxjs" ]
 category: "infrastructure"
@@ -23,26 +23,26 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🔴 未実装（Tauri 移行中）
+**ステータス:** 🟢 実装済み
 
-> v3 時代の Electron 実装は変更履歴に凍結済み。Phase I（実装移行）で Rust + Tauri Core 側に再実装する。
+> v3 時代の Electron 実装は変更履歴に凍結済み。Tauri 2 + Rust への移行が完了し、`src/features/application-foundation/` (Webview) および `src-tauri/src/features/application_foundation/` (Rust) にコードが存在する。
 
 ## 1.1. 実装進捗
 
 | モジュール/機能                                     | Electron (v3 凍結) | Tauri (v4 ターゲット)                                                                                                    |
 |----------------------------------------------|-------------------|---------------------------------------------------------------------------------------------------------------------|
-| DI コンテナ登録 (Webview)                          | 🟢                | 🔴 VContainerConfig は維持、パスを `src/features/application-foundation/` に更新                                                |
-| DI コンテナ登録 (Rust)                             | -                 | 🔴 `AppState::new(app_handle)` + `tauri::Builder::manage`                                                            |
-| domain 層（TypeScript エンティティ）                  | 🟢                | 🔴 `src/shared/domain/` に移動                                                                                          |
-| domain 層（Rust struct）                        | -                 | 🔴 `src-tauri/src/features/application_foundation/domain.rs` に serde 付きで定義                                            |
-| application 層（UseCase / Service, TS）         | 🟢                | 🔴 Webview 側はそのまま維持                                                                                                 |
-| application 層（UseCase / Rust trait）          | -                 | 🔴 `src-tauri/src/features/application_foundation/application/`                                                      |
-| infrastructure 層（Webview Repository）         | 🟢                | 🔴 `invoke()` 直呼びに書き換え                                                                                              |
-| infrastructure 層（Rust Repository impl）      | -                 | 🔴 `tauri-plugin-store` / `tauri-plugin-dialog` / `tokio::process::Command` 経由                                        |
-| presentation 層（ViewModel）                    | 🟢                | 🔴 Webview 側はそのまま維持                                                                                                 |
-| presentation 層（Hook ラッパー）                   | 🟢                | 🔴 Webview 側は維持（`listenEvent` 購読を async 対応）                                                                        |
-| presentation 層（React コンポーネント）              | 🟢                | 🔴 Webview 側は維持（Phase IA の互換 shim で段階移行）                                                                           |
-| presentation 層（Rust `#[tauri::command]`）    | -                 | 🔴 10 コマンド（`repository_*`, `settings_*`）を新規実装                                                                        |
+| DI コンテナ登録 (Webview)                          | 🟢                | 🟢 VContainerConfig は維持、パスを `src/features/application-foundation/` に更新                                                |
+| DI コンテナ登録 (Rust)                             | -                 | 🟢 `AppState::new(app_handle)` + `tauri::Builder::manage`                                                            |
+| domain 層（TypeScript エンティティ）                  | 🟢                | 🟢 `src/shared/domain/` に移動                                                                                          |
+| domain 層（Rust struct）                        | -                 | 🟢 `src-tauri/src/features/application_foundation/domain.rs` に serde 付きで定義                                            |
+| application 層（UseCase / Service, TS）         | 🟢                | 🟢 Webview 側はそのまま維持                                                                                                 |
+| application 層（UseCase / Rust trait）          | -                 | 🟢 `src-tauri/src/features/application_foundation/application/`                                                      |
+| infrastructure 層（Webview Repository）         | 🟢                | 🟢 `invoke()` 直呼びに書き換え                                                                                              |
+| infrastructure 層（Rust Repository impl）      | -                 | 🟢 `tauri-plugin-store` / `tauri-plugin-dialog` / `tokio::process::Command` 経由                                        |
+| presentation 層（ViewModel）                    | 🟢                | 🟢 Webview 側はそのまま維持                                                                                                 |
+| presentation 層（Hook ラッパー）                   | 🟢                | 🟢 Webview 側は維持（`listenEvent` 購読を async 対応）                                                                        |
+| presentation 層（React コンポーネント）              | 🟢                | 🟢 Webview 側は維持                                                                           |
+| presentation 層（Rust `#[tauri::command]`）    | -                 | 🟢 10 コマンド（`repository_*`, `settings_*`）を実装済み                                                                        |
 
 ---
 
@@ -68,10 +68,10 @@ risk: "high"
 
 | 領域     | 採用技術                      | 選定理由                                                         |
 |--------|---------------------------|--------------------------------------------------------------|
-| データ永続化 | tauri-plugin-store            | Electron 向け JSON ベースの KV ストア。型安全な API、暗号化オプション、スキーマバリデーション付き |
+| データ永続化 | tauri-plugin-store            | Tauri 向け JSON ベースの KV ストア。型安全な API、スキーマバリデーション付き |
 | トースト通知 | Sonner                    | Shadcn/ui 推奨のトーストライブラリ。Tailwind CSS との親和性が高い                 |
 | リアクティブ | RxJS 7.8                  | A-006 準拠。Observable ベースの非同期データフロー                            |
-| DI     | VContainer (`src/lib/di`) | A-003 準拠。プロジェクト内製の軽量 DI コンテナ                                 |
+| DI     | VContainer (`src/shared/lib/di`) | A-003 準拠。プロジェクト内製の軽量 DI コンテナ                                 |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
@@ -160,65 +160,67 @@ graph TD
 
 | モジュール名                                        | 層              | 責務                     | 配置場所                                                                |
 |-----------------------------------------------|----------------|------------------------|---------------------------------------------------------------------|
-| RepositoryInfo, RecentRepository, AppSettings | domain         | エンティティ・型定義             | `src/domain/`                                                       |
-| RepositoryRepository (IF)                     | application    | リポジトリアクセス IF           | `renderer/features/application-foundation/application/`             |
-| SettingsRepository (IF)                       | application    | 設定アクセス IF              | `renderer/features/application-foundation/application/`             |
-| RepositoryService                             | application    | リポジトリ状態管理（ステートフル）      | `renderer/features/application-foundation/application/`             |
-| SettingsService                               | application    | 設定状態管理（ステートフル）         | `renderer/features/application-foundation/application/`             |
-| ErrorNotificationService                      | application    | エラー通知状態管理（ステートフル）      | `renderer/features/application-foundation/application/`             |
-| OpenRepositoryUseCase                         | application    | リポジトリオープン（ダイアログ経由）     | `renderer/features/application-foundation/application/`             |
-| OpenRepositoryByPathUseCase                   | application    | パス指定でリポジトリオープン         | `renderer/features/application-foundation/application/`             |
-| GetRecentRepositoriesUseCase                  | application    | 最近のリポジトリ取得             | `renderer/features/application-foundation/application/`             |
-| RemoveRecentRepositoryUseCase                 | application    | 最近のリポジトリ削除             | `renderer/features/application-foundation/application/`             |
-| PinRepositoryUseCase                          | application    | リポジトリのピン留め             | `renderer/features/application-foundation/application/`             |
-| GetCurrentRepositoryUseCase                   | application    | 現在のリポジトリ取得（Observable） | `renderer/features/application-foundation/application/`             |
-| GetSettingsUseCase                            | application    | 設定取得                   | `renderer/features/application-foundation/application/`             |
-| UpdateSettingsUseCase                         | application    | 設定更新                   | `renderer/features/application-foundation/application/`             |
-| GetErrorNotificationsUseCase                  | application    | エラー通知取得（Observable）    | `renderer/features/application-foundation/application/`             |
-| DismissErrorUseCase                           | application    | エラー通知の非表示              | `renderer/features/application-foundation/application/`             |
-| RetryErrorUseCase                             | application    | エラー操作の再試行              | `renderer/features/application-foundation/application/`             |
-| RepositoryDefaultRepository                   | infrastructure | IPC 経由のリポジトリ実装         | `renderer/features/application-foundation/infrastructure/`          |
-| SettingsDefaultRepository                     | infrastructure | IPC 経由の設定実装            | `renderer/features/application-foundation/infrastructure/`          |
-| RepositorySelectorViewModel                   | presentation   | リポジトリ選択 ViewModel      | `renderer/features/application-foundation/presentation/`            |
-| SettingsViewModel                             | presentation   | 設定 ViewModel           | `renderer/features/application-foundation/presentation/`            |
-| ErrorNotificationViewModel                    | presentation   | エラー通知 ViewModel        | `renderer/features/application-foundation/presentation/`            |
-| useRepositorySelectorViewModel                | presentation   | Hook ラッパー              | `renderer/features/application-foundation/presentation/`            |
-| useSettingsViewModel                          | presentation   | Hook ラッパー              | `renderer/features/application-foundation/presentation/`            |
-| useErrorNotificationViewModel                 | presentation   | Hook ラッパー              | `renderer/features/application-foundation/presentation/`            |
-| RepositorySelectorDialog                      | presentation   | リポジトリ選択ダイアログ（React）    | `renderer/features/application-foundation/presentation/components/` |
-| RecentRepositoriesList                        | presentation   | 最近のリポジトリ一覧（React）      | `renderer/features/application-foundation/presentation/components/` |
-| SettingsDialog                                | presentation   | 設定ダイアログ（React）         | `renderer/features/application-foundation/presentation/components/` |
-| ErrorNotificationToast                        | presentation   | エラー通知トースト（React）       | `renderer/features/application-foundation/presentation/components/` |
-| AppLayout                                     | presentation   | メインレイアウト（React）        | `renderer/components/layout/`                                       |
-| MainHeader                                    | presentation   | ヘッダーコンポーネント（React）     | `renderer/components/layout/`                                       |
-| ThemeProvider                                 | presentation   | テーマ切り替えプロバイダー（React）   | `renderer/components/`                                              |
+| RepositoryInfo, RecentRepository, AppSettings | domain         | エンティティ・型定義             | `src/shared/domain/`                                                       |
+| RepositoryRepository (IF)                     | application    | リポジトリアクセス IF           | `src/features/application-foundation/application/`             |
+| SettingsRepository (IF)                       | application    | 設定アクセス IF              | `src/features/application-foundation/application/`             |
+| RepositoryService                             | application    | リポジトリ状態管理（ステートフル）      | `src/features/application-foundation/application/`             |
+| SettingsService                               | application    | 設定状態管理（ステートフル）         | `src/features/application-foundation/application/`             |
+| ErrorNotificationService                      | application    | エラー通知状態管理（ステートフル）      | `src/features/application-foundation/application/`             |
+| OpenRepositoryUseCase                         | application    | リポジトリオープン（ダイアログ経由）     | `src/features/application-foundation/application/`             |
+| OpenRepositoryByPathUseCase                   | application    | パス指定でリポジトリオープン         | `src/features/application-foundation/application/`             |
+| GetRecentRepositoriesUseCase                  | application    | 最近のリポジトリ取得             | `src/features/application-foundation/application/`             |
+| RemoveRecentRepositoryUseCase                 | application    | 最近のリポジトリ削除             | `src/features/application-foundation/application/`             |
+| PinRepositoryUseCase                          | application    | リポジトリのピン留め             | `src/features/application-foundation/application/`             |
+| GetCurrentRepositoryUseCase                   | application    | 現在のリポジトリ取得（Observable） | `src/features/application-foundation/application/`             |
+| GetSettingsUseCase                            | application    | 設定取得                   | `src/features/application-foundation/application/`             |
+| UpdateSettingsUseCase                         | application    | 設定更新                   | `src/features/application-foundation/application/`             |
+| GetErrorNotificationsUseCase                  | application    | エラー通知取得（Observable）    | `src/features/application-foundation/application/`             |
+| DismissErrorUseCase                           | application    | エラー通知の非表示              | `src/features/application-foundation/application/`             |
+| RetryErrorUseCase                             | application    | エラー操作の再試行              | `src/features/application-foundation/application/`             |
+| RepositoryDefaultRepository                   | infrastructure | IPC 経由のリポジトリ実装         | `src/features/application-foundation/infrastructure/`          |
+| SettingsDefaultRepository                     | infrastructure | IPC 経由の設定実装            | `src/features/application-foundation/infrastructure/`          |
+| RepositorySelectorViewModel                   | presentation   | リポジトリ選択 ViewModel      | `src/features/application-foundation/presentation/`            |
+| SettingsViewModel                             | presentation   | 設定 ViewModel           | `src/features/application-foundation/presentation/`            |
+| ErrorNotificationViewModel                    | presentation   | エラー通知 ViewModel        | `src/features/application-foundation/presentation/`            |
+| useRepositorySelectorViewModel                | presentation   | Hook ラッパー              | `src/features/application-foundation/presentation/`            |
+| useSettingsViewModel                          | presentation   | Hook ラッパー              | `src/features/application-foundation/presentation/`            |
+| useErrorNotificationViewModel                 | presentation   | Hook ラッパー              | `src/features/application-foundation/presentation/`            |
+| RepositorySelectorDialog                      | presentation   | リポジトリ選択ダイアログ（React）    | `src/features/application-foundation/presentation/components/` |
+| RecentRepositoriesList                        | presentation   | 最近のリポジトリ一覧（React）      | `src/features/application-foundation/presentation/components/` |
+| SettingsDialog                                | presentation   | 設定ダイアログ（React）         | `src/features/application-foundation/presentation/components/` |
+| ErrorNotificationToast                        | presentation   | エラー通知トースト（React）       | `src/features/application-foundation/presentation/components/` |
+| AppLayout                                     | presentation   | メインレイアウト（React）        | `src/components/layout/`                                       |
+| MainHeader                                    | presentation   | ヘッダーコンポーネント（React）     | `src/components/layout/`                                       |
+| ThemeProvider                                 | presentation   | テーマ切り替えプロバイダー（React）   | `src/components/`                                              |
+
+> **注記**: Tauri Core (Rust) 側の DI は `tauri::State<AppState>` + `Arc<dyn Trait>` パターンで実装。以下の TypeScript 風コード例は仕様の概要を示すものであり、実装は Rust で行われている。
 
 ### Tauri Core (Rust)側（Clean Architecture 4層構成）
 
 | モジュール名                              | 層              | 責務                                | 配置場所                                                   |
 |-------------------------------------|----------------|-----------------------------------|--------------------------------------------------------|
-| RepositoryInfo, AppSettings 等       | domain         | エンティティ（プロセス間共有）                   | `src/domain/`                                          |
-| IPC Handlers                        | presentation   | IPC チャネルの受付・ルーティング（Controller 相当） | `main/features/application-foundation/presentation/`   |
-| OpenRepositoryWithDialogMainUseCase | application    | ダイアログ経由のリポジトリオープン                 | `main/features/application-foundation/application/`    |
-| OpenRepositoryByPathMainUseCase     | application    | パス指定でリポジトリオープン                    | `main/features/application-foundation/application/`    |
-| ValidateRepositoryMainUseCase       | application    | リポジトリの検証                          | `main/features/application-foundation/application/`    |
-| GetRecentRepositoriesMainUseCase    | application    | 最近のリポジトリ取得                        | `main/features/application-foundation/application/`    |
-| RemoveRecentRepositoryMainUseCase   | application    | 最近のリポジトリ削除                        | `main/features/application-foundation/application/`    |
-| PinRepositoryMainUseCase            | application    | リポジトリのピン留め                        | `main/features/application-foundation/application/`    |
-| GetSettingsMainUseCase              | application    | 設定取得                              | `main/features/application-foundation/application/`    |
-| UpdateSettingsMainUseCase           | application    | 設定更新                              | `main/features/application-foundation/application/`    |
-| GetThemeMainUseCase                 | application    | テーマ取得                             | `main/features/application-foundation/application/`    |
-| SetThemeMainUseCase                 | application    | テーマ設定                             | `main/features/application-foundation/application/`    |
-| StoreDefaultRepository              | infrastructure | tauri-plugin-store データアクセス            | `main/features/application-foundation/infrastructure/` |
-| GitValidationDefaultRepository      | infrastructure | execFile による Git 検証               | `main/features/application-foundation/infrastructure/` |
-| DialogDefaultRepository             | infrastructure | Electron dialog API               | `main/features/application-foundation/infrastructure/` |
+| RepositoryInfo, AppSettings 等       | domain         | エンティティ（プロセス間共有）                   | `src/shared/domain/`                                          |
+| IPC Handlers (commands.rs)          | presentation   | IPC チャネルの受付・ルーティング（Controller 相当） | `src-tauri/src/features/application_foundation/presentation/commands.rs`   |
+| OpenRepositoryWithDialogMainUseCase | application    | ダイアログ経由のリポジトリオープン                 | `src-tauri/src/features/application_foundation/application/`    |
+| OpenRepositoryByPathMainUseCase     | application    | パス指定でリポジトリオープン                    | `src-tauri/src/features/application_foundation/application/`    |
+| ValidateRepositoryMainUseCase       | application    | リポジトリの検証                          | `src-tauri/src/features/application_foundation/application/`    |
+| GetRecentRepositoriesMainUseCase    | application    | 最近のリポジトリ取得                        | `src-tauri/src/features/application_foundation/application/`    |
+| RemoveRecentRepositoryMainUseCase   | application    | 最近のリポジトリ削除                        | `src-tauri/src/features/application_foundation/application/`    |
+| PinRepositoryMainUseCase            | application    | リポジトリのピン留め                        | `src-tauri/src/features/application_foundation/application/`    |
+| GetSettingsMainUseCase              | application    | 設定取得                              | `src-tauri/src/features/application_foundation/application/`    |
+| UpdateSettingsMainUseCase           | application    | 設定更新                              | `src-tauri/src/features/application_foundation/application/`    |
+| GetThemeMainUseCase                 | application    | テーマ取得                             | `src-tauri/src/features/application_foundation/application/`    |
+| SetThemeMainUseCase                 | application    | テーマ設定                             | `src-tauri/src/features/application_foundation/application/`    |
+| StoreDefaultRepository              | infrastructure | tauri-plugin-store データアクセス            | `src-tauri/src/features/application_foundation/infrastructure/` |
+| GitValidationDefaultRepository      | infrastructure | tokio::process::Command による Git 検証               | `src-tauri/src/features/application_foundation/infrastructure/` |
+| DialogDefaultRepository             | infrastructure | tauri-plugin-dialog 経由のネイティブダイアログ               | `src-tauri/src/features/application_foundation/infrastructure/` |
 
 ### プロセス間共有
 
 | モジュール名      | 責務                                    | 配置場所                               |
 |-------------|---------------------------------------|------------------------------------|
-| Domain 型    | エンティティ（RepositoryInfo, AppSettings 等） | `src/domain/`                      |
-| IPC 型定義     | IPC チャネルの型定義                          | `src/lib/ipc.ts`                   |
+| Domain 型    | エンティティ（RepositoryInfo, AppSettings 等） | `src/shared/domain/`                      |
+| IPC 型定義     | IPC チャネルの型定義                          | `src/shared/lib/ipc.ts`                   |
 | Tauri invoke/listen API | 型安全な  API 公開              | （preload 層は Tauri では不要） |
 
 ---
@@ -251,7 +253,7 @@ const storeDefaults: StoreSchema = {
 
 ```typescript
 // src/features/application-foundation/di-config.ts（目標パス）
-import type {VContainerConfig} from '@/lib/di'
+import type {VContainerConfig} from '@/shared/lib/di'
 
 export const applicationFoundationConfig: VContainerConfig = {
     register: (container) => {
@@ -427,6 +429,8 @@ class RepositoryDefaultRepository implements RepositoryRepository {
 }
 ```
 
+> **注記**: 実装では Rust の `#[tauri::command]` マクロで各コマンドを定義し、`lib.rs` の `invoke_handler!` で一括登録している。
+
 ```typescript
 // IPC ハンドラー（infrastructure 層、Tauri Core (Rust)側）
 export function registerIPCHandlers(
@@ -470,10 +474,10 @@ export function registerIPCHandlers(
 
 **テスト方針**:
 
-- domain / application 層のテストは React / Electron 環境不要（純粋 TypeScript テスト）
+- domain / application 層のテストは React / Tauri 環境不要（純粋 TypeScript テスト）
 - ViewModel のテストは Observable の emit 値を検証（React 不要）
 - Hook ラッパーのテストは `@testing-library/react` の `renderHook` を使用
-- infrastructure 層のテストは preload API をモック化
+- infrastructure 層のテストは tauri-plugin-store / tauri-plugin-dialog の Mock Repository を使用
 
 ---
 
@@ -483,7 +487,7 @@ export function registerIPCHandlers(
 
 | 決定事項                  | 選択肢                                       | 決定内容                                      | 理由                                                                                                                               |
 |-----------------------|-------------------------------------------|-------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------|
-| データ永続化ライブラリ           | tauri-plugin-store / lowdb / SQLite           | tauri-plugin-store                            | Electron 向けに最適化。型安全な API、暗号化オプション付き。KV ストアで十分な要件                                                                                 |
+| データ永続化ライブラリ           | tauri-plugin-store / lowdb / SQLite           | tauri-plugin-store                            | Tauri 向けに最適化。型安全な API 付き。KV ストアで十分な要件                                                                                 |
 | IPC レスポンス型            | 生の値返却 / Result 型                          | `IPCResult<T>` 型（Result パターン）             | エラーハンドリングの統一。Webview 側で一貫したエラー処理が可能（原則 T-002）                                                                                       |
 | トースト通知ライブラリ           | react-hot-toast / react-toastify / Sonner | Sonner                                    | Shadcn/ui 推奨。Tailwind CSS との親和性が高い（原則 A-002）                                                                                     |
 | テーマ管理                 | CSS 変数 / Tailwind dark mode / next-themes | Tailwind CSS dark mode + CSS 変数           | Shadcn/ui のテーマ機構と統合。system テーマは `prefers-color-scheme` メディアクエリ                                                                   |
