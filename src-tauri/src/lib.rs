@@ -40,6 +40,17 @@ pub fn run() {
             features::application_foundation::presentation::commands::settings_set,
             features::application_foundation::presentation::commands::settings_get_theme,
             features::application_foundation::presentation::commands::settings_set_theme,
+            // repository-viewer (10)
+            features::repository_viewer::presentation::commands::git_status,
+            features::repository_viewer::presentation::commands::git_log,
+            features::repository_viewer::presentation::commands::git_commit_detail,
+            features::repository_viewer::presentation::commands::git_diff,
+            features::repository_viewer::presentation::commands::git_diff_staged,
+            features::repository_viewer::presentation::commands::git_diff_commit,
+            features::repository_viewer::presentation::commands::git_branches,
+            features::repository_viewer::presentation::commands::git_file_tree,
+            features::repository_viewer::presentation::commands::git_file_contents,
+            features::repository_viewer::presentation::commands::git_file_contents_commit,
             // worktree-management (7)
             features::worktree_management::presentation::commands::worktree_list,
             features::worktree_management::presentation::commands::worktree_status,
