@@ -2,6 +2,8 @@
 
 use std::sync::{Arc, Mutex};
 
+use crate::features::advanced_git_operations::application::repositories::GitAdvancedRepository;
+use crate::features::advanced_git_operations::infrastructure::git_repository::DefaultGitAdvancedRepository;
 use crate::features::application_foundation::application::repositories::{
     DialogRepository, GitValidationRepository, StoreRepository,
 };
@@ -21,6 +23,8 @@ pub struct AppState {
     pub store_repo: Arc<dyn StoreRepository>,
     pub git_validation_repo: Arc<dyn GitValidationRepository>,
     pub dialog_repo: Arc<dyn DialogRepository>,
+    // advanced-git-operations
+    pub git_advanced_repo: Arc<dyn GitAdvancedRepository>,
     // basic-git-operations
     pub git_write_repo: Arc<dyn GitWriteRepository>,
     // repository-viewer
@@ -37,6 +41,7 @@ impl AppState {
             store_repo: Arc::new(TauriStoreRepository::new(app_handle.clone())),
             git_validation_repo: Arc::new(DefaultGitValidationRepository),
             dialog_repo: Arc::new(TauriDialogRepository::new(app_handle.clone())),
+            git_advanced_repo: Arc::new(DefaultGitAdvancedRepository),
             git_write_repo: Arc::new(DefaultGitWriteRepository),
             git_read_repo: Arc::new(DefaultGitReadRepository),
             worktree_repo: Arc::new(DefaultWorktreeGitRepository),
