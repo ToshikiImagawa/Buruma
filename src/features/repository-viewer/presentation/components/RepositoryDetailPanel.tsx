@@ -16,7 +16,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Plus,
-  SplitSquareVertical,
+  SplitSquareHorizontal,
   Tag,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -269,7 +269,7 @@ export function RepositoryDetailPanel() {
                           className="h-6 w-6"
                           onClick={() => setStatusViewMode('monaco')}
                         >
-                          <SplitSquareVertical className="h-3.5 w-3.5" />
+                          <SplitSquareHorizontal className="h-3.5 w-3.5" />
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
@@ -455,7 +455,7 @@ export function RepositoryDetailPanel() {
                                 className="h-6 w-6"
                                 onClick={() => setCommitViewMode('monaco')}
                               >
-                                <SplitSquareVertical className="h-3.5 w-3.5" />
+                                <SplitSquareHorizontal className="h-3.5 w-3.5" />
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
