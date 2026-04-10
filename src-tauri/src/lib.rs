@@ -40,6 +40,14 @@ pub fn run() {
             features::application_foundation::presentation::commands::settings_set,
             features::application_foundation::presentation::commands::settings_get_theme,
             features::application_foundation::presentation::commands::settings_set_theme,
+            // worktree-management (7)
+            features::worktree_management::presentation::commands::worktree_list,
+            features::worktree_management::presentation::commands::worktree_status,
+            features::worktree_management::presentation::commands::worktree_create,
+            features::worktree_management::presentation::commands::worktree_delete,
+            features::worktree_management::presentation::commands::worktree_suggest_path,
+            features::worktree_management::presentation::commands::worktree_check_dirty,
+            features::worktree_management::presentation::commands::worktree_default_branch,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
