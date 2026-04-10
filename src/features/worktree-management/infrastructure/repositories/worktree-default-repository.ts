@@ -5,45 +5,47 @@ import type {
   WorktreeInfo,
   WorktreeStatus,
 } from '@domain'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
+import { listenEventSync } from '@/shared/lib/invoke/events'
 import type { WorktreeRepository } from '../../application/repositories/worktree-repository'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {
-    const result = await window.electronAPI.worktree.list(repoPath)
+    const result = await invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus> {
-    const result = await window.electronAPI.worktree.status(repoPath, worktreePath)
+    const result = await invokeCommand<WorktreeStatus>('worktree_status', { repoPath, worktreePath })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const result = await window.electronAPI.worktree.create(params)
+    const result = await invokeCommand<WorktreeInfo>('worktree_create', { params })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async delete(params: WorktreeDeleteParams): Promise<void> {
-    const result = await window.electronAPI.worktree.delete(params)
+    const result = await invokeCommand<void>('worktree_delete', { params })
     if (result.success === false) throw new Error(result.error.message)
   }
 
   async suggestPath(repoPath: string, branch: string): Promise<string> {
-    const result = await window.electronAPI.worktree.suggestPath(repoPath, branch)
+    const result = await invokeCommand<string>('worktree_suggest_path', { repoPath, branch })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async checkDirty(worktreePath: string): Promise<boolean> {
-    const result = await window.electronAPI.worktree.checkDirty(worktreePath)
+    const result = await invokeCommand<boolean>('worktree_check_dirty', { worktreePath })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void {
-    return window.electronAPI.worktree.onChanged(callback)
+    return listenEventSync('worktree-changed', callback)
   }
 }

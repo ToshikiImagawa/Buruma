@@ -1,7 +1,7 @@
 //! Buruma Tauri backend library.
 //!
-//! Phase IB: application-foundation feature の Rust 側実装。
-//! `tauri-plugin-dialog` / `tauri-plugin-store` の初期化と 10 command の登録。
+//! 全 feature の Rust 側実装。
+//! `tauri-plugin-dialog` / `tauri-plugin-store` の初期化と全 command の登録。
 
 pub mod error;
 pub mod features;
@@ -11,12 +11,6 @@ pub mod state;
 use tauri::Manager;
 
 use state::AppState;
-
-/// Phase IA 疎通確認用コマンド。Phase IH 以降で削除する。
-#[tauri::command]
-fn ping(msg: String) -> String {
-    format!("{msg} world from tauri")
-}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -29,7 +23,6 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
-            ping,
             features::application_foundation::presentation::commands::repository_open,
             features::application_foundation::presentation::commands::repository_open_path,
             features::application_foundation::presentation::commands::repository_validate,

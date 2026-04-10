@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { WorktreeCreateParams } from '@domain'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -33,7 +34,7 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
       setCreateNewBranch(true)
       setStartPoint('')
       // デフォルトブランチを取得して開始ポイントに設定
-      window.electronAPI.worktree.defaultBranch(repoPath).then((result) => {
+      invokeCommand<string>('worktree_default_branch', { repoPath }).then((result) => {
         if (result.success) {
           setStartPoint(result.data)
         }
@@ -44,7 +45,7 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
   useEffect(() => {
     if (!branch) return
     let cancelled = false
-    window.electronAPI.worktree.suggestPath(repoPath, branch).then((result) => {
+    invokeCommand<string>('worktree_suggest_path', { repoPath, branch }).then((result) => {
       if (cancelled) return
       if (result.success) {
         setWorktreePath(result.data)

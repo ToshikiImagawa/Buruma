@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import { FileSearch, GitBranch, GitCommit, Loader2, LogIn } from 'lucide-react'
+import { listenEventSync } from '@/shared/lib/invoke/events'
 import { Button } from '@/components/ui/button'
 import { useClaudeAuth } from '../use-claude-auth'
 import { useClaudeSessionViewModel } from '../use-claude-session-viewmodel'
@@ -39,7 +40,7 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
   // コマンド完了時にステータスをリフレッシュ
   useEffect(() => {
     if (!onCommandCompleted) return
-    const unsub = window.electronAPI.claude.onCommandCompleted((data) => {
+    const unsub = listenEventSync<{ worktreePath: string }>('claude-command-completed', (data) => {
       if (data.worktreePath === worktreePath) {
         onCommandCompleted()
       }

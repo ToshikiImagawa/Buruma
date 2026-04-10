@@ -22,7 +22,6 @@ class IntersectionObserverMock {
 vi.stubGlobal('ResizeObserver', ResizeObserverMock)
 vi.stubGlobal('IntersectionObserver', IntersectionObserverMock)
 
-// Phase IA: jsdom には Tauri ランタイム (`__TAURI_INTERNALS__`) が存在しないため
-// 明示的に undefined で stub する。これにより `installElectronShim()` が no-op となり、
-// 既存テストの `Object.defineProperty(window, 'electronAPI', ...)` モックと干渉しない。
+// jsdom には Tauri ランタイム (`__TAURI_INTERNALS__`) が存在しないため
+// 明示的に undefined で stub する。
 vi.stubGlobal('__TAURI_INTERNALS__', undefined)

@@ -1,12 +1,9 @@
 /**
  * Tauri `invoke()` を `IPCResult<T>` にラップする共通ヘルパー。
  *
- * 既存 Electron 版の `window.electronAPI.*` は全て `Promise<IPCResult<T>>` を返していた。
  * Tauri の `invoke<T>()` は成功時に生の T を返し、失敗時に throw する。
  * この差異を吸収するため、`try/catch` で包んで `IPCResult<T>` 形状に統一する。
- *
- * Phase IA では `electron-shim.ts` 経由で既存 14 caller の呼び出しを透過的にルーティングするが、
- * Phase IB 以降の feature 移行では Repository 層がこのラッパーを直接使う。
+ * Repository 層がこのラッパーを直接使用する。
  */
 
 import type { IPCError, IPCResult } from '@lib/ipc'
