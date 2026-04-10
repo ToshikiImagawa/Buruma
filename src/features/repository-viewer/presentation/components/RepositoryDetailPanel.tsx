@@ -479,41 +479,43 @@ export function RepositoryDetailPanel() {
                           </Tooltip>
                         </div>
                         <div className="min-h-0 flex-1">
-                          {commitViewMode === 'hunk' ? (
-                            <MultiFileDiffPanel
-                              worktreePath={selectedWorktree.path}
-                              diffs={commitDiffs}
-                              diffTarget={{ type: 'commits', from: `${selectedCommitHash}^`, to: selectedCommitHash }}
-                            />
-                          ) : (
-                            <ResizablePanelGroup direction="vertical">
-                              <ResizablePanel defaultSize={40} minSize={10}>
-                                <div className="h-full overflow-auto">
-                                  <CommitDetailView
-                                    worktreePath={selectedWorktree.path}
-                                    commitHash={selectedCommitHash}
-                                    onFileSelect={handleCommitFileSelect}
-                                  />
+                          <ResizablePanelGroup direction="vertical">
+                            <ResizablePanel defaultSize={40} minSize={10}>
+                              <div className="h-full overflow-auto">
+                                <CommitDetailView
+                                  worktreePath={selectedWorktree.path}
+                                  commitHash={selectedCommitHash}
+                                  onFileSelect={handleCommitFileSelect}
+                                />
+                              </div>
+                            </ResizablePanel>
+                            <ResizableHandle withHandle />
+                            <ResizablePanel defaultSize={60} minSize={10}>
+                              {commitViewMode === 'hunk' ? (
+                                <MultiFileDiffPanel
+                                  worktreePath={selectedWorktree.path}
+                                  diffs={commitDiffs}
+                                  diffTarget={{
+                                    type: 'commits',
+                                    from: `${selectedCommitHash}^`,
+                                    to: selectedCommitHash,
+                                  }}
+                                />
+                              ) : commitFilePath ? (
+                                <DiffView
+                                  worktreePath={selectedWorktree.path}
+                                  filePath={commitFilePath}
+                                  commitHash={selectedCommitHash}
+                                />
+                              ) : (
+                                <div className="flex h-full items-center justify-center">
+                                  <p className="text-sm text-muted-foreground">
+                                    ファイルを選択して差分を表示
+                                  </p>
                                 </div>
-                              </ResizablePanel>
-                              <ResizableHandle withHandle />
-                              <ResizablePanel defaultSize={60} minSize={10}>
-                                {commitFilePath ? (
-                                  <DiffView
-                                    worktreePath={selectedWorktree.path}
-                                    filePath={commitFilePath}
-                                    commitHash={selectedCommitHash}
-                                  />
-                                ) : (
-                                  <div className="flex h-full items-center justify-center">
-                                    <p className="text-sm text-muted-foreground">
-                                      ファイルを選択して差分を表示
-                                    </p>
-                                  </div>
-                                )}
-                              </ResizablePanel>
-                            </ResizablePanelGroup>
-                          )}
+                              )}
+                            </ResizablePanel>
+                          </ResizablePanelGroup>
                         </div>
                       </>
                     ) : (
