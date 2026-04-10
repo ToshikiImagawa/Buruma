@@ -75,6 +75,13 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
           )}
         </Button>
         {isLoggingIn && <p className="text-xs text-muted-foreground">ブラウザで認証を完了してください</p>}
+        <div className="mt-2 max-w-sm rounded-md border bg-muted/50 p-3 text-xs text-muted-foreground">
+          <p className="font-medium">ログインできない場合:</p>
+          <p className="mt-1">ターミナルで以下のコマンドを実行してからアプリを再起動してください</p>
+          <code className="mt-1 block rounded bg-background px-2 py-1 font-mono text-foreground">
+            claude auth login
+          </code>
+        </div>
       </div>
     )
   }

@@ -88,22 +88,38 @@ impl ClaudeRepository for DefaultClaudeRepository {
 
     async fn login(&self) -> AppResult<()> {
         // GUI 環境での対話的ログインは制限がある。
-        // `claude auth login` はターミナルでの操作を前提とするため、
-        // エラーメッセージで CLI での認証を案内する。
-        let output = tokio::process::Command::new("claude")
+        // spawn + wait 方式で TTY 検出の可能性を高め、タイムアウトで保護する。
+        let mut child = tokio::process::Command::new("claude")
             .args(["auth", "login"])
-            .output()
-            .await
-            .map_err(|e| AppError::Claude(format!("Failed to run claude auth login: {e}")))?;
+            .stdin(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                AppError::Claude(format!("claude auth login の起動に失敗しました: {e}"))
+            })?;
 
-        if output.status.success() {
-            Ok(())
-        } else {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(AppError::Claude(format!(
-                "Login failed. Please run 'claude auth login' in terminal first. {}",
-                stderr.trim()
-            )))
+        let timeout_result =
+            tokio::time::timeout(std::time::Duration::from_secs(120), child.wait()).await;
+
+        match timeout_result {
+            Ok(Ok(status)) if status.success() => Ok(()),
+            Ok(Ok(_)) => Err(AppError::Claude(
+                "GUI 環境での自動ログインに失敗しました。\
+                 ターミナルで 'claude auth login' を実行してからアプリを再起動してください。"
+                    .to_string(),
+            )),
+            Ok(Err(e)) => Err(AppError::Claude(format!(
+                "ログインプロセスエラー: {e}"
+            ))),
+            Err(_) => {
+                let _ = child.kill().await;
+                Err(AppError::Claude(
+                    "ログインがタイムアウトしました。\
+                     ターミナルで 'claude auth login' を実行してください。"
+                        .to_string(),
+                ))
+            }
         }
     }
 
