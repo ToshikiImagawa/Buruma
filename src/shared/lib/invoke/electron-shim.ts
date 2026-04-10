@@ -12,14 +12,47 @@
  *
  * Phase IA では Rust 側に `ping` のみが実装されているため、他のチャネルは全て
  * `command X not found` 相当のエラーで failure を返す。shim は IPCResult 形状で
- * 統一するため、既存 caller の `if (result.success === false) ...` 分岐が正常動作し、
- * 起動時に描画されるトップ画面 (リポジトリ未選択) に合流する。
+ * 統一するため、既存 caller の `if (result.success === false) ...` 分岐が正常動作する。
+ *
+ * ただし `applicationFoundationConfig.setUp` が起動時に `settings_get` と
+ * `repository_get_recent` を await するため、これらが failure を返すと
+ * Repository 層が throw し、VContainerProvider の ErrorBoundary に遷移して
+ * 白画面になる (Phase IA 計画のリスク E.5)。これを回避するため、本 shim は
+ * **Phase IA 限定の起動 fallback** として、Rust 側 command が未実装の場合に
+ * 安全なデフォルト値 (空配列 / DEFAULT_SETTINGS 等) を返す。この fallback は
+ * Phase IB で Rust 側 command が実装された瞬間に無効化される (成功レスポンスが
+ * 優先されるため)。
  */
 
+import { DEFAULT_SETTINGS, type AppSettings, type RecentRepository } from '@domain'
 import type { ElectronAPI, IPCError, IPCResult } from '@lib/ipc'
 
 import { invokeCommand } from './commands'
 import { listenEventSync } from './events'
+
+/**
+ * Tauri `invoke` 結果を `IPCResult` に変換する際、未実装コマンドの failure のみ
+ * Phase IA 起動用の fallback 値で success に書き換える。Phase IB 以降で command が
+ * 実装された後は fallback は不要になる (成功レスポンスがそのまま返るため)。
+ *
+ * `command X not found` や `Command X not found` のような文言を含む error message を
+ * 検出して fallback に切り替える。それ以外の error (引数型エラー等) はそのまま failure。
+ */
+async function invokeWithBootFallback<T>(
+  cmd: string,
+  args: Record<string, unknown> | undefined,
+  fallback: T,
+): Promise<IPCResult<T>> {
+  const result = await invokeCommand<T>(cmd, args)
+  if (result.success === false) {
+    const msg = result.error.message.toLowerCase()
+    if (msg.includes('not found') || msg.includes('command ' + cmd.toLowerCase())) {
+      console.info(`[electron-shim] Phase IA fallback for unimplemented command "${cmd}"`)
+      return { success: true, data: fallback }
+    }
+  }
+  return result
+}
 
 /**
  * `window.electronAPI` を合成して window に注入する。
@@ -43,12 +76,14 @@ function buildShim(): ElectronAPI {
       open: () => invokeCommand('repository_open'),
       openByPath: (path) => invokeCommand('repository_open_path', { path }),
       validate: (path) => invokeCommand('repository_validate', { path }),
-      getRecent: () => invokeCommand('repository_get_recent'),
+      // Phase IA boot-blocking: fallback to [] when Rust command not yet implemented
+      getRecent: () => invokeWithBootFallback<RecentRepository[]>('repository_get_recent', undefined, []),
       removeRecent: (path) => invokeCommand('repository_remove_recent', { path }),
       pin: (path, pinned) => invokeCommand('repository_pin', { path, pinned }),
     },
     settings: {
-      get: () => invokeCommand('settings_get'),
+      // Phase IA boot-blocking: fallback to DEFAULT_SETTINGS when Rust command not yet implemented
+      get: () => invokeWithBootFallback<AppSettings>('settings_get', undefined, DEFAULT_SETTINGS),
       set: (settings) => invokeCommand('settings_set', { settings }),
       getTheme: () => invokeCommand('settings_get_theme'),
       setTheme: (theme) => invokeCommand('settings_set_theme', { theme }),
