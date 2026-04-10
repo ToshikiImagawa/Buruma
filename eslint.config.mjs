@@ -31,7 +31,8 @@ export default tseslint.config(
   },
 
   {
-    files: ['src/processes/renderer/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
+    // Browser globals (Webview) — Phase IA 以降は src/ 直下に統合
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,

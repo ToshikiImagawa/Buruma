@@ -4,15 +4,15 @@
   "rsc": false,
   "tsx": true,
   "aliases": {
-    "components": "@renderer/components",
+    "components": "@/components",
     "utils": "@lib/utils",
-    "ui": "@renderer/components/ui",
+    "ui": "@/components/ui",
     "lib": "@lib",
     "hooks": "@lib/hooks"
   },
   "tailwind": {
     "config": "",
-    "css": "src/processes/renderer/index.css",
+    "css": "src/index.css",
     "baseColor": "neutral",
     "cssVariables": true
   }

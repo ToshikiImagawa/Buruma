@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "ESNext",
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -9,16 +9,16 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@domain": ["./src/domain"],
-      "@domain/*": ["./src/domain/*"],
-      "@lib": ["./src/lib"],
-      "@lib/*": ["./src/lib/*"],
+      "@/*": ["./src/*"],
+      "@domain": ["./src/shared/domain"],
+      "@domain/*": ["./src/shared/domain/*"],
+      "@lib": ["./src/shared/lib"],
+      "@lib/*": ["./src/shared/lib/*"],
       "@main/*": ["./src/processes/main/*"],
-      "@renderer/*": ["./src/processes/renderer/*"],
       "@preload/*": ["./src/processes/preload/*"]
     },
     "outDir": "dist",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx"
   },
