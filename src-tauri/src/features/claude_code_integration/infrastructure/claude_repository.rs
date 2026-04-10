@@ -25,19 +25,11 @@ impl DefaultClaudeRepository {
 
 #[async_trait]
 impl ClaudeRepository for DefaultClaudeRepository {
-    async fn start_session(
-        &self,
-        worktree_path: &str,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<ClaudeSession> {
+    async fn start_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<ClaudeSession> {
         self.manager.start_session(worktree_path, app_handle).await
     }
 
-    async fn stop_session(
-        &self,
-        worktree_path: &str,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    async fn stop_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<()> {
         self.manager.stop_session(worktree_path, app_handle).await
     }
 
@@ -49,11 +41,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         Ok(self.manager.get_all_sessions())
     }
 
-    async fn send_command(
-        &self,
-        command: &ClaudeCommand,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    async fn send_command(&self, command: &ClaudeCommand, app_handle: tauri::AppHandle) -> AppResult<()> {
         self.manager
             .send_command(&command.worktree_path, &command.input, app_handle)
             .await
@@ -75,14 +63,8 @@ impl ClaudeRepository for DefaultClaudeRepository {
         // `claude auth status` は JSON を出力: { "loggedIn": true, "email": "...", ... }
         if output.status.success() {
             if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                let logged_in = json
-                    .get("loggedIn")
-                    .and_then(|v| v.as_bool())
-                    .unwrap_or(false);
-                let email = json
-                    .get("email")
-                    .and_then(|v| v.as_str())
-                    .map(|s| s.to_string());
+                let logged_in = json.get("loggedIn").and_then(|v| v.as_bool()).unwrap_or(false);
+                let email = json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string());
                 Ok(ClaudeAuthStatus {
                     authenticated: logged_in,
                     account_email: email,
@@ -152,9 +134,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
             .current_dir(&args.worktree_path)
             .output()
             .await
-            .map_err(|e| {
-                AppError::Claude(format!("Failed to run claude for commit message: {e}"))
-            })?;
+            .map_err(|e| AppError::Claude(format!("Failed to run claude for commit message: {e}")))?;
 
         if output.status.success() {
             Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
@@ -167,11 +147,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         }
     }
 
-    async fn review_diff(
-        &self,
-        args: &DiffReviewArgs,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    async fn review_diff(&self, args: &DiffReviewArgs, app_handle: tauri::AppHandle) -> AppResult<()> {
         let worktree_path = args.worktree_path.clone();
         let diff_text = args.diff_text.clone();
 
@@ -220,11 +196,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         Ok(())
     }
 
-    async fn explain_diff(
-        &self,
-        args: &DiffReviewArgs,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    async fn explain_diff(&self, args: &DiffReviewArgs, app_handle: tauri::AppHandle) -> AppResult<()> {
         let worktree_path = args.worktree_path.clone();
         let diff_text = args.diff_text.clone();
 

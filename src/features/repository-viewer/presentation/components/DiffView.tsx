@@ -2,8 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DiffDisplayMode, FileContents, FileDiff, ReviewComment } from '@domain'
 import type { editor } from 'monaco-editor'
 import { DiffEditor } from '@monaco-editor/react'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { Button } from '@/components/ui/button'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface DiffViewProps {

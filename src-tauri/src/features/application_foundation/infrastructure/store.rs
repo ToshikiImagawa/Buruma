@@ -43,9 +43,7 @@ impl StoreRepository for TauriStoreRepository {
             "recentRepositories",
             serde_json::to_value(repos).map_err(AppError::Serde)?,
         );
-        store
-            .save()
-            .map_err(|e| AppError::Repository(e.to_string()))?;
+        store.save().map_err(|e| AppError::Repository(e.to_string()))?;
         Ok(())
     }
 
@@ -66,13 +64,8 @@ impl StoreRepository for TauriStoreRepository {
             .app_handle
             .store(STORE_FILE)
             .map_err(|e| AppError::Repository(e.to_string()))?;
-        store.set(
-            "settings",
-            serde_json::to_value(settings).map_err(AppError::Serde)?,
-        );
-        store
-            .save()
-            .map_err(|e| AppError::Repository(e.to_string()))?;
+        store.set("settings", serde_json::to_value(settings).map_err(AppError::Serde)?);
+        store.save().map_err(|e| AppError::Repository(e.to_string()))?;
         Ok(())
     }
 }

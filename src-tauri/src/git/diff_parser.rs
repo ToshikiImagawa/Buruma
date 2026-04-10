@@ -30,11 +30,7 @@ fn parse_file_section(section: &str) -> FileDiff {
     let status = detect_change_status(&lines);
     let is_renamed = status == FileChangeStatus::Renamed;
 
-    let hunks = if is_binary {
-        Vec::new()
-    } else {
-        parse_hunks(&lines)
-    };
+    let hunks = if is_binary { Vec::new() } else { parse_hunks(&lines) };
 
     FileDiff {
         file_path: new_path,

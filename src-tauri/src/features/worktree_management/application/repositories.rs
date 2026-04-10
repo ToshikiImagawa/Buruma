@@ -3,9 +3,7 @@
 use async_trait::async_trait;
 
 use crate::error::AppResult;
-use crate::features::worktree_management::domain::{
-    WorktreeCreateParams, WorktreeInfo, WorktreeStatus,
-};
+use crate::features::worktree_management::domain::{WorktreeCreateParams, WorktreeInfo, WorktreeStatus};
 
 #[async_trait]
 pub trait WorktreeGitRepository: Send + Sync {

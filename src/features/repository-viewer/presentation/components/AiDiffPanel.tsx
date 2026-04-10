@@ -4,9 +4,9 @@
  * children にメインコンテンツ (diff リスト等) を渡す。
  */
 
-import type { ReactNode } from 'react'
 import { useCallback, useState } from 'react'
 import type { DiffTarget, FileDiff, ReviewComment } from '@domain'
+import type { ReactNode } from 'react'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
 import { BookOpen, Loader2, Sparkles, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -79,11 +79,7 @@ export function AiDiffPanel({
                 onClick={handleReview}
                 disabled={isReviewing || !isAuthenticated || diffs.length === 0}
               >
-                {isReviewing ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <Sparkles className="h-3.5 w-3.5" />
-                )}
+                {isReviewing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Sparkles className="h-3.5 w-3.5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>
@@ -99,11 +95,7 @@ export function AiDiffPanel({
                 onClick={handleExplain}
                 disabled={isExplaining || !isAuthenticated || diffs.length === 0}
               >
-                {isExplaining ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                ) : (
-                  <BookOpen className="h-3.5 w-3.5" />
-                )}
+                {isExplaining ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <BookOpen className="h-3.5 w-3.5" />}
               </Button>
             </TooltipTrigger>
             <TooltipContent>

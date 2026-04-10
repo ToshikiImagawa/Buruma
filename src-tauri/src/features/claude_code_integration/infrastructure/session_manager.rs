@@ -32,11 +32,7 @@ impl ClaudeSessionManager {
 
     /// セッション開始。`claude` CLI の存在確認のみ行い、状態を Running に設定。
     /// 実際のプロセスはコマンド送信時にワンショットで起動する。
-    pub async fn start_session(
-        &self,
-        worktree_path: &str,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<ClaudeSession> {
+    pub async fn start_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<ClaudeSession> {
         // 既存 Running セッションがあれば返す
         {
             let sessions = self.sessions.lock().unwrap();
@@ -48,15 +44,11 @@ impl ClaudeSessionManager {
         }
 
         // claude CLI の存在確認
-        let check = tokio::process::Command::new("claude")
-            .arg("--version")
-            .output()
-            .await;
+        let check = tokio::process::Command::new("claude").arg("--version").output().await;
 
         if check.is_err() || !check.as_ref().unwrap().status.success() {
             return Err(AppError::Claude(
-                "Claude Code CLI が見つかりません。`claude` コマンドをインストールしてください。"
-                    .to_string(),
+                "Claude Code CLI が見つかりません。`claude` コマンドをインストールしてください。".to_string(),
             ));
         }
 
@@ -85,20 +77,14 @@ impl ClaudeSessionManager {
     }
 
     /// セッション停止。状態を Idle に変更。
-    pub async fn stop_session(
-        &self,
-        worktree_path: &str,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    pub async fn stop_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<()> {
         {
             let mut sessions = self.sessions.lock().unwrap();
             if let Some(s) = sessions.get_mut(worktree_path) {
                 s.info.status = SessionStatus::Idle;
                 s.info.pid = None;
             } else {
-                return Err(AppError::NotFound(format!(
-                    "No session for {worktree_path}"
-                )));
+                return Err(AppError::NotFound(format!("No session for {worktree_path}")));
             }
         }
 
@@ -120,12 +106,7 @@ impl ClaudeSessionManager {
 
     /// コマンド送信: `claude -p "input"` ワンショット実行。
     /// 出力を蓄積し、claude-output / claude-command-completed イベントを発信。
-    pub async fn send_command(
-        &self,
-        worktree_path: &str,
-        input: &str,
-        app_handle: tauri::AppHandle,
-    ) -> AppResult<()> {
+    pub async fn send_command(&self, worktree_path: &str, input: &str, app_handle: tauri::AppHandle) -> AppResult<()> {
         // セッションが Running であることを確認
         {
             let sessions = self.sessions.lock().unwrap();

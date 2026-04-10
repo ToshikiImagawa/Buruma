@@ -18,8 +18,8 @@ import type {
   ThreeWayContent,
 } from '@domain'
 import type { IPCError } from '@lib/ipc'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
 import type { AdvancedOperationsRepository } from '../../application/repositories/advanced-operations-repository'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 
 export class AdvancedOperationsDefaultRepository implements AdvancedOperationsRepository {
   async merge(options: MergeOptions): Promise<MergeResult> {
@@ -117,7 +117,9 @@ export class AdvancedOperationsDefaultRepository implements AdvancedOperationsRe
   }
 
   async conflictFileContent(worktreePath: string, filePath: string): Promise<ThreeWayContent> {
-    const result = await invokeCommand<ThreeWayContent>('git_conflict_file_content', { args: { worktreePath, filePath } })
+    const result = await invokeCommand<ThreeWayContent>('git_conflict_file_content', {
+      args: { worktreePath, filePath },
+    })
     if (result.success === false) throw new AdvancedOperationsError(result.error)
     return result.data
   }

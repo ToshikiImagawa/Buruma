@@ -60,10 +60,7 @@ impl WorktreeWatcher {
 
         match debouncer {
             Ok(mut d) => {
-                if d.watcher()
-                    .watch(&watch_path, RecursiveMode::NonRecursive)
-                    .is_ok()
-                {
+                if d.watcher().watch(&watch_path, RecursiveMode::NonRecursive).is_ok() {
                     if let Ok(mut guard) = self.debouncer.lock() {
                         *guard = Some(d);
                     }

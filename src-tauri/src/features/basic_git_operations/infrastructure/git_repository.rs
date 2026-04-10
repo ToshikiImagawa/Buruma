@@ -7,8 +7,8 @@ use tokio::process::Command;
 use crate::error::{AppError, AppResult};
 use crate::features::basic_git_operations::application::repositories::GitWriteRepository;
 use crate::features::basic_git_operations::domain::{
-    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs,
-    FetchResult, PullArgs, PullResult, PullSummary, PushArgs, PushResult, ResetArgs,
+    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs, FetchResult, PullArgs,
+    PullResult, PullSummary, PushArgs, PushResult, ResetArgs,
 };
 use crate::git::command::raw;
 
@@ -96,9 +96,7 @@ impl GitWriteRepository for DefaultGitWriteRepository {
                 if stderr.contains("no upstream") || stderr.contains("--set-upstream") {
                     Err(AppError::GitOperation {
                         code: "NO_UPSTREAM".to_string(),
-                        message:
-                            "upstream が設定されていません。--set-upstream を使用してください。"
-                                .to_string(),
+                        message: "upstream が設定されていません。--set-upstream を使用してください。".to_string(),
                     })
                 } else if stderr.contains("rejected") || stderr.contains("[rejected]") {
                     Err(AppError::GitOperation {
@@ -173,21 +171,12 @@ impl GitWriteRepository for DefaultGitWriteRepository {
 
     async fn branch_delete(&self, args: &BranchDeleteArgs) -> AppResult<()> {
         if args.remote.unwrap_or(false) {
-            match git_raw_with_stderr(
-                &args.worktree_path,
-                &["push", "origin", "--delete", &args.branch],
-            )
-            .await
-            {
+            match git_raw_with_stderr(&args.worktree_path, &["push", "origin", "--delete", &args.branch]).await {
                 Ok(_) => Ok(()),
                 Err(stderr) => Err(AppError::GitError(stderr)),
             }
         } else {
-            let flag = if args.force.unwrap_or(false) {
-                "-D"
-            } else {
-                "-d"
-            };
+            let flag = if args.force.unwrap_or(false) { "-D" } else { "-d" };
             match git_raw_with_stderr(&args.worktree_path, &["branch", flag, &args.branch]).await {
                 Ok(_) => Ok(()),
                 Err(stderr) => {
@@ -205,11 +194,7 @@ impl GitWriteRepository for DefaultGitWriteRepository {
     }
 
     async fn reset(&self, args: &ResetArgs) -> AppResult<()> {
-        raw(
-            &args.worktree_path,
-            &["reset", args.mode.as_flag(), &args.target],
-        )
-        .await?;
+        raw(&args.worktree_path, &["reset", args.mode.as_flag(), &args.target]).await?;
         Ok(())
     }
 }

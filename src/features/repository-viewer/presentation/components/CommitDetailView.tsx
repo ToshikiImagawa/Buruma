@@ -12,12 +12,7 @@ interface CommitDetailViewProps {
   onSelectionChange?: (selectedFiles: Set<string>) => void
 }
 
-export function CommitDetailView({
-  worktreePath,
-  commitHash,
-  onFileSelect,
-  onSelectionChange,
-}: CommitDetailViewProps) {
+export function CommitDetailView({ worktreePath, commitHash, onFileSelect, onSelectionChange }: CommitDetailViewProps) {
   const { selectedCommit, selectCommit } = useCommitLogViewModel()
   const fileList = selectedCommit?.files.map((f) => f.path) ?? []
   const { selectedFiles, handleFileSelect, toggleFileSelect } = useMultiFileSelection(fileList)

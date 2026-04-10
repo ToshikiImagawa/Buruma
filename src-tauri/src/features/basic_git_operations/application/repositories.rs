@@ -4,8 +4,8 @@ use async_trait::async_trait;
 
 use crate::error::AppResult;
 use crate::features::basic_git_operations::domain::{
-    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs,
-    FetchResult, PullArgs, PullResult, PushArgs, PushResult, ResetArgs,
+    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs, FetchResult, PullArgs,
+    PullResult, PushArgs, PushResult, ResetArgs,
 };
 
 #[async_trait]

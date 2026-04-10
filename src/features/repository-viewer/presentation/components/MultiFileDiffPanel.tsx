@@ -62,12 +62,7 @@ export function MultiFileDiffPanel({
   )
 
   return (
-    <AiDiffPanel
-      worktreePath={worktreePath ?? ''}
-      diffs={diffs}
-      diffTarget={diffTarget}
-      headerLeft={headerLeft}
-    >
+    <AiDiffPanel worktreePath={worktreePath ?? ''} diffs={diffs} diffTarget={diffTarget} headerLeft={headerLeft}>
       <Virtuoso
         totalCount={diffs.length}
         increaseViewportBy={200}

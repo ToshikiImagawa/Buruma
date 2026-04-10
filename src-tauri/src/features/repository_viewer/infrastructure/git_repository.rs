@@ -8,8 +8,8 @@ use async_trait::async_trait;
 use crate::error::{AppError, AppResult};
 use crate::features::repository_viewer::application::repositories::GitReadRepository;
 use crate::features::repository_viewer::domain::{
-    BranchInfo, BranchList, CommitDetail, CommitFileChange, FileContents, FileDiff, FileTreeNode,
-    FileTreeNodeType, GitLogQuery, GitLogResult, GitStatus,
+    BranchInfo, BranchList, CommitDetail, CommitFileChange, FileContents, FileDiff, FileTreeNode, FileTreeNodeType,
+    GitLogQuery, GitLogResult, GitStatus,
 };
 use crate::features::worktree_management::domain::{FileChange, FileChangeStatus};
 use crate::git::command::{raw, raw_or_empty};
@@ -91,21 +91,13 @@ impl GitReadRepository for DefaultGitReadRepository {
             &["diff-tree", "--no-commit-id", "-r", "--name-status", hash],
         )
         .await?;
-        let numstat_raw = raw(
-            worktree_path,
-            &["diff-tree", "--no-commit-id", "-r", "--numstat", hash],
-        )
-        .await?;
+        let numstat_raw = raw(worktree_path, &["diff-tree", "--no-commit-id", "-r", "--numstat", hash]).await?;
         let files = parse_commit_files(&name_status_raw, &numstat_raw);
 
         Ok(CommitDetail { summary, files })
     }
 
-    async fn get_diff(
-        &self,
-        worktree_path: &str,
-        file_path: Option<&str>,
-    ) -> AppResult<Vec<FileDiff>> {
+    async fn get_diff(&self, worktree_path: &str, file_path: Option<&str>) -> AppResult<Vec<FileDiff>> {
         let mut args = vec!["diff"];
         if let Some(fp) = file_path {
             args.push("--");
@@ -115,11 +107,7 @@ impl GitReadRepository for DefaultGitReadRepository {
         Ok(parse_diff_output(&output))
     }
 
-    async fn get_diff_staged(
-        &self,
-        worktree_path: &str,
-        file_path: Option<&str>,
-    ) -> AppResult<Vec<FileDiff>> {
+    async fn get_diff_staged(&self, worktree_path: &str, file_path: Option<&str>) -> AppResult<Vec<FileDiff>> {
         let mut args = vec!["diff", "--cached"];
         if let Some(fp) = file_path {
             args.push("--");
@@ -168,12 +156,7 @@ impl GitReadRepository for DefaultGitReadRepository {
         Ok(build_file_tree(&ls_tree_raw, &status_map, root_name))
     }
 
-    async fn get_file_contents(
-        &self,
-        worktree_path: &str,
-        file_path: &str,
-        staged: bool,
-    ) -> AppResult<FileContents> {
+    async fn get_file_contents(&self, worktree_path: &str, file_path: &str, staged: bool) -> AppResult<FileContents> {
         let language = detect_language(file_path);
 
         // 変更前: HEAD のファイル内容
@@ -202,8 +185,7 @@ impl GitReadRepository for DefaultGitReadRepository {
         let language = detect_language(file_path);
 
         // 変更前: 親コミットのファイル内容
-        let original =
-            raw_or_empty(worktree_path, &["show", &format!("{hash}^:{file_path}")]).await;
+        let original = raw_or_empty(worktree_path, &["show", &format!("{hash}^:{file_path}")]).await;
 
         // 変更後: 指定コミットのファイル内容
         let modified = raw_or_empty(worktree_path, &["show", &format!("{hash}:{file_path}")]).await;
@@ -349,11 +331,7 @@ fn parse_branch_output(raw: &str) -> BranchList {
         }
     }
 
-    BranchList {
-        current,
-        local,
-        remote,
-    }
+    BranchList { current, local, remote }
 }
 
 fn build_status_map(status_raw: &str) -> std::collections::HashMap<String, FileChangeStatus> {
@@ -479,9 +457,7 @@ async fn read_working_file(worktree_path: &str, file_path: &str) -> String {
         return String::new();
     }
 
-    tokio::fs::read_to_string(&resolved)
-        .await
-        .unwrap_or_default()
+    tokio::fs::read_to_string(&resolved).await.unwrap_or_default()
 }
 
 /// ファイルパスから Monaco の言語 ID を推定する。

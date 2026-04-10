@@ -3,10 +3,9 @@
 use crate::error::AppResult;
 use crate::features::advanced_git_operations::application::repositories::GitAdvancedRepository;
 use crate::features::advanced_git_operations::domain::{
-    CherryPickOptions, CherryPickResult, ConflictFile, ConflictResolveAllOptions,
-    ConflictResolveOptions, InteractiveRebaseOptions, MergeOptions, MergeResult, MergeStatus,
-    RebaseOptions, RebaseResult, RebaseStep, StashEntry, StashSaveOptions, TagCreateOptions,
-    TagInfo, ThreeWayContent,
+    CherryPickOptions, CherryPickResult, ConflictFile, ConflictResolveAllOptions, ConflictResolveOptions,
+    InteractiveRebaseOptions, MergeOptions, MergeResult, MergeStatus, RebaseOptions, RebaseResult, RebaseStep,
+    StashEntry, StashSaveOptions, TagCreateOptions, TagInfo, ThreeWayContent,
 };
 
 // Merge
@@ -20,10 +19,7 @@ pub async fn merge_status(repo: &dyn GitAdvancedRepository, p: &str) -> AppResul
     repo.merge_status(p).await
 }
 // Rebase
-pub async fn rebase(
-    repo: &dyn GitAdvancedRepository,
-    o: &RebaseOptions,
-) -> AppResult<RebaseResult> {
+pub async fn rebase(repo: &dyn GitAdvancedRepository, o: &RebaseOptions) -> AppResult<RebaseResult> {
     repo.rebase(o).await
 }
 pub async fn rebase_interactive(
@@ -38,11 +34,7 @@ pub async fn rebase_abort(repo: &dyn GitAdvancedRepository, p: &str) -> AppResul
 pub async fn rebase_continue(repo: &dyn GitAdvancedRepository, p: &str) -> AppResult<RebaseResult> {
     repo.rebase_continue(p).await
 }
-pub async fn rebase_get_commits(
-    repo: &dyn GitAdvancedRepository,
-    p: &str,
-    onto: &str,
-) -> AppResult<Vec<RebaseStep>> {
+pub async fn rebase_get_commits(repo: &dyn GitAdvancedRepository, p: &str, onto: &str) -> AppResult<Vec<RebaseStep>> {
     repo.rebase_get_commits(p, onto).await
 }
 // Stash
@@ -65,46 +57,26 @@ pub async fn stash_clear(repo: &dyn GitAdvancedRepository, p: &str) -> AppResult
     repo.stash_clear(p).await
 }
 // Cherry-pick
-pub async fn cherry_pick(
-    repo: &dyn GitAdvancedRepository,
-    o: &CherryPickOptions,
-) -> AppResult<CherryPickResult> {
+pub async fn cherry_pick(repo: &dyn GitAdvancedRepository, o: &CherryPickOptions) -> AppResult<CherryPickResult> {
     repo.cherry_pick(o).await
 }
 pub async fn cherry_pick_abort(repo: &dyn GitAdvancedRepository, p: &str) -> AppResult<()> {
     repo.cherry_pick_abort(p).await
 }
 // Conflict
-pub async fn conflict_list(
-    repo: &dyn GitAdvancedRepository,
-    p: &str,
-) -> AppResult<Vec<ConflictFile>> {
+pub async fn conflict_list(repo: &dyn GitAdvancedRepository, p: &str) -> AppResult<Vec<ConflictFile>> {
     repo.conflict_list(p).await
 }
-pub async fn conflict_file_content(
-    repo: &dyn GitAdvancedRepository,
-    p: &str,
-    fp: &str,
-) -> AppResult<ThreeWayContent> {
+pub async fn conflict_file_content(repo: &dyn GitAdvancedRepository, p: &str, fp: &str) -> AppResult<ThreeWayContent> {
     repo.conflict_file_content(p, fp).await
 }
-pub async fn conflict_resolve(
-    repo: &dyn GitAdvancedRepository,
-    o: &ConflictResolveOptions,
-) -> AppResult<()> {
+pub async fn conflict_resolve(repo: &dyn GitAdvancedRepository, o: &ConflictResolveOptions) -> AppResult<()> {
     repo.conflict_resolve(o).await
 }
-pub async fn conflict_resolve_all(
-    repo: &dyn GitAdvancedRepository,
-    o: &ConflictResolveAllOptions,
-) -> AppResult<()> {
+pub async fn conflict_resolve_all(repo: &dyn GitAdvancedRepository, o: &ConflictResolveAllOptions) -> AppResult<()> {
     repo.conflict_resolve_all(o).await
 }
-pub async fn conflict_mark_resolved(
-    repo: &dyn GitAdvancedRepository,
-    p: &str,
-    fp: &str,
-) -> AppResult<()> {
+pub async fn conflict_mark_resolved(repo: &dyn GitAdvancedRepository, p: &str, fp: &str) -> AppResult<()> {
     repo.conflict_mark_resolved(p, fp).await
 }
 // Tag

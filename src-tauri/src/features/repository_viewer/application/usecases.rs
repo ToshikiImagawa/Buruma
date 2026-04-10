@@ -4,8 +4,7 @@
 use crate::error::AppResult;
 use crate::features::repository_viewer::application::repositories::GitReadRepository;
 use crate::features::repository_viewer::domain::{
-    BranchList, CommitDetail, FileContents, FileDiff, FileTreeNode, GitLogQuery, GitLogResult,
-    GitStatus,
+    BranchList, CommitDetail, FileContents, FileDiff, FileTreeNode, GitLogQuery, GitLogResult, GitStatus,
 };
 
 pub async fn get_status(repo: &dyn GitReadRepository, worktree_path: &str) -> AppResult<GitStatus> {
@@ -49,17 +48,11 @@ pub async fn get_diff_commit(
     repo.get_diff_commit(worktree_path, hash, file_path).await
 }
 
-pub async fn get_branches(
-    repo: &dyn GitReadRepository,
-    worktree_path: &str,
-) -> AppResult<BranchList> {
+pub async fn get_branches(repo: &dyn GitReadRepository, worktree_path: &str) -> AppResult<BranchList> {
     repo.get_branches(worktree_path).await
 }
 
-pub async fn get_file_tree(
-    repo: &dyn GitReadRepository,
-    worktree_path: &str,
-) -> AppResult<FileTreeNode> {
+pub async fn get_file_tree(repo: &dyn GitReadRepository, worktree_path: &str) -> AppResult<FileTreeNode> {
     repo.get_file_tree(worktree_path).await
 }
 
@@ -69,8 +62,7 @@ pub async fn get_file_contents(
     file_path: &str,
     staged: bool,
 ) -> AppResult<FileContents> {
-    repo.get_file_contents(worktree_path, file_path, staged)
-        .await
+    repo.get_file_contents(worktree_path, file_path, staged).await
 }
 
 pub async fn get_file_contents_commit(
@@ -79,6 +71,5 @@ pub async fn get_file_contents_commit(
     hash: &str,
     file_path: &str,
 ) -> AppResult<FileContents> {
-    repo.get_file_contents_commit(worktree_path, hash, file_path)
-        .await
+    repo.get_file_contents_commit(worktree_path, hash, file_path).await
 }

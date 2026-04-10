@@ -9,11 +9,10 @@ use tokio::process::Command;
 use crate::error::{AppError, AppResult};
 use crate::features::advanced_git_operations::application::repositories::GitAdvancedRepository;
 use crate::features::advanced_git_operations::domain::{
-    CherryPickOptions, CherryPickResult, CherryPickResultStatus, ConflictFile, ConflictFileStatus,
-    ConflictResolution, ConflictResolveAllOptions, ConflictResolveOptions, ConflictType,
-    InteractiveRebaseOptions, MergeOptions, MergeResult, MergeResultStatus, MergeStatus,
-    MergeStrategy, RebaseAction, RebaseOptions, RebaseResult, RebaseResultStatus, RebaseStep,
-    StashEntry, StashSaveOptions, TagCreateOptions, TagInfo, TagType, ThreeWayContent,
+    CherryPickOptions, CherryPickResult, CherryPickResultStatus, ConflictFile, ConflictFileStatus, ConflictResolution,
+    ConflictResolveAllOptions, ConflictResolveOptions, ConflictType, InteractiveRebaseOptions, MergeOptions,
+    MergeResult, MergeResultStatus, MergeStatus, MergeStrategy, RebaseAction, RebaseOptions, RebaseResult,
+    RebaseResultStatus, RebaseStep, StashEntry, StashSaveOptions, TagCreateOptions, TagInfo, TagType, ThreeWayContent,
 };
 use crate::git::command::{raw, raw_or_empty};
 
@@ -28,12 +27,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
             MergeStrategy::FastForward => "--ff-only",
             MergeStrategy::NoFf => "--no-ff",
         };
-        match git_raw_with_stderr(
-            &options.worktree_path,
-            &["merge", strategy_flag, &options.branch],
-        )
-        .await
-        {
+        match git_raw_with_stderr(&options.worktree_path, &["merge", strategy_flag, &options.branch]).await {
             Ok(_) => Ok(MergeResult {
                 status: MergeResultStatus::Success,
                 conflict_files: None,
@@ -75,11 +69,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
                 Ok(MergeStatus {
                     is_merging: true,
                     branch: None,
-                    conflict_files: if conflicts.is_empty() {
-                        None
-                    } else {
-                        Some(conflicts)
-                    },
+                    conflict_files: if conflicts.is_empty() { None } else { Some(conflicts) },
                 })
             }
             Err(_) => Ok(MergeStatus {
@@ -119,10 +109,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
         }
     }
 
-    async fn rebase_interactive(
-        &self,
-        options: &InteractiveRebaseOptions,
-    ) -> AppResult<RebaseResult> {
+    async fn rebase_interactive(&self, options: &InteractiveRebaseOptions) -> AppResult<RebaseResult> {
         let git_dir = Path::new(&options.worktree_path).join(".git");
         let todo_file = git_dir.join("rebase-todo-tmp");
 
@@ -209,17 +196,9 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
         }
     }
 
-    async fn rebase_get_commits(
-        &self,
-        worktree_path: &str,
-        onto: &str,
-    ) -> AppResult<Vec<RebaseStep>> {
+    async fn rebase_get_commits(&self, worktree_path: &str, onto: &str) -> AppResult<Vec<RebaseStep>> {
         let range = format!("{onto}..HEAD");
-        let output = raw(
-            worktree_path,
-            &["log", "--format=%H%n%s", "--reverse", &range],
-        )
-        .await?;
+        let output = raw(worktree_path, &["log", "--format=%H%n%s", "--reverse", &range]).await?;
         let lines: Vec<&str> = output.lines().collect();
         let mut steps = Vec::new();
         let mut i = 0;
@@ -255,11 +234,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     }
 
     async fn stash_list(&self, worktree_path: &str) -> AppResult<Vec<StashEntry>> {
-        let output = raw(
-            worktree_path,
-            &["stash", "list", "--format=%H%n%s%n%aI%n%gd"],
-        )
-        .await?;
+        let output = raw(worktree_path, &["stash", "list", "--format=%H%n%s%n%aI%n%gd"]).await?;
         Ok(parse_stash_list(&output))
     }
 
@@ -355,20 +330,14 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
         Ok(files)
     }
 
-    async fn conflict_file_content(
-        &self,
-        worktree_path: &str,
-        file_path: &str,
-    ) -> AppResult<ThreeWayContent> {
+    async fn conflict_file_content(&self, worktree_path: &str, file_path: &str) -> AppResult<ThreeWayContent> {
         let base = raw_or_empty(worktree_path, &["show", &format!(":1:{file_path}")]).await;
         let ours = raw_or_empty(worktree_path, &["show", &format!(":2:{file_path}")]).await;
         let theirs = raw_or_empty(worktree_path, &["show", &format!(":3:{file_path}")]).await;
 
         // merged = 作業ツリーのファイル
         let merged_path = Path::new(worktree_path).join(file_path);
-        let merged = tokio::fs::read_to_string(&merged_path)
-            .await
-            .unwrap_or_default();
+        let merged = tokio::fs::read_to_string(&merged_path).await.unwrap_or_default();
 
         Ok(ThreeWayContent {
             base,
@@ -381,33 +350,21 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     async fn conflict_resolve(&self, options: &ConflictResolveOptions) -> AppResult<()> {
         match &options.resolution {
             ConflictResolution::Ours => {
-                raw(
-                    &options.worktree_path,
-                    &["checkout", "--ours", &options.file_path],
-                )
-                .await?;
+                raw(&options.worktree_path, &["checkout", "--ours", &options.file_path]).await?;
             }
             ConflictResolution::Theirs => {
-                raw(
-                    &options.worktree_path,
-                    &["checkout", "--theirs", &options.file_path],
-                )
-                .await?;
+                raw(&options.worktree_path, &["checkout", "--theirs", &options.file_path]).await?;
             }
             ConflictResolution::Manual { content } => {
                 let base = tokio::fs::canonicalize(&options.worktree_path)
                     .await
                     .map_err(AppError::Io)?;
                 let target = base.join(&options.file_path);
-                let resolved = tokio::fs::canonicalize(&target)
-                    .await
-                    .unwrap_or(target.clone());
+                let resolved = tokio::fs::canonicalize(&target).await.unwrap_or(target.clone());
                 if !resolved.starts_with(&base) {
                     return Err(AppError::Internal("path traversal detected".to_string()));
                 }
-                tokio::fs::write(&resolved, content)
-                    .await
-                    .map_err(AppError::Io)?;
+                tokio::fs::write(&resolved, content).await.map_err(AppError::Io)?;
             }
         }
         raw(&options.worktree_path, &["add", &options.file_path]).await?;
@@ -417,19 +374,11 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     async fn conflict_resolve_all(&self, options: &ConflictResolveAllOptions) -> AppResult<()> {
         let conflicts = self.conflict_list(&options.worktree_path).await?;
         let strategy_flag = match options.strategy {
-            crate::features::advanced_git_operations::domain::ConflictResolveAllStrategy::Ours => {
-                "--ours"
-            }
-            crate::features::advanced_git_operations::domain::ConflictResolveAllStrategy::Theirs => {
-                "--theirs"
-            }
+            crate::features::advanced_git_operations::domain::ConflictResolveAllStrategy::Ours => "--ours",
+            crate::features::advanced_git_operations::domain::ConflictResolveAllStrategy::Theirs => "--theirs",
         };
         for file in &conflicts {
-            raw(
-                &options.worktree_path,
-                &["checkout", strategy_flag, &file.file_path],
-            )
-            .await?;
+            raw(&options.worktree_path, &["checkout", strategy_flag, &file.file_path]).await?;
             raw(&options.worktree_path, &["add", &file.file_path]).await?;
         }
         Ok(())
@@ -478,18 +427,12 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
                     TagType::Lightweight
                 },
                 message: if is_annotated {
-                    parts
-                        .get(2)
-                        .filter(|s| !s.is_empty())
-                        .map(|s| s.to_string())
+                    parts.get(2).filter(|s| !s.is_empty()).map(|s| s.to_string())
                 } else {
                     None
                 },
                 tagger: if is_annotated {
-                    parts
-                        .get(3)
-                        .filter(|s| !s.is_empty())
-                        .map(|s| s.to_string())
+                    parts.get(3).filter(|s| !s.is_empty()).map(|s| s.to_string())
                 } else {
                     None
                 },
@@ -539,9 +482,7 @@ async fn git_raw_with_stderr(cwd: &str, args: &[&str]) -> Result<(String, String
     if output.status.success() {
         Ok((stdout, stderr))
     } else {
-        Err(format!("{}\n{}", stdout.trim(), stderr.trim())
-            .trim()
-            .to_string())
+        Err(format!("{}\n{}", stdout.trim(), stderr.trim()).trim().to_string())
     }
 }
 
@@ -559,13 +500,7 @@ async fn get_conflicted_files(worktree_path: &str) -> Vec<String> {
             let bytes = line.as_bytes();
             matches!(
                 (bytes[0], bytes[1]),
-                (b'U', b'U')
-                    | (b'A', b'A')
-                    | (b'D', b'D')
-                    | (b'A', b'U')
-                    | (b'U', b'A')
-                    | (b'D', b'U')
-                    | (b'U', b'D')
+                (b'U', b'U') | (b'A', b'A') | (b'D', b'D') | (b'A', b'U') | (b'U', b'A') | (b'D', b'U') | (b'U', b'D')
             )
         })
         .map(|line| line[3..].to_string())

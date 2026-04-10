@@ -16,10 +16,7 @@ use crate::features::worktree_management::domain::{
 use crate::state::AppState;
 
 #[tauri::command]
-pub async fn worktree_list(
-    repoPath: String,
-    state: State<'_, AppState>,
-) -> Result<Vec<WorktreeInfo>, AppError> {
+pub async fn worktree_list(repoPath: String, state: State<'_, AppState>) -> Result<Vec<WorktreeInfo>, AppError> {
     let result = usecases::list_worktrees(state.worktree_repo.as_ref(), &repoPath).await;
 
     // watcher をリポジトリに対して開始/再開する
@@ -50,16 +47,8 @@ pub async fn worktree_create(
 }
 
 #[tauri::command]
-pub async fn worktree_delete(
-    params: WorktreeDeleteParams,
-    state: State<'_, AppState>,
-) -> Result<(), AppError> {
-    usecases::delete_worktree(
-        state.worktree_repo.as_ref(),
-        &params.worktree_path,
-        params.force,
-    )
-    .await
+pub async fn worktree_delete(params: WorktreeDeleteParams, state: State<'_, AppState>) -> Result<(), AppError> {
+    usecases::delete_worktree(state.worktree_repo.as_ref(), &params.worktree_path, params.force).await
 }
 
 #[tauri::command]
@@ -72,17 +61,11 @@ pub async fn worktree_suggest_path(
 }
 
 #[tauri::command]
-pub async fn worktree_check_dirty(
-    worktreePath: String,
-    state: State<'_, AppState>,
-) -> Result<bool, AppError> {
+pub async fn worktree_check_dirty(worktreePath: String, state: State<'_, AppState>) -> Result<bool, AppError> {
     usecases::check_dirty(state.worktree_repo.as_ref(), &worktreePath).await
 }
 
 #[tauri::command]
-pub async fn worktree_default_branch(
-    repoPath: String,
-    state: State<'_, AppState>,
-) -> Result<String, AppError> {
+pub async fn worktree_default_branch(repoPath: String, state: State<'_, AppState>) -> Result<String, AppError> {
     usecases::get_default_branch(state.worktree_repo.as_ref(), &repoPath).await
 }

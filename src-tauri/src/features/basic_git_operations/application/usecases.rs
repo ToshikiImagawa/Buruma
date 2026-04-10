@@ -3,15 +3,11 @@
 use crate::error::AppResult;
 use crate::features::basic_git_operations::application::repositories::GitWriteRepository;
 use crate::features::basic_git_operations::domain::{
-    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs,
-    FetchResult, PullArgs, PullResult, PushArgs, PushResult, ResetArgs,
+    BranchCheckoutArgs, BranchCreateArgs, BranchDeleteArgs, CommitArgs, CommitResult, FetchArgs, FetchResult, PullArgs,
+    PullResult, PushArgs, PushResult, ResetArgs,
 };
 
-pub async fn stage(
-    repo: &dyn GitWriteRepository,
-    worktree_path: &str,
-    files: &[String],
-) -> AppResult<()> {
+pub async fn stage(repo: &dyn GitWriteRepository, worktree_path: &str, files: &[String]) -> AppResult<()> {
     repo.stage(worktree_path, files).await
 }
 
@@ -19,11 +15,7 @@ pub async fn stage_all(repo: &dyn GitWriteRepository, worktree_path: &str) -> Ap
     repo.stage_all(worktree_path).await
 }
 
-pub async fn unstage(
-    repo: &dyn GitWriteRepository,
-    worktree_path: &str,
-    files: &[String],
-) -> AppResult<()> {
+pub async fn unstage(repo: &dyn GitWriteRepository, worktree_path: &str, files: &[String]) -> AppResult<()> {
     repo.unstage(worktree_path, files).await
 }
 
@@ -47,24 +39,15 @@ pub async fn fetch(repo: &dyn GitWriteRepository, args: &FetchArgs) -> AppResult
     repo.fetch(args).await
 }
 
-pub async fn branch_create(
-    repo: &dyn GitWriteRepository,
-    args: &BranchCreateArgs,
-) -> AppResult<()> {
+pub async fn branch_create(repo: &dyn GitWriteRepository, args: &BranchCreateArgs) -> AppResult<()> {
     repo.branch_create(args).await
 }
 
-pub async fn branch_checkout(
-    repo: &dyn GitWriteRepository,
-    args: &BranchCheckoutArgs,
-) -> AppResult<()> {
+pub async fn branch_checkout(repo: &dyn GitWriteRepository, args: &BranchCheckoutArgs) -> AppResult<()> {
     repo.branch_checkout(args).await
 }
 
-pub async fn branch_delete(
-    repo: &dyn GitWriteRepository,
-    args: &BranchDeleteArgs,
-) -> AppResult<()> {
+pub async fn branch_delete(repo: &dyn GitWriteRepository, args: &BranchDeleteArgs) -> AppResult<()> {
     repo.branch_delete(args).await
 }
 

@@ -9,15 +9,11 @@ use tauri::State;
 
 use crate::error::AppError;
 use crate::features::application_foundation::application::usecases;
-use crate::features::application_foundation::domain::{
-    AppSettings, RecentRepository, RepositoryInfo, Theme,
-};
+use crate::features::application_foundation::domain::{AppSettings, RecentRepository, RepositoryInfo, Theme};
 use crate::state::AppState;
 
 #[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> Result<Option<RepositoryInfo>, AppError> {
+pub async fn repository_open(state: State<'_, AppState>) -> Result<Option<RepositoryInfo>, AppError> {
     usecases::open_repository_with_dialog(
         state.store_repo.as_ref(),
         state.git_validation_repo.as_ref(),
@@ -31,26 +27,16 @@ pub async fn repository_open_path(
     path: String,
     state: State<'_, AppState>,
 ) -> Result<Option<RepositoryInfo>, AppError> {
-    usecases::open_repository_by_path(
-        state.store_repo.as_ref(),
-        state.git_validation_repo.as_ref(),
-        &path,
-    )
-    .await
+    usecases::open_repository_by_path(state.store_repo.as_ref(), state.git_validation_repo.as_ref(), &path).await
 }
 
 #[tauri::command]
-pub async fn repository_validate(
-    path: String,
-    state: State<'_, AppState>,
-) -> Result<bool, AppError> {
+pub async fn repository_validate(path: String, state: State<'_, AppState>) -> Result<bool, AppError> {
     usecases::validate_repository(state.git_validation_repo.as_ref(), &path).await
 }
 
 #[tauri::command]
-pub fn repository_get_recent(
-    state: State<'_, AppState>,
-) -> Result<Vec<RecentRepository>, AppError> {
+pub fn repository_get_recent(state: State<'_, AppState>) -> Result<Vec<RecentRepository>, AppError> {
     usecases::get_recent_repositories(state.store_repo.as_ref())
 }
 
@@ -60,11 +46,7 @@ pub fn repository_remove_recent(path: String, state: State<'_, AppState>) -> Res
 }
 
 #[tauri::command]
-pub fn repository_pin(
-    path: String,
-    pinned: bool,
-    state: State<'_, AppState>,
-) -> Result<(), AppError> {
+pub fn repository_pin(path: String, pinned: bool, state: State<'_, AppState>) -> Result<(), AppError> {
     usecases::pin_repository(state.store_repo.as_ref(), &path, pinned)
 }
 

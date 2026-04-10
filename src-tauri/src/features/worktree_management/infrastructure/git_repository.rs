@@ -85,14 +85,9 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
         let resolved = if Path::new(common_dir).is_absolute() {
             common_dir.to_string()
         } else {
-            Path::new(worktree_path)
-                .join(common_dir)
-                .to_string_lossy()
-                .to_string()
+            Path::new(worktree_path).join(common_dir).to_string_lossy().to_string()
         };
-        let repo_root = resolved
-            .trim_end_matches("/.git")
-            .trim_end_matches("\\.git");
+        let repo_root = resolved.trim_end_matches("/.git").trim_end_matches("\\.git");
 
         let mut args = vec!["worktree", "remove"];
         if force {
@@ -112,8 +107,7 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
 
     async fn get_default_branch(&self, repo_path: &str) -> AppResult<String> {
         // origin/HEAD から追跡するデフォルトブランチ取得を試行
-        if let Ok(ref_str) = git_raw(repo_path, &["symbolic-ref", "refs/remotes/origin/HEAD"]).await
-        {
+        if let Ok(ref_str) = git_raw(repo_path, &["symbolic-ref", "refs/remotes/origin/HEAD"]).await {
             let branch = ref_str.trim().replace("refs/remotes/origin/", "");
             if !branch.is_empty() {
                 return Ok(branch);
@@ -144,9 +138,7 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
         let main_wt = worktrees.iter().find(|wt| wt.is_main);
         let base_path = main_wt.map(|wt| wt.path.as_str()).unwrap_or(repo_path);
 
-        let parent = Path::new(base_path)
-            .parent()
-            .unwrap_or(Path::new(base_path));
+        let parent = Path::new(base_path).parent().unwrap_or(Path::new(base_path));
         let repo_name = Path::new(base_path)
             .file_name()
             .and_then(|n| n.to_str())

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DiffTarget, FileContents, FileDiff } from '@domain'
 import { DiffEditor } from '@monaco-editor/react'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { ChevronDown, ChevronRight, FileMinus, FilePen, FilePlus, FileSymlink } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface MultiFileMonacoPanelProps {

@@ -1,6 +1,6 @@
 import type { AppSettings, Theme } from '@domain'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
 import type { SettingsRepository } from '../../application/repositories/settings-repository'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 
 export class SettingsDefaultRepository implements SettingsRepository {
   async get(): Promise<AppSettings> {

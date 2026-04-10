@@ -5,8 +5,8 @@ use tauri::State;
 use crate::error::AppError;
 use crate::features::claude_code_integration::application::usecases;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs,
-    GenerateCommitMessageArgs, WorktreePathArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, GenerateCommitMessageArgs,
+    WorktreePathArgs,
 };
 use crate::state::AppState;
 
@@ -39,9 +39,7 @@ pub async fn claude_get_session(
 }
 
 #[tauri::command]
-pub async fn claude_get_all_sessions(
-    state: State<'_, AppState>,
-) -> Result<Vec<ClaudeSession>, AppError> {
+pub async fn claude_get_all_sessions(state: State<'_, AppState>) -> Result<Vec<ClaudeSession>, AppError> {
     usecases::get_all_sessions(state.claude_repo.as_ref()).await
 }
 

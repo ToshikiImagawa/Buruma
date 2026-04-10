@@ -3,8 +3,7 @@
 use crate::error::AppResult;
 use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs,
-    GenerateCommitMessageArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, GenerateCommitMessageArgs,
 };
 
 pub async fn start_session(
@@ -15,18 +14,11 @@ pub async fn start_session(
     repo.start_session(worktree_path, app).await
 }
 
-pub async fn stop_session(
-    repo: &dyn ClaudeRepository,
-    worktree_path: &str,
-    app: tauri::AppHandle,
-) -> AppResult<()> {
+pub async fn stop_session(repo: &dyn ClaudeRepository, worktree_path: &str, app: tauri::AppHandle) -> AppResult<()> {
     repo.stop_session(worktree_path, app).await
 }
 
-pub async fn get_session(
-    repo: &dyn ClaudeRepository,
-    worktree_path: &str,
-) -> AppResult<Option<ClaudeSession>> {
+pub async fn get_session(repo: &dyn ClaudeRepository, worktree_path: &str) -> AppResult<Option<ClaudeSession>> {
     repo.get_session(worktree_path).await
 }
 
@@ -42,10 +34,7 @@ pub async fn send_command(
     repo.send_command(command, app).await
 }
 
-pub async fn get_output(
-    repo: &dyn ClaudeRepository,
-    worktree_path: &str,
-) -> AppResult<Vec<ClaudeOutput>> {
+pub async fn get_output(repo: &dyn ClaudeRepository, worktree_path: &str) -> AppResult<Vec<ClaudeOutput>> {
     repo.get_output(worktree_path).await
 }
 
@@ -68,18 +57,10 @@ pub async fn generate_commit_message(
     repo.generate_commit_message(args).await
 }
 
-pub async fn review_diff(
-    repo: &dyn ClaudeRepository,
-    args: &DiffReviewArgs,
-    app: tauri::AppHandle,
-) -> AppResult<()> {
+pub async fn review_diff(repo: &dyn ClaudeRepository, args: &DiffReviewArgs, app: tauri::AppHandle) -> AppResult<()> {
     repo.review_diff(args, app).await
 }
 
-pub async fn explain_diff(
-    repo: &dyn ClaudeRepository,
-    args: &DiffReviewArgs,
-    app: tauri::AppHandle,
-) -> AppResult<()> {
+pub async fn explain_diff(repo: &dyn ClaudeRepository, args: &DiffReviewArgs, app: tauri::AppHandle) -> AppResult<()> {
     repo.explain_diff(args, app).await
 }

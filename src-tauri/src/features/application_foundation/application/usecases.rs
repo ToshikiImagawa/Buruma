@@ -7,9 +7,7 @@ use crate::error::{AppError, AppResult};
 use crate::features::application_foundation::application::repositories::{
     DialogRepository, GitValidationRepository, StoreRepository,
 };
-use crate::features::application_foundation::domain::{
-    AppSettings, RecentRepository, RepositoryInfo, Theme,
-};
+use crate::features::application_foundation::domain::{AppSettings, RecentRepository, RepositoryInfo, Theme};
 
 const MAX_RECENT: usize = 20;
 
@@ -66,10 +64,7 @@ pub async fn open_repository_by_path(
 
 /// パスが Git リポジトリかどうかを検証する。
 /// 旧: ValidateRepositoryMainUseCase
-pub async fn validate_repository(
-    git_validator: &dyn GitValidationRepository,
-    path: &str,
-) -> AppResult<bool> {
+pub async fn validate_repository(git_validator: &dyn GitValidationRepository, path: &str) -> AppResult<bool> {
     git_validator.is_git_repository(path).await
 }
 

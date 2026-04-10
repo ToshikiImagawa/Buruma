@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileDiff } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
-import { invokeCommand } from '@/shared/lib/invoke/commands'
 import type { CommitLogHandle } from './CommitLog'
 import {
   Archive,
@@ -39,6 +38,7 @@ import { useBranchOpsViewModel } from '@/features/basic-git-operations/presentat
 import { ClaudeSessionPanel } from '@/features/claude-code-integration/presentation/components'
 import { useWorktreeDetailViewModel } from '@/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import { useWorktreeListViewModel } from '@/features/worktree-management/presentation/use-worktree-list-viewmodel'
+import { invokeCommand } from '@/shared/lib/invoke/commands'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useDiffViewMode } from '../use-diff-view-mode'
 import { useGitRefreshCoordinator } from '../use-git-refresh-coordinator'
