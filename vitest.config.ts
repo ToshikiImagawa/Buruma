@@ -13,8 +13,6 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@domain': path.resolve(__dirname, './src/shared/domain'),
       '@lib': path.resolve(__dirname, './src/shared/lib'),
-      '@main': path.resolve(__dirname, './src/processes/main'),
-      '@preload': path.resolve(__dirname, './src/processes/preload'),
     },
   },
 })

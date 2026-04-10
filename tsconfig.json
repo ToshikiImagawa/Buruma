@@ -13,9 +13,7 @@
       "@domain": ["./src/shared/domain"],
       "@domain/*": ["./src/shared/domain/*"],
       "@lib": ["./src/shared/lib"],
-      "@lib/*": ["./src/shared/lib/*"],
-      "@main/*": ["./src/processes/main/*"],
-      "@preload/*": ["./src/processes/preload/*"]
+      "@lib/*": ["./src/shared/lib/*"]
     },
     "outDir": "dist",
     "moduleResolution": "bundler",

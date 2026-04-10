@@ -15,14 +15,8 @@ export default tseslint.config(
   ...tseslint.configs.recommended,
 
   {
-    files: [
-      'src/processes/main/**/*.ts',
-      'src/processes/preload/**/*.ts',
-      'vite.*.config.ts',
-      'forge.config.ts',
-      'postcss.config.js',
-      'scripts/**/*.mjs',
-    ],
+    // Node.js context (build configs のみ。Phase IA でメインプロセスは削除済み)
+    files: ['vite.config.ts', 'vitest.config.ts', 'postcss.config.js', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -62,7 +56,6 @@ export default tseslint.config(
         typescript: true,
         node: true,
       },
-      'import-x/core-modules': ['electron'],
     },
   },
 
