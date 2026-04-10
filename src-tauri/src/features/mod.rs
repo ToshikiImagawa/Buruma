@@ -6,5 +6,6 @@
 pub mod advanced_git_operations;
 pub mod application_foundation;
 pub mod basic_git_operations;
+pub mod claude_code_integration;
 pub mod repository_viewer;
 pub mod worktree_management;
