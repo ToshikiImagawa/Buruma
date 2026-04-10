@@ -314,7 +314,8 @@ fn parse_branch_output(raw: &str) -> BranchList {
 
     for line in raw.lines() {
         let is_current = line.starts_with('*');
-        let line = line.trim_start_matches('*').trim();
+        // `*` = current branch, `+` = checked out in another worktree
+        let line = line.trim_start_matches(['*', '+']).trim();
 
         // "HEAD -> origin/main" のような detached HEAD 行をスキップ
         if line.starts_with("(HEAD detached") || line.contains(" -> ") {
@@ -526,12 +527,15 @@ mod tests {
 
     #[test]
     fn test_parse_branch_output() {
-        let raw = "* main                    abc1234 commit message\n  feature/foo             def5678 another message\n  remotes/origin/main     abc1234 commit message\n";
+        let raw = "* main                    abc1234 commit message\n  feature/foo             def5678 another message\n+ feature/wt              ghi9012 worktree branch\n  remotes/origin/main     abc1234 commit message\n";
         let branches = parse_branch_output(raw);
         assert_eq!(branches.current, "main");
-        assert_eq!(branches.local.len(), 2);
+        assert_eq!(branches.local.len(), 3);
         assert_eq!(branches.remote.len(), 1);
         assert!(branches.local[0].is_head);
+        // `+` マーカー付きブランチが正しくパースされること
+        assert_eq!(branches.local[2].name, "feature/wt");
+        assert!(!branches.local[2].is_head);
         assert_eq!(branches.remote[0].name, "origin/main");
     }
 
