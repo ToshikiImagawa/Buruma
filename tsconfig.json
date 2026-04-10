@@ -22,5 +22,5 @@
     "resolveJsonModule": true,
     "jsx": "react-jsx"
   },
-  "exclude": ["node_modules", "out", "dist", "**/__tests__/**"]
+  "exclude": ["node_modules", "out", "dist", "src-tauri", "**/__tests__/**"]
 }

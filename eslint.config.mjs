@@ -8,7 +8,7 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/', 'out/', 'dist/', '.vite/', '.prettierrc.cjs'],
+    ignores: ['node_modules/', 'out/', 'dist/', '.vite/', 'src-tauri/', '.prettierrc.cjs'],
   },
 
   eslint.configs.recommended,
