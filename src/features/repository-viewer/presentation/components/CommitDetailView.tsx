@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from 'react'
+import { useEffect } from 'react'
 import { cn } from '@lib/utils'
 import { Check, FileEdit, FilePlus, FileX } from 'lucide-react'
 import { Separator } from '@/components/ui/separator'
@@ -8,7 +8,7 @@ import { useMultiFileSelection } from '../use-multi-file-selection'
 interface CommitDetailViewProps {
   worktreePath: string
   commitHash: string
-  onFileSelect: (filePath: string) => void
+  onFileSelect?: (filePath: string) => void
   onSelectionChange?: (selectedFiles: Set<string>) => void
 }
 
@@ -89,7 +89,7 @@ export function CommitDetailView({
                       handleFileSelect(file.path, e)
                     } else {
                       toggleFileSelect(file.path)
-                      onFileSelect(file.path)
+                      onFileSelect?.(file.path)
                     }
                   }}
                 >

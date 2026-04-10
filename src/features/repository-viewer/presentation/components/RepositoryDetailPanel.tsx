@@ -48,6 +48,7 @@ import { CommitLog } from './CommitLog'
 import { DiffView } from './DiffView'
 import { FileTree } from './FileTree'
 import { MultiFileDiffPanel } from './MultiFileDiffPanel'
+import { MultiFileMonacoPanel } from './MultiFileMonacoPanel'
 
 export function RepositoryDetailPanel() {
   const { selectedWorktree } = useWorktreeDetailViewModel()
@@ -62,15 +63,12 @@ export function RepositoryDetailPanel() {
   const [branchPanelCollapsed, setBranchPanelCollapsed] = useState(false)
 
   // Status tab state
-  const [statusFilePath, setStatusFilePath] = useState<string | null>(null)
-  const [statusFileStaged, setStatusFileStaged] = useState(false)
   const { mode: statusViewMode, setMode: setStatusViewMode } = useDiffViewMode('hunk')
   const [allDiffs, setAllDiffs] = useState<FileDiff[]>([])
   const [statusSelectedFiles, setStatusSelectedFiles] = useState<Set<string>>(new Set())
 
   // Commits tab state
   const [selectedCommitHash, setSelectedCommitHash] = useState<string | null>(null)
-  const [commitFilePath, setCommitFilePath] = useState<string | undefined>(undefined)
   const { mode: commitViewMode, setMode: setCommitViewMode } = useDiffViewMode('hunk')
   const [commitDiffs, setCommitDiffs] = useState<FileDiff[]>([])
   const [commitSelectedFiles, setCommitSelectedFiles] = useState<Set<string>>(new Set())
@@ -105,7 +103,7 @@ export function RepositoryDetailPanel() {
   }, [worktreePath, loadStatus, loadBranches, tagList])
 
   useEffect(() => {
-    if (statusViewMode === 'hunk' && worktreePath) {
+    if (worktreePath) {
       loadAllDiffs()
     }
   }, [statusViewMode, worktreePath, loadAllDiffs])
@@ -116,11 +114,9 @@ export function RepositoryDetailPanel() {
       loadBranches(worktreePath)
       tagList(worktreePath)
       commitLogRef.current?.refresh()
-      if (statusViewMode === 'hunk') {
-        loadAllDiffs()
-      }
+      loadAllDiffs()
     }
-  }, [worktreePath, loadStatus, loadBranches, tagList, statusViewMode, loadAllDiffs])
+  }, [worktreePath, loadStatus, loadBranches, tagList, loadAllDiffs])
 
   // git 操作完了時の自動 refresh — handleRefresh に加えて worktree 一覧の isDirty も再取得
   const handleAutoRefresh = useCallback(() => {
@@ -147,18 +143,8 @@ export function RepositoryDetailPanel() {
     }
   }, [selectedCommitHash, commitViewMode, loadCommitDiffs])
 
-  const handleStatusFileSelect = useCallback((filePath: string, staged: boolean) => {
-    setStatusFilePath(filePath)
-    setStatusFileStaged(staged)
-  }, [])
-
   const handleCommitSelect = useCallback((hash: string) => {
     setSelectedCommitHash(hash)
-    setCommitFilePath(undefined)
-  }, [])
-
-  const handleCommitFileSelect = useCallback((filePath: string) => {
-    setCommitFilePath(filePath)
   }, [])
 
   const handleConflict = useCallback((operationType: 'merge' | 'rebase' | 'cherry-pick') => {
@@ -235,7 +221,6 @@ export function RepositoryDetailPanel() {
                   unstaged={status?.unstaged ?? []}
                   untracked={status?.untracked ?? []}
                   onRefresh={handleRefresh}
-                  onFileSelect={handleStatusFileSelect}
                   onSelectionChange={setStatusSelectedFiles}
                 />
                 <Separator />
@@ -303,16 +288,15 @@ export function RepositoryDetailPanel() {
                           : allDiffs
                       }
                     />
-                  ) : statusFilePath ? (
-                    <DiffView
-                      worktreePath={selectedWorktree.path}
-                      filePath={statusFilePath}
-                      staged={statusFileStaged}
-                    />
                   ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <p className="text-sm text-muted-foreground">ファイルを選択して差分を表示</p>
-                    </div>
+                    <MultiFileMonacoPanel
+                      worktreePath={selectedWorktree.path}
+                      diffs={
+                        statusSelectedFiles.size > 0
+                          ? allDiffs.filter((d) => statusSelectedFiles.has(d.filePath))
+                          : allDiffs
+                      }
+                    />
                   )}
                 </div>
               </div>
@@ -486,7 +470,6 @@ export function RepositoryDetailPanel() {
                                 <CommitDetailView
                                   worktreePath={selectedWorktree.path}
                                   commitHash={selectedCommitHash}
-                                  onFileSelect={handleCommitFileSelect}
                                   onSelectionChange={setCommitSelectedFiles}
                                 />
                               </div>
@@ -507,18 +490,16 @@ export function RepositoryDetailPanel() {
                                     to: selectedCommitHash,
                                   }}
                                 />
-                              ) : commitFilePath ? (
-                                <DiffView
+                              ) : (
+                                <MultiFileMonacoPanel
                                   worktreePath={selectedWorktree.path}
-                                  filePath={commitFilePath}
+                                  diffs={
+                                    commitSelectedFiles.size > 0
+                                      ? commitDiffs.filter((d) => commitSelectedFiles.has(d.filePath))
+                                      : commitDiffs
+                                  }
                                   commitHash={selectedCommitHash}
                                 />
-                              ) : (
-                                <div className="flex h-full items-center justify-center">
-                                  <p className="text-sm text-muted-foreground">
-                                    ファイルを選択して差分を表示
-                                  </p>
-                                </div>
                               )}
                             </ResizablePanel>
                           </ResizablePanelGroup>
