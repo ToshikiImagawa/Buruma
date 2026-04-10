@@ -40,10 +40,3 @@ export function listenEventSync<T>(eventName: string, callback: (payload: T) => 
     }
   }
 }
-
-/**
- * Tauri event を購読し、非同期で unsubscribe 関数を返す。
- */
-export async function listenEvent<T>(eventName: string, callback: (payload: T) => void): Promise<() => void> {
-  return listen<T>(eventName, ((evt) => callback(evt.payload)) as EventCallback<T>)
-}

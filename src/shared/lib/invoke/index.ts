@@ -3,4 +3,4 @@
  */
 
 export { invokeCommand } from './commands'
-export { listenEvent, listenEventSync } from './events'
+export { listenEventSync } from './events'
