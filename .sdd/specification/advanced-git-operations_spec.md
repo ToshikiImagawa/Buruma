@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-advanced-git-operations"]
-tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag"]
+tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration"]
 category: "git-operations"
 priority: "medium"
 risk: "high"

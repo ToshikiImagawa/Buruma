@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-application-foundation"]
-tags: ["foundation", "ipc", "tauri", "error-handling", "clean-architecture", "di", "rxjs"]
+tags: ["foundation", "ipc", "tauri", "error-handling", "clean-architecture", "di", "rxjs", "tauri-migration"]
 category: "infrastructure"
 priority: "high"
 risk: "high"

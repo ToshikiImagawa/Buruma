@@ -40,9 +40,10 @@ Buruma の現行スタック (Electron 41 + Node.js + React 19) を Tauri 2 + Ru
 - Rust 側でも `tokio::process::Command` で `git` CLI を呼ぶ方式を採用し、既存パーサー (`parseDiffOutput`, `parsePorcelainOutput`, `parseLogOutput`) を Rust に 1:1 移植する
 - `git2` crate への移行は Phase 2 以降の別マイルストーンに先送り
 
-**IPC チャネル 83 個 + イベント 8 個**:
-- `repository:*` (6), `settings:*` (4), `worktree:*` (8), `git:*` (50), `claude:*` (14)
-- イベント: `error:notify`, `worktree:changed`, `git:progress`, `claude:output`, `claude:session-changed`, `claude:command-completed`, `claude:review-result`, `claude:explain-result`
+**IPC チャネル 83 個 = 75 commands + 8 events**:
+- Commands (75): `repository:*` (6), `settings:*` (4), `worktree:*` (7), `git:*` (46), `claude:*` (12)
+  - `git:*` の内訳: repository-viewer (10) + basic-git-operations (12) + advanced-git-operations (24)
+- Events (8): `error:notify`, `worktree:changed`, `git:progress`, `claude:output`, `claude:session-changed`, `claude:command-completed`, `claude:review-result`, `claude:explain-result`
 
 ## ユーザー確定事項（2026-04-09）
 

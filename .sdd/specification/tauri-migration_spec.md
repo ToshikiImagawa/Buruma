@@ -2,12 +2,12 @@
 id: "spec-tauri-migration"
 title: "Tauri v2 + Rust への全面移行"
 type: "spec"
-status: "draft"
+status: "approved"
 sdd-phase: "specify"
 created: "2026-04-09"
 updated: "2026-04-09"
 depends-on: ["prd-tauri-migration"]
-tags: ["migration", "tauri", "rust", "ipc-mapping"]
+tags: ["migration", "tauri", "rust", "ipc-mapping", "tauri-migration"]
 category: "infrastructure"
 priority: "critical"
 risk: "high"

@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-04-04"
 updated: "2026-04-09"
 depends-on: [ "prd-advanced-git-operations" ]
-tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag" ]
+tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration" ]
 category: "ui-integration"
 priority: "high"
 risk: "low"

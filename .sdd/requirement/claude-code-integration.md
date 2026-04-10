@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-worktree-management", "prd-application-foundation"]
-tags: ["claude-code", "ai", "cli", "session"]
+tags: ["claude-code", "ai", "cli", "session", "tauri-migration"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"

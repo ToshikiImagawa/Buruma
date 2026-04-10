@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-basic-git-operations"]
-tags: ["git", "staging", "commit", "push", "pull", "branch"]
+tags: ["git", "staging", "commit", "push", "pull", "branch", "tauri-migration"]
 category: "git-operations"
 priority: "high"
 risk: "high"

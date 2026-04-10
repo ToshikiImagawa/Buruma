@@ -2,11 +2,11 @@
 id: "prd-tauri-migration"
 title: "Tauri v2 + Rust への全面移行"
 type: "prd"
-status: "draft"
+status: "approved"
 created: "2026-04-09"
 updated: "2026-04-09"
 depends-on: []
-tags: ["migration", "tauri", "rust", "architecture", "non-functional"]
+tags: ["migration", "tauri", "rust", "architecture", "non-functional", "tauri-migration"]
 category: "infrastructure"
 priority: "critical"
 risk: "high"
