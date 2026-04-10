@@ -52,6 +52,15 @@ function computeTotalStats(diffs: FileDiff[]) {
   return { additions, deletions }
 }
 
+const LINE_HEIGHT = 18
+const EDITOR_PADDING = 20
+
+/** 内容の行数からエディタの高さを算出 */
+function computeEditorHeight(original: string, modified: string): number {
+  const lines = Math.max(original.split('\n').length, modified.split('\n').length)
+  return Math.max(lines * LINE_HEIGHT + EDITOR_PADDING, 60)
+}
+
 /** 個別ファイルの Monaco DiffEditor セクション */
 function MonacoFileSection({
   diff,
@@ -115,14 +124,14 @@ function MonacoFileSection({
         {stats.deletions > 0 && <span className="text-xs font-medium text-red-400">-{stats.deletions}</span>}
       </div>
       {!collapsed && (
-        <div className="h-[300px]">
+        <div>
           {loading || !contents ? (
-            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">読み込み中...</div>
+            <div className="flex h-10 items-center justify-center text-xs text-muted-foreground">読み込み中...</div>
           ) : contents.original === contents.modified ? (
-            <div className="flex h-full items-center justify-center text-xs text-muted-foreground">差分がありません</div>
+            <div className="flex h-10 items-center justify-center text-xs text-muted-foreground">差分がありません</div>
           ) : (
             <DiffEditor
-              height="100%"
+              height={computeEditorHeight(contents.original, contents.modified)}
               original={contents.original}
               modified={contents.modified}
               language={contents.language}
@@ -133,6 +142,7 @@ function MonacoFileSection({
                 useInlineViewWhenSpaceIsLimited: false,
                 minimap: { enabled: false },
                 scrollBeyondLastLine: false,
+                scrollbar: { vertical: 'hidden', horizontal: 'auto' },
                 fontSize: 12,
                 lineHeight: 18,
                 automaticLayout: true,
