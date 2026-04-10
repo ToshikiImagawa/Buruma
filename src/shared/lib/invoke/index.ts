@@ -1,10 +1,10 @@
 /**
  * Tauri invoke / event ラッパー API の barrel export。
  *
- * Phase IA では一時的に `src/lib/invoke/` に配置されているが、
- * A3 で `git mv` により `src/shared/lib/invoke/` へ移動する。
+ * Phase IA で作成され、Phase IH で `electron-shim` のみ削除される予定。
  */
 
 export { invokeCommand } from './commands'
+export { installElectronShim } from './electron-shim'
 export { listenEvent, listenEventSync } from './events'
 export type { TauriAPI } from './tauri-api'
