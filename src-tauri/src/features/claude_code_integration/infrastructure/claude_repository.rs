@@ -72,19 +72,30 @@ impl ClaudeRepository for DefaultClaudeRepository {
 
         let stdout = String::from_utf8_lossy(&output.stdout).to_string();
 
-        // Claude CLI が存在し、認証済みかどうかを判定
-        if output.status.success()
-            && (stdout.contains("Logged in") || stdout.contains("authenticated"))
-        {
-            // メールアドレスを抽出（出力形式に依存）
-            let email = stdout
-                .lines()
-                .find(|l| l.contains('@'))
-                .map(|l| l.trim().to_string());
-            Ok(ClaudeAuthStatus {
-                authenticated: true,
-                account_email: email,
-            })
+        // `claude auth status` は JSON を出力: { "loggedIn": true, "email": "...", ... }
+        if output.status.success() {
+            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
+                let logged_in = json
+                    .get("loggedIn")
+                    .and_then(|v| v.as_bool())
+                    .unwrap_or(false);
+                let email = json
+                    .get("email")
+                    .and_then(|v| v.as_str())
+                    .map(|s| s.to_string());
+                Ok(ClaudeAuthStatus {
+                    authenticated: logged_in,
+                    account_email: email,
+                })
+            } else {
+                // JSON パース失敗時はテキストフォールバック
+                Ok(ClaudeAuthStatus {
+                    authenticated: stdout.contains("loggedIn")
+                        || stdout.contains("Logged in")
+                        || stdout.contains("authenticated"),
+                    account_email: None,
+                })
+            }
         } else {
             Ok(ClaudeAuthStatus {
                 authenticated: false,
