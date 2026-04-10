@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "target": "ESNext",
-    "module": "commonjs",
+    "module": "ESNext",
+    "types": ["vite/client"],
     "allowJs": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
@@ -9,18 +10,16 @@
     "sourceMap": true,
     "baseUrl": ".",
     "paths": {
-      "@domain": ["./src/domain"],
-      "@domain/*": ["./src/domain/*"],
-      "@lib": ["./src/lib"],
-      "@lib/*": ["./src/lib/*"],
-      "@main/*": ["./src/processes/main/*"],
-      "@renderer/*": ["./src/processes/renderer/*"],
-      "@preload/*": ["./src/processes/preload/*"]
+      "@/*": ["./src/*"],
+      "@domain": ["./src/shared/domain"],
+      "@domain/*": ["./src/shared/domain/*"],
+      "@lib": ["./src/shared/lib"],
+      "@lib/*": ["./src/shared/lib/*"]
     },
     "outDir": "dist",
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "resolveJsonModule": true,
     "jsx": "react-jsx"
   },
-  "exclude": ["node_modules", "out", "dist", "**/__tests__/**"]
+  "exclude": ["node_modules", "out", "dist", "src-tauri", "**/__tests__/**"]
 }

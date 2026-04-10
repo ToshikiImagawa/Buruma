@@ -8,21 +8,15 @@ import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
   {
-    ignores: ['node_modules/', 'out/', 'dist/', '.vite/', '.prettierrc.cjs'],
+    ignores: ['node_modules/', 'out/', 'dist/', '.vite/', 'src-tauri/', '.prettierrc.cjs'],
   },
 
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
 
   {
-    files: [
-      'src/processes/main/**/*.ts',
-      'src/processes/preload/**/*.ts',
-      'vite.*.config.ts',
-      'forge.config.ts',
-      'postcss.config.js',
-      'scripts/**/*.mjs',
-    ],
+    // Node.js context (build configs のみ。Phase IA でメインプロセスは削除済み)
+    files: ['vite.config.ts', 'vitest.config.ts', 'postcss.config.js', 'scripts/**/*.mjs'],
     languageOptions: {
       globals: {
         ...globals.node,
@@ -31,7 +25,8 @@ export default tseslint.config(
   },
 
   {
-    files: ['src/processes/renderer/**/*.{ts,tsx}', 'src/lib/**/*.{ts,tsx}'],
+    // Browser globals (Webview) — Phase IA 以降は src/ 直下に統合
+    files: ['src/**/*.{ts,tsx}'],
     languageOptions: {
       globals: {
         ...globals.browser,
@@ -61,7 +56,6 @@ export default tseslint.config(
         typescript: true,
         node: true,
       },
-      'import-x/core-modules': ['electron'],
     },
   },
 
