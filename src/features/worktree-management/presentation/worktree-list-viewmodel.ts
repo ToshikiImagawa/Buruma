@@ -12,6 +12,9 @@ import type {
 import type { WorktreeListViewModel } from './viewmodel-interfaces'
 
 export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
+  readonly worktrees$: Observable<WorktreeInfo[]>
+  readonly selectedPath$: Observable<string | null>
+
   constructor(
     private readonly listUseCase: ListWorktreesUseCase,
     private readonly selectUseCase: SelectWorktreeUseCase,
@@ -20,14 +23,9 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     private readonly refreshUseCase: RefreshWorktreesUseCase,
     private readonly getSelectedPathUseCase: GetSelectedPathUseCase,
     private readonly setSortOrderUseCase: SetSortOrderUseCase,
-  ) {}
-
-  get worktrees$(): Observable<WorktreeInfo[]> {
-    return this.listUseCase.store
-  }
-
-  get selectedPath$(): Observable<string | null> {
-    return this.getSelectedPathUseCase.store
+  ) {
+    this.worktrees$ = this.listUseCase.store
+    this.selectedPath$ = this.getSelectedPathUseCase.store
   }
 
   selectWorktree(path: string | null): void {

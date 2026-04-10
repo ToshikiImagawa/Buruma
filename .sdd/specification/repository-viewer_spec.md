@@ -321,6 +321,9 @@ interface IPCError {
 import { invokeCommand } from '@/shared/lib/invoke'
 import type { GitStatus, GitLogResult, FileDiff, BranchList } from '@/shared/domain'
 
+// 以下は infrastructure 層（Repository 実装）での使用例
+// React コンポーネントは ViewModel / UseCase 経由でのみデータを取得する（A-004 準拠）
+
 // Webview 側：ステータスを取得
 const status = await invokeCommand<GitStatus>('git_status', { worktreePath: '/path/to/worktree' })
 if (status.success) {
@@ -331,17 +334,17 @@ if (status.success) {
 
 // Webview 側：コミットログを取得（最新50件）
 const log = await invokeCommand<GitLogResult>('git_log', {
-    query: { worktreePath: '/path/to/worktree', offset: 0, limit: 50 },
+    worktreePath: '/path/to/worktree', offset: 0, limit: 50,
 })
 
 // Webview 側：ページネーションで次の50件を取得
 const nextPage = await invokeCommand<GitLogResult>('git_log', {
-    query: { worktreePath: '/path/to/worktree', offset: 50, limit: 50 },
+    worktreePath: '/path/to/worktree', offset: 50, limit: 50,
 })
 
 // Webview 側：差分を取得
 const diff = await invokeCommand<FileDiff[]>('git_diff', {
-    query: { worktreePath: '/path/to/worktree', filePath: 'src/main.ts' },
+    worktreePath: '/path/to/worktree', filePath: 'src/main.ts',
 })
 
 // Webview 側：ブランチ一覧を取得
@@ -395,7 +398,7 @@ sequenceDiagram
     participant Invoke as "@tauri-apps/api/core"
     participant Core as Tauri Core (Rust)
     participant Git as git CLI
-    Webview ->> Invoke: invoke<GitLogResult>('git_log', { query: { offset: 0, limit: 50 } })
+    Webview ->> Invoke: invoke<GitLogResult>('git_log', { worktreePath, offset: 0, limit: 50 })
     Invoke ->> Core: Tauri IPC
     Core ->> Git: tokio::process::Command: git log --max-count=50
     Git -->> Core: LogResult
@@ -403,7 +406,7 @@ sequenceDiagram
     Invoke -->> Webview: IPCResult<GitLogResult>
     Webview ->> Webview: CommitLog を描画
     Note over Webview: ユーザーがスクロールで追加読み込み
-    Webview ->> Invoke: invoke<GitLogResult>('git_log', { query: { offset: 50, limit: 50 } })
+    Webview ->> Invoke: invoke<GitLogResult>('git_log', { worktreePath, offset: 50, limit: 50 })
     Invoke ->> Core: Tauri IPC
     Core ->> Git: tokio::process::Command: git log --max-count=50 --skip=50
     Git -->> Core: LogResult
@@ -421,7 +424,7 @@ sequenceDiagram
     participant Core as Tauri Core (Rust)
     participant Git as git CLI
     Note over Webview: StatusView でファイルを選択
-    Webview ->> Invoke: invoke<FileDiff[]>('git_diff', { query: { worktreePath, filePath } })
+    Webview ->> Invoke: invoke<FileDiff[]>('git_diff', { worktreePath, filePath })
     Invoke ->> Core: Tauri IPC
     Core ->> Git: tokio::process::Command: git diff <filePath>
     Git -->> Core: diff 文字列
@@ -465,9 +468,9 @@ sequenceDiagram
 | PRD 要求 ID | 本仕様での対応                                                          | ステータス |
 |-----------|------------------------------------------------------------------|-------|
 | UR_201    | 仕様全体                                                             | 対応済み  |
-| UR_202    | FR-001〜FR-005 + git:status API                                   | 対応済み  |
-| UR_203    | FR-006〜FR-010 + git:log / git:commit-detail API                  | 対応済み  |
-| UR_204    | FR-011〜FR-015 + git:diff / git:diff-staged / git:diff-commit API | 対応済み  |
+| UR_202    | FR-001〜FR-005 + `git_status` API                                   | 対応済み  |
+| UR_203    | FR-006〜FR-010 + `git_log` / `git_commit_detail` API                  | 対応済み  |
+| UR_204    | FR-011〜FR-015 + `git_diff` / `git_diff_staged` / `git_diff_commit` API | 対応済み  |
 | FR_201    | FR-001〜FR-005 + StatusView コンポーネント                               | 対応済み  |
 | FR_202    | FR-006〜FR-010 + CommitLog / CommitDetailView コンポーネント             | 対応済み  |
 | FR_203    | FR-011〜FR-015 + DiffView コンポーネント                                 | 対応済み  |

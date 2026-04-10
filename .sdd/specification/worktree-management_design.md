@@ -659,26 +659,28 @@ import type { WorktreeRepository } from '../di-tokens'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {
-    const result = await invokeCommand<T>('worktree_list'(repoPath)
+    const result = await invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const result = await invokeCommand<T>('worktree_create'(params)
+    const result = await invokeCommand<WorktreeInfo>('worktree_create', { params })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async delete(params: WorktreeDeleteParams): Promise<void> {
-    const result = await invokeCommand<T>('worktree_delete'(params)
+    const result = await invokeCommand<void>('worktree_delete', { params })
     if (result.success === false) throw new Error(result.error.message)
   }
 
   // ... getStatus, suggestPath, checkDirty も同パターン
 
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void {
-    return invokeCommand<T>('worktree_on_changed'(callback)
+    return listenEventSync<WorktreeChangeEvent>('worktree-changed', (event) => {
+      callback(event)
+    })
   }
 }
 ```
@@ -781,7 +783,7 @@ sequenceDiagram
     FS->>Watcher: ファイル変更検出
     Note over Watcher: 300ms デバウンス
     Watcher->>IPC: worktree-changed イベント
-    IPC->>RepoDefault: onChanged コールバック
+    IPC->>RepoDefault: listenEventSync コールバック
     RepoDefault->>Refresh: invoke()
     Refresh->>RepoDefault: list(repoPath)
     RepoDefault-->>Refresh: WorktreeInfo[]
@@ -1046,39 +1048,42 @@ export interface WorktreeWatcher {
 
 ### WorktreeGitDefaultRepository
 
-```typescript
+```rust
 // src-tauri/src/features/worktree_management/infrastructure/worktree_git_service.rs (概念例)
-// Rust 側: tokio::process::Command 経由の git CLI
-import type { WorktreeGitRepository } from '../application/worktree-interfaces'
+// Rust 実装: tokio::process::Command 経由の git CLI
 
-export class WorktreeGitDefaultRepository implements WorktreeGitRepository {
-  async listWorktrees(repoPath: string): Promise<WorktreeInfo[]> {
-    const git = simpleGit(repoPath)
-    // git.raw(['worktree', 'list', '--porcelain']) で取得しパース
+impl WorktreeGitRepository for WorktreeGitDefaultRepository {
+  async fn list_worktrees(&self, repo_path: &str) -> Result<Vec<WorktreeInfo>> {
+    // Rust 実装: tokio::process::Command::new("git")
+    //   .args(["-C", repo_path, "worktree", "list", "--porcelain"])
+    //   で実行し出力をパース
   }
 
-  async getStatus(worktreePath: string): Promise<WorktreeStatus> {
-    const git = simpleGit(worktreePath)
-    // git status --porcelain のパース
+  async fn get_status(&self, worktree_path: &str) -> Result<WorktreeStatus> {
+    // Rust 実装: tokio::process::Command::new("git")
+    //   .args(["-C", worktree_path, "status", "--porcelain"])
+    //   で実行し出力をパース
   }
 
-  async addWorktree(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const git = simpleGit(params.repoPath)
-    // createNewBranch ? git worktree add -b <branch> <path> <start-point>
-    //                  : git worktree add <path> <branch>
+  async fn add_worktree(&self, params: &WorktreeCreateParams) -> Result<WorktreeInfo> {
+    // Rust 実装: tokio::process::Command::new("git")
+    //   .args(["-C", &params.repo_path, "worktree", "add", ...])
+    //   create_new_branch ? git worktree add -b <branch> <path> <start-point>
+    //                     : git worktree add <path> <branch>
   }
 
-  async removeWorktree(worktreePath: string, force: boolean): Promise<void> {
+  async fn remove_worktree(&self, worktree_path: &str, force: bool) -> Result<()> {
     // git worktree remove [--force] <path>
   }
 
-  async isMainWorktree(worktreePath: string): Promise<boolean> {
+  async fn is_main_worktree(&self, worktree_path: &str) -> Result<bool> {
     // .git がファイルではなくディレクトリならメインワークツリー
   }
 
-  async isDirty(worktreePath: string): Promise<boolean> {
-    const git = simpleGit(worktreePath)
-    // git status --porcelain の出力が空でなければ dirty
+  async fn is_dirty(&self, worktree_path: &str) -> Result<bool> {
+    // Rust 実装: tokio::process::Command::new("git")
+    //   .args(["-C", worktree_path, "status", "--porcelain"])
+    //   で実行し出力が空でなければ dirty
   }
 }
 ```
@@ -1136,20 +1141,17 @@ export const worktreeApi = {
   create: (params: WorktreeCreateParams) =>
     invokeCommand<WorktreeInfo>('worktree_create', { params }),
   delete: (params: WorktreeDeleteParams) =>
-    invoke<T>('worktree_delete', params),
+    invokeCommand<void>('worktree_delete', { params }),
   suggestPath: (repoPath: string, branch: string) =>
-    invoke<T>('worktree_suggest_path', { repoPath, branch }),
+    invokeCommand<string>('worktree_suggest_path', { repoPath, branch }),
   checkDirty: (worktreePath: string) =>
-    invoke<T>('worktree_check_dirty', worktreePath),
+    invokeCommand<boolean>('worktree_check_dirty', { worktreePath }),
   defaultBranch: (repoPath: string) =>
-    invoke<T>('worktree_default_branch', repoPath),
+    invokeCommand<string>('worktree_default_branch', { repoPath }),
   onChanged: (callback: (event: WorktreeChangeEvent) => void): (() => void) => {
-    const unlisten = await listen<WorktreeChangeEvent>('worktree-changed', (event) => {
-      callback(event.payload)
+    return listenEventSync<WorktreeChangeEvent>('worktree-changed', (event) => {
+      callback(event)
     })
-    return () => {
-      unlisten()
-    }
   },
 },
 ```
@@ -1182,7 +1184,7 @@ export const worktreeApi = {
 | 要件 | 実現方針 |
 |------|----------|
 | 一覧表示1秒以内 (NFR_101) | `git worktree list --porcelain` は高速。dirty チェックは並列実行（Promise.all）。50ワークツリーまでは問題なし |
-| 切り替え500ms以内 (NFR_102) | `worktree:status` は単一ワークツリーの `git status --porcelain` のみ。軽量操作 |
+| 切り替え500ms以内 (NFR_102) | `worktree_status` は単一ワークツリーの `git status --porcelain` のみ。軽量操作 |
 | リアルタイム更新 (FR_105) | notify + notify-debouncer-full の `.git/worktrees` 監視 + 300ms デバウンス。不要な再取得を防止 |
 | Tauri セキュリティ (A-001, T-003) | すべての Git 操作はTauri Core (Rust)で実行。invoke/listen API 経由の通信のみ |
 | 安全性 (B-002) | 削除前に dirty チェック + 確認ダイアログ。メインワークツリー削除はサービス層で防止 |
@@ -1227,7 +1229,7 @@ export const worktreeApi = {
 | dirty チェックの実行タイミング | 一覧取得時に一括 / 個別に遅延取得 | 一覧取得時に並列一括実行 | 50ワークツリーまでは Promise.all で十分高速（NFR_101: 1秒以内）。UX として一覧表示時に dirty 状態を即座に把握できる方が有用 |
 | デフォルトパスの提案ロジック | リポジトリ隣接 / リポジトリ内 / 設定パス | リポジトリの親ディレクトリ + ブランチ名のサニタイズ | Git worktree の一般的な配置パターン。リポジトリ名_ブランチ名 の形式（例: `myrepo_feature-foo`） |
 | メインワークツリー削除防止の実装箇所 | UI のみ / サービス層のみ / 両方 | UI + サービス層の両方 | 防御的プログラミング。UI でボタンを無効化しつつ、サービス層でもチェック（原則 B-002） |
-| IPC チャネル命名 | `worktree-list` / `worktree:list` | `worktree:list`（名前空間方式） | application-foundation と一貫した命名規則。ドメインごとのグルーピング |
+| IPC チャネル命名 | `worktree-list` / `worktree_list` | `worktree_list`（名前空間方式） | application-foundation と一貫した命名規則。ドメインごとのグルーピング |
 | checkDirty の引数設計 | `(repoPath, worktreePath)` / `(worktreePath)` のみ | `(worktreePath)` のみ | git CLI は `-C worktreePath` でワークツリーパスを直接指定して実行でき、`.git` ファイル経由で親リポジトリを自動解決する。repoPath は冗長 |
 | WorktreeDetail のスコープ | 基本情報のみ / 詳細（ログ、差分、ファイルツリー）含む | 基本情報のみ（ブランチ、HEAD、dirty 状態、staged/unstaged 件数） | 詳細なコミットログ・差分表示は repository-viewer feature の責務（PRD スコープ外 → FG-2）。本フェーズはワークツリーライフサイクル管理に集中する |
 | SortOrder 'last-updated' の定義 | コミット日時 / ファイル更新日時 / 選択日時 | latest commit author date（`git log -1 --format=%aI`） | author date はユーザーが作業を行った時点を反映する。ファイル更新日時はビルド成果物等で不安定 |
@@ -1288,8 +1290,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

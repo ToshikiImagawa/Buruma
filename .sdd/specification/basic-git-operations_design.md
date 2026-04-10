@@ -43,7 +43,7 @@ risk: "high"
 1. **Clean Architecture 4層構成** — 既存 feature（repository-viewer, worktree-management）と同一のアーキテクチャパターンを踏襲する
 2. **DI ベース設計** — VContainerConfig + Token + deps パターンで依存関係を注入する（原則 A-003）
 3. **ViewModel + Hook パターン** — ViewModel は RxJS Observable でデータを公開し、Hook ラッパー経由で React に接続する
-4. **既存 API との統合** — repository-viewer の読み取り API（`git:status`, `git:branches`）をリフレッシュに再利用する
+4. **既存 API との統合** — repository-viewer の読み取り API（`git_status`, `git_branches`）をリフレッシュに再利用する
 5. **不可逆操作の安全性確保** — amend、ブランチ削除、hard reset の確認ダイアログを ConfirmDialog で実装する（原則 B-002）
 
 ---
@@ -88,7 +88,7 @@ risk: "high"
 
 ### Tauri Core (Rust)側
 
-Tauri Core (Rust)側の application 層は UseCase + GitWriteRepository IF のみで構成する。Webviewとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git:progress`）経由でWebviewに通知する。
+Tauri Core (Rust)側の application 層は UseCase + GitWriteRepository IF のみで構成する。Webviewとは異なり、状態管理 Service を持たない。Git 操作の進捗は IPC イベント（`git-progress`）経由でWebviewに通知する。
 
 ```
 src-tauri/src/features/basic_git_operations/
@@ -220,7 +220,7 @@ graph TD
     CommitUC --> GitOpsRepoIF
     PushUC --> GitOpsRepoIF
     GitOpsRepoIF -.-> GitOpsRepoImpl
-    GitOpsRepoImpl -->|"invoke"| Bridge
+    GitOpsRepoImpl -->|"invoke"| Runtime
     Runtime -->|"invoke<T>"| IPCHandler
     IPCHandler --> MainStageUC
     IPCHandler --> MainCommitUC
@@ -338,9 +338,16 @@ export interface BranchDeleteArgs {
   force?: boolean
 }
 
+/** リセット引数 */
+export interface ResetArgs {
+  worktreePath: string
+  commit: string   // リセット先コミットハッシュまたは参照（例: "HEAD~1"）
+  mode: 'soft' | 'mixed' | 'hard'
+}
+
 /** Git 進捗イベント */
 export interface GitProgressEvent {
-  operation: string
+  operation: 'push' | 'pull' | 'fetch'
   phase: string
   progress?: number // 0-100, undefined = indeterminate
 }
@@ -405,7 +412,7 @@ export function registerGitWriteIPCHandlers(
   checkoutBranchUseCase: CheckoutBranchMainUseCase,
   deleteBranchUseCase: DeleteBranchMainUseCase,
 ): () => void {
-  #[tauri::command]('git:stage', (_event, args) =>
+  #[tauri::command]('git_stage', (_event, args) =>
     wrapHandler(() => {
       validatePath(args.worktreePath, 'worktreePath')
       return stageFilesUseCase.invoke(args)
@@ -602,7 +609,7 @@ export const rendererConfigs = [
 | 要件 | 実現方針 |
 |------|----------|
 | Git 操作応答3秒以内 (NFR_301) | git CLI (tokio::process::Command) の非同期 API を使用。各操作を UseCase に分離して軽量に保つ |
-| リモート操作の進捗フィードバック (NFR_302) | git CLI (tokio::process::Command) の progress イベントを `git:progress` IPC イベントでWebviewに転送 |
+| リモート操作の進捗フィードバック (NFR_302) | git CLI (tokio::process::Command) の progress イベントを `git-progress` IPC イベントでWebviewに転送 |
 | 不可逆操作の安全性 (DC_301, B-002) | Shadcn/ui の AlertDialog をベースにした ConfirmDialog。destructive バリアントで視覚的に危険性を示す |
 | Tauri Core (Rust)実行 (DC_302, A-001) | GitWriteRepository をTauri Core (Rust)の infrastructure 層にのみ配置。Webviewからは IPC 経由でのみアクセス |
 
@@ -615,7 +622,8 @@ export const rendererConfigs = [
 | ユニットテスト | GitWriteDefaultRepository（git CLI (tokio::process::Command) をモック） | ≥ 80% |
 | ユニットテスト | Tauri Core (Rust) UseCases | ≥ 80% |
 | ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
-| ユニットテスト | Webview UseCases + ViewModel | ≥ 60% |
+| ユニットテスト | Webview UseCases | ≥ 80% |
+| ユニットテスト | Webview ViewModel + React コンポーネント | ≥ 60% |
 | 結合テスト | IPC 通信フロー（Rust Core ↔ Webview） | 主要フロー |
 | 結合テスト | GitWriteDefaultRepository と実際の Git リポジトリ | 主要操作 |
 
@@ -698,8 +706,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

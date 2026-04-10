@@ -44,7 +44,7 @@ risk: "high"
 2. **DI ベース設計** — VContainerConfig + Token + deps パターンで依存関係を注入する（原則 A-003）
 3. **ViewModel + Hook パターン** — ViewModel は RxJS Observable でデータを公開し、Hook ラッパー経由で React に接続する。ViewModel は UseCase のみ参照する（原則 A-004）
 4. **不可逆操作の安全性確保** — マージ・リベース・スタッシュ全削除等の不可逆操作に確認ステップを設け、操作中は常に abort オプションを提供する（原則 B-002, DC_401）
-5. **操作進捗のリアルタイムフィードバック** — 既存 `git:progress` イベントを再利用し、500ms 以内の進捗表示と30秒以内の完了通知を実現する（NFR_401）
+5. **操作進捗のリアルタイムフィードバック** — 既存 `git-progress` イベントを再利用し、500ms 以内の進捗表示と30秒以内の完了通知を実現する（NFR_401）
 
 ---
 
@@ -88,45 +88,45 @@ risk: "high"
 
 ### Tauri Core (Rust)側
 
-Tauri Core (Rust)側の application 層は UseCase + GitAdvancedRepository IF のみで構成する。Webviewとは異なり、状態管理 Service を持たない。Git 操作の進捗は既存の IPC イベント（`git:progress`）経由でWebviewに通知する。
+Tauri Core (Rust)側の application 層は UseCase + GitAdvancedRepository IF のみで構成する。Webviewとは異なり、状態管理 Service を持たない。Git 操作の進捗は既存の IPC イベント（`git-progress`）経由でWebviewに通知する。
 
 ```
-src-tauri/src/features/advanced-git-operations/
+src-tauri/src/features/advanced_git_operations/
 ├── application/
 │   ├── repositories/
-│   │   └── git-advanced-repository.ts           # GitAdvancedRepository IF
+│   │   └── git_advanced_repository.rs           # GitAdvancedRepository trait
 │   └── usecases/
-│       ├── merge-usecase.ts                     # MergeUseCase
-│       ├── merge-abort-usecase.ts               # MergeAbortUseCase
-│       ├── merge-status-usecase.ts              # MergeStatusUseCase
-│       ├── rebase-usecase.ts                    # RebaseUseCase
-│       ├── rebase-interactive-usecase.ts        # RebaseInteractiveUseCase
-│       ├── rebase-abort-usecase.ts              # RebaseAbortUseCase
-│       ├── rebase-continue-usecase.ts           # RebaseContinueUseCase
-│       ├── get-rebase-commits-usecase.ts        # GetRebaseCommitsUseCase
-│       ├── stash-save-usecase.ts                # StashSaveUseCase
-│       ├── stash-list-usecase.ts                # StashListUseCase
-│       ├── stash-pop-usecase.ts                 # StashPopUseCase
-│       ├── stash-apply-usecase.ts               # StashApplyUseCase
-│       ├── stash-drop-usecase.ts                # StashDropUseCase
-│       ├── stash-clear-usecase.ts               # StashClearUseCase
-│       ├── cherry-pick-usecase.ts               # CherryPickUseCase
-│       ├── cherry-pick-abort-usecase.ts         # CherryPickAbortUseCase
-│       ├── conflict-list-usecase.ts             # ConflictListUseCase
-│       ├── conflict-file-content-usecase.ts     # ConflictFileContentUseCase
-│       ├── conflict-resolve-usecase.ts          # ConflictResolveUseCase
-│       ├── conflict-resolve-all-usecase.ts      # ConflictResolveAllUseCase
-│       ├── conflict-mark-resolved-usecase.ts    # ConflictMarkResolvedUseCase
-│       ├── tag-list-usecase.ts                  # TagListUseCase
-│       ├── tag-create-usecase.ts                # TagCreateUseCase
-│       └── tag-delete-usecase.ts                # TagDeleteUseCase
+│       ├── merge_usecase.rs                     # MergeUseCase
+│       ├── merge_abort_usecase.rs               # MergeAbortUseCase
+│       ├── merge_status_usecase.rs              # MergeStatusUseCase
+│       ├── rebase_usecase.rs                    # RebaseUseCase
+│       ├── rebase_interactive_usecase.rs        # RebaseInteractiveUseCase
+│       ├── rebase_abort_usecase.rs              # RebaseAbortUseCase
+│       ├── rebase_continue_usecase.rs           # RebaseContinueUseCase
+│       ├── get_rebase_commits_usecase.rs        # GetRebaseCommitsUseCase
+│       ├── stash_save_usecase.rs                # StashSaveUseCase
+│       ├── stash_list_usecase.rs                # StashListUseCase
+│       ├── stash_pop_usecase.rs                 # StashPopUseCase
+│       ├── stash_apply_usecase.rs               # StashApplyUseCase
+│       ├── stash_drop_usecase.rs                # StashDropUseCase
+│       ├── stash_clear_usecase.rs               # StashClearUseCase
+│       ├── cherry_pick_usecase.rs               # CherryPickUseCase
+│       ├── cherry_pick_abort_usecase.rs         # CherryPickAbortUseCase
+│       ├── conflict_list_usecase.rs             # ConflictListUseCase
+│       ├── conflict_file_content_usecase.rs     # ConflictFileContentUseCase
+│       ├── conflict_resolve_usecase.rs          # ConflictResolveUseCase
+│       ├── conflict_resolve_all_usecase.rs      # ConflictResolveAllUseCase
+│       ├── conflict_mark_resolved_usecase.rs    # ConflictMarkResolvedUseCase
+│       ├── tag_list_usecase.rs                  # TagListUseCase
+│       ├── tag_create_usecase.rs                # TagCreateUseCase
+│       └── tag_delete_usecase.rs                # TagDeleteUseCase
 ├── infrastructure/
 │   └── repositories/
-│       └── git-advanced-default-repository.ts   # git CLI (tokio::process::Command) による実装
+│       └── git_advanced_default_repository.rs   # git CLI (tokio::process::Command) による実装
 ├── presentation/
-│   └── ipc-handlers.ts                          # IPC Handler（git:merge 等）
-├── di-tokens.ts
-└── di-config.ts
+│   └── commands.rs                              # #[tauri::command] による IPC Handler（git_merge 等）
+├── mod.rs
+└── (DI は AppState + Arc<dyn Trait> で構成 → src-tauri/src/state.rs)
 ```
 
 ### Webview 側
@@ -272,7 +272,7 @@ graph TD
     ConflictUC --> AdvOpsRepoIF
     TagUC --> AdvOpsRepoIF
     AdvOpsRepoIF -.-> AdvOpsRepoImpl
-    AdvOpsRepoImpl -->|"invoke"| Bridge
+    AdvOpsRepoImpl -->|"invoke"| Runtime
     Runtime -->|"invoke<T>"| IPCHandler
     IPCHandler --> MainMergeUC
     IPCHandler --> MainRebaseUC
@@ -864,7 +864,7 @@ export const rendererConfigs = [
 
 | 要件 | 実現方針 |
 |---|---|
-| 進捗フィードバック 500ms 以内 (NFR_401) | git CLI (tokio::process::Command) の progress イベントを監視し、既存の `git:progress` IPC イベントでWebviewに転送。AdvancedOperationsService の `operationProgress$` で状態管理 |
+| 進捗フィードバック 500ms 以内 (NFR_401) | git CLI (tokio::process::Command) の progress イベントを監視し、既存の `git-progress` IPC イベントでWebviewに転送。AdvancedOperationsService の `operationProgress$` で状態管理 |
 | 操作完了通知 30 秒以内 (NFR_401) | 長時間操作にはタイムアウト設定。OperationProgressBar コンポーネントでリアルタイム表示 |
 | 不可逆操作の確認 (DC_401, B-002) | ViewModel 内で操作前の状態チェック（`currentOperation$` で進行中操作を検出）。Webview 側で既存 ConfirmDialog（basic-git-operations の AlertDialog ベース）を再利用。特に危険な操作（stash clear, tag delete）には destructive バリアントを使用 |
 | abort の常時提供 (DC_401) | マージ・リベース・チェリーピック中は OperationProgressBar + abort ボタンを常時表示。AdvancedOperationsService の `currentOperation$` で操作中状態を管理 |
@@ -879,7 +879,8 @@ export const rendererConfigs = [
 | ユニットテスト | GitAdvancedDefaultRepository（git CLI (tokio::process::Command) をモック） | ≥ 80% |
 | ユニットテスト | Tauri Core (Rust) UseCases（24 クラス） | ≥ 80% |
 | ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
-| ユニットテスト | Webview UseCases + 6 ViewModel | ≥ 60% |
+| ユニットテスト | Webview UseCases | ≥ 80% |
+| ユニットテスト | Webview ViewModel + React コンポーネント | ≥ 60% |
 | ユニットテスト | AdvancedOperationsService（状態管理ロジック） | ≥ 80% |
 | 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
 | 結合テスト | GitAdvancedDefaultRepository と実際の Git リポジトリ | 主要操作 |
@@ -905,8 +906,8 @@ export const rendererConfigs = [
 | Repository の分割粒度 | サブシステム別 Repository / 統合 Repository | 統合（GitAdvancedRepository） | basic-git-operations の GitWriteRepository と同パターン。24 メソッドを 1 Repository に統合 |
 | ViewModel の分割 | 単一 ViewModel / サブシステム別分割 | サブシステム別分割（6 ViewModel） | マージ・リベース・スタッシュ・チェリーピック・コンフリクト・タグの関心事を分離 |
 | 確認ダイアログ | 新規作成 / 既存 ConfirmDialog 再利用 | 既存 ConfirmDialog 再利用 | basic-git-operations で実装済みの AlertDialog ベース ConfirmDialog をそのまま使用。UI の一貫性 |
-| SafetyGuard の扱い | 独立モジュール / ViewModel + Service に統合 | ViewModel + Service に統合 | 未コミット変更の検出は既存 `git:status` API、進行中操作の検出は AdvancedOperationsService の状態管理で対応 |
-| 進捗通知チャネル | 既存 `git:progress` 再利用 / 新規 `git:operation-progress` | 既存 `git:progress` 再利用 | GitProgressEvent の operation フィールドで操作種別を識別可能。IPC チャネルの増加を抑制 |
+| SafetyGuard の扱い | 独立モジュール / ViewModel + Service に統合 | ViewModel + Service に統合 | 未コミット変更の検出は既存 `git_status` API、進行中操作の検出は AdvancedOperationsService の状態管理で対応 |
+| 進捗通知チャネル | 既存 `git-progress` 再利用 / 新規 `git-operation-progress` | 既存 `git-progress` 再利用 | GitProgressEvent の operation フィールドで操作種別を識別可能。IPC チャネルの増加を抑制 |
 | ConsumerUseCase の戻り値 | void / Promise\<void\> | void | basic-git-operations のパターンに準拠。内部で Promise チェーンを処理 |
 | エラーコード体系 | フラット / ドメインプレフィックス | ドメインプレフィックス（MERGE_FAILED, REBASE_CONFLICT 等） | basic-git-operations の IPC チャネル名前空間方式に準拠 |
 | Git インスタンス管理 | ワークツリーごとにインスタンス生成 / シングルトン | ワークツリーごと | GitAdvancedDefaultRepository は worktreePath をメソッド引数として受け取り、内部で git CLI (tokio::process::Command) インスタンスを生成する（B-001 準拠） |
@@ -930,8 +931,6 @@ export const rendererConfigs = [
 
 | 課題 | 影響度 | 対応方針 |
 |---|---|---|
-| ~~git CLI (tokio::process::Command) のインタラクティブリベースサポート範囲~~ | ~~高~~ | 解決済み → 9.2 に移動 |
-| ~~Monaco Editor の3ウェイ差分表示のカスタマイズ~~ | ~~中~~ | 解決済み → 9.2 に移動 |
 | 大量コンフリクト時のパフォーマンス | 中 | コンフリクトファイルの内容は遅延ロード（ファイル選択時に取得）。一覧取得はファイルパスのみ |
 | リベース中のコンフリクト解決の状態管理 | 中 | リベースの各ステップでコンフリクトが発生する可能性がある。currentStep / totalSteps をトラッキングし、ステップごとに解決→続行のフローを提供 |
 | OperationProgress の domain 型設計 | 低 | OperationProgress を独自型として domain に追加するか、既存 GitProgressEvent を拡張するか。実装時に確定 |
@@ -1024,42 +1023,42 @@ design doc の各セクションを以下の方針で v2.0 に更新する:
 - ディレクトリ構成を feature ベース4層に更新:
 
 ```
-src-tauri/src/features/advanced-git-operations/
+src-tauri/src/features/advanced_git_operations/
 ├── application/
 │   ├── repositories/
-│   │   └── git-advanced-repository.ts       # GitAdvancedRepository IF（全6サブシステム統合）
+│   │   └── git_advanced_repository.rs       # GitAdvancedRepository trait（全6サブシステム統合）
 │   └── usecases/
-│       ├── merge-usecase.ts                 # MergeUseCase
-│       ├── merge-abort-usecase.ts           # MergeAbortUseCase
-│       ├── merge-status-usecase.ts          # MergeStatusUseCase
-│       ├── rebase-usecase.ts                # RebaseUseCase
-│       ├── rebase-interactive-usecase.ts    # RebaseInteractiveUseCase
-│       ├── rebase-abort-usecase.ts          # RebaseAbortUseCase
-│       ├── rebase-continue-usecase.ts       # RebaseContinueUseCase
-│       ├── get-rebase-commits-usecase.ts    # GetRebaseCommitsUseCase
-│       ├── stash-save-usecase.ts            # StashSaveUseCase
-│       ├── stash-list-usecase.ts            # StashListUseCase
-│       ├── stash-pop-usecase.ts             # StashPopUseCase
-│       ├── stash-apply-usecase.ts           # StashApplyUseCase
-│       ├── stash-drop-usecase.ts            # StashDropUseCase
-│       ├── stash-clear-usecase.ts           # StashClearUseCase
-│       ├── cherry-pick-usecase.ts           # CherryPickUseCase
-│       ├── cherry-pick-abort-usecase.ts     # CherryPickAbortUseCase
-│       ├── conflict-list-usecase.ts         # ConflictListUseCase
-│       ├── conflict-file-content-usecase.ts # ConflictFileContentUseCase
-│       ├── conflict-resolve-usecase.ts      # ConflictResolveUseCase
-│       ├── conflict-resolve-all-usecase.ts  # ConflictResolveAllUseCase
-│       ├── conflict-mark-resolved-usecase.ts # ConflictMarkResolvedUseCase
-│       ├── tag-list-usecase.ts              # TagListUseCase
-│       ├── tag-create-usecase.ts            # TagCreateUseCase
-│       └── tag-delete-usecase.ts            # TagDeleteUseCase
+│       ├── merge_usecase.rs                 # MergeUseCase
+│       ├── merge_abort_usecase.rs           # MergeAbortUseCase
+│       ├── merge_status_usecase.rs          # MergeStatusUseCase
+│       ├── rebase_usecase.rs                # RebaseUseCase
+│       ├── rebase_interactive_usecase.rs    # RebaseInteractiveUseCase
+│       ├── rebase_abort_usecase.rs          # RebaseAbortUseCase
+│       ├── rebase_continue_usecase.rs       # RebaseContinueUseCase
+│       ├── get_rebase_commits_usecase.rs    # GetRebaseCommitsUseCase
+│       ├── stash_save_usecase.rs            # StashSaveUseCase
+│       ├── stash_list_usecase.rs            # StashListUseCase
+│       ├── stash_pop_usecase.rs             # StashPopUseCase
+│       ├── stash_apply_usecase.rs           # StashApplyUseCase
+│       ├── stash_drop_usecase.rs            # StashDropUseCase
+│       ├── stash_clear_usecase.rs           # StashClearUseCase
+│       ├── cherry_pick_usecase.rs           # CherryPickUseCase
+│       ├── cherry_pick_abort_usecase.rs     # CherryPickAbortUseCase
+│       ├── conflict_list_usecase.rs         # ConflictListUseCase
+│       ├── conflict_file_content_usecase.rs # ConflictFileContentUseCase
+│       ├── conflict_resolve_usecase.rs      # ConflictResolveUseCase
+│       ├── conflict_resolve_all_usecase.rs  # ConflictResolveAllUseCase
+│       ├── conflict_mark_resolved_usecase.rs # ConflictMarkResolvedUseCase
+│       ├── tag_list_usecase.rs              # TagListUseCase
+│       ├── tag_create_usecase.rs            # TagCreateUseCase
+│       └── tag_delete_usecase.rs            # TagDeleteUseCase
 ├── infrastructure/
 │   └── repositories/
-│       └── git-advanced-default-repository.ts  # git CLI (tokio::process::Command) による実装
+│       └── git_advanced_default_repository.rs  # git CLI (tokio::process::Command) による実装
 ├── presentation/
-│   └── ipc-handlers.ts                     # IPC Handler（git:merge 等）
-├── di-tokens.ts
-└── di-config.ts
+│   └── commands.rs                          # #[tauri::command] による IPC Handler（git_merge 等）
+├── mod.rs
+└── (DI は AppState + Arc<dyn Trait> で構成 → src-tauri/src/state.rs)
 ```
 
 ```
@@ -1145,7 +1144,7 @@ src/features/advanced-git-operations/
 
 `SafetyGuard` は独立モジュールとして設計されていたが、以下のように再配置する:
 
-- 未コミット変更の検出 → 既存の `git:status` API を利用（Webview 側 ViewModel で判定）
+- 未コミット変更の検出 → 既存の `git_status` API を利用（Webview 側 ViewModel で判定）
 - 進行中の操作検出 → `AdvancedOperationsService` の状態管理で対応
 - 独立モジュールとしての `SafetyGuard` は削除し、各 ViewModel 内のロジックとして統合
 
@@ -1167,8 +1166,8 @@ src/features/advanced-git-operations/
 
 **依存関係:**
 
-- 必要: basic-git-operations の `GitProgressEvent` / `git:progress` IPC イベント（進捗通知の共通基盤として再利用）
-- 必要: repository-viewer の `git:status` / `git:branches`（操作後のリフレッシュ用）
+- 必要: basic-git-operations の `GitProgressEvent` / `git-progress` IPC イベント（進捗通知の共通基盤として再利用）
+- 必要: repository-viewer の `git_status` / `git_branches`（操作後のリフレッシュ用）
 
 ## テスト戦略
 
@@ -1177,7 +1176,8 @@ src/features/advanced-git-operations/
 | ユニットテスト | GitAdvancedDefaultRepository（git CLI (tokio::process::Command) をモック） | ≥ 80% |
 | ユニットテスト | Tauri Core (Rust) UseCases（24 クラス） | ≥ 80% |
 | ユニットテスト | IPC Handler（バリデーション、ルーティング） | ≥ 80% |
-| ユニットテスト | Webview UseCases + 6 ViewModel | ≥ 60% |
+| ユニットテスト | Webview UseCases | ≥ 80% |
+| ユニットテスト | Webview ViewModel + React コンポーネント | ≥ 60% |
 | 結合テスト | IPC 通信フロー（main ↔ preload ↔ renderer） | 主要フロー |
 | E2E テスト | マージ→コンフリクト解決→続行フロー | 主要ユースケース |
 | E2E テスト | スタッシュ save→list→pop フロー | 主要ユースケース |
@@ -1253,8 +1253,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

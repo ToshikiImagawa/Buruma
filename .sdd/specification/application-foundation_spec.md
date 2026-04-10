@@ -169,6 +169,7 @@ interface PinRepositoryUseCase extends ConsumerUseCase<{ path: string; pinned: b
 }
 
 // Service（ステートフル、UseCase から利用される）
+// ParameterizedService<RecentRepository[]> を extends（setUp/tearDown を提供）
 interface RepositoryService {
   readonly currentRepository$: Observable<RepositoryInfo | null>;
   readonly recentRepositories$: Observable<RecentRepository[]>;
@@ -220,7 +221,9 @@ interface RetryErrorUseCase extends ConsumerUseCase<string> {
 ```typescript
 // リポジトリ選択 ViewModel（純粋 TypeScript クラス、React 非依存）
 interface RepositorySelectorViewModel {
+  // GetRecentRepositoriesUseCase.store に委譲
   readonly recentRepositories$: Observable<RecentRepository[]>;
+  // GetCurrentRepositoryUseCase.property に委譲
   readonly currentRepository$: Observable<RepositoryInfo | null>;
   openWithDialog(): void;
   openByPath(path: string): void;

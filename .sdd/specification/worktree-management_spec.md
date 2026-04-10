@@ -373,11 +373,11 @@ sequenceDiagram
 | PRD 要求 ID | 本仕様での対応 | ステータス |
 |-------------|--------------|----------|
 | UR_101 | 仕様全体（左パネル一覧 + 右パネル詳細の2カラムレイアウト） | 対応済み |
-| UR_102 | FR-001〜FR-005 + worktree:list API | 対応済み |
-| UR_103 | FR-006〜FR-013 + worktree:create / worktree:delete API | 対応済み |
+| UR_102 | FR-001〜FR-005 + `worktree_list` API | 対応済み |
+| UR_103 | FR-006〜FR-013 + `worktree_create` / `worktree_delete` API | 対応済み |
 | UR_104 | FR-014〜FR-016 + WorktreeDetail コンポーネント | 対応済み |
 | FR_101 | FR-001〜FR-005（一覧表示、パス・ブランチ・状態、並び替え、メイン区別） | 対応済み |
-| FR_101_01 | FR-001 + worktree:list IPC | 対応済み |
+| FR_101_01 | FR-001 + `worktree_list` IPC | 対応済み |
 | FR_101_02 | FR-002 + WorktreeInfo 型 | 対応済み |
 | FR_101_03 | FR-003 + WorktreeInfo.isDirty | 対応済み |
 | FR_101_04 | FR-004 + WorktreeSortOrder 型 | 対応済み |
@@ -385,11 +385,11 @@ sequenceDiagram
 | FR_102 | FR-006〜FR-009（作成ダイアログ、ブランチ指定、パス指定） | 対応済み |
 | FR_102_01 | FR-006 + WorktreeCreateParams | 対応済み |
 | FR_102_02 | FR-007 + WorktreeCreateParams.createNewBranch | 対応済み |
-| FR_102_03 | FR-008 + worktree:suggest-path IPC | 対応済み |
+| FR_102_03 | FR-008 + `worktree_suggest_path` IPC | 対応済み |
 | FR_102_04 | FR-009 + WorktreeCreateDialog.onCreated | 対応済み |
 | FR_103 | FR-010〜FR-013（削除確認、未コミット警告、強制削除、メイン保護） | 対応済み |
 | FR_103_01 | FR-010 + WorktreeDeleteDialog | 対応済み |
-| FR_103_02 | FR-011 + worktree:check-dirty IPC | 対応済み |
+| FR_103_02 | FR-011 + `worktree_check_dirty` IPC | 対応済み |
 | FR_103_03 | FR-012 + WorktreeDeleteParams.force | 対応済み |
 | FR_103_04 | FR-013 + WorktreeInfo.isMain チェック | 対応済み |
 | FR_104 | FR-014〜FR-016（切り替え、詳細表示、ハイライト） | 対応済み |
@@ -398,7 +398,7 @@ sequenceDiagram
 | FR_104_03 | FR-016 + WorktreeListItem.isSelected | 対応済み |
 | FR_105 | FR-017〜FR-019（ファイルシステム監視、自動リフレッシュ） | 対応済み |
 | FR_105_01 | FR-017 + FSWatcher（振る舞い図 7.4） | 対応済み |
-| FR_105_02 | FR-018 + worktree:changed イベント | 対応済み |
+| FR_105_02 | FR-018 + `worktree-changed` イベント | 対応済み |
 | FR_105_03 | FR-019 + WorktreeChangeEvent.type | 対応済み |
 | NFR_101 | NFR-001（1秒以内の初期表示） | 対応済み |
 | NFR_102 | NFR-002（500ms以内の切り替え） | 対応済み |

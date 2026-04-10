@@ -81,6 +81,7 @@ risk: "medium"
 | 差分表示 | @monaco-editor/react + monaco-editor | React ラッパー経由で Monaco DiffEditor を統合。CDN から worker を自動ロードし、Tauri + Vite 環境での worker 設定問題を回避。インライン/サイドバイサイド切替、シンタックスハイライトを標準サポート |
 | 仮想スクロール | @tanstack/react-virtual | 大規模コミットログの描画パフォーマンス確保。React 19 対応、軽量（原則 A-002） |
 | diff パース | 自前パーサー（diff-parser.ts） | `git diff` の raw 出力を `FileDiff[]` にパース。Monaco DiffEditor にはファイル全体テキストを IPC 経由で取得して渡す |
+| シンタックスハイライト | Shiki | TextMate グラマーベースの高精度ハイライト。遅延ロード対応（原則 A-002） |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
@@ -137,7 +138,7 @@ graph TD
     subgraph "Tauri Runtime"
         Runtime["Tauri Runtime<br/>(Webview ↔ Core IPC)"]
         GitAPI["git.* API (10 channels)"]
-        Bridge --> GitAPI
+        Runtime --> GitAPI
     end
 
     subgraph "Main Process (Clean Architecture)"
@@ -150,9 +151,9 @@ graph TD
         GitReadRepo --> SimpleGit
     end
 
-    Panel -->|"invoke"| Bridge
+    Panel -->|"invoke"| Runtime
     Runtime -->|"invoke<T>"| IPCHandlers
-    IPCHandlers -->|"IPCResult"| Bridge
+    IPCHandlers -->|"IPCResult"| Runtime
     Runtime -->|"result"| Panel
 ```
 
@@ -184,7 +185,7 @@ graph TD
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/features/repository-viewer/presentation/` |
 | RepositoryDetailPanel | presentation | タブ統合コンポーネント（ステータス/コミット/ファイル/リファレンス）。ResizablePanelGroup による分割パネルリサイズ対応 | `src/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` |
 | BranchGraphCanvas | presentation | Canvas API によるブランチグラフ描画。RefMap でノード種別（HEAD=二重丸、ローカル=大円、タグ=角丸四角、リモート=菱形）を描き分け。マージ線は垂直区間（子の色）と斜め区間（第1親=子の色、第2親=親の色）の2色分割描画 | `src/features/repository-viewer/presentation/components/BranchGraphCanvas.tsx` |
-| RefMap (buildRefMap) | presentation | BranchList + TagInfo[] からハッシュ→ref情報のマッピングを構築する純粋関数 | `src/features/repository-viewer/presentation/ref-map.ts` |
+| RefMap (buildRefMap) | presentation | BranchList + TagInfo[] からハッシュ→ref情報のマッピングを構築する純粋関数（TagInfo は `src/shared/domain/index.ts` に定義） | `src/features/repository-viewer/presentation/ref-map.ts` |
 | StatusView 他 6 コンポーネント | presentation | 各ビューの React UI コンポーネント | `src/features/repository-viewer/presentation/components/` |
 
 ### 共有
@@ -192,7 +193,7 @@ graph TD
 | モジュール名 | 責務 | 配置場所 |
 |---|---|---|
 | domain 型定義 | GitStatus, CommitSummary, FileDiff, BranchList, FileTreeNode, FileContents 等 | `src/shared/domain/index.ts` |
-| IPC チャネル型定義 | `git:*` 10 チャネルの型定義 | `src/shared/lib/ipc.ts` |
+| IPC チャネル型定義 | `git_*` 10 チャネルの型定義 | `src/shared/lib/ipc.ts` |
 | GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
 | computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
 | Tauri invoke/listen API | 型安全な git.* API 公開 | （preload 層は Tauri では不要。`@tauri-apps/api` の invoke/listen を直接使用） |
@@ -234,16 +235,16 @@ interface FileContents {
 
 | チャネル名 | 引数 | 戻り値 | 備考 |
 |---|---|---|---|
-| `git:status` | `{ worktreePath }` | `IPCResult<GitStatus>` | |
-| `git:log` | `GitLogQuery` | `IPCResult<GitLogResult>` | `--graph --all` でブランチグラフ付き |
-| `git:commit-detail` | `{ worktreePath, hash }` | `IPCResult<CommitDetail>` | |
-| `git:diff` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ワーキングツリーの差分 |
-| `git:diff-staged` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ステージ済みの差分 |
-| `git:diff-commit` | `{ worktreePath, hash, filePath? }` | `IPCResult<FileDiff[]>` | コミット差分 |
-| `git:branches` | `{ worktreePath }` | `IPCResult<BranchList>` | |
-| `git:file-tree` | `{ worktreePath }` | `IPCResult<FileTreeNode>` | |
-| `git:file-contents` | `{ worktreePath, filePath, staged? }` | `IPCResult<FileContents>` | Monaco DiffEditor 用ファイル全体取得 |
-| `git:file-contents-commit` | `{ worktreePath, hash, filePath }` | `IPCResult<FileContents>` | コミット差分の Monaco 用 |
+| `git_status` | `{ worktreePath }` | `IPCResult<GitStatus>` | |
+| `git_log` | `GitLogQuery` | `IPCResult<GitLogResult>` | `--graph --all` でブランチグラフ付き |
+| `git_commit_detail` | `{ worktreePath, hash }` | `IPCResult<CommitDetail>` | |
+| `git_diff` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ワーキングツリーの差分 |
+| `git_diff_staged` | `GitDiffQuery` | `IPCResult<FileDiff[]>` | ステージ済みの差分 |
+| `git_diff_commit` | `{ worktreePath, hash, filePath? }` | `IPCResult<FileDiff[]>` | コミット差分 |
+| `git_branches` | `{ worktreePath }` | `IPCResult<BranchList>` | |
+| `git_file_tree` | `{ worktreePath }` | `IPCResult<FileTreeNode>` | |
+| `git_file_contents` | `{ worktreePath, filePath, staged? }` | `IPCResult<FileContents>` | Monaco DiffEditor 用ファイル全体取得 |
+| `git_file_contents_commit` | `{ worktreePath, hash, filePath }` | `IPCResult<FileContents>` | コミット差分の Monaco 用 |
 
 全チャネルで `worktreePath` のパストラバーサル防止バリデーションを実施。
 
@@ -252,7 +253,7 @@ interface FileContents {
 ```tsx
 // src/features/repository-viewer/presentation/components/DiffView.tsx
 // @monaco-editor/react の DiffEditor を使用
-// ファイル全体テキストを git:file-contents IPC で取得して渡す
+// ファイル全体テキストを git_file_contents IPC で取得して渡す
 
 import { DiffEditor } from '@monaco-editor/react'
 
@@ -344,11 +345,12 @@ interface GraphLayout {
 | Git 操作ライブラリ    | git CLI (tokio::process::Command) / git2 crate / isomorphic-git / tokio::process::Command 直接      | git CLI (tokio::process::Command)                         | CONSTITUTION 技術スタック制約で指定。Rust の tokio::process::Command 経由で git CLI を非同期実行（原則 A-002）                             |
 | 差分表示エンジン       | Monaco Editor / CodeMirror / react-diff-viewer / 自前実装         | Monaco Editor                      | CONSTITUTION 技術スタック制約で指定。DiffEditor を標準搭載、シンタックスハイライト組み込み、VS Code との親和性（原則 A-002）                      |
 | コミットログの仮想スクロール | @tanstack/react-virtual / react-window / react-virtualized    | @tanstack/react-virtual            | React 19 対応、軽量（6KB gzip）、hooks ベース API。react-window は unmaintained（原則 A-002）                           |
-| IPC チャネル命名     | `git:status` / `repository-viewer:status`                     | `git:action` 形式                    | ドメイン（git）ベースの命名で直感的。application-foundation の `repository:action` と一貫性がある                               |
+| IPC チャネル命名     | `git_status` / `repository_viewer_status`                     | `git_{action}` 形式                    | ドメイン（git）ベースの命名で直感的。application-foundation の `repository_{action}` と一貫性がある                               |
 | diff パース方式 | git CLI (tokio::process::Command) の diffSummary / raw diff をパース / unified-diff ライブラリ | 自前パーサー + ファイル全体取得 IPC | diffSummary はファイル統計のみ。Monaco DiffEditor にはファイル全体テキスト（`git show HEAD:path` + ファイル読み込み）を渡す方が正確な差分表示が可能 |
 | ファイルツリー取得方式 | `git ls-tree` / fs.readdir 再帰 / git CLI (tokio::process::Command) raw | `git ls-tree -r HEAD` + status マージ | Git 管理下のファイルのみ表示。status をマージすることで変更ファイルのマーキングも実現 |
 | Monaco Editor 統合方式 | monaco-editor 直接 / @monaco-editor/react / CodeMirror | @monaco-editor/react | Tauri + Vite 環境での worker 設定問題を回避。CDN 経由で worker を自動ロード。`updateOptions` による表示モード切替、`useInlineViewWhenSpaceIsLimited: false` で狭い画面でもサイドバイサイド表示を強制 |
 | ブランチグラフ方式 | git log --graph + ASCII パース / クライアント側レーン計算 + Canvas 描画 / 外部ライブラリ | クライアント側レーン計算 + Canvas 描画 | `CommitSummary.parents` から `computeGraphLayout()` でレーン割り当てを計算し、`BranchGraphCanvas` で Canvas API 描画。ASCII パース方式より柔軟なレイアウト制御が可能で、大量コミットでも可視範囲のみ描画して高速 |
+| TagInfo / useTagViewModel の cross-feature 参照 | A) useTagViewModel を直接参照 / B) TagInfo を shared/domain に移動し props 経由 | B) TagInfo は `src/shared/domain/` に定義済み。useTagViewModel は cross-feature 参照として許容（タグデータを CommitLog に props で供給するため） | A-004 準拠: TagInfo はドメイン型として shared に属すべき。ViewModel の cross-feature import は UI 統合上の実用的判断として記録 |
 
 ## 9.2. 未解決の課題
 
@@ -403,8 +405,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

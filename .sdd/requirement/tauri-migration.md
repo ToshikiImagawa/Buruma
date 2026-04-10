@@ -33,16 +33,16 @@ risk: "high"
 
 ## 1.2. リスクレベル
 
-- **High**: 移行失敗時のデータ損失・機能喪失リスク
-- **Medium**: 一時的な UX 劣化・性能低下
-- **Low**: 表示の変更・Nice to have
+- **high**: 移行失敗時のデータ損失・機能喪失リスク
+- **medium**: 一時的な UX 劣化・性能低下
+- **low**: 表示の変更・Nice to have
 
 ## 1.3. 検証方法
 
-- **Analysis**: 分析・設計レビュー
-- **Test**: テスト（既存 Vitest + 新規 cargo test）
-- **Demonstration**: デモンストレーション（UI 動作確認）
-- **Inspection**: インスペクション（コードレビュー）
+- **analysis**: 分析・設計レビュー
+- **test**: テスト（既存 Vitest + 新規 cargo test）
+- **demonstration**: デモンストレーション（UI 動作確認）
+- **inspection**: インスペクション（コードレビュー）
 
 ---
 

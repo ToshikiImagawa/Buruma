@@ -143,6 +143,8 @@ return (
 
 コンテキストメニューからマージ/リベースを選んだ場合、対象ブランチを `mergeTargetBranch` state にセットしてから `MergeDialog` を開くことで、ターゲットブランチを事前選択する。
 
+ブランチ削除（ローカル / リモート）は CONSTITUTION.md B-002 準拠の確認ダイアログを表示する。
+
 ## 4.6. アイコンのみツールバー（FR-010）
 
 ヘッダーの3ボタン（マージ/リベース/新規）を `Button variant="ghost" size="icon"` に変更し、`Tooltip` でホバー時に操作名を表示する。
@@ -162,13 +164,17 @@ return (
 | レイヤー | 実装内容 |
 |---|---|
 | Domain | `ResetArgs { worktreePath, mode: 'soft'\|'mixed'\|'hard', target: string }` |
-| IPC | `git:reset` チャネル + `ElectronAPI.git.reset()` |
-| Main | `ResetUseCase` → `GitWriteRepository.reset()` → `git reset --{mode} {target}` |
-| Renderer | `ResetUseCase` → `GitOperationsRepository.reset()` → IPC 呼び出し |
+| IPC | `git_reset` コマンド（`invokeCommand<void>('git_reset', args)` 経由） |
+| Tauri Core | `ResetUseCase` → `GitWriteRepository.reset()` → `git reset --{mode} {target}` |
+| Webview | `ResetUseCase` → `GitOperationsRepository.reset()` → IPC 呼び出し |
 | ViewModel | `BranchOpsViewModel.resetToCommit(worktreePath, target, mode)` |
 | UI | `CommitItem` の `ContextMenuSub` でサブメニュー表示（Soft/Mixed/Hard） |
 
 Hard リセットは不可逆操作のため、メニュー項目に `text-destructive` スタイルを適用して視覚的に警告する。
+
+Hard リセット選択時は CONSTITUTION.md B-002 準拠の確認ダイアログを表示する:
+- メッセージ: 「{target} までハードリセットします。未コミット変更はすべて破棄されます。」
+- ボタン: 「リセットする」（destructive）/ 「キャンセル」
 
 ---
 
@@ -299,8 +305,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

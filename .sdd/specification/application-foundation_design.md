@@ -150,7 +150,7 @@ graph TD
 
     IPCClient -->|" invoke "| Runtime
     Runtime -->|" invoke "| IPCHandler
-    IPCHandler -->|" response "| Bridge
+    IPCHandler -->|" response "| Runtime
     Runtime -->|" result "| IPCClient
 ```
 
@@ -414,13 +414,13 @@ function useRepositorySelectorViewModel() {
 // Repository 実装（infrastructure 層、Webview 側）
 class RepositoryDefaultRepository implements RepositoryRepository {
     async open(): Promise<RepositoryInfo | null> {
-        const result = await invokeCommand<T>('repository_open'()
+        const result = await invokeCommand<RepositoryInfo | null>('repository_open')
         if (!result.success) throw new Error(result.error.message)
         return result.data
     }
 
     async getRecent(): Promise<RecentRepository[]> {
-        const result = await invokeCommand<T>('repository_get_recent'()
+        const result = await invokeCommand<RecentRepository[]>('repository_get_recent')
         if (!result.success) throw new Error(result.error.message)
         return result.data
     }
@@ -437,11 +437,11 @@ export function registerIPCHandlers(
     repoService: RepositoryMainService,
     settingsService: SettingsMainService,
 ): void {
-    #[tauri::command]('repository:open', async (): Promise<IPCResult<RepositoryInfo>> => {
+    #[tauri::command]('repository_open', async (): Promise<IPCResult<RepositoryInfo>> => {
         return repoService.openWithDialog()
     })
 
-    #[tauri::command]('settings:get', async (): Promise<IPCResult<AppSettings>> => {
+    #[tauri::command]('settings_get', async (): Promise<IPCResult<AppSettings>> => {
         return settingsService.getAll()
     })
 
@@ -508,7 +508,7 @@ export function registerIPCHandlers(
 | 大量の IPC チャネル定義の管理方法                        | 低   | 初期は手動定義。チャネル数が増えた段階でコード生成を検討                                                                                                                        |
 | RxJS Subscription のメモリリーク防止                | 中   | VContainerProvider の tearDown + DisposableStack で一括管理                                                                                               |
 | RepositorySelectorViewModel の Service 直接参照 | 低   | currentRepository$ を公開する専用 UseCase が未定義のため、ViewModel が RepositoryService を直接参照。di-tokens.ts の IF 定義経由で疎結合は維持。必要に応じて GetCurrentRepositoryUseCase を追加 |
-| IPC ハンドラーの入力バリデーション                        | 低   | 現状は preload 経由の型付き API のみ（内部通信）のため未実装。将来的にバリデーションミドルウェアの追加を検討                                                                                       |
+| IPC ハンドラーの入力バリデーション                        | 中   | Tauri command の引数にはパストラバーサル対策を実装する（T-003 必須）                                                                                       |
 | Tauri Core (Rust) UseCase のユニットテスト                   | 低   | ✅ 解決済み。RepositoryMainUseCase（13テスト）、SettingsMainUseCase（5テスト）を作成                                                                                    |
 | ドキュメント移行注記の削除                              | 低   | ✅ 解決済み。design.md, CONSTITUTION.md の移行注記を削除                                                                                                          |
 
@@ -556,8 +556,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 

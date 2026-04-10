@@ -32,16 +32,16 @@ risk: "high"
 
 ## 1.2. リスクレベル
 
-- **High**: 高リスク（データ損失の可能性、Git操作の不可逆性）
-- **Medium**: 中リスク（UX劣化、パフォーマンス低下）
-- **Low**: 低リスク（表示の改善、Nice to have）
+- **high**: 高リスク（データ損失の可能性、Git操作の不可逆性）
+- **medium**: 中リスク（UX劣化、パフォーマンス低下）
+- **low**: 低リスク（表示の改善、Nice to have）
 
 ## 1.3. 検証方法
 
-- **Analysis**: 分析による検証
-- **Test**: テストによる検証（E2Eテスト、ユニットテスト）
-- **Demonstration**: デモンストレーションによる検証（UIの動作確認）
-- **Inspection**: インスペクション（コードレビュー、セキュリティ監査）
+- **analysis**: 分析による検証
+- **test**: テストによる検証（E2Eテスト、ユニットテスト）
+- **demonstration**: デモンストレーションによる検証（UIの動作確認）
+- **inspection**: インスペクション（コードレビュー、セキュリティ監査）
 
 ## 1.4. 関係タイプ
 
@@ -214,14 +214,14 @@ requirementDiagram
 
     requirement StagingCommit {
         id: UR_302
-        text: "変更のステージングとコミットを直感的に行える"
+        text: "変更のステージングとコミットをマウス操作のみで完結できる"
         risk: high
         verifymethod: demonstration
     }
 
     requirement RemoteSync {
         id: UR_303
-        text: "リモートリポジトリとの同期をスムーズに行える"
+        text: "リモートリポジトリとの同期（プッシュ・プル・フェッチ）をGUIから実行できる"
         risk: medium
         verifymethod: test
     }
@@ -312,8 +312,8 @@ requirementDiagram
     RemoteSync - contains -> PullFetch
     BranchManagement - contains -> BranchCreateSwitch
     BranchManagement - contains -> BranchDelete
-    BasicGitOperations - derives -> GitOperationSafety
-    BasicGitOperations - derives -> GitOperationBackend
+    BasicGitOperations - traces -> GitOperationSafety
+    BasicGitOperations - traces -> GitOperationBackend
     StagingCommit - traces -> GitOperationResponse
     RemoteSync - traces -> RemoteOperationFeedback
 ```
@@ -604,7 +604,7 @@ requirementDiagram
 
 ### UR_302: ステージング・コミット
 
-変更ファイルのステージングとコミットを直感的に行える。ファイル単位だけでなくハンク単位のステージングもサポートし、きめ細かなコミットを可能にする。
+変更ファイルのステージングとコミットをマウス操作のみで完結できる。ファイル単位だけでなくハンク単位のステージングもサポートし、きめ細かなコミットを可能にする。
 
 | 属性 | 値 |
 |:-----|:---|
@@ -614,7 +614,7 @@ requirementDiagram
 
 ### UR_303: リモート同期
 
-リモートリポジトリとの同期（プッシュ・プル・フェッチ）をスムーズに行える。初回プッシュ時の upstream 設定も自動的に案内する。
+リモートリポジトリとの同期（プッシュ・プル・フェッチ）をGUIから実行できる。初回プッシュ時の upstream 設定も自動的に案内する。
 
 | 属性 | 値 |
 |:-----|:---|

@@ -45,12 +45,12 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 | FR-002 | Branches タブにリベースボタンを追加し、RebaseEditor を起動できる            | 推奨  | FR_502         |
 | FR-003 | 新規 Refs タブを追加し、StashManager と TagManager を内部トグルで統合表示する | 必須  | FR_503, FR_506 |
 | FR-004 | Commits タブにチェリーピックボタンを追加し、CherryPickDialog を起動できる      | 推奨  | FR_504         |
-| FR-005 | コンフリクト発生時に ConflictResolver をオーバーレイ表示する                | 必須  | FR_505         |
+| FR-005 | コンフリクト発生時に ConflictResolver をオーバーレイ表示する。解決完了または中止（abort）で通常タブ表示に戻る（B-002 準拠） | 必須  | FR_505         |
 | FR-007 | 操作完了後にステータス・ブランチ・コミットログをリフレッシュする                       | 必須  | FR_507         |
 | FR-008 | Commits タブのブランチパネルを ResizablePanel の collapsible prop で折りたたみ可能にする | 推奨  | FR_508         |
-| FR-009 | ブランチ右クリックでコンテキストメニュー表示（ローカル/リモート/HEAD で項目を分ける）          | 推奨  | FR_509         |
+| FR-009 | ブランチ右クリックでコンテキストメニュー表示（ローカル/リモート/HEAD で項目を分ける）。削除操作は不可逆のため確認ダイアログを表示する（B-002 準拠） | 推奨  | FR_509         |
 | FR-010 | ブランチ操作ヘッダーのボタンをアイコンのみ + Tooltip に変更                     | 任意  | FR_510         |
-| FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる | 推奨  | FR_511         |
+| FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる。hard リセットは不可逆操作のため視覚的警告を表示する（B-002 準拠） | 推奨  | FR_511         |
 
 # 4. API
 
@@ -63,14 +63,7 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 
 ## 4.2. 状態管理
 
-コンフリクト解決のオーバーレイ表示は RepositoryDetailPanel 内のローカル state で管理:
-
-```typescript
-const [conflictState, setConflictState] = useState<{
-    active: boolean
-    operationType: 'merge' | 'rebase' | 'cherry-pick'
-} | null>(null)
-```
+コンフリクト解決のオーバーレイ表示の状態は RepositoryDetailPanel が保持する。状態は「アクティブか否か」と「操作種別（merge / rebase / cherry-pick）」の 2 要素で構成される。具体的な実装は [ui-integration-advanced-git-operations_design.md](./ui-integration-advanced-git-operations_design.md) を参照。
 
 # 5. 用語集
 

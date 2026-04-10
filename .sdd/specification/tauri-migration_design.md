@@ -300,41 +300,38 @@ export function installElectronShim(): void {
 
 ### 4.3.4. Rust 側 `AppState`（`src-tauri/src/state.rs`）
 
-> **注記**: 実装の `AppState` は `Arc<dyn Trait>` ベースの UseCase フィールドではなく、各 Repository trait object (`Arc<dyn XxxRepository>`) を直接保持し、command 関数内で UseCase を都度構築する方式を採用している。これにより `AppState::new` の引数が簡潔になり、Repository の追加・変更時の影響範囲が小さくなる。
-
 ```rust
 use std::sync::Arc;
 use tauri::AppHandle;
-use crate::features::application_foundation::application::usecases::*;
-use crate::features::worktree_management::application::usecases::*;
-// ... 他 feature の UseCase
+use crate::features::application_foundation::application::repositories::*;
+use crate::features::worktree_management::application::repositories::*;
+// ... 他 feature の Repository trait
 
 pub struct AppState {
     pub app_handle: AppHandle,
-    // application-foundation
-    pub open_repository_dialog_usecase: Arc<OpenRepositoryWithDialogUseCase>,
-    pub open_repository_by_path_usecase: Arc<OpenRepositoryByPathUseCase>,
-    pub get_recent_repositories_usecase: Arc<GetRecentRepositoriesUseCase>,
-    // ... 全 75 command に対応する UseCase
+    pub store_repo: Arc<dyn StoreRepository>,
+    pub git_validation_repo: Arc<dyn GitValidationRepository>,
+    pub dialog_repo: Arc<dyn DialogRepository>,
+    pub git_advanced_repo: Arc<dyn GitAdvancedRepository>,
+    pub claude_repo: Arc<dyn ClaudeRepository>,
+    pub git_write_repo: Arc<dyn GitWriteRepository>,
+    pub git_read_repo: Arc<dyn GitReadRepository>,
+    pub worktree_repo: Arc<dyn WorktreeGitRepository>,
 }
 
 impl AppState {
     pub fn new(app_handle: AppHandle) -> anyhow::Result<Self> {
-        // 各 Repository と UseCase を配線
+        // 各 Repository を構築
         let store_repo: Arc<dyn StoreRepository> = Arc::new(DefaultStoreRepository::new(&app_handle)?);
         let dialog_repo: Arc<dyn DialogRepository> = Arc::new(DefaultDialogRepository::new(&app_handle));
-        let git_validation: Arc<dyn GitValidationRepository> = Arc::new(DefaultGitValidationRepository);
-
-        let open_repository_dialog_usecase = Arc::new(OpenRepositoryWithDialogUseCase::new(
-            store_repo.clone(),
-            dialog_repo.clone(),
-            git_validation.clone(),
-        ));
+        let git_validation_repo: Arc<dyn GitValidationRepository> = Arc::new(DefaultGitValidationRepository);
         // ... 以下同様
 
         Ok(Self {
             app_handle,
-            open_repository_dialog_usecase,
+            store_repo,
+            git_validation_repo,
+            dialog_repo,
             // ...
         })
     }
@@ -408,7 +405,7 @@ pub type AppResult<T> = Result<T, AppError>;
 2. `npx tauri init` → `src-tauri/` スキャフォールド
 3. `src-tauri/Cargo.toml` に必要 crate 追加: `tauri`, `tauri-plugin-dialog`, `tauri-plugin-store`, `serde`, `thiserror`, `tokio (full)`, `notify 6`, `notify-debouncer-full`, `anyhow`, `uuid`, `chrono`, `async-trait`, `tracing`, `mockall` (dev)
 4. `src-tauri/src/main.rs` + `src/lib.rs` の雛形、`error.rs`, `state.rs`（空）、`git/` サブモジュール配置
-5. `src-tauri/tauri.conf.json` 作成（window 1280x800, CSP `script-src 'self' 'unsafe-eval'; worker-src blob:`、identifier `com.toshikiimagawa.buruma`）
+5. `src-tauri/tauri.conf.json` 作成（window 1280x800, CSP `default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src blob:`、identifier `com.toshikiimagawa.buruma`）
 6. `src-tauri/capabilities/default.json` 作成（最小限: `core:default`, `dialog:default`, `dialog:allow-open`, `store:default`）
 7. **ディレクトリ再配置（Option B）**:
    - `src/processes/renderer/index.tsx` → `src/main.tsx`
@@ -679,7 +676,7 @@ vi.mock('@tauri-apps/api/event', () => ({
 |------|--------|----------|
 | electron-store データの移行 | 中 | 初回起動時に旧ディレクトリ（`~/Library/Application Support/Buruma/config.json`）から新 store (`com.toshikiimagawa.buruma/buruma-config.json`) へコピーするマイグレーション実装を Phase IB で追加検討 |
 | macOS `.app` 起動時の PATH 問題 | 中 | 起動時に `/bin/zsh -lc 'echo $PATH'` で完全 PATH を取得し、`Command::env("PATH", ...)` で明示設定（Phase IG で対応） |
-| Monaco Editor の WebWorker | 低 | `tauri.conf.json` の CSP で `script-src 'self' 'unsafe-eval'; worker-src blob:` を設定済み。Phase IA の疎通確認時に動作検証 |
+| Monaco Editor の WebWorker | 低 | `tauri.conf.json` の CSP で `default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src blob:` を設定済み。Phase IA の疎通確認時に動作検証 |
 | VContainer の Tauri 環境動作 | 低 | 純粋 TypeScript なので基本的に動作するはず。Phase IA で検証 |
 | `specta` + `tauri-specta` の導入時期 | 低 | Phase 1 は手動同期で進め、Phase 2 以降で必要に応じて導入 |
 | `tauri-plugin-updater` の導入 | 低 | Phase IH 以降の別マイルストーン |

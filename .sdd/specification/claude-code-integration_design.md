@@ -180,7 +180,7 @@ graph TD
 interface InternalSession {
   worktreePath: string;
   status: SessionStatus;
-  process: ChildProcess | null; // Node.js ChildProcess インスタンス
+  process: unknown | null; // Rust 側: tokio::process::Child を Arc<Mutex<Option<Child>>> で保持
   pid: number | null;
   startedAt: string | null;
   error: string | null;
@@ -209,7 +209,7 @@ interface GenerateCommitMessageArgs {
 
 ```typescript
 // src-tauri/src/services/claude-process-manager.ts
-import { ChildProcess, spawn } from 'tokio::process::Command';
+// Rust 側: tokio::process::Command で子プロセスを spawn
 import type { ClaudeSession, ClaudeCommand, ClaudeOutput } from '../../types/claude';
 
 export class ClaudeProcessManager {
@@ -469,31 +469,21 @@ claude: {
   explainDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
     invoke<T>('claude_explain_diff', args),
 
-  // イベント購読
+  // イベント購読（listenEventSync / listenEvent ラッパー経由）
   onOutput: (callback: (output: ClaudeOutput) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, output: ClaudeOutput) => callback(output);
-    await listen('claude-output', handler)  // Tauri;
-    return () => await unlisten()  // Tauri;
+    return listenEventSync<ClaudeOutput>('claude-output', callback)
   },
   onSessionChanged: (callback: (session: ClaudeSession) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, session: ClaudeSession) => callback(session);
-    await listen('claude:session-changed', handler)  // Tauri;
-    return () => await unlisten()  // Tauri;
+    return listenEventSync<ClaudeSession>('claude-session-changed', callback)
   },
   onCommandCompleted: (callback: (data: { worktreePath: string }) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, data: { worktreePath: string }) => callback(data);
-    await listen('claude:command-completed', handler)  // Tauri;
-    return () => await unlisten()  // Tauri;
+    return listenEventSync<{ worktreePath: string }>('claude-command-completed', callback)
   },
   onReviewResult: (callback: (result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => callback(result);
-    await listen('claude:review-result', handler)  // Tauri;
-    return () => await unlisten()  // Tauri;
+    return listenEventSync<{ worktreePath: string; comments: ReviewComment[]; summary: string }>('claude-review-result', callback)
   },
   onExplainResult: (callback: (result: { worktreePath: string; explanation: string }) => void): (() => void) => {
-    const handler = (_event: Electron.IpcRendererEvent, result: { worktreePath: string; explanation: string }) => callback(result);
-    await listen('claude:explain-result', handler)  // Tauri;
-    return () => await unlisten()  // Tauri;
+    return listenEventSync<{ worktreePath: string; explanation: string }>('claude-explain-result', callback)
   },
 },
 ```
@@ -501,25 +491,9 @@ claude: {
 ## 6.6. Webview 側の型定義
 
 ```typescript
-// src/types/electron.d.ts に追加
-interface ElectronAPI {
-  // ... 既存の repository, settings, onError ...
-
-  claude: {
-    startSession(args: { worktreePath: string }): Promise<IPCResult<ClaudeSession>>;
-    stopSession(args: { worktreePath: string }): Promise<IPCResult<void>>;
-    getSession(args: { worktreePath: string }): Promise<IPCResult<ClaudeSession | null>>;
-    getAllSessions(): Promise<IPCResult<ClaudeSession[]>>;
-    sendCommand(command: ClaudeCommand): Promise<IPCResult<void>>;
-    getOutput(args: { worktreePath: string }): Promise<IPCResult<ClaudeOutput[]>>;
-    reviewDiff(args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>>;
-    explainDiff(args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>>;
-    onOutput(callback: (output: ClaudeOutput) => void): () => void;
-    onSessionChanged(callback: (session: ClaudeSession) => void): () => void;
-    onReviewResult(callback: (result: { worktreePath: string; comments: ReviewComment[]; summary: string }) => void): () => void;
-    onExplainResult(callback: (result: { worktreePath: string; explanation: string }) => void): () => void;
-  };
-}
+// Tauri 移行後は不要。invokeCommand / listenEvent ラッパーを使用
+// 各コマンドの型は src/shared/lib/ipc.ts の IPCChannelMap で定義
+// イベントの型は src/shared/lib/ipc.ts の IPCEventMap で定義
 ```
 
 ---
@@ -638,8 +612,6 @@ pub async fn repository_open(
     state.open_repository_dialog_usecase.invoke().await
 }
 ```
-
-> 本 Design Doc の本文中のコード例・アーキテクチャ記述は Phase I の実装移行（IA〜IH）を通じて段階的に Tauri 版に最終化される。現時点では一部に旧 Electron 版の表現が歴史的記録として残る可能性がある。
 
 ---
 
