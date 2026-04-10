@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
 import { cn } from '@lib/utils'
-import { Check, FileEdit, FilePlus, FileX } from 'lucide-react'
+import { Check } from 'lucide-react'
+import { FileChangeIcon } from '@/components/FileChangeIcon'
 import { Separator } from '@/components/ui/separator'
 import { useCommitLogViewModel } from '../use-commit-log-viewmodel'
 import { useMultiFileSelection } from '../use-multi-file-selection'
@@ -72,11 +73,7 @@ export function CommitDetailView({ worktreePath, commitHash, onFileSelect, onSel
                 >
                   {isSelected && <Check className="h-2.5 w-2.5 text-primary-foreground" />}
                 </button>
-                {file.status === 'added' && <FilePlus className="h-3.5 w-3.5 text-green-500" />}
-                {file.status === 'deleted' && <FileX className="h-3.5 w-3.5 text-red-500" />}
-                {file.status !== 'added' && file.status !== 'deleted' && (
-                  <FileEdit className="h-3.5 w-3.5 text-yellow-500" />
-                )}
+                <FileChangeIcon status={file.status} />
                 <button
                   className="flex-1 truncate text-left"
                   onClick={(e) => {

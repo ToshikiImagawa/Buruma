@@ -1,27 +1,12 @@
 import { useEffect } from 'react'
 import type { FileChange } from '@domain'
-import { FileEdit, FilePlus, FileSymlink, FileX } from 'lucide-react'
+import { FileChangeIcon } from '@/components/FileChangeIcon'
 import { Separator } from '@/components/ui/separator'
 import { useStatusViewModel } from '../use-status-viewmodel'
 
 interface StatusViewProps {
   worktreePath: string
   onFileSelect: (filePath: string, staged: boolean) => void
-}
-
-function FileChangeIcon({ status }: { status: string }) {
-  switch (status) {
-    case 'added':
-      return <FilePlus className="h-3.5 w-3.5 text-green-500" />
-    case 'modified':
-      return <FileEdit className="h-3.5 w-3.5 text-yellow-500" />
-    case 'deleted':
-      return <FileX className="h-3.5 w-3.5 text-red-500" />
-    case 'renamed':
-      return <FileSymlink className="h-3.5 w-3.5 text-blue-500" />
-    default:
-      return <FileEdit className="h-3.5 w-3.5 text-muted-foreground" />
-  }
 }
 
 function FileList({
@@ -100,7 +85,7 @@ export function StatusView({ worktreePath, onFileSelect }: StatusViewProps) {
                 className="flex w-full items-center gap-2 rounded px-2 py-1 text-left text-sm hover:bg-accent"
                 onClick={() => onFileSelect(path, false)}
               >
-                <FilePlus className="h-3.5 w-3.5 text-green-500" />
+                <FileChangeIcon status="added" />
                 <span className="truncate">{path}</span>
               </button>
             ))}

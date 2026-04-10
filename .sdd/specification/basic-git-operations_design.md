@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-10"
+updated: "2026-04-11"
 depends-on: ["spec-basic-git-operations"]
 tags: ["git", "staging", "commit", "push", "pull", "branch", "git-cli", "tokio", "tauri-migration"]
 category: "git-operations"
@@ -665,6 +665,12 @@ export const rendererConfigs = [
 ---
 
 # 10. 変更履歴
+
+## v4.1 (2026-04-11)
+
+**コード品質改善（/simplify レビュー）**
+
+- `StagingArea` コンポーネントから `FileChangeIcon` のローカル定義を削除し、`src/components/FileChangeIcon.tsx` の共有コンポーネントに置き換え（repository-viewer の `StatusView` と共有）
 
 ## v4.0 (2026-04-09)
 

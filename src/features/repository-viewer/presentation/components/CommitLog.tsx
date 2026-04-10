@@ -187,7 +187,6 @@ export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function Co
     loadCommits(worktreePath)
   }, [worktreePath, loadCommits])
 
-  // コンテナサイズの取得
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return
@@ -201,7 +200,6 @@ export const CommitLog = forwardRef<CommitLogHandle, CommitLogProps>(function Co
     return () => observer.disconnect()
   }, [])
 
-  // スクロール追跡
   useEffect(() => {
     const el = scrollRef.current
     if (!el) return

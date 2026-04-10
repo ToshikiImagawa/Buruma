@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import type { FileChange } from '@domain'
 import { cn } from '@lib/utils'
-import { Check, ChevronDown, ChevronRight, FileEdit, FilePlus, FileSymlink, FileX, Minus, Plus } from 'lucide-react'
+import { Check, ChevronDown, ChevronRight, Minus, Plus } from 'lucide-react'
+import { FileChangeIcon } from '@/components/FileChangeIcon'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { useMultiFileSelection } from '@/features/repository-viewer/presentation/use-multi-file-selection'
@@ -15,21 +16,6 @@ interface StagingAreaProps {
   onRefresh: () => void
   onFileSelect?: (filePath: string, staged: boolean) => void
   onSelectionChange?: (selectedFiles: Set<string>) => void
-}
-
-function FileChangeIcon({ status }: { status: string }) {
-  switch (status) {
-    case 'added':
-      return <FilePlus className="h-3.5 w-3.5 text-green-500" />
-    case 'modified':
-      return <FileEdit className="h-3.5 w-3.5 text-yellow-500" />
-    case 'deleted':
-      return <FileX className="h-3.5 w-3.5 text-red-500" />
-    case 'renamed':
-      return <FileSymlink className="h-3.5 w-3.5 text-blue-500" />
-    default:
-      return <FileEdit className="h-3.5 w-3.5 text-muted-foreground" />
-  }
 }
 
 export function StagingArea({

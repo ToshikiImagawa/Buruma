@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: [ "spec-repository-viewer" ]
 tags: [ "viewer", "status", "log", "diff", "tauri-migration"]
 category: "viewer"
@@ -196,6 +196,7 @@ graph TD
 | IPC チャネル型定義 | `git_*` 10 チャネルの型定義 | `src/shared/lib/ipc.ts` |
 | GraphLayout 型定義 | ブランチグラフのノード・レーン情報（GraphNode, GraphLayout） | `src/shared/lib/graph/types.ts` |
 | computeGraphLayout | CommitSummary.parents からレーン割り当てを計算するアルゴリズム | `src/shared/lib/graph/compute-graph-layout.ts` |
+| FileChangeIcon | ファイル変更ステータス（added/modified/deleted/renamed）に応じたアイコン表示コンポーネント。StatusView・StagingArea で共有 | `src/components/FileChangeIcon.tsx` |
 | Tauri invoke/listen API | 型安全な git.* API 公開 | （preload 層は Tauri では不要。`@tauri-apps/api` の invoke/listen を直接使用） |
 
 ---
@@ -364,6 +365,14 @@ interface GraphLayout {
 ---
 
 # 10. 変更履歴
+
+## v4.1 (2026-04-11)
+
+**コード品質改善（/simplify レビュー）**
+
+- `FileChangeIcon` を `StatusView.tsx` からローカル定義を削除し、`src/components/FileChangeIcon.tsx` に共有コンポーネントとして抽出（basic-git-operations の `StagingArea` と共有）
+- `RepositoryDetailPanel` の `loadAllDiffs` useEffect から不要な `statusViewMode` 依存を除去（表示モード切替時に同一データの不要な IPC 再取得が発生していたバグを修正）
+- `CommitLog` の不要な WHAT コメント（`// コンテナサイズの取得`、`// スクロール追跡`）を削除
 
 ## v4.0 (2026-04-09)
 

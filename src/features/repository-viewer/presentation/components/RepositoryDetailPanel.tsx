@@ -106,7 +106,7 @@ export function RepositoryDetailPanel() {
     if (worktreePath) {
       loadAllDiffs()
     }
-  }, [statusViewMode, worktreePath, loadAllDiffs])
+  }, [worktreePath, loadAllDiffs])
 
   const handleRefresh = useCallback(() => {
     if (worktreePath) {
