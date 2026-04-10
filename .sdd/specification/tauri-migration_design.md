@@ -34,8 +34,8 @@ risk: "high"
 | Phase P2 | TEMPLATE 3 種の Tauri 版刷新 | 🟢 完了 |
 | Phase P3 | PRD 7 ファイル技術中立化 + `tauri-migration.md` 作成 | 🟢 完了 |
 | Phase P4 | Spec 7 ファイル刷新 + `tauri-migration_spec.md` 作成 | 🟢 完了 |
-| Phase P5 | Design 7 ファイル刷新 + 本ファイル作成 | 🟢 完了（本コミット） |
-| Phase P6 | Phase P 全体検証 | 🔴 未着手 |
+| Phase P5 | Design 7 ファイル刷新 + 本ファイル作成 | 🟢 完了 |
+| Phase P6 | Phase P 全体検証 | 🟢 完了 |
 | Phase IA | Tauri 初期化 + ディレクトリ再配置 + 疎通確認 | 🔴 未着手 |
 | Phase IB | application-foundation feature 移行 | 🔴 未着手 |
 | Phase IC | worktree-management feature 移行 | 🔴 未着手 |
@@ -311,7 +311,7 @@ pub struct AppState {
     pub open_repository_dialog_usecase: Arc<OpenRepositoryWithDialogUseCase>,
     pub open_repository_by_path_usecase: Arc<OpenRepositoryByPathUseCase>,
     pub get_recent_repositories_usecase: Arc<GetRecentRepositoriesUseCase>,
-    // ... 全 77 command に対応する UseCase
+    // ... 全 75 command に対応する UseCase
 }
 
 impl AppState {
