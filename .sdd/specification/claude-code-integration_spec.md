@@ -40,6 +40,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 3. **コードレビュー** — 差分を Claude Code に送信し、レビューコメントを取得・表示（FR_503）
 4. **差分解説** — コミット/ブランチ間の差分内容を Claude Code に解説させる（FR_504）
 5. **セッション出力表示** — Claude Code の出力をリアルタイムでストリーミング表示（FR_505）
+6. **AI コンフリクト解決** — マージ・リベース時のコンフリクトを Claude Code に解決させ、結果をプレビュー・適用（FR_506）
 
 すべてのサブシステムは Tauri のアーキテクチャ（Webview / Tauri Core）に準拠し、Claude Code CLI は Tauri Core (Rust) から `tokio::process::Command` 経由でサブプロセスとして実行される（DC_501）。Webview から直接 OS のプロセス実行 API を使用してはならない（DC_503）。各ワークツリーのセッションは独立しており、コンテキストを共有しない（DC_502）。
 
@@ -72,6 +73,12 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | FR-021 | ANSI カラーコードを解釈・レンダリングする | 推奨 | FR_505_02 |
 | FR-022 | 出力のスクロール制御（自動スクロール ON/OFF）を提供する | 推奨 | FR_505_03 |
 | FR-023 | 出力テキストの検索機能を提供する | 推奨 | FR_505_04 |
+| FR-024 | コンフリクトファイルの内容（base/ours/theirs）を Claude Code にワンショット送信し、merged 結果を取得する | 推奨 | FR_506 (FR_506_01) |
+| FR-025 | AI が生成した merged 結果を ThreeWayMergeView の merged ペインにプレビュー表示する | 推奨 | FR_506 (FR_506_02) |
+| FR-026 | プレビュー表示された解決案を承認（適用 + 解決済みマーク）または拒否（元の状態に戻す）できる | 推奨 | FR_506 (FR_506_03) |
+| FR-027 | 全コンフリクトファイルを並列で AI に送信し一括解決する「AI で全て解決」ボタンをコンフリクトファイル一覧ヘッダーに提供する。プログレスバーで進捗を表示する。一部ファイルの解決が失敗した場合、他ファイルの処理は継続し、失敗ファイルはエラー状態として個別に表示する | 推奨 | FR_506 (FR_506_04) |
+| FR-028 | 各コンフリクトファイル行に「AI 解決」ボタンを提供し、個別ファイル単位で AI 解決を実行できる | 推奨 | FR_506 (FR_506_04) |
+| FR-029 | AI 解決案の承認後も ThreeWayMergeView のエディタで手動微調整が可能である | 推奨 | FR_506 (FR_506_05) |
 
 ## 3.2. 非機能要件 (Non-Functional Requirements)
 
@@ -128,7 +135,13 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude_review_diff` | 差分を Claude Code に送信しレビューを取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `void` |
 | `claude_explain_diff` | 差分を Claude Code に送信し解説を取得する | `{ worktreePath: string; diffTarget: DiffTarget }` | `void` |
 
-### 4.1.7. イベント通知（Events, Core → Webview `emit` / `listen`）
+### 4.1.7. AI コンフリクト解決（Commands, Webview → Core `invoke`）
+
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_resolve_conflict` | 単一コンフリクトファイルを AI で解決する（ワンショット実行） | `ConflictResolveRequest` | `void` |
+
+### 4.1.8. イベント通知（Events, Core → Webview `emit` / `listen`）
 
 | Event 名 | 概要 | ペイロード |
 |---------|------|-----------|
@@ -137,6 +150,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude-command-completed` | コマンド実行が完了した | `{ worktreePath: string }` |
 | `claude-review-result` | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
 | `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
+| `claude-conflict-resolved` | AI コンフリクト解決結果が返された | `ConflictResolveResult` |
 
 > **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEvent<T>` を使用する。
 
@@ -217,6 +231,37 @@ interface ReviewComment {
 
 type ReviewSeverity = 'info' | 'warning' | 'error';
 
+// AI コンフリクト解決リクエスト
+interface ConflictResolveRequest {
+  worktreePath: string;          // ワークツリーパス
+  filePath: string;              // コンフリクトファイルのパス
+  threeWayContent: ThreeWayContent; // base/ours/theirs の内容（advanced-git-operations の既存型を再利用）
+}
+
+// AI コンフリクト解決結果（discriminated union）
+type ConflictResolveResult =
+  | {
+      worktreePath: string;
+      filePath: string;
+      status: 'resolved';
+      mergedContent: string;     // AI が生成したマージ結果（必須）
+    }
+  | {
+      worktreePath: string;
+      filePath: string;
+      status: 'failed';
+      error: string;             // エラーメッセージ（必須）
+    };
+
+// ThreeWayContent は src/domain/ に配置する共有型（feature 間直接参照回避のため domain 層に配置）
+// advanced-git-operations と claude-code-integration の両方から参照する
+// interface ThreeWayContent {
+//   base: string;    // 共通祖先
+//   ours: string;    // 自分の変更
+//   theirs: string;  // 相手の変更
+//   merged: string;  // 現在のマージ結果
+// }
+
 // IPC 通信の統一レスポンス型（application-foundation_spec から再利用）
 type IPCResult<T> =
   | { success: true; data: T }
@@ -239,6 +284,8 @@ interface IPCError {
 | ストリーミング表示 | サブプロセスの stdout/stderr 出力を Tauri イベントでリアルタイムに Webview へ逐次送信・表示すること |
 | CWD | Current Working Directory。子プロセスの作業ディレクトリ。ワークツリーのパスを設定する |
 | DiffTarget | レビューまたは解説対象の差分を指定する型。作業ツリー差分、コミット間、ブランチ間を区別する |
+| ThreeWayContent | コンフリクトの3者内容（base/ours/theirs/merged）。`advanced-git-operations` で定義された既存型 |
+| AI コンフリクト解決 | コンフリクトファイルの base/ours/theirs を Claude Code に送信し、AI が生成した merged 結果を適用する機能 |
 
 # 6. 使用例
 
@@ -387,6 +434,81 @@ sequenceDiagram
     Webview ->> Webview: ReviewCommentList に表示
 ```
 
+## 7.4. AI コンフリクト解決フロー（単一ファイル）
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant Resolver as ConflictResolver
+    participant VM as ConflictViewModel
+    participant UseCase as UseCase
+    participant Invoke as invokeCommand (Repository)
+    participant Core as Tauri Core (Rust)
+    participant CLI as Claude Code CLI<br/>(ワンショット)
+
+    User ->> Resolver: 「AI 解決」ボタンクリック（特定ファイル）
+    Resolver ->> VM: resolveConflictWithAI(filePath)
+    VM ->> UseCase: AIConflictResolveUseCase.invoke({ filePath, threeWayContent })
+    UseCase ->> Invoke: invokeCommand('claude_resolve_conflict', { worktreePath, filePath, threeWayContent })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Core: 構造化プロンプトを生成（base/ours/theirs + ファイルパス + コンテキスト）
+    Core ->> CLI: tokio::process::Command: claude -p "<コンフリクト解決プロンプト>"
+
+    loop ストリーミング出力
+        CLI ->> Core: stdout データ（tokio::io::BufReader）
+        Core ->> Core: ClaudeOutputParser で解析
+    end
+
+    Core ->> Core: merged 結果を抽出
+    Core -->> Invoke: Ok(())
+    Core ->> VM: app_handle.emit('claude-conflict-resolved', ConflictResolveResult)
+    VM -->> Resolver: Observable で通知
+
+    Note over Resolver: merged ペインにプレビュー表示
+
+    alt ユーザーが承認
+        User ->> Resolver: 「適用」ボタン
+        Resolver ->> VM: applyResolvedContent(filePath, mergedContent)
+        VM ->> UseCase: ConflictResolveUseCase.invoke({ filePath, mergedContent })
+        UseCase ->> Invoke: invokeCommand('git_conflict_resolve', { worktreePath, filePath, resolution: { type: 'Manual', content: mergedContent } })
+        Note over Resolver: 解決済みマーク。その後も手動微調整可能
+    else ユーザーが拒否
+        User ->> Resolver: 「拒否」ボタン
+        Resolver ->> Resolver: プレビューを破棄し元の状態に戻す
+    end
+```
+
+## 7.5. AI コンフリクト一括解決フロー
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant Resolver as ConflictResolver
+    participant VM as ConflictViewModel
+    participant Invoke as invokeCommand (Repository)
+    participant Core as Tauri Core (Rust)
+
+    User ->> Resolver: 「AI で全て解決」ボタンクリック
+    Resolver ->> VM: resolveAllConflictsWithAI()
+    VM ->> VM: 全コンフリクトファイルリストを取得
+
+    par 並列実行（各ファイル）
+        VM ->> Invoke: invokeCommand('claude_resolve_conflict', { file1 })
+        VM ->> Invoke: invokeCommand('claude_resolve_conflict', { file2 })
+        VM ->> Invoke: invokeCommand('claude_resolve_conflict', { fileN })
+    end
+
+    Note over Resolver: プログレスバー表示（完了数 / 全体数）
+
+    loop 各ファイルの結果受信
+        Core ->> VM: app_handle.emit('claude-conflict-resolved', result)
+        VM -->> Resolver: Observable で通知
+        Resolver ->> Resolver: 該当ファイルの merged ペインにプレビュー表示
+    end
+
+    Note over User, Resolver: 各ファイルのプレビューを個別に承認/拒否
+```
+
 # 8. 制約事項
 
 - Claude Code CLI は Tauri Core (Rust) のサブプロセスとしてのみ実行する（DC_501、原則 A-001）
@@ -397,6 +519,10 @@ sequenceDiagram
 - IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一する（[application-foundation_spec.md](./application-foundation_spec.md) の FR-011〜FR-013）
 - ストリーミング出力は `app_handle.emit` / `listen` による Tauri イベント通知パターンで送信する（FR-013）
 - Git 操作委譲時は実行前確認を必須とする（原則 B-002: Git 操作の安全性）
+- AI コンフリクト解決はワンショット実行（`claude -p`）で行い、ライブセッションは使用しない
+- AI コンフリクト解決の UI ボタンは `advanced-git-operations` の ConflictResolver コンポーネントに追加する（[advanced-git-operations_spec.md](./advanced-git-operations_spec.md) FR_405_08 参照）
+- AI 解決案は必ずプレビュー表示し、ユーザーの承認を経てから適用する（原則 B-002: Git 操作の安全性）
+- コンフリクト情報（ThreeWayContent）は `advanced-git-operations` の既存 `git_conflict_file_content` IPC で取得した結果を使用する
 
 ---
 
@@ -440,5 +566,12 @@ sequenceDiagram
 | DC_502 | 制約事項 + セッション分離設計 | 対応済み |
 | DC_503 | 制約事項（Webview から OS プロセス実行 API 直接使用禁止） | 対応済み |
 | NFR_501 | NFR-001（セッション起動時間 30秒以内） | 対応済み |
+| UR_505 | FR-024〜FR-029 + `claude_resolve_conflict` API + 振る舞い図 7.4, 7.5 | 対応済み |
+| FR_506 | FR-024〜FR-029（AI コンフリクト解決の6機能要件） | 対応済み |
+| FR_506_01 | FR-024 + ConflictResolveRequest 型（ThreeWayContent 送信） | 対応済み |
+| FR_506_02 | FR-025（ThreeWayMergeView merged ペインにプレビュー表示） | 対応済み |
+| FR_506_03 | FR-026（承認/拒否の選択） | 対応済み |
+| FR_506_04 | FR-027, FR-028（一括解決 + 個別解決ボタン） | 対応済み |
+| FR_506_05 | FR-029（承認後の手動微調整サポート） | 対応済み |
 | claude_check_auth / claude_login / claude_logout | セクション 4.1.4（認証管理）| PRD スコープ外の追加設計（CLI 認証状態確認） |
 | claude_generate_commit_message | セクション 4.1.5（コミットメッセージ生成）| PRD スコープ外の追加設計（UR_503 の延長） |

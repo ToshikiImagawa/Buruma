@@ -62,7 +62,38 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 | RepositoryDetailPanel | `src/features/repository-viewer/presentation/components/RepositoryDetailPanel.tsx` | Refs タブ（Stash/Tags 統合）追加、コンフリクトオーバーレイ状態管理 |
 | BranchOperations      | `src/features/basic-git-operations/presentation/components/branch-operations.tsx`  | マージ・リベースボタン追加                    |
 
-## 4.2. 状態管理
+## 4.2. RebaseEditor の変更（FR-012）
+
+RebaseEditor ダイアログを 2 ステップ形式に変更する。
+
+### Props 変更
+
+```typescript
+interface RebaseEditorProps {
+  worktreePath: string;
+  // 追加: onto がプリセットされている場合（コンテキストメニュー経由）
+  initialOnto?: string;
+  onConflict?: () => void;
+  onComplete?: () => void;
+}
+```
+
+### 2 ステップフロー
+
+| ステップ | 表示内容 | 遷移条件 |
+|:--------|:---------|:---------|
+| Step 1: onto 選択 | Combobox でローカル/リモートブランチをグループラベル（Local / Remote）分離表示。テキスト入力でリアルタイムフィルタリング | ブランチ選択後に Step 2 へ遷移 |
+| Step 2: コミット一覧 | 既存の RebaseEditor の動作（コミット一覧、pick/squash/drop 等の操作） | リベース実行またはキャンセル |
+
+### コンテキストメニュー連携
+
+ブランチコンテキストメニュー（FR-009）から「このブランチへリベース」を選択した場合、`initialOnto` に対象ブランチ名がセットされる。この場合 Step 1 をスキップし、Step 2（コミット一覧）から直接開始する。
+
+### ブランチ一覧取得
+
+`src/lib/ipc.ts` の `IPCChannelMap` に登録済みの `git_branches` コマンド（`basic-git-operations` で定義）を再利用する。新規 IPC コマンドは追加しない。同様に `git_rebase_get_commits`（`advanced-git-operations` で定義）も既存のものをそのまま使用する。
+
+## 4.3. 状態管理
 
 コンフリクト解決のオーバーレイ表示の状態は RepositoryDetailPanel が保持する。状態は「アクティブか否か」と「操作種別（merge / rebase / cherry-pick）」の 2 要素で構成される。具体的な実装は [ui-integration-advanced-git-operations_design.md](./ui-integration-advanced-git-operations_design.md) を参照。
 
@@ -72,8 +103,82 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 |-----------------------|------------------------------|
 | RepositoryDetailPanel | メインコンテンツ領域。タブでリポジトリの各情報を表示する |
 | オーバーレイ                | 通常のタブ表示を隠して全面表示するパネル         |
+| Combobox              | テキスト入力とドロップダウン一覧を組み合わせた選択UI。shadcn/ui の Combobox コンポーネントを使用 |
+| 2ステップフロー             | RebaseEditor ダイアログの Step 1（onto 選択）→ Step 2（コミット一覧）の遷移パターン |
 
-# 6. 制約事項
+# 6. 振る舞い図
+
+## 6.1. RebaseEditor 2 ステップフロー（FR-012）
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant BranchOps as BranchOperations
+    participant Rebase as RebaseEditor
+    participant VM as RebaseViewModel
+    participant Invoke as invokeCommand (Repository)
+    participant Core as Tauri Core (Rust)
+
+    User ->> BranchOps: リベースボタンクリック
+    BranchOps ->> Rebase: open=true, initialOnto=undefined
+
+    Note over Rebase: Step 1: onto 選択
+    Rebase ->> VM: ブランチ一覧を要求
+    VM ->> Invoke: invokeCommand<BranchList>('git_branches', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core -->> Invoke: Ok(BranchList)
+    Invoke -->> VM: ローカル/リモートブランチ一覧
+    VM -->> Rebase: Observable で通知
+    Rebase ->> Rebase: Combobox 表示（Local/Remote グループ、フィルタリング）
+    User ->> Rebase: ブランチを選択
+
+    Note over Rebase: Step 2: コミット一覧
+    Rebase ->> VM: コミット一覧を要求
+    VM ->> Invoke: invokeCommand('git_rebase_get_commits', { worktreePath, onto })
+    Invoke ->> Core: Tauri IPC
+    Core -->> Invoke: Ok(Vec<RebaseStep>)
+    Invoke -->> VM: コミット一覧
+    VM -->> Rebase: Observable で通知
+    User ->> Rebase: コミット操作（pick/squash/drop 等）
+    User ->> Rebase: リベース実行
+
+    alt コンフリクト発生
+        Rebase ->> Rebase: onConflict() → ConflictResolver に遷移（FR-005 参照）
+    end
+```
+
+## 6.2. コンテキストメニューからのリベース起動（FR-009 + FR-012 連携）
+
+```mermaid
+sequenceDiagram
+    participant User as ユーザー
+    participant CtxMenu as ブランチコンテキストメニュー
+    participant BranchOps as BranchOperations
+    participant Rebase as RebaseEditor
+    participant VM as RebaseViewModel
+    participant Invoke as invokeCommand (Repository)
+    participant Core as Tauri Core (Rust)
+
+    User ->> CtxMenu: ブランチ右クリック → 「このブランチへリベース」
+    CtxMenu ->> BranchOps: rebaseTargetBranch = 選択ブランチ名
+    BranchOps ->> Rebase: open=true, initialOnto=選択ブランチ名
+
+    Note over Rebase: Step 1 をスキップ（initialOnto がプリセット済み）
+    Note over Rebase: Step 2: コミット一覧から直接開始
+    Rebase ->> VM: コミット一覧を要求
+    VM ->> Invoke: invokeCommand('git_rebase_get_commits', { worktreePath, onto: initialOnto })
+    Invoke ->> Core: Tauri IPC
+    Core -->> Invoke: Ok(Vec<RebaseStep>)
+    Invoke -->> VM: コミット一覧
+    VM -->> Rebase: Observable で通知
+    User ->> Rebase: コミット操作 → リベース実行
+
+    alt コンフリクト発生
+        Rebase ->> Rebase: onConflict() → ConflictResolver に遷移（FR-005 参照）
+    end
+```
+
+# 7. 制約事項
 
 - 既存の 5 タブ（Info, Status, Commits, Branches, Files）の動作を変更しない
 - 新コンポーネントの作成は最小限（統合ロジックのみ）
@@ -96,4 +201,4 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 | FR_709    | FR-009（ブランチコンテキストメニュー）        | 対応済み  |
 | FR_710    | FR-010（アイコンのみツールバー）           | 対応済み  |
 | FR_711    | FR-011（コミットリセット）               | 対応済み  |
-| FR_712    | -                             | 未対応   |
+| FR_712    | FR-012 + RebaseEditor 2ステップフロー（4.2節）+ 振る舞い図 6.1, 6.2 | 対応済み  |
