@@ -2,8 +2,8 @@ import type { BranchList, InteractiveRebaseOptions, RebaseOptions, RebaseResult,
 import type { Observable } from 'rxjs'
 import type {
   GetAdvancedOperationLoadingUseCase,
-  GetBranchesRendererUseCase,
   GetRebaseCommitsRendererUseCase,
+  GetTrackedBranchesRendererUseCase,
   RebaseAbortRendererUseCase,
   RebaseContinueRendererUseCase,
   RebaseInteractiveRendererUseCase,
@@ -30,7 +30,7 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
     private readonly rebaseAbortUseCase: RebaseAbortRendererUseCase,
     private readonly rebaseContinueUseCase: RebaseContinueRendererUseCase,
     private readonly getRebaseCommitsUseCase: GetRebaseCommitsRendererUseCase,
-    private readonly getBranchesUseCase: GetBranchesRendererUseCase,
+    private readonly getTrackedBranchesUseCase: GetTrackedBranchesRendererUseCase,
     getOperationLoadingUseCase: GetAdvancedOperationLoadingUseCase,
   ) {
     this.loading$ = getOperationLoadingUseCase.store
@@ -85,7 +85,7 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
   }
 
   fetchBranches(worktreePath: string): void {
-    this.getBranchesUseCase
+    this.getTrackedBranchesUseCase
       .invoke(worktreePath)
       .then((branchList) => {
         this._branches$.next(branchList)

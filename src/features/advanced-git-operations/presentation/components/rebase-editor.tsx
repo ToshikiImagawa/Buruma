@@ -21,7 +21,7 @@ interface RebaseEditorProps {
   onComplete?: () => void
 }
 
-type RebaseStep_UI = 'select-onto' | 'edit-commits'
+type RebaseEditorStep = 'select-onto' | 'edit-commits'
 
 const REBASE_ACTIONS: RebaseAction[] = ['pick', 'squash', 'fixup', 'edit', 'drop']
 
@@ -87,7 +87,7 @@ export function RebaseEditor({
     fetchBranches,
   } = useRebaseViewModel()
 
-  const [step, setStep] = useState<RebaseStep_UI>(initialOnto ? 'edit-commits' : 'select-onto')
+  const [step, setStep] = useState<RebaseEditorStep>(initialOnto ? 'edit-commits' : 'select-onto')
   const [selectedOnto, setSelectedOnto] = useState(initialOnto ?? '')
   const [editedSteps, setEditedSteps] = useState<RebaseStep[]>([])
 
@@ -115,7 +115,10 @@ export function RebaseEditor({
     }
   }, [rebaseCommits])
 
-  const currentSteps = editedSteps.length > 0 ? editedSteps : rebaseCommits
+  const currentSteps = useMemo(
+    () => (editedSteps.length > 0 ? editedSteps : rebaseCommits),
+    [editedSteps, rebaseCommits],
+  )
 
   const localBranches = useMemo(() => (branches ? branches.local.filter((b) => !b.isHead) : []), [branches])
   const remoteBranches = useMemo(() => (branches ? branches.remote : []), [branches])

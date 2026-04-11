@@ -46,7 +46,7 @@ priority: "high"
 
 | # | タスク | 説明 | 完了条件 | 依存 |
 |:---|:---|:---|:---|:---|
-| 2.1 | RebaseViewModel 拡張 + DI 登録 | `RebaseViewModel` IF に `branches$: Observable<BranchList \| null>` と `fetchBranches(worktreePath: string): void` を追加。`RebaseDefaultViewModel` に実装を追加。`di-tokens.ts` に `GetBranchesRendererUseCaseToken` を追加。`di-config.ts` に UseCase と Repository の DI 登録を追加 | `useRebaseViewModel()` から `branches` と `fetchBranches` が取得でき、呼び出し時にブランチ一覧が Observable で通知されること | 1.2 |
+| 2.1 | RebaseViewModel 拡張 + DI 登録 | `RebaseViewModel` IF に `branches$: Observable<BranchList \| null>` と `fetchBranches(worktreePath: string): void` を追加。`RebaseDefaultViewModel` に実装を追加。`di-tokens.ts` に `GetTrackedBranchesRendererUseCaseToken` を追加。`di-config.ts` に UseCase と Repository の DI 登録を追加 | `useRebaseViewModel()` から `branches` と `fetchBranches` が取得でき、呼び出し時にブランチ一覧が Observable で通知されること | 1.2 |
 | 2.2 | RebaseEditor 2ステップ化 + Dialog 化 | `rebase-editor.tsx` を改修。(1) Dialog でラップ（`open` / `onOpenChange` Props 追加）。(2) 内部 state `step: 'select-onto' \| 'edit-commits'` で表示切替。(3) Step 1: BranchCombobox で onto 選択。(4) Step 2: 既存コミット一覧 UI。(5) `initialOnto` 指定時は Step 1 スキップ。(6) Props から `branches` と `currentBranch` を削除し ViewModel 経由に変更 | Dialog が開閉でき、Step 1 でブランチ選択→ Step 2 でコミット一覧が表示されること。initialOnto 指定時に Step 2 から直接開始すること | 1.1, 2.1 |
 
 ### Phase 3: 統合

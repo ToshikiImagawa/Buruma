@@ -434,25 +434,27 @@ export function BranchOperations({
           defaultTargetBranch={mergeTargetBranch}
         />
 
-        <RebaseEditor
-          worktreePath={worktreePath}
-          initialOnto={rebaseTargetBranch}
-          open={rebaseOpen}
-          onOpenChange={(open) => {
-            setRebaseOpen(open)
-            if (!open) setRebaseTargetBranch(undefined)
-          }}
-          onConflict={() => {
-            setRebaseOpen(false)
-            setRebaseTargetBranch(undefined)
-            onConflict?.('rebase')
-          }}
-          onComplete={() => {
-            setRebaseOpen(false)
-            setRebaseTargetBranch(undefined)
-            onRefresh()
-          }}
-        />
+        {rebaseOpen && (
+          <RebaseEditor
+            worktreePath={worktreePath}
+            initialOnto={rebaseTargetBranch}
+            open={rebaseOpen}
+            onOpenChange={(open) => {
+              setRebaseOpen(open)
+              if (!open) setRebaseTargetBranch(undefined)
+            }}
+            onConflict={() => {
+              setRebaseOpen(false)
+              setRebaseTargetBranch(undefined)
+              onConflict?.('rebase')
+            }}
+            onComplete={() => {
+              setRebaseOpen(false)
+              setRebaseTargetBranch(undefined)
+              onRefresh()
+            }}
+          />
+        )}
       </div>
     </TooltipProvider>
   )

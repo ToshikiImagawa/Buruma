@@ -57,7 +57,7 @@ export type GetRebaseCommitsRendererUseCase = FunctionUseCase<
   { worktreePath: string; onto: string },
   Promise<RebaseStep[]>
 >
-export type GetBranchesRendererUseCase = FunctionUseCase<string, Promise<BranchList>>
+export type GetTrackedBranchesRendererUseCase = FunctionUseCase<string, Promise<BranchList>>
 
 // スタッシュ
 export type StashSaveRendererUseCase = ConsumerUseCase<StashSaveOptions>
@@ -118,7 +118,9 @@ export const RebaseContinueRendererUseCaseToken = createToken<RebaseContinueRend
 export const GetRebaseCommitsRendererUseCaseToken = createToken<GetRebaseCommitsRendererUseCase>(
   'GetRebaseCommitsRendererUseCase',
 )
-export const GetBranchesRendererUseCaseToken = createToken<GetBranchesRendererUseCase>('GetBranchesRendererUseCase')
+export const GetTrackedBranchesRendererUseCaseToken = createToken<GetTrackedBranchesRendererUseCase>(
+  'GetTrackedBranchesRendererUseCase',
+)
 
 // スタッシュ
 export const StashSaveRendererUseCaseToken = createToken<StashSaveRendererUseCase>('StashSaveRendererUseCase')

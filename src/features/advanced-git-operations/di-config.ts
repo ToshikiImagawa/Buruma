@@ -7,12 +7,12 @@ import { ConflictListUseCase } from './application/usecases/conflict-list-usecas
 import { ConflictMarkResolvedUseCase } from './application/usecases/conflict-mark-resolved-usecase'
 import { ConflictResolveAllUseCase } from './application/usecases/conflict-resolve-all-usecase'
 import { ConflictResolveUseCase } from './application/usecases/conflict-resolve-usecase'
-import { GetBranchesUseCase } from './application/usecases/get-branches-usecase'
 import { GetCurrentOperationUseCase } from './application/usecases/get-current-operation-usecase'
 import { GetLastErrorUseCase } from './application/usecases/get-last-error-usecase'
 import { GetOperationLoadingUseCase } from './application/usecases/get-operation-loading-usecase'
 import { GetOperationProgressUseCase } from './application/usecases/get-operation-progress-usecase'
 import { GetRebaseCommitsUseCase } from './application/usecases/get-rebase-commits-usecase'
+import { GetTrackedBranchesUseCase } from './application/usecases/get-tracked-branches-usecase'
 import { MergeAbortUseCase } from './application/usecases/merge-abort-usecase'
 import { MergeStatusUseCase } from './application/usecases/merge-status-usecase'
 // UseCases
@@ -48,8 +48,8 @@ import {
   GetAdvancedLastErrorUseCaseToken,
   GetAdvancedOperationLoadingUseCaseToken,
   GetAdvancedOperationProgressUseCaseToken,
-  GetBranchesRendererUseCaseToken,
   GetRebaseCommitsRendererUseCaseToken,
+  GetTrackedBranchesRendererUseCaseToken,
   MergeAbortRendererUseCaseToken,
   MergeRendererUseCaseToken,
   MergeStatusRendererUseCaseToken,
@@ -104,7 +104,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
       .registerSingleton(RebaseAbortRendererUseCaseToken, RebaseAbortUseCase, REPO_AND_SERVICE)
       .registerSingleton(RebaseContinueRendererUseCaseToken, RebaseContinueUseCase, REPO_AND_SERVICE)
       .registerSingleton(GetRebaseCommitsRendererUseCaseToken, GetRebaseCommitsUseCase, REPO_AND_SERVICE)
-      .registerSingleton(GetBranchesRendererUseCaseToken, GetBranchesUseCase, REPO_AND_SERVICE)
+      .registerSingleton(GetTrackedBranchesRendererUseCaseToken, GetTrackedBranchesUseCase, REPO_AND_SERVICE)
       // スタッシュ
       .registerSingleton(StashSaveRendererUseCaseToken, StashSaveUseCase, REPO_AND_SERVICE)
       .registerSingleton(StashListRendererUseCaseToken, StashListUseCase, REPO_AND_SERVICE)
@@ -156,7 +156,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
         RebaseAbortRendererUseCaseToken,
         RebaseContinueRendererUseCaseToken,
         GetRebaseCommitsRendererUseCaseToken,
-        GetBranchesRendererUseCaseToken,
+        GetTrackedBranchesRendererUseCaseToken,
         GetAdvancedOperationLoadingUseCaseToken,
       ])
       .registerTransient(StashViewModelToken, StashDefaultViewModel, [
