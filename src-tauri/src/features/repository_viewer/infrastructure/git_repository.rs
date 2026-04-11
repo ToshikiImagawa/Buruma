@@ -299,19 +299,23 @@ fn parse_branch_output(raw: &str) -> BranchList {
         // `*` = current branch, `+` = checked out in another worktree
         let line = line.trim_start_matches(['*', '+']).trim();
 
-        // "HEAD -> origin/main" のような detached HEAD 行をスキップ
-        if line.starts_with("(HEAD detached") || line.contains(" -> ") {
+        // detached HEAD 行をスキップ
+        if line.starts_with("(HEAD detached") {
             continue;
         }
 
-        // "name  hash message" のパース
-        let parts: Vec<&str> = line.splitn(3, char::is_whitespace).collect();
-        if parts.len() < 2 {
-            continue;
-        }
-
-        let name = parts[0];
-        let hash = parts[1];
+        // split_whitespace で連続スペースを正しくスキップ
+        let mut words = line.split_whitespace();
+        let name = match words.next() {
+            Some(n) => n,
+            None => continue,
+        };
+        let hash = match words.next() {
+            // "remotes/origin/HEAD -> origin/main" 等のシンボリック参照をスキップ
+            Some("->") => continue,
+            Some(h) => h,
+            None => continue,
+        };
 
         if is_current {
             current = name.to_string();
