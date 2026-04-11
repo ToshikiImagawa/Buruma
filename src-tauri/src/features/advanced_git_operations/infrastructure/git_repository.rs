@@ -378,7 +378,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     // --- Tag ---
 
     async fn tag_list(&self, worktree_path: &str) -> AppResult<Vec<TagInfo>> {
-        let tags_raw = raw(worktree_path, &["tag", "-l"]).await?;
+        let tags_raw = raw(worktree_path, &["tag", "-l", "--sort=-creatordate"]).await?;
         let tag_names: Vec<&str> = tags_raw.lines().filter(|l| !l.is_empty()).collect();
         let mut tags = Vec::new();
 
