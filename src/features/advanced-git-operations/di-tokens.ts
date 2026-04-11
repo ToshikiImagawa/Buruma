@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   CherryPickOptions,
   CherryPickResult,
   ConflictFile,
@@ -56,6 +57,7 @@ export type GetRebaseCommitsRendererUseCase = FunctionUseCase<
   { worktreePath: string; onto: string },
   Promise<RebaseStep[]>
 >
+export type GetBranchesRendererUseCase = FunctionUseCase<string, Promise<BranchList>>
 
 // スタッシュ
 export type StashSaveRendererUseCase = ConsumerUseCase<StashSaveOptions>
@@ -116,6 +118,7 @@ export const RebaseContinueRendererUseCaseToken = createToken<RebaseContinueRend
 export const GetRebaseCommitsRendererUseCaseToken = createToken<GetRebaseCommitsRendererUseCase>(
   'GetRebaseCommitsRendererUseCase',
 )
+export const GetBranchesRendererUseCaseToken = createToken<GetBranchesRendererUseCase>('GetBranchesRendererUseCase')
 
 // スタッシュ
 export const StashSaveRendererUseCaseToken = createToken<StashSaveRendererUseCase>('StashSaveRendererUseCase')

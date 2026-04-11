@@ -9,11 +9,13 @@ export function useRebaseViewModel() {
   const loading = useObservable(vm.loading$, false)
   const rebaseResult = useObservable(vm.rebaseResult$, null)
   const rebaseCommits = useObservable(vm.rebaseCommits$, [])
+  const branches = useObservable(vm.branches$, null)
 
   return {
     loading,
     rebaseResult,
     rebaseCommits,
+    branches,
     rebase: useCallback((options: RebaseOptions) => vm.rebase(options), [vm]),
     rebaseInteractive: useCallback((options: InteractiveRebaseOptions) => vm.rebaseInteractive(options), [vm]),
     rebaseAbort: useCallback((worktreePath: string) => vm.rebaseAbort(worktreePath), [vm]),
@@ -22,5 +24,6 @@ export function useRebaseViewModel() {
       (worktreePath: string, onto: string) => vm.getRebaseCommits(worktreePath, onto),
       [vm],
     ),
+    fetchBranches: useCallback((worktreePath: string) => vm.fetchBranches(worktreePath), [vm]),
   }
 }

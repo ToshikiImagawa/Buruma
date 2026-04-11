@@ -73,7 +73,10 @@ interface RebaseEditorProps {
   worktreePath: string;
   // 追加: onto がプリセットされている場合（コンテキストメニュー経由）
   initialOnto?: string;
-  onConflict?: () => void;
+  // Dialog 化: 親コンポーネントが開閉状態を管理
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onConflict?: (files: string[]) => void;
   onComplete?: () => void;
 }
 ```

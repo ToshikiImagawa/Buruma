@@ -51,6 +51,7 @@ export function BranchOperations({
   const [mergeOpen, setMergeOpen] = useState(false)
   const [mergeTargetBranch, setMergeTargetBranch] = useState<string>('')
   const [rebaseOpen, setRebaseOpen] = useState(false)
+  const [rebaseTargetBranch, setRebaseTargetBranch] = useState<string | undefined>(undefined)
   const otherBranchNames = useMemo(
     () => localBranches.map((b) => b.name).filter((n) => n !== currentBranch),
     [localBranches, currentBranch],
@@ -274,7 +275,14 @@ export function BranchOperations({
                     >
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => setRebaseOpen(true)}>{branch.name} へリベース</ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setRebaseTargetBranch(branch.name)
+                        setRebaseOpen(true)
+                      }}
+                    >
+                      {branch.name} へリベース
+                    </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem onClick={() => setShowCreate(true)}>
                       {branch.name} から新規ブランチを作成
@@ -379,7 +387,14 @@ export function BranchOperations({
                     >
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
-                    <ContextMenuItem onClick={() => setRebaseOpen(true)}>{branch.name} へリベース</ContextMenuItem>
+                    <ContextMenuItem
+                      onClick={() => {
+                        setRebaseTargetBranch(branch.name)
+                        setRebaseOpen(true)
+                      }}
+                    >
+                      {branch.name} へリベース
+                    </ContextMenuItem>
                     <ContextMenuSeparator />
                     <ContextMenuItem onClick={() => setShowCreate(true)}>
                       {branch.name} から新規ブランチを作成
@@ -419,22 +434,25 @@ export function BranchOperations({
           defaultTargetBranch={mergeTargetBranch}
         />
 
-        {rebaseOpen && (
-          <div className="mt-2 rounded border p-2">
-            <RebaseEditor
-              worktreePath={worktreePath}
-              currentBranch={currentBranch}
-              branches={otherBranchNames}
-              onConflict={() => {
-                setRebaseOpen(false)
-                onConflict?.('rebase')
-              }}
-            />
-            <Button variant="ghost" size="sm" className="mt-1 h-6 text-xs" onClick={() => setRebaseOpen(false)}>
-              閉じる
-            </Button>
-          </div>
-        )}
+        <RebaseEditor
+          worktreePath={worktreePath}
+          initialOnto={rebaseTargetBranch}
+          open={rebaseOpen}
+          onOpenChange={(open) => {
+            setRebaseOpen(open)
+            if (!open) setRebaseTargetBranch(undefined)
+          }}
+          onConflict={() => {
+            setRebaseOpen(false)
+            setRebaseTargetBranch(undefined)
+            onConflict?.('rebase')
+          }}
+          onComplete={() => {
+            setRebaseOpen(false)
+            setRebaseTargetBranch(undefined)
+            onRefresh()
+          }}
+        />
       </div>
     </TooltipProvider>
   )

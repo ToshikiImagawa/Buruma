@@ -4,7 +4,7 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "in-progress"
+impl-status: "implemented"
 created: "2026-04-04"
 updated: "2026-04-11"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
@@ -38,7 +38,7 @@ risk: "low"
 | ブランチコンテキストメニュー                          | 🟢    | FR-009: shadcn/ui context-menu、ブランチ名付きメニュー項目         |
 | アイコンのみツールバー                             | 🟢    | FR-010: Tooltip 付きアイコンボタン + 縦アイコンバー                  |
 | コミットリセット                                 | 🟢    | FR-011: git:reset IPC + コンテキストメニュー（soft/mixed/hard サブメニュー） |
-| Rebase onto ブランチ選択UI                     | 🔴    | FR-012: ブランチ/コミット一覧からの選択形式で onto を指定                        |
+| Rebase onto ブランチ選択UI                     | 🟢    | FR-012: BranchCombobox + 2ステップ Dialog 化 + ViewModel ブランチ取得 |
 
 ---
 
@@ -119,11 +119,14 @@ sequenceDiagram
 
 ```tsx
 interface BranchComboboxProps {
-  branches: BranchInfo[]
+  localBranches: BranchInfo[]
+  remoteBranches?: BranchInfo[]
   value: string
   onValueChange: (value: string) => void
   placeholder?: string
   allowFreeInput?: boolean  // 新規ブランチ名の自由入力を許可（WorktreeCreateDialog 用）
+  disabled?: boolean
+  className?: string
 }
 
 // ドロップダウン内のグループ構成
@@ -147,7 +150,7 @@ shadcn/ui Combobox パターン（`Popover` + `Command`）で実装。`Command` 
 // 内部ステート
 type RebaseStep = 'select-onto' | 'edit-commits'
 
-const RebaseEditor = ({ worktreePath, initialOnto, onConflict, onComplete }: RebaseEditorProps) => {
+const RebaseEditor = ({ worktreePath, initialOnto, open, onOpenChange, onConflict, onComplete }: RebaseEditorProps) => {
   const [step, setStep] = useState<RebaseStep>(initialOnto ? 'edit-commits' : 'select-onto')
   const [selectedOnto, setSelectedOnto] = useState(initialOnto ?? '')
 

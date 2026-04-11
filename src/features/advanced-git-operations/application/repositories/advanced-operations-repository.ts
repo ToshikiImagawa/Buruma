@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   CherryPickOptions,
   CherryPickResult,
   ConflictFile,
@@ -43,4 +44,5 @@ export interface AdvancedOperationsRepository {
   tagList(worktreePath: string): Promise<TagInfo[]>
   tagCreate(options: TagCreateOptions): Promise<void>
   tagDelete(worktreePath: string, tagName: string): Promise<void>
+  getBranches(worktreePath: string): Promise<BranchList>
 }

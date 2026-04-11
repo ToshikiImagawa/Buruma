@@ -1,21 +1,27 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DragEndEvent } from '@dnd-kit/core'
 import type { RebaseAction, RebaseStep } from '@domain'
 import { DndContext, closestCenter } from '@dnd-kit/core'
 import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
+import { ArrowLeft } from 'lucide-react'
+import { BranchCombobox } from '@/components/branch-combobox'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import { useRebaseViewModel } from '../use-rebase-viewmodel'
 
 interface RebaseEditorProps {
   worktreePath: string
-  currentBranch: string
-  branches: string[]
+  initialOnto?: string
+  open: boolean
+  onOpenChange: (open: boolean) => void
   onConflict?: (files: string[]) => void
+  onComplete?: () => void
 }
+
+type RebaseStep_UI = 'select-onto' | 'edit-commits'
 
 const REBASE_ACTIONS: RebaseAction[] = ['pick', 'squash', 'fixup', 'edit', 'drop']
 
@@ -35,7 +41,6 @@ function SortableCommitItem({
       style={style}
       className="flex items-center gap-2 rounded border bg-background px-2 py-1 text-sm"
     >
-      {/* ドラッグハンドル */}
       <button
         className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
         {...attributes}
@@ -44,7 +49,6 @@ function SortableCommitItem({
         &#8942;&#8942;
       </button>
 
-      {/* アクション選択 */}
       <Select value={step.action} onValueChange={(value) => onActionChange(value as RebaseAction)}>
         <SelectTrigger className="h-6 w-24 text-xs">
           <SelectValue />
@@ -58,45 +62,86 @@ function SortableCommitItem({
         </SelectContent>
       </Select>
 
-      {/* コミットハッシュ（短縮表示） */}
       <span className="shrink-0 font-mono text-xs text-muted-foreground">{step.hash.substring(0, 7)}</span>
-
-      {/* コミットメッセージ */}
       <span className="flex-1 truncate">{step.message}</span>
     </div>
   )
 }
 
-export function RebaseEditor({ worktreePath, currentBranch, branches, onConflict }: RebaseEditorProps) {
-  const { loading, rebaseResult, rebaseCommits, rebaseInteractive, rebaseAbort, getRebaseCommits } =
-    useRebaseViewModel()
+export function RebaseEditor({
+  worktreePath,
+  initialOnto,
+  open,
+  onOpenChange,
+  onConflict,
+  onComplete,
+}: RebaseEditorProps) {
+  const {
+    loading,
+    rebaseResult,
+    rebaseCommits,
+    branches,
+    rebaseInteractive,
+    rebaseAbort,
+    getRebaseCommits,
+    fetchBranches,
+  } = useRebaseViewModel()
 
-  const [ontoBranch, setOntoBranch] = useState('')
+  const [step, setStep] = useState<RebaseStep_UI>(initialOnto ? 'edit-commits' : 'select-onto')
+  const [selectedOnto, setSelectedOnto] = useState(initialOnto ?? '')
   const [editedSteps, setEditedSteps] = useState<RebaseStep[]>([])
-  const [isEditing, setIsEditing] = useState(false)
 
-  const handleLoadCommits = useCallback(() => {
-    if (!ontoBranch) return
-    getRebaseCommits(worktreePath, ontoBranch)
-    setIsEditing(true)
-  }, [worktreePath, ontoBranch, getRebaseCommits])
+  // 前回処理済みの rebaseResult を追跡し、同じ結果への二重反応を防ぐ
+  const handledResultRef = useRef<typeof rebaseResult>(null)
 
-  // rebaseCommits が更新されたら editedSteps にコピー
-  const currentSteps = isEditing && editedSteps.length > 0 ? editedSteps : rebaseCommits
+  useEffect(() => {
+    if (!open) return
+    fetchBranches(worktreePath)
+    if (initialOnto) {
+      setSelectedOnto(initialOnto)
+      setStep('edit-commits')
+      getRebaseCommits(worktreePath, initialOnto)
+    } else {
+      setStep('select-onto')
+      setSelectedOnto('')
+    }
+    setEditedSteps([])
+    handledResultRef.current = null
+  }, [open, worktreePath, initialOnto, fetchBranches, getRebaseCommits])
 
-  // rebaseCommits が変わったら editedSteps を更新
-  if (isEditing && rebaseCommits.length > 0 && editedSteps.length === 0) {
-    setEditedSteps([...rebaseCommits])
-  }
+  useEffect(() => {
+    if (rebaseCommits.length > 0) {
+      setEditedSteps([...rebaseCommits])
+    }
+  }, [rebaseCommits])
+
+  const currentSteps = editedSteps.length > 0 ? editedSteps : rebaseCommits
+
+  const localBranches = useMemo(() => (branches ? branches.local.filter((b) => !b.isHead) : []), [branches])
+  const remoteBranches = useMemo(() => (branches ? branches.remote : []), [branches])
+
+  const handleNextStep = useCallback(() => {
+    if (!selectedOnto) return
+    setStep('edit-commits')
+    setEditedSteps([])
+    getRebaseCommits(worktreePath, selectedOnto)
+  }, [worktreePath, selectedOnto, getRebaseCommits])
+
+  const handleBackStep = useCallback(() => {
+    setStep('select-onto')
+    setEditedSteps([])
+  }, [])
+
+  const getStepsOrFallback = useCallback(
+    (prev: RebaseStep[]) => (prev.length > 0 ? prev : [...rebaseCommits]),
+    [rebaseCommits],
+  )
 
   const handleActionChange = useCallback(
     (hash: string, action: RebaseAction) => {
-      setEditedSteps((prev) => {
-        const steps = prev.length > 0 ? prev : [...rebaseCommits]
-        return steps.map((s) => (s.hash === hash ? { ...s, action } : s))
-      })
+      setEditedSteps((prev) => getStepsOrFallback(prev).map((s) => (s.hash === hash ? { ...s, action } : s)))
     },
-    [rebaseCommits],
+    [getStepsOrFallback],
   )
 
   const handleDragEnd = useCallback(
@@ -105,169 +150,193 @@ export function RebaseEditor({ worktreePath, currentBranch, branches, onConflict
       if (!over || active.id === over.id) return
 
       setEditedSteps((prev) => {
-        const steps = prev.length > 0 ? prev : [...rebaseCommits]
+        const steps = getStepsOrFallback(prev)
         const oldIndex = steps.findIndex((s) => s.hash === active.id)
         const newIndex = steps.findIndex((s) => s.hash === over.id)
         const reordered = arrayMove(steps, oldIndex, newIndex)
         return reordered.map((s, i) => ({ ...s, order: i }))
       })
     },
-    [rebaseCommits],
+    [getStepsOrFallback],
   )
 
   const handleMoveUp = useCallback(
     (index: number) => {
       if (index <= 0) return
       setEditedSteps((prev) => {
-        const steps = prev.length > 0 ? prev : [...rebaseCommits]
-        const reordered = arrayMove(steps, index, index - 1)
+        const reordered = arrayMove(getStepsOrFallback(prev), index, index - 1)
         return reordered.map((s, i) => ({ ...s, order: i }))
       })
     },
-    [rebaseCommits],
+    [getStepsOrFallback],
   )
 
   const handleMoveDown = useCallback(
     (index: number) => {
       setEditedSteps((prev) => {
-        const steps = prev.length > 0 ? prev : [...rebaseCommits]
+        const steps = getStepsOrFallback(prev)
         if (index >= steps.length - 1) return steps
         const reordered = arrayMove(steps, index, index + 1)
         return reordered.map((s, i) => ({ ...s, order: i }))
       })
     },
-    [rebaseCommits],
+    [getStepsOrFallback],
   )
 
   const handleExecute = useCallback(() => {
-    if (!ontoBranch || currentSteps.length === 0) return
-    rebaseInteractive({ worktreePath, onto: ontoBranch, steps: currentSteps })
-  }, [worktreePath, ontoBranch, currentSteps, rebaseInteractive])
+    if (!selectedOnto || currentSteps.length === 0) return
+    rebaseInteractive({ worktreePath, onto: selectedOnto, steps: currentSteps })
+  }, [worktreePath, selectedOnto, currentSteps, rebaseInteractive])
 
   const handleAbort = useCallback(() => {
     rebaseAbort(worktreePath)
     setEditedSteps([])
-    setIsEditing(false)
-  }, [worktreePath, rebaseAbort])
+    onOpenChange(false)
+    onComplete?.()
+  }, [worktreePath, rebaseAbort, onOpenChange, onComplete])
 
-  // コンフリクト発生時にコールバック
-  if (rebaseResult?.status === 'conflict' && rebaseResult.conflictFiles && onConflict) {
-    onConflict(rebaseResult.conflictFiles)
-  }
+  const handleClose = useCallback(() => {
+    onOpenChange(false)
+    setEditedSteps([])
+    onComplete?.()
+  }, [onOpenChange, onComplete])
 
-  const availableBranches = branches.filter((b) => b !== currentBranch)
+  useEffect(() => {
+    if (!rebaseResult || rebaseResult === handledResultRef.current) return
+    handledResultRef.current = rebaseResult
+
+    if (rebaseResult.status === 'conflict' && rebaseResult.conflictFiles && onConflict) {
+      onConflict(rebaseResult.conflictFiles)
+      onOpenChange(false)
+    }
+    if (rebaseResult.status === 'success') {
+      handleClose()
+    }
+  }, [rebaseResult, onConflict, onOpenChange, handleClose])
 
   return (
-    <Card>
-      <CardHeader className="p-3">
-        <CardTitle className="text-sm">インタラクティブリベース</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3 p-3 pt-0">
-        {/* ブランチ選択 + コミット読み込み */}
-        <div className="flex items-center gap-2">
-          <Select value={ontoBranch} onValueChange={setOntoBranch}>
-            <SelectTrigger className="h-8 flex-1 text-sm">
-              <SelectValue placeholder="リベース先ブランチ..." />
-            </SelectTrigger>
-            <SelectContent>
-              {availableBranches.map((branch) => (
-                <SelectItem key={branch} value={branch} className="text-sm">
-                  {branch}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Button size="sm" className="h-8 text-xs" onClick={handleLoadCommits} disabled={!ontoBranch || loading}>
-            コミット読み込み
-          </Button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="text-sm">
+            {step === 'select-onto' ? 'リベース先ブランチを選択' : `インタラクティブリベース (onto: ${selectedOnto})`}
+          </DialogTitle>
+          <DialogDescription className="text-xs">
+            {step === 'select-onto'
+              ? 'リベース先のブランチを選択してください'
+              : 'コミットの順序やアクションを編集してください'}
+          </DialogDescription>
+        </DialogHeader>
 
-        {/* コミット一覧（ドラッグ&ドロップ） */}
-        {currentSteps.length > 0 && (
-          <>
-            <Separator />
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={currentSteps.map((s) => s.hash)} strategy={verticalListSortingStrategy}>
-                <div className="space-y-1">
-                  {currentSteps.map((step, index) => (
-                    <div key={step.hash} className="flex items-center gap-1">
-                      <div className="flex flex-col">
-                        <button
-                          className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          onClick={() => handleMoveUp(index)}
-                          disabled={index === 0 || loading}
-                          title="上へ移動"
-                        >
-                          &#9650;
-                        </button>
-                        <button
-                          className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
-                          onClick={() => handleMoveDown(index)}
-                          disabled={index === currentSteps.length - 1 || loading}
-                          title="下へ移動"
-                        >
-                          &#9660;
-                        </button>
-                      </div>
-                      <div className="flex-1">
-                        <SortableCommitItem
-                          step={step}
-                          onActionChange={(action) => handleActionChange(step.hash, action)}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          </>
-        )}
+        {step === 'select-onto' ? (
+          <div className="flex flex-col gap-4">
+            <BranchCombobox
+              localBranches={localBranches}
+              remoteBranches={remoteBranches}
+              value={selectedOnto}
+              onValueChange={setSelectedOnto}
+              placeholder="リベース先ブランチ..."
+            />
+            <div className="flex justify-end">
+              <Button size="sm" onClick={handleNextStep} disabled={!selectedOnto || loading}>
+                次へ
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            {!initialOnto && (
+              <Button variant="ghost" size="sm" className="w-fit gap-1 text-xs" onClick={handleBackStep}>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                ブランチ選択に戻る
+              </Button>
+            )}
 
-        {/* 結果表示 */}
-        {rebaseResult && (
-          <div
-            className={`rounded border p-2 text-sm ${
-              rebaseResult.status === 'success'
-                ? 'border-green-500/50 bg-green-500/10 text-green-700 dark:text-green-400'
-                : rebaseResult.status === 'aborted'
-                  ? 'border-muted bg-muted/50 text-muted-foreground'
-                  : 'border-destructive/50 bg-destructive/10 text-destructive'
-            }`}
-          >
-            {rebaseResult.status === 'success' && <p>リベースが完了しました。</p>}
-            {rebaseResult.status === 'aborted' && <p>リベースを中断しました。</p>}
-            {rebaseResult.status === 'conflict' && (
+            {currentSteps.length > 0 ? (
               <>
-                <p>
-                  コンフリクトが発生しました。
-                  {rebaseResult.currentStep !== undefined &&
-                    rebaseResult.totalSteps !== undefined &&
-                    ` (ステップ ${rebaseResult.currentStep}/${rebaseResult.totalSteps})`}
-                </p>
-                {rebaseResult.conflictFiles && (
-                  <ul className="mt-1 list-inside list-disc text-xs">
-                    {rebaseResult.conflictFiles.map((file) => (
-                      <li key={file}>{file}</li>
-                    ))}
-                  </ul>
+                <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                  <SortableContext items={currentSteps.map((s) => s.hash)} strategy={verticalListSortingStrategy}>
+                    <div className="max-h-80 space-y-1 overflow-y-auto">
+                      {currentSteps.map((s, index) => (
+                        <div key={s.hash} className="flex items-center gap-1">
+                          <div className="flex flex-col">
+                            <button
+                              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              onClick={() => handleMoveUp(index)}
+                              disabled={index === 0 || loading}
+                              title="上へ移動"
+                            >
+                              &#9650;
+                            </button>
+                            <button
+                              className="text-xs text-muted-foreground hover:text-foreground disabled:opacity-30"
+                              onClick={() => handleMoveDown(index)}
+                              disabled={index === currentSteps.length - 1 || loading}
+                              title="下へ移動"
+                            >
+                              &#9660;
+                            </button>
+                          </div>
+                          <div className="flex-1">
+                            <SortableCommitItem
+                              step={s}
+                              onActionChange={(action) => handleActionChange(s.hash, action)}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </SortableContext>
+                </DndContext>
+
+                <Separator />
+
+                {rebaseResult && rebaseResult.status !== 'success' && (
+                  <div
+                    className={`rounded border p-2 text-sm ${
+                      rebaseResult.status === 'aborted'
+                        ? 'border-muted bg-muted/50 text-muted-foreground'
+                        : 'border-destructive/50 bg-destructive/10 text-destructive'
+                    }`}
+                  >
+                    {rebaseResult.status === 'aborted' && <p>リベースを中断しました。</p>}
+                    {rebaseResult.status === 'conflict' && (
+                      <>
+                        <p>
+                          コンフリクトが発生しました。
+                          {rebaseResult.currentStep !== undefined &&
+                            rebaseResult.totalSteps !== undefined &&
+                            ` (ステップ ${rebaseResult.currentStep}/${rebaseResult.totalSteps})`}
+                        </p>
+                        {rebaseResult.conflictFiles && (
+                          <ul className="mt-1 list-inside list-disc text-xs">
+                            {rebaseResult.conflictFiles.map((file) => (
+                              <li key={file}>{file}</li>
+                            ))}
+                          </ul>
+                        )}
+                      </>
+                    )}
+                  </div>
                 )}
+
+                <div className="flex items-center justify-end gap-2">
+                  <Button variant="destructive" size="sm" className="text-xs" onClick={handleAbort} disabled={loading}>
+                    Abort
+                  </Button>
+                  <Button size="sm" className="text-xs" onClick={handleExecute} disabled={loading}>
+                    {loading ? 'リベース中...' : 'Execute Rebase'}
+                  </Button>
+                </div>
               </>
+            ) : loading ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">コミットを読み込み中...</p>
+            ) : (
+              <p className="py-4 text-center text-sm text-muted-foreground">コミットがありません</p>
             )}
           </div>
         )}
-
-        {/* アクションボタン */}
-        {currentSteps.length > 0 && (
-          <div className="flex items-center justify-end gap-2">
-            <Button variant="destructive" size="sm" className="h-7 text-xs" onClick={handleAbort} disabled={loading}>
-              Abort
-            </Button>
-            <Button size="sm" className="h-7 text-xs" onClick={handleExecute} disabled={loading}>
-              {loading ? 'リベース中...' : 'Execute Rebase'}
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+      </DialogContent>
+    </Dialog>
   )
 }
