@@ -4,7 +4,7 @@ title: "高度な Git 操作 UI 統合"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "in-progress"
 created: "2026-04-04"
 updated: "2026-04-11"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
@@ -38,6 +38,7 @@ risk: "low"
 | ブランチコンテキストメニュー                          | 🟢    | FR-009: shadcn/ui context-menu、ブランチ名付きメニュー項目         |
 | アイコンのみツールバー                             | 🟢    | FR-010: Tooltip 付きアイコンボタン + 縦アイコンバー                  |
 | コミットリセット                                 | 🟢    | FR-011: git:reset IPC + コンテキストメニュー（soft/mixed/hard サブメニュー） |
+| Rebase onto ブランチ選択UI                     | 🔴    | FR-012: ブランチ/コミット一覧からの選択形式で onto を指定                        |
 
 ---
 

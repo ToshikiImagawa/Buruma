@@ -130,6 +130,32 @@ flowchart LR
     ShowComments -.->|"<<拡張>>"| RequestReview
 ```
 
+### AI コンフリクト解決
+
+```mermaid
+%%{init: {'theme': 'dark'}}%%
+flowchart LR
+    Developer((開発者))
+
+    subgraph AIConflictFlow["AI コンフリクト解決"]
+        ResolveConflict["AI でコンフリクトを<br/>解決する"]
+        SendContent["コンフリクト内容を<br/>送信する"]
+        PreviewResult["解決案を<br/>プレビューする"]
+        ApplyResult["解決案を<br/>適用する"]
+        RejectResult["解決案を<br/>拒否する"]
+        BulkResolve["全ファイルを<br/>一括解決する"]
+        ManualAdjust["手動で<br/>微調整する"]
+    end
+
+    Developer --- ResolveConflict
+    SendContent -.->|"<<拡張>>"| ResolveConflict
+    PreviewResult -.->|"<<拡張>>"| ResolveConflict
+    ApplyResult -.->|"<<拡張>>"| PreviewResult
+    RejectResult -.->|"<<拡張>>"| PreviewResult
+    BulkResolve -.->|"<<拡張>>"| ResolveConflict
+    ManualAdjust -.->|"<<拡張>>"| ApplyResult
+```
+
 ## 2.3. 機能一覧（テキスト形式）
 
 - Claude セッション管理

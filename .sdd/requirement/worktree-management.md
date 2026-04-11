@@ -267,7 +267,7 @@ requirementDiagram
     WorktreeOperations - contains -> DeleteWorktree
     WorktreeOperations - contains -> SymlinkIgnoredFiles
     WorktreeSwitching - contains -> SwitchWorktree
-    SymlinkIgnoredFiles - derives -> CreateWorktree
+    SymlinkIgnoredFiles - refines -> CreateWorktree
     WorktreeOperations - traces -> WorktreeGitCommand
     ListWorktrees - traces -> WorktreeGitCommand
     WorktreeListPerformance - traces -> ListWorktrees
