@@ -448,7 +448,7 @@ sequenceDiagram
 
     User ->> Resolver: 「AI 解決」ボタンクリック（特定ファイル）
     Resolver ->> VM: resolveConflictWithAI(filePath)
-    VM ->> UseCase: AIConflictResolveUseCase.invoke({ filePath, threeWayContent })
+    VM ->> UseCase: ResolveConflictUseCase.invoke({ filePath, threeWayContent })
     UseCase ->> Invoke: invokeCommand('claude_resolve_conflict', { worktreePath, filePath, threeWayContent })
     Invoke ->> Core: Tauri IPC
     Core ->> Core: 構造化プロンプトを生成（base/ours/theirs + ファイルパス + コンテキスト）

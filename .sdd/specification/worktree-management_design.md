@@ -4,9 +4,9 @@ title: "ワークツリー管理"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "in-progress"
 created: "2026-03-25"
-updated: "2026-04-10"
+updated: "2026-04-11"
 depends-on: ["spec-worktree-management"]
 tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟢 実装済み
+**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_103_05 / FR_106 は未実装）
 
 ## 1.1. 実装進捗
 
@@ -48,6 +48,15 @@ risk: "high"
 | DI 設定 (renderer) | renderer | — | 🟢 | di-tokens.ts / di-config.ts |
 | Worktree domain types | shared | domain | 🟢 | WorktreeInfo, WorktreeStatus 等 |
 | IPC 型拡張 | shared | types | 🟢 | IPCChannelMap 拡張 |
+| BranchCombobox 共通コンポーネント | renderer | presentation (共有) | 🔴 | FR_102_05: `src/components/branch-combobox.tsx`（FR_712 design と共有） |
+| WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🔴 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得 |
+| DeleteWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_103_05: ブランチ同時削除ロジック追加 |
+| WorktreeDeleteDialog ブランチ削除UI | renderer | presentation | 🔴 | FR_103_05: チェックボックス追加、他WT使用中判定 |
+| SymlinkService | main | application | 🔴 | FR_106: 設定読み込み + glob マッチ + symlink 作成 |
+| SymlinkConfigRepository | main | infrastructure | 🔴 | FR_106: `.buruma/symlink.json` + tauri-plugin-store |
+| CreateWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_106: symlink 自動作成統合、WorktreeCreateResult 返却 |
+| IPC Handlers (symlink config) | main | presentation | 🔴 | FR_106: `worktree_symlink_config_get/set` |
+| Settings シンボリックリンクセクション | renderer | presentation | 🔴 | FR_106: 設定管理UI（application-foundation Settings に追加） |
 
 ---
 
@@ -70,6 +79,8 @@ risk: "high"
 | Git 操作 | git CLI (tokio::process::Command) | Git CLI のラッパー。`worktree list --porcelain` のパース、`worktree add/remove` の実行に使用。メンテナンスが活発で API が直感的（原則 A-002: Library-First） |
 | ファイルシステム監視 | notify + notify-debouncer-full | Node.js のクロスプラットフォームファイル監視。macOS FSEvents / Linux inotify / Windows ReadDirectoryChangesW を抽象化。デバウンス機能内蔵（原則 A-002） |
 | ダイアログ UI | Shadcn/ui Dialog | Shadcn/ui が提供するアクセシブルなダイアログコンポーネント。Tailwind CSS との統合が良好 |
+| glob マッチング | `glob` crate | Rust 標準的な glob パターンマッチング。シンボリックリンク対象ファイルの検索に使用（A-002: Library-First） |
+| ブランチ選択 | shadcn/ui Combobox (`@radix-ui/react-popover` + `cmdk`) | BranchCombobox 共通コンポーネント。ローカル/リモートブランチのグループ表示とフィルタリング |
 
 <details>
 <summary>プロジェクト共通スタック（参考）</summary>
@@ -181,6 +192,11 @@ graph TD
 | WorktreeGitDefaultRepository | infrastructure | git CLI (tokio::process::Command) ラッパー（list, add, remove, status） | `src-tauri/src/features/worktree_management/infrastructure/worktree_git_service.rs` |
 | WorktreeWatcher | infrastructure | notify + notify-debouncer-full による `.git/worktrees` 監視 | `src-tauri/src/features/worktree_management/infrastructure/worktree_watcher.rs` |
 | IPC Handlers | presentation | worktree:* チャネル登録、`#[tauri::command]` パターン | `src-tauri/src/features/worktree_management/presentation/commands.rs` |
+| SymlinkService | application | FR_106: 設定読み込み + glob マッチ判定のオーケストレーション（実際の symlink 作成は SymlinkFileRepository IF 経由で infrastructure 層に委譲） | `src-tauri/src/features/worktree_management/application/symlink_service.rs` |
+| SymlinkConfigRepository IF | application | FR_106: シンボリックリンク設定の読み書きインターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/symlink_interfaces.rs` |
+| SymlinkConfigDefaultRepository | infrastructure | FR_106: `.buruma/symlink.json` 読み込み + `tauri-plugin-store` fallback | `src-tauri/src/features/worktree_management/infrastructure/symlink_config_repository.rs` |
+| SymlinkFileRepository IF | application | FR_106: symlink 作成操作のインターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/symlink_interfaces.rs` |
+| SymlinkFileDefaultRepository | infrastructure | FR_106: `std::os::unix::fs::symlink` / `std::os::windows::fs::symlink_dir` による実装 | `src-tauri/src/features/worktree_management/infrastructure/symlink_file_repository.rs` |
 | DI / State (main) | — | AppState + Arc&lt;dyn Trait&gt; で依存注入 | `src-tauri/src/features/worktree_management/mod.rs` |
 
 ### Webview 側
@@ -196,6 +212,7 @@ graph TD
 | useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
 | useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
 | React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/features/worktree-management/presentation/components/*.tsx` |
+| BranchCombobox | presentation (共有) | FR_102_05/FR_712: ブランチ選択 Combobox 共通コンポーネント | `src/components/branch-combobox.tsx` |
 | DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/features/worktree-management/di-tokens.ts` |
 | DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/features/worktree-management/di-config.ts` |
 
@@ -206,6 +223,8 @@ graph TD
 | Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/domain/index.ts` に追加 |
 | IPC 型拡張 | IPCChannelMap, IPCEventMap への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
 | Tauri invoke/listen API (worktree) | 型安全な worktree API | `@tauri-apps/api` の invoke/listen を直接使用（preload 層は Tauri では不要） |
+| Symlink domain types | FR_106: SymlinkConfig, SymlinkResult, SymlinkResultEntry, WorktreeCreateResult | `src/domain/index.ts` に追加 |
+| BranchDeleteResult domain type | FR_103_05: ブランチ削除結果型 | `src/domain/index.ts` に追加 |
 
 ## 4.3. DI 設計
 
@@ -846,6 +865,40 @@ interface WorktreeDeleteParams {
   repoPath: string;
   worktreePath: string;
   force: boolean;
+  deleteBranch: boolean;         // FR_103_05: ローカルブランチも同時に削除するか
+}
+
+// ブランチ削除結果（FR_103_05）
+type BranchDeleteResult =
+  | { deleted: true; branchName: string }
+  | { deleted: false; branchName: string; skipped: true; skipReason: string }
+  | { deleted: false; branchName: string; requireForce: true };
+
+// ワークツリー作成結果（FR_106）
+interface WorktreeCreateResult {
+  worktree: WorktreeInfo;
+  symlink?: SymlinkResult;       // シンボリックリンク処理結果（設定がない場合は undefined）
+}
+
+// シンボリックリンク設定（FR_106）
+interface SymlinkConfig {
+  patterns: string[];            // glob パターンの配列
+  source: 'app' | 'repo';       // 設定の取得元
+}
+
+// シンボリックリンク作成結果（FR_106）
+interface SymlinkResult {
+  entries: SymlinkResultEntry[];
+  totalCreated: number;
+  totalSkipped: number;
+  totalFailed: number;
+}
+
+interface SymlinkResultEntry {
+  pattern: string;
+  status: 'created' | 'skipped' | 'failed';
+  targetPath?: string;
+  reason?: string;
 }
 
 // ワークツリー状態変化イベント
@@ -1164,11 +1217,15 @@ export const worktreeApi = {
 // IPCChannelMap に追加
 'worktree:list': { args: [string]; result: IPCResult<WorktreeInfo[]> }
 'worktree:status': { args: [{ repoPath: string; worktreePath: string }]; result: IPCResult<WorktreeStatus> }
-'worktree:create': { args: [WorktreeCreateParams]; result: IPCResult<WorktreeInfo> }
-'worktree:delete': { args: [WorktreeDeleteParams]; result: IPCResult<void> }
+'worktree:create': { args: [WorktreeCreateParams]; result: IPCResult<WorktreeCreateResult> }  // FR_106: 戻り値を WorktreeCreateResult に変更
+'worktree:delete': { args: [WorktreeDeleteParams]; result: IPCResult<BranchDeleteResult | null> }  // FR_103_05: ブランチ削除結果を返す
 'worktree:suggest-path': { args: [{ repoPath: string; branch: string }]; result: IPCResult<string> }
 'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
 'worktree:default-branch': { args: [string]; result: IPCResult<string> }
+'worktree:symlink-config-get': { args: [{ repoPath: string }]; result: IPCResult<SymlinkConfig> }  // FR_106: 設定取得
+'worktree:symlink-config-set': { args: [SymlinkConfig]; result: IPCResult<void> }  // FR_106: 設定保存
+
+// FR_102_05: ブランチ一覧は basic-git-operations の既存 'git:branches' コマンドを再利用（IPCChannelMap 登録済み）
 
 // IPCEventMap に追加
 'worktree-changed': WorktreeChangeEvent
@@ -1207,6 +1264,11 @@ export const worktreeApi = {
 | コンポーネントテスト | WorktreeCreateDialog, WorktreeDeleteDialog のフォーム操作 | renderer | presentation | ≥ 60% |
 | 結合テスト | IPC Handlers → 個別 UseCase → WorktreeGitDefaultRepository 連携 | main | 全層 | 主要フロー |
 | E2Eテスト | ワークツリーの作成→一覧表示→選択→削除のフルフロー | 全体 | — | 主要ユースケース |
+| ユニットテスト | FR_103_05: DeleteWorktreeMainUseCase 拡張（ブランチ削除パス、未マージパス、他WT使用中パス） | main | application | ≥ 80% |
+| ユニットテスト | FR_106: SymlinkService（glob マッチ判定、スキップ/失敗時の継続動作） | main | application | ≥ 80% |
+| ユニットテスト | FR_106: SymlinkConfigDefaultRepository（.buruma/symlink.json 読み込み、app fallback） | main | infrastructure | ≥ 80% |
+| ユニットテスト | FR_106: SymlinkFileDefaultRepository（symlink 作成、クロスプラットフォーム対応） | main | infrastructure | ≥ 80% |
+| コンポーネントテスト | FR_102_05: BranchCombobox（フィルタリング、グループ表示、選択） | renderer | presentation (共有) | ≥ 60% |
 
 **テスト環境の注意事項:**
 
@@ -1234,6 +1296,13 @@ export const worktreeApi = {
 | WorktreeDetail のスコープ | 基本情報のみ / 詳細（ログ、差分、ファイルツリー）含む | 基本情報のみ（ブランチ、HEAD、dirty 状態、staged/unstaged 件数） | 詳細なコミットログ・差分表示は repository-viewer feature の責務（PRD スコープ外 → FG-2）。本フェーズはワークツリーライフサイクル管理に集中する |
 | SortOrder 'last-updated' の定義 | コミット日時 / ファイル更新日時 / 選択日時 | latest commit author date（`git log -1 --format=%aI`） | author date はユーザーが作業を行った時点を反映する。ファイル更新日時はビルド成果物等で不安定 |
 | Service の Observable 公開方法 | getter で都度生成 / constructor でフィールド化 | constructor でフィールドとして1回だけ生成 | getter（`get worktrees$() { return combineLatest(...) }`）はアクセスのたびに新しい Observable 参照を返す。`useObservable` Hook が `useEffect` の依存配列で参照比較するため、毎回再購読 → state 更新 → 再レンダリング → 無限ループが発生する。フィールドとして保持することで参照が安定する |
+| ブランチ選択 Combobox 配置 (FR_102_05) | 各 feature で個別実装 / src/components/ に共通化 | `src/components/branch-combobox.tsx` に共通コンポーネント | worktree-management と advanced-git-operations（FR_712）で共有。A-004 feature 間直接参照禁止に準拠しつつ DRY を実現 |
+| ブランチ削除実行箇所 (FR_103_05) | worktree_delete 内で一括 / フロントエンドから 2段階呼び出し | `worktree_delete` 内で一括実行 | 1回の IPC 呼び出しで完結。worktree remove → branch delete を Rust 側で順次実行。ネットワーク往復を最小化 |
+| 未マージブランチの削除方式 (FR_103_05) | 常に -d / 常に -D / -d 試行後 -D 提案 | `-d` 試行後、失敗時に `BranchDeleteResult.requireForce=true` で通知し `-D` を提案 | B-002 準拠。ユーザーの明示的な承認なしに未マージブランチを削除しない |
+| シンボリックリンク設定の保存先 (FR_106) | アプリ設定のみ / リポジトリローカルのみ / 2段構成 | アプリデフォルト（tauri-plugin-store）+ リポジトリローカル（`.buruma/symlink.json`）の2段構成 | リポジトリ固有のパターン（node_modules 等）をローカル設定で管理しつつ、アプリデフォルトで共通パターンを提供 |
+| glob crate の選定 (FR_106) | `glob` / `globset` / 自作 | `glob` crate | 標準的な glob マッチング。シンプルで軽量。シンボリックリンク対象の検索程度の用途には十分（A-002: Library-First） |
+| シンボリックリンクのベース決定 (FR_106) | メインワークツリー固定 / ユーザー選択 / startPoint のWT | メインワークツリー固定 | 常にメインワークツリーからコピーする一貫した動作。ユーザーが混乱しないシンプルな設計 |
+| シンボリックリンク失敗時の挙動 (FR_106) | ワークツリー作成ごと失敗 / スキップして続行 | スキップして続行 | シンボリックリンクは付随処理。ワークツリー作成の本質的な操作を失敗させない。SymlinkResult で結果をまとめて通知 |
 
 ## 9.2. 未解決の課題
 
@@ -1249,6 +1318,31 @@ export const worktreeApi = {
 ---
 
 # 10. 変更履歴
+
+## v5.0 (2026-04-11)
+
+**FR_102_05 / FR_103_05 / FR_106 の設計追加**
+
+- impl-status を `implemented` → `in-progress` に変更
+- 実装進捗テーブルに新規モジュール 10件（🔴 未実装）を追加
+- 技術スタックに `glob` crate、shadcn/ui Combobox を追加
+- モジュール分割表に SymlinkService、SymlinkConfigRepository、BranchCombobox 等を追加
+- 共有型に SymlinkConfig、SymlinkResult、BranchDeleteResult、WorktreeCreateResult を追加
+- 設計判断に 8件の決定事項を追加（ブランチ選択UI、ブランチ削除方式、シンボリックリンク設定保存先、glob crate 選定等）
+
+**FR_102_05: ブランチ選択UI**
+- BranchCombobox 共通コンポーネント（`src/components/branch-combobox.tsx`）を WorktreeCreateDialog で使用
+- infrastructure 層の Repository 経由で `git_branches` IPC を呼び出し（A-004 準拠）
+
+**FR_103_05: ブランチ同時削除**
+- DeleteWorktreeMainUseCase を拡張し `worktree_delete` 内で一括実行（worktree remove → branch -d → 未マージ時 BranchDeleteResult 返却）
+- WorktreeDeleteDialog にチェックボックス追加（デフォルト ON、他WT使用中は disabled）
+
+**FR_106: シンボリックリンク**
+- SymlinkService（application 層）+ SymlinkConfigRepository（infrastructure 層）を新設
+- CreateWorktreeMainUseCase 内で SymlinkService を呼び出し自動作成
+- 設定管理UIは application-foundation の Settings にセクション追加
+- WorktreeCreateDialog にパターン確認表示を追加
 
 ## v4.0 (2026-04-09)
 

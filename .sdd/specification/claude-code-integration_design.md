@@ -4,9 +4,9 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "implemented"
+impl-status: "in-progress"
 created: "2026-03-25"
-updated: "2026-04-10"
+updated: "2026-04-11"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process", "tauri-migration"]
 category: "ai-integration"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟢 全 Phase 実装完了
+**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_506 AI コンフリクト解決は未実装）
 
 ## 1.1. 実装進捗
 
@@ -45,6 +45,12 @@ risk: "high"
 | DiffExplanationView | 🟢 | 差分解説表示 UI。コピーボタン付き |
 | ReviewDiffMainUseCase / ExplainDiffMainUseCase | 🟢 | レビュー/解説 UseCase + プロンプトビルダー |
 | ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | Webview 側 ViewModel + Hook ラッパー |
+| ResolveConflictMainUseCase | 🔴 | FR_506: コンフリクト解決 UseCase（ワンショット実行） |
+| conflict-resolve-prompt.ts | 🔴 | FR_506: コンフリクト解決用プロンプトビルダー |
+| IPC ハンドラー（claude_resolve_conflict） | 🔴 | FR_506: コンフリクト解決 IPC + イベント |
+| ClaudeConflictViewModel | 🔴 | FR_506: Webview 側 ViewModel（解決進捗・結果管理） |
+| useClaudeConflictViewModel | 🔴 | FR_506: Hook ラッパー |
+| ConflictResolver AI ボタン統合 | 🔴 | FR_506: ConflictResolver への Props 注入（ui-integration 経由） |
 
 ---
 
@@ -169,6 +175,10 @@ graph TD
 | DiffExplanationView | renderer (presentation) | 差分解説マークダウン表示 | `src/features/claude-code-integration/presentation/components/DiffExplanationView.tsx` |
 | SessionStatusIndicator | renderer (presentation) | セッション状態インジケーター | `src/features/claude-code-integration/presentation/components/SessionStatusIndicator.tsx` |
 | CommandInput | renderer (presentation) | 自然言語入力フィールド | `src/features/claude-code-integration/presentation/components/CommandInput.tsx` |
+| ResolveConflictMainUseCase | main (application) | FR_506: コンフリクト解決 UseCase。ClaudeProcessManager でワンショット実行し OutputParser で merged 結果を抽出 | `src-tauri/src/features/claude_code_integration/application/usecases.rs` に追加（既存 UseCase と同一ファイルに集約） |
+| conflict-resolve-prompt | main (infrastructure) | FR_506: コンフリクト解決プロンプトビルダー。ThreeWayContent を構造化プロンプトに変換 | `src-tauri/src/features/claude_code_integration/infrastructure/conflict_resolve_prompt.rs` |
+| ClaudeConflictViewModel | renderer (presentation) | FR_506: コンフリクト解決 ViewModel。resolveConflict/resolveAll + 進捗・結果 Observable | `src/features/claude-code-integration/presentation/claude-conflict-viewmodel.ts` |
+| useClaudeConflictViewModel | renderer (presentation) | FR_506: Hook ラッパー | `src/features/claude-code-integration/presentation/use-claude-conflict-viewmodel.ts` |
 
 ---
 
@@ -199,6 +209,21 @@ interface GenerateCommitMessageArgs {
 // AppSettings 拡張（commitMessageRules）
 // commitMessageRules: string | null — null はデフォルトルール使用
 // > **注記**: `commitMessageRules` のプロンプトへの反映は未実装。Rust 側の `generate_commit_message` はハードコードされたプロンプトを使用している。
+
+// FR_506: AI コンフリクト解決リクエスト
+interface ConflictResolveRequest {
+  worktreePath: string;
+  filePath: string;
+  threeWayContent: ThreeWayContent; // src/domain/ の共有型（advanced-git-operations と共有）
+}
+
+// FR_506: AI コンフリクト解決結果（discriminated union）
+type ConflictResolveResult =
+  | { worktreePath: string; filePath: string; status: 'resolved'; mergedContent: string }
+  | { worktreePath: string; filePath: string; status: 'failed'; error: string };
+
+// ThreeWayContent は src/domain/ に配置する共有型
+// interface ThreeWayContent { base: string; ours: string; theirs: string; merged: string }
 ```
 
 ---
@@ -429,6 +454,18 @@ export function registerClaudeIPCHandlers(
     }
   });
 
+  // FR_506: AI コンフリクト解決（ワンショット実行）
+  #[tauri::command]('claude:resolve-conflict', async (_event, args: ConflictResolveRequest): Promise<IPCResult<void>> => {
+    try {
+      // ThreeWayContent → プロンプト構築 → claude -p でワンショット実行
+      // 結果は claude-conflict-resolved イベントで非同期通知
+      return { success: true, data: undefined };
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : String(e);
+      return { success: false, error: { code: 'CONFLICT_RESOLVE_FAILED', message } };
+    }
+  });
+
   // ストリーミング出力のイベント転送
   processManager.onOutput((output: ClaudeOutput) => {
     mainWindow.app_handle.emit('claude-output', output);
@@ -468,6 +505,9 @@ claude: {
     invoke<T>('claude_review_diff', args),
   explainDiff: (args: { worktreePath: string; diffTarget: DiffTarget }): Promise<IPCResult<void>> =>
     invoke<T>('claude_explain_diff', args),
+  // FR_506: AI コンフリクト解決
+  resolveConflict: (args: ConflictResolveRequest): Promise<IPCResult<void>> =>
+    invoke<T>('claude_resolve_conflict', args),
 
   // イベント購読（listenEventSync / listenEvent ラッパー経由）
   onOutput: (callback: (output: ClaudeOutput) => void): (() => void) => {
@@ -484,6 +524,10 @@ claude: {
   },
   onExplainResult: (callback: (result: { worktreePath: string; explanation: string }) => void): (() => void) => {
     return listenEventSync<{ worktreePath: string; explanation: string }>('claude-explain-result', callback)
+  },
+  // FR_506: AI コンフリクト解決結果
+  onConflictResolved: (callback: (result: ConflictResolveResult) => void): (() => void) => {
+    return listenEventSync<ConflictResolveResult>('claude-conflict-resolved', callback)
   },
 },
 ```
@@ -536,6 +580,11 @@ claude: {
 | 子プロセスの終了方式 | A) SIGKILL 即座 / B) SIGTERM → タイムアウト → SIGKILL | B) SIGTERM + タイムアウト | グレースフルシャットダウン。Claude Code CLI にクリーンアップの機会を与える。タイムアウトは5秒 |
 | ストリーミング出力の転送 | A) invoke のポーリング / B) Tauri event（`app_handle.emit`） / C) MessagePort | B) Tauri event | リアルタイム性が求められる。ポーリングは遅延が大きい。MessagePort は複雑すぎる。Tauri の `app_handle.emit` + Webview 側 `listen` が最もシンプル |
 | ANSI カラーコード処理 | A) Tauri Core (Rust)で変換 / B) Webviewで変換 / C) 除去のみ | B) Webviewで変換 | Tauri Core (Rust)の負荷軽減。Webview 側で HTML に変換して表示 |
+| AI コンフリクト解決の実行方式 (FR_506) | A) ライブセッション経由 / B) ワンショット実行 | B) ワンショット実行（`claude -p`） | ReviewDiff/ExplainDiff と同じパターン。セッションコンテキスト不要。各ファイルを独立して処理可能 |
+| コンフリクト情報の送信形式 (FR_506) | A) ThreeWayContent 構造化 / B) diff テキスト / C) コンフリクトマーカー付き生テキスト | A) ThreeWayContent 構造化 | base/ours/theirs を分離して送ることで AI が各側の変更意図を正確に理解できる。既存の `git_conflict_file_content` IPC が ThreeWayContent を返すため追加コストなし |
+| プロンプトビルダーの設計 (FR_506) | A) 既存パターン踏襲 / B) 専用設計 | A) 既存の ReviewDiff/ExplainDiff パターン踏襲 | `conflict-resolve-prompt.rs` を新規作成。プロンプト構造は base/ours/theirs のセクション区切り + ファイルパス・種別情報 + merged 結果のみ返却指示 |
+| ConflictResolver への AI ボタン注入 (FR_506) | A) claude-code-integration が Props 経由で注入 / B) advanced-git-operations が DI で UseCase を取得 | A) Props 経由で注入 | claude-code-integration が ConflictResolver に `onAIResolve` / `onAIResolveAll` コールバックを注入。ui-integration の統合レイヤーで接続。A-004 feature 間直接参照禁止に準拠 |
+| 一括解決の並列数制御 (FR_506) | A) 無制限並列 / B) 同時実行数制限 | B) 同時実行数を3に制限 | Claude Code CLI の同時実行数が多すぎるとリソース消費が増大。3並列で進捗バーの表示も自然 |
 
 ## 9.2. 未解決の課題
 
@@ -568,9 +617,33 @@ claude: {
 - CLI からの出力をWebviewに送信する際、XSS 攻撃を防ぐために HTML エスケープを行う
 - ANSI → HTML 変換は信頼できるライブラリを使用する
 
+## 10.4. コンフリクト内容の送信（FR_506）
+
+- コンフリクトファイルの内容（base/ours/theirs）は Claude Code CLI にプロンプトとして送信される。ソースコードが外部 AI サービスに送信されることをユーザーに認識させる
+- `ConflictResolveRequest.filePath` に対してパストラバーサル攻撃の検証を行う（10.2 の入力バリデーションと同様）
+- AI が生成した merged コンテンツは必ずプレビュー表示し、ユーザーの承認を経てから適用する（B-002 準拠）
+
 ---
 
 # 11. 変更履歴
+
+## v5.0 (2026-04-11)
+
+**FR_506: AI コンフリクト解決の設計追加**
+
+- impl-status を `implemented` → `in-progress` に変更
+- 実装進捗テーブルに新規モジュール 6件（🔴 未実装）を追加
+- モジュール分割表に ResolveConflictMainUseCase、conflict-resolve-prompt、ClaudeConflictViewModel 等を追加
+- データモデルに ConflictResolveRequest、ConflictResolveResult（discriminated union）を追加
+- 設計判断に 5件追加（実行方式、送信形式、プロンプト設計、UI注入方式、並列数制御）
+- セキュリティ考慮事項 10.4 にコンフリクト内容送信の注意を追加
+
+**設計のポイント**:
+- 既存の ReviewDiff/ExplainDiff と同じワンショット実行パターンを踏襲
+- ThreeWayContent を構造化プロンプトで送信し AI の解決精度を最大化
+- ConflictResolver への AI ボタン注入は Props 経由（A-004 準拠）
+- 一括解決は 3 並列 + プログレスバー
+- AI 結果は必ずプレビュー → 承認/拒否のフローを経る（B-002 準拠）
 
 ## v4.0 (2026-04-09)
 
