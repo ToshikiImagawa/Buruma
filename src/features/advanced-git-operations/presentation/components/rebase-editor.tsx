@@ -39,7 +39,7 @@ function SortableCommitItem({
     <div
       ref={setNodeRef}
       style={style}
-      className="flex items-center gap-2 rounded border bg-background px-2 py-1 text-sm"
+      className="flex min-w-0 items-center gap-2 rounded border bg-background px-2 py-1 text-sm"
     >
       <button
         className="cursor-grab text-muted-foreground hover:text-foreground active:cursor-grabbing"
@@ -63,7 +63,7 @@ function SortableCommitItem({
       </Select>
 
       <span className="shrink-0 font-mono text-xs text-muted-foreground">{step.hash.substring(0, 7)}</span>
-      <span className="flex-1 truncate">{step.message}</span>
+      <span className="min-w-0 flex-1 break-words">{step.message}</span>
     </div>
   )
 }
@@ -219,7 +219,7 @@ export function RebaseEditor({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="w-fit min-w-96 max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle className="text-sm">
             {step === 'select-onto' ? 'リベース先ブランチを選択' : `インタラクティブリベース (onto: ${selectedOnto})`}
@@ -259,7 +259,7 @@ export function RebaseEditor({
               <>
                 <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                   <SortableContext items={currentSteps.map((s) => s.hash)} strategy={verticalListSortingStrategy}>
-                    <div className="max-h-80 space-y-1 overflow-y-auto">
+                    <div className="max-h-80 space-y-1 overflow-x-hidden overflow-y-auto">
                       {currentSteps.map((s, index) => (
                         <div key={s.hash} className="flex items-center gap-1">
                           <div className="flex flex-col">
@@ -280,7 +280,7 @@ export function RebaseEditor({
                               &#9660;
                             </button>
                           </div>
-                          <div className="flex-1">
+                          <div className="min-w-0 flex-1">
                             <SortableCommitItem
                               step={s}
                               onActionChange={(action) => handleActionChange(s.hash, action)}
