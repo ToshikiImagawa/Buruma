@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: ["prd-worktree-management"]
 tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
@@ -63,6 +63,9 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | FR-017 | ファイルシステムウォッチャーによるワークツリーの変更検出を行う | 推奨 | FR_105 (FR_105_01) |
 | FR-018 | 変更検出時にワークツリー一覧を自動リフレッシュする | 推奨 | FR_105 (FR_105_02) |
 | FR-019 | 外部で作成/削除されたワークツリーを検出する | 推奨 | FR_105 (FR_105_03) |
+| FR-020 | ワークツリー作成ダイアログでローカル/リモートブランチを Combobox で選択できる（リアルタイムフィルタリング付き）。ブランチはグループラベル（Local / Remote）で分離表示する | 推奨 | FR_102 (FR_102_05) |
+| FR-021 | ワークツリー削除時にローカルブランチも同時に削除するオプションを提供する（チェックボックス、デフォルト ON）。削除は `git branch -d` で実行し、未マージの場合は警告を表示して `-D` を提案する | 推奨 | FR_103 (FR_103_05) |
+| FR-022 | 削除対象のブランチが他のワークツリーで使用中の場合、ブランチ削除オプションを無効化し「他のワークツリーで使用中」と表示する | 推奨 | FR_103 (FR_103_05) |
 
 ## 3.2. 非機能要件 (Non-Functional Requirements)
 
@@ -88,7 +91,7 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | Command 名 | 概要 | 引数 | 戻り値 |
 |-----------|------|------|--------|
 | `worktree_create` | 新規ワークツリーを作成する | `WorktreeCreateParams` | `WorktreeInfo` |
-| `worktree_delete` | ワークツリーを削除する | `WorktreeDeleteParams` | `void` |
+| `worktree_delete` | ワークツリーを削除する（`deleteBranch=true` の場合はローカルブランチも削除） | `WorktreeDeleteParams` | `BranchDeleteResult \| null` |
 
 ### 4.1.3. ワークツリー状態監視（Events, Core → Webview `emit` / `listen`）
 
@@ -114,7 +117,7 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | `WorktreeListItem` | `{ worktree: WorktreeInfo; isSelected: boolean; isMain: boolean; onClick: () => void; onDeleteClick: () => void }` | ワークツリー一覧の各行 |
 | `WorktreeDetail` | `{ repoPath: string; worktreePath: string }` | 右パネルのワークツリー詳細（ブランチ、ステータス、ログ、差分、変更ファイル） |
 | `WorktreeCreateDialog` | `{ repoPath: string; open: boolean; onOpenChange: (open: boolean) => void; onCreated: (worktree: WorktreeInfo) => void }` | ワークツリー作成ダイアログ |
-| `WorktreeDeleteDialog` | `{ worktree: WorktreeInfo; open: boolean; onOpenChange: (open: boolean) => void; onDeleted: () => void }` | ワークツリー削除確認ダイアログ |
+| `WorktreeDeleteDialog` | `{ worktree: WorktreeInfo; open: boolean; onOpenChange: (open: boolean) => void; onDeleted: () => void; isBranchUsedElsewhere: boolean }` | ワークツリー削除確認ダイアログ（ブランチ同時削除オプション付き） |
 
 ## 4.3. 型定義
 
@@ -164,6 +167,16 @@ interface WorktreeDeleteParams {
   repoPath: string;              // リポジトリパス
   worktreePath: string;          // 削除対象パス
   force: boolean;                // 強制削除フラグ
+  deleteBranch: boolean;         // ローカルブランチも同時に削除するか
+}
+
+// ブランチ削除結果
+interface BranchDeleteResult {
+  deleted: boolean;              // ブランチが削除されたか
+  branchName: string;            // 対象ブランチ名
+  skipped: boolean;              // スキップされたか（他ワークツリーで使用中等）
+  skipReason?: string;           // スキップ理由
+  requireForce: boolean;         // 未マージのため -D が必要か
 }
 
 // ワークツリー状態変化イベント
@@ -189,6 +202,8 @@ type WorktreeSortOrder = 'name' | 'last-updated';
 | detached HEAD | 特定のブランチにチェックアウトしていない状態 |
 | 左パネル | Buruma の UI で常時表示されるワークツリー一覧エリア |
 | 右パネル（詳細パネル） | 選択したワークツリーの詳細情報を表示するエリア |
+| 未マージブランチ | デフォルトブランチにマージされていないコミットを含むブランチ。`git branch -d` で削除を拒否される |
+| Combobox | テキスト入力とドロップダウン一覧を組み合わせた選択UI。入力に応じてリアルタイムにフィルタリングされる |
 
 # 6. 使用例
 
@@ -217,8 +232,8 @@ if (created.success) {
 }
 
 // Webview 側：ワークツリーを削除（確認後）
-const deleted = await invokeCommand<void>('worktree_delete', {
-  params: { repoPath, worktreePath: worktree.path, force: false },
+const deleted = await invokeCommand<BranchDeleteResult | null>('worktree_delete', {
+  params: { repoPath, worktreePath: worktree.path, force: false, deleteBranch: true },
 })
 
 // Webview 側：ワークツリー状態変化の購読
@@ -355,6 +370,91 @@ sequenceDiagram
     Webview ->> Webview: ワークツリー一覧を再取得・更新
 ```
 
+## 7.5. ワークツリー作成時のブランチ選択フロー
+
+```mermaid
+sequenceDiagram
+    participant Webview as Webview (React)
+    participant Dialog as WorktreeCreateDialog
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+
+    Webview ->> Dialog: 作成ボタンクリック
+    Dialog ->> Invoke: invoke<BranchInfo[]>('git_branches', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git branch -a
+    Git -->> Core: ブランチ一覧（raw）
+    Core -->> Invoke: Ok(Vec<BranchInfo>)
+    Invoke -->> Dialog: ローカル/リモートブランチ一覧
+
+    Dialog ->> Dialog: Combobox でブランチ一覧を表示（Local / Remote グループ）
+    Dialog ->> Dialog: ユーザーがテキスト入力でフィルタリング
+    Dialog ->> Dialog: ブランチを選択（または新規ブランチ名を入力）
+
+    alt 既存ブランチを選択
+        Dialog ->> Dialog: createNewBranch=false, branch=選択したブランチ名
+    else 新規ブランチ名を入力
+        Dialog ->> Dialog: createNewBranch=true, branch=入力したブランチ名
+    end
+
+    Dialog ->> Invoke: invoke<WorktreeInfo>('worktree_create', { params })
+    Note right of Dialog: 以降は 7.2 のフローと同じ
+```
+
+## 7.6. ワークツリー削除時のブランチ同時削除フロー
+
+```mermaid
+sequenceDiagram
+    participant Webview as Webview (React)
+    participant Dialog as WorktreeDeleteDialog
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+
+    Webview ->> Dialog: 削除ボタンクリック
+    Dialog ->> Dialog: ブランチが他のワークツリーで使用中か確認（isBranchUsedElsewhere prop）
+
+    alt ブランチが他のワークツリーで使用中
+        Dialog ->> Dialog: 「ローカルブランチも削除」チェックボックスを無効化
+        Dialog ->> Dialog: 「他のワークツリーで使用中」メッセージ表示
+    else ブランチが他で使用されていない
+        Dialog ->> Dialog: 「ローカルブランチも削除」チェックボックス表示（デフォルト ON）
+    end
+
+    Dialog ->> Invoke: invoke('worktree_delete', { params: { ..., deleteBranch } })
+    Invoke ->> Core: Tauri IPC
+
+    Core ->> Git: tokio::process::Command: git worktree remove [--force] <path>
+    Git -->> Core: ワークツリー削除結果
+
+    alt deleteBranch=true
+        Core ->> Git: tokio::process::Command: git branch -d <branch>
+        alt 未マージブランチ
+            Git -->> Core: エラー（not fully merged）
+            Core -->> Invoke: Ok(BranchDeleteResult { requireForce: true })
+            Invoke -->> Dialog: 未マージ警告を表示
+            Dialog ->> Dialog: ユーザーに強制削除 (-D) を提案
+
+            alt ユーザーが強制削除を承認
+                Dialog ->> Invoke: invoke('git_branch_delete', { ..., force: true })
+                Invoke ->> Core: Tauri IPC
+                Core ->> Git: tokio::process::Command: git branch -D <branch>
+                Git -->> Core: 削除成功
+                Core -->> Invoke: Ok(BranchDeleteResult { deleted: true })
+            else ユーザーがキャンセル
+                Dialog ->> Dialog: ブランチは残存、ワークツリーのみ削除完了
+            end
+        else マージ済みブランチ
+            Git -->> Core: 削除成功
+            Core -->> Invoke: Ok(BranchDeleteResult { deleted: true })
+        end
+    end
+
+    Invoke -->> Dialog: 削除完了
+    Dialog ->> Webview: onDeleted()
+```
+
 # 8. 制約事項
 
 - Webview から OS API（fs / process / shell）に直接アクセスしない（原則 A-001）
@@ -363,6 +463,10 @@ sequenceDiagram
 - IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一し、エラーハンドリングを一貫させる（原則 T-002）
 - 不可逆操作（ワークツリー削除）には確認ダイアログを必ず表示する（原則 B-002）
 - メインワークツリーの削除は常に防止する（FR_103_04）
+- ブランチ削除はまず `git branch -d`（安全モード）を試み、未マージの場合のみユーザー確認後に `-D` を実行する（B-002 準拠）
+- 他のワークツリーで使用中のブランチは削除しない（FR-022）
+- ブランチ一覧の取得は `basic-git-operations` の既存 `git_branches` IPC を再利用する（新規コマンド追加不要）
+- 未マージブランチの強制削除（`-D`）は `basic-git-operations` の既存 `git_branch_delete` IPC を再利用する
 - Git 2.5 以上が前提（`git worktree` コマンドの互換性）
 - ファイル監視には `notify` + `notify-debouncer-full` crate を使用する（原則 A-002）
 
@@ -392,6 +496,8 @@ sequenceDiagram
 | FR_103_02 | FR-011 + `worktree_check_dirty` IPC | 対応済み |
 | FR_103_03 | FR-012 + WorktreeDeleteParams.force | 対応済み |
 | FR_103_04 | FR-013 + WorktreeInfo.isMain チェック | 対応済み |
+| FR_102_05 | FR-020 + Combobox ブランチ選択（Local/Remote グループ表示、フィルタリング） | 対応済み |
+| FR_103_05 | FR-021, FR-022 + WorktreeDeleteParams.deleteBranch + BranchDeleteResult 型 | 対応済み |
 | FR_104 | FR-014〜FR-016（切り替え、詳細表示、ハイライト） | 対応済み |
 | FR_104_01 | FR-014 + WorktreeList.onSelect | 対応済み |
 | FR_104_02 | FR-015 + WorktreeDetail コンポーネント | 対応済み |
