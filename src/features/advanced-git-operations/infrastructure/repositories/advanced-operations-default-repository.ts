@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   CherryPickOptions,
   CherryPickResult,
   ConflictFile,
@@ -153,6 +154,12 @@ export class AdvancedOperationsDefaultRepository implements AdvancedOperationsRe
   async tagDelete(worktreePath: string, tagName: string): Promise<void> {
     const result = await invokeCommand<void>('git_tag_delete', { args: { worktreePath, tagName } })
     if (result.success === false) throw new AdvancedOperationsError(result.error)
+  }
+
+  async getBranches(worktreePath: string): Promise<BranchList> {
+    const result = await invokeCommand<BranchList>('git_branches', { args: { worktreePath } })
+    if (result.success === false) throw new AdvancedOperationsError(result.error)
+    return result.data
   }
 }
 

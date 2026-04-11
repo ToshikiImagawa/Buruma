@@ -12,6 +12,7 @@ import { GetLastErrorUseCase } from './application/usecases/get-last-error-useca
 import { GetOperationLoadingUseCase } from './application/usecases/get-operation-loading-usecase'
 import { GetOperationProgressUseCase } from './application/usecases/get-operation-progress-usecase'
 import { GetRebaseCommitsUseCase } from './application/usecases/get-rebase-commits-usecase'
+import { GetTrackedBranchesUseCase } from './application/usecases/get-tracked-branches-usecase'
 import { MergeAbortUseCase } from './application/usecases/merge-abort-usecase'
 import { MergeStatusUseCase } from './application/usecases/merge-status-usecase'
 // UseCases
@@ -48,6 +49,7 @@ import {
   GetAdvancedOperationLoadingUseCaseToken,
   GetAdvancedOperationProgressUseCaseToken,
   GetRebaseCommitsRendererUseCaseToken,
+  GetTrackedBranchesRendererUseCaseToken,
   MergeAbortRendererUseCaseToken,
   MergeRendererUseCaseToken,
   MergeStatusRendererUseCaseToken,
@@ -102,6 +104,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
       .registerSingleton(RebaseAbortRendererUseCaseToken, RebaseAbortUseCase, REPO_AND_SERVICE)
       .registerSingleton(RebaseContinueRendererUseCaseToken, RebaseContinueUseCase, REPO_AND_SERVICE)
       .registerSingleton(GetRebaseCommitsRendererUseCaseToken, GetRebaseCommitsUseCase, REPO_AND_SERVICE)
+      .registerSingleton(GetTrackedBranchesRendererUseCaseToken, GetTrackedBranchesUseCase, REPO_AND_SERVICE)
       // スタッシュ
       .registerSingleton(StashSaveRendererUseCaseToken, StashSaveUseCase, REPO_AND_SERVICE)
       .registerSingleton(StashListRendererUseCaseToken, StashListUseCase, REPO_AND_SERVICE)
@@ -153,6 +156,7 @@ export const advancedGitOperationsConfig: VContainerConfig = {
         RebaseAbortRendererUseCaseToken,
         RebaseContinueRendererUseCaseToken,
         GetRebaseCommitsRendererUseCaseToken,
+        GetTrackedBranchesRendererUseCaseToken,
         GetAdvancedOperationLoadingUseCaseToken,
       ])
       .registerTransient(StashViewModelToken, StashDefaultViewModel, [

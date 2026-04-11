@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   CherryPickOptions,
   CherryPickResult,
   ConflictFile,
@@ -32,11 +33,13 @@ export interface RebaseViewModel {
   readonly loading$: Observable<boolean>
   readonly rebaseResult$: Observable<RebaseResult | null>
   readonly rebaseCommits$: Observable<RebaseStep[]>
+  readonly branches$: Observable<BranchList | null>
   rebase(options: RebaseOptions): void
   rebaseInteractive(options: InteractiveRebaseOptions): void
   rebaseAbort(worktreePath: string): void
   rebaseContinue(worktreePath: string): void
   getRebaseCommits(worktreePath: string, onto: string): void
+  fetchBranches(worktreePath: string): void
 }
 
 export interface StashViewModel {

@@ -1,8 +1,9 @@
-import type { InteractiveRebaseOptions, RebaseOptions, RebaseResult, RebaseStep } from '@domain'
+import type { BranchList, InteractiveRebaseOptions, RebaseOptions, RebaseResult, RebaseStep } from '@domain'
 import type { Observable } from 'rxjs'
 import type {
   GetAdvancedOperationLoadingUseCase,
   GetRebaseCommitsRendererUseCase,
+  GetTrackedBranchesRendererUseCase,
   RebaseAbortRendererUseCase,
   RebaseContinueRendererUseCase,
   RebaseInteractiveRendererUseCase,
@@ -20,12 +21,16 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
   private readonly _rebaseCommits$ = new BehaviorSubject<RebaseStep[]>([])
   readonly rebaseCommits$: Observable<RebaseStep[]> = this._rebaseCommits$.asObservable()
 
+  private readonly _branches$ = new BehaviorSubject<BranchList | null>(null)
+  readonly branches$: Observable<BranchList | null> = this._branches$.asObservable()
+
   constructor(
     private readonly rebaseUseCase: RebaseRendererUseCase,
     private readonly rebaseInteractiveUseCase: RebaseInteractiveRendererUseCase,
     private readonly rebaseAbortUseCase: RebaseAbortRendererUseCase,
     private readonly rebaseContinueUseCase: RebaseContinueRendererUseCase,
     private readonly getRebaseCommitsUseCase: GetRebaseCommitsRendererUseCase,
+    private readonly getTrackedBranchesUseCase: GetTrackedBranchesRendererUseCase,
     getOperationLoadingUseCase: GetAdvancedOperationLoadingUseCase,
   ) {
     this.loading$ = getOperationLoadingUseCase.store
@@ -76,6 +81,17 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
       })
       .catch(() => {
         this._rebaseCommits$.next([])
+      })
+  }
+
+  fetchBranches(worktreePath: string): void {
+    this.getTrackedBranchesUseCase
+      .invoke(worktreePath)
+      .then((branchList) => {
+        this._branches$.next(branchList)
+      })
+      .catch(() => {
+        this._branches$.next(null)
       })
   }
 }
