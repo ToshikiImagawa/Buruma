@@ -4,8 +4,8 @@ title: "Claude Code 連携"
 type: "prd"
 status: "approved"
 created: "2026-03-25"
-updated: "2026-04-09"
-depends-on: ["prd-worktree-management", "prd-application-foundation"]
+updated: "2026-04-11"
+depends-on: ["prd-worktree-management", "prd-application-foundation", "prd-advanced-git-operations"]
 tags: ["claude-code", "ai", "cli", "session", "tauri-migration"]
 category: "ai-integration"
 priority: "medium"
@@ -69,6 +69,7 @@ flowchart LR
         RequestReview["コードレビューを<br/>依頼する"]
         RequestExplain["差分の解説を<br/>依頼する"]
         ViewOutput["セッション出力を<br/>閲覧する"]
+        AIConflict["AI でコンフリクトを<br/>解決する"]
     end
 
     Developer --- ManageSession
@@ -76,6 +77,7 @@ flowchart LR
     Developer --- RequestReview
     Developer --- RequestExplain
     Developer --- ViewOutput
+    Developer --- AIConflict
 ```
 
 ## 2.2. ユースケース図（詳細）
@@ -147,6 +149,10 @@ flowchart LR
 - セッション出力表示
     - Claude Code の出力をリアルタイムでUI上に表示
     - 出力のスクロール・検索
+- AI コンフリクト解決
+    - マージ・リベース時のコンフリクトを Claude Code に解決させる
+    - コンフリクトファイルの内容（ours/theirs/base）を Claude Code に送信
+    - AI が生成した解決案の確認・適用
 
 ---
 
@@ -256,6 +262,22 @@ requirementDiagram
     AIAssistedGit - contains -> GitDelegation
     AICodeReview - contains -> CodeReview
     AICodeReview - contains -> DiffExplanation
+    requirement AIConflictResolution {
+        id: UR_505
+        text: "マージ・リベース時のコンフリクトを Claude Code に解決させ、結果を確認・適用できる"
+        risk: high
+        verifymethod: test
+    }
+
+    functionalRequirement AIConflictResolve {
+        id: FR_506
+        text: "コンフリクト発生時に Claude Code にファイル内容を送信し、AI が生成した解決案を適用する"
+        risk: high
+        verifymethod: test
+    }
+
+    ClaudeCodeIntegration - contains -> AIConflictResolution
+    AIConflictResolution - contains -> AIConflictResolve
     ClaudeCodeIntegration - traces -> CLISubprocess
     ClaudeCodeIntegration - traces -> BackendProcessExecution
     SessionManagement - traces -> SessionIsolation
@@ -283,6 +305,10 @@ Claude Code CLI と連携し、ワークツリーごとに AI 支援機能を提
 ### UR_504: AI コードレビュー・解説
 
 差分を Claude Code に送信してレビューコメントや解説を取得し、UI上で確認できる。プルリクエスト前のセルフレビューや、他者のコミット内容の理解に活用する。
+
+### UR_505: AI コンフリクト解決
+
+マージ・リベース時に発生したコンフリクトを Claude Code に解決させ、結果を確認・適用できるようにする。手動解決が困難な複雑なコンフリクトに対し、AI がコードの意図を理解した上で適切な解決案を提示する。
 
 ## 4.2. 機能要求
 
@@ -354,6 +380,20 @@ Claude Code の出力をリアルタイムでUIに表示する。
 
 **検証方法:** デモンストレーションによる検証
 
+### FR_506: AI コンフリクト解決
+
+マージ・リベース実行時にコンフリクトが発生した場合、Claude Code にコンフリクトの解決を委譲する。
+
+**含まれる機能:**
+
+- FR_506_01: コンフリクトファイルの内容（ours / theirs / base）を Claude Code セッションに送信
+- FR_506_02: AI が生成した解決案のプレビュー表示（3ウェイマージビュー内）
+- FR_506_03: 解決案の適用・拒否の選択
+- FR_506_04: 全コンフリクトファイルの一括 AI 解決オプション
+- FR_506_05: AI 解決後の手動微調整サポート
+
+**検証方法:** テストによる検証
+
 ## 4.3. 設計制約
 
 ### DC_501: CLI 子プロセス実行制約
@@ -403,6 +443,7 @@ Claude Code セッションの初回起動は30秒以内に完了すること。
 - Claude Code CLI (`claude` コマンド) がインストール・認証済みであること
 - [worktree-management.md](./worktree-management.md) のワークツリー管理機能が実装済みであること
 - [application-foundation.md](./application-foundation.md) の IPC 通信基盤（FR_604）が利用可能であること
+- [advanced-git-operations.md](./advanced-git-operations.md) のコンフリクト解決機能（FR_405）が実装済みであること（AI コンフリクト解決に必要）
 
 ---
 
@@ -434,16 +475,16 @@ Claude Code セッションの初回起動は30秒以内に完了すること。
 
 | カテゴリ | 件数 |
 |----------|------|
-| ユーザー要求 (UR) | 4 |
-| 機能要求 (FR) | 5 |
+| ユーザー要求 (UR) | 5 |
+| 機能要求 (FR) | 6 |
 | 非機能要求 (NFR) | 1 |
 | 設計制約 (DC) | 3 |
-| **合計** | **13** |
+| **合計** | **15** |
 
 | 優先度 | 件数 |
 |--------|------|
 | 必須 (Must) | 6（UR_501, UR_502, FR_501, FR_505, DC_501, DC_503） |
-| 推奨 (Should) | 5（UR_503, UR_504, FR_502, DC_502, NFR_501） |
+| 推奨 (Should) | 7（UR_503, UR_504, UR_505, FR_502, FR_506, DC_502, NFR_501） |
 | 任意 (Could) | 2（FR_503, FR_504） |
 
 > **採番規則:** 本PRDの要求IDは500番台を使用する（FG-5: Claude Code 連携）。

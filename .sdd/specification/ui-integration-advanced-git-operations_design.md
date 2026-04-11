@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-04-04"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
 tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration"]
 category: "ui-integration"
@@ -233,7 +233,7 @@ const BranchOperations = ({ onConflict }) => (<>
 
 | 要件                 | 実現方針                                                                                                                                               |
 |--------------------|----------------------------------------------------------------------------------------------------------------------------------------------------|
-| 操作後リフレッシュ (FR_507) | MergeDialog/RebaseEditor/CherryPickDialog/StashManager の操作完了コールバック内で repository-viewer の ViewModel（useRepositoryViewerViewModel 等）のリフレッシュメソッドを呼び出す |
+| 操作後リフレッシュ (FR_707) | MergeDialog/RebaseEditor/CherryPickDialog/StashManager の操作完了コールバック内で repository-viewer の ViewModel（useRepositoryViewerViewModel 等）のリフレッシュメソッドを呼び出す |
 
 ---
 

@@ -4,7 +4,7 @@ title: "高度な Git 操作"
 type: "prd"
 status: "approved"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: ["prd-basic-git-operations"]
 tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tauri-migration"]
 category: "git-operations"
@@ -126,6 +126,7 @@ flowchart LR
         ChooseOurs["自分の変更を<br/>採用する"]
         ChooseTheirs["相手の変更を<br/>採用する"]
         ManualEdit["手動で<br/>編集する"]
+        AIResolve["AI で<br/>解決する"]
     end
 
     Developer --- Stash
@@ -137,6 +138,7 @@ flowchart LR
     ChooseOurs -.->|"<<拡張>>"| ConflictResolve
     ChooseTheirs -.->|"<<拡張>>"| ConflictResolve
     ManualEdit -.->|"<<拡張>>"| ConflictResolve
+    AIResolve -.->|"<<拡張>>"| ConflictResolve
 ```
 
 ## 2.3. 機能一覧（テキスト形式）
@@ -161,6 +163,7 @@ flowchart LR
     - 3ウェイマージ表示（ours / theirs / merged）
     - ours/theirs 一括採用
     - 手動編集による解決
+    - AI による自動解決（Claude Code 連携）
     - 解決済みマーク
 - タグ管理
     - タグの作成（lightweight / annotated）
@@ -234,7 +237,7 @@ requirementDiagram
 
     functionalRequirement ConflictResolutionUI {
         id: FR_405
-        text: "コンフリクトファイルの3ウェイマージ表示と解決UIを提供する"
+        text: "コンフリクトファイルの3ウェイマージ表示と解決UI（AI 解決含む）を提供する"
         risk: high
         verifymethod: test
     }
@@ -366,6 +369,7 @@ requirementDiagram
 - FR_405_05: 手動編集による解決
 - FR_405_06: 解決済みファイルのマーク（`git add`）
 - FR_405_07: 全コンフリクト解決後のマージ/リベース続行
+- FR_405_08: AI によるコンフリクト解決（Claude Code 連携、詳細は [claude-code-integration.md](./claude-code-integration.md) FR_506 を参照）
 
 **検証方法:** テストによる検証
 

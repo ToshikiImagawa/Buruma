@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-04-04"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: [ "prd-ui-integration-advanced-git-operations" ]
 tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration" ]
 category: "ui-integration"
@@ -41,16 +41,16 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 
 | ID     | 要件                                                     | 優先度 | 根拠 (PRD)       |
 |--------|--------------------------------------------------------|-----|----------------|
-| FR-001 | Branches タブにマージボタンを追加し、MergeDialog を起動できる              | 必須  | FR_501         |
-| FR-002 | Branches タブにリベースボタンを追加し、RebaseEditor を起動できる            | 推奨  | FR_502         |
-| FR-003 | 新規 Refs タブを追加し、StashManager と TagManager を内部トグルで統合表示する | 必須  | FR_503, FR_506 |
-| FR-004 | Commits タブにチェリーピックボタンを追加し、CherryPickDialog を起動できる      | 推奨  | FR_504         |
-| FR-005 | コンフリクト発生時に ConflictResolver をオーバーレイ表示する。解決完了または中止（abort）で通常タブ表示に戻る（B-002 準拠） | 必須  | FR_505         |
-| FR-007 | 操作完了後にステータス・ブランチ・コミットログをリフレッシュする                       | 必須  | FR_507         |
-| FR-008 | Commits タブのブランチパネルを ResizablePanel の collapsible prop で折りたたみ可能にする | 推奨  | FR_508         |
-| FR-009 | ブランチ右クリックでコンテキストメニュー表示（ローカル/リモート/HEAD で項目を分ける）。削除操作は不可逆のため確認ダイアログを表示する（B-002 準拠） | 推奨  | FR_509         |
-| FR-010 | ブランチ操作ヘッダーのボタンをアイコンのみ + Tooltip に変更                     | 任意  | FR_510         |
-| FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる。hard リセットは不可逆操作のため視覚的警告を表示する（B-002 準拠） | 推奨  | FR_511         |
+| FR-001 | Branches タブにマージボタンを追加し、MergeDialog を起動できる              | 必須  | FR_701         |
+| FR-002 | Branches タブにリベースボタンを追加し、RebaseEditor を起動できる            | 推奨  | FR_702         |
+| FR-003 | 新規 Refs タブを追加し、StashManager と TagManager を内部トグルで統合表示する | 必須  | FR_703, FR_706 |
+| FR-004 | Commits タブにチェリーピックボタンを追加し、CherryPickDialog を起動できる      | 推奨  | FR_704         |
+| FR-005 | コンフリクト発生時に ConflictResolver をオーバーレイ表示する。解決完了または中止（abort）で通常タブ表示に戻る（B-002 準拠） | 必須  | FR_705         |
+| FR-007 | 操作完了後にステータス・ブランチ・コミットログをリフレッシュする                       | 必須  | FR_707         |
+| FR-008 | Commits タブのブランチパネルを ResizablePanel の collapsible prop で折りたたみ可能にする | 推奨  | FR_708         |
+| FR-009 | ブランチ右クリックでコンテキストメニュー表示（ローカル/リモート/HEAD で項目を分ける）。削除操作は不可逆のため確認ダイアログを表示する（B-002 準拠） | 推奨  | FR_709         |
+| FR-010 | ブランチ操作ヘッダーのボタンをアイコンのみ + Tooltip に変更                     | 任意  | FR_710         |
+| FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる。hard リセットは不可逆操作のため視覚的警告を表示する（B-002 準拠） | 推奨  | FR_711         |
 
 # 4. API
 
@@ -84,14 +84,15 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 
 | PRD 要求 ID | 本仕様での対応                       | ステータス |
 |-----------|-------------------------------|-------|
-| FR_501    | FR-001（Branches タブにマージボタン）    | 対応済み  |
-| FR_502    | FR-002（Branches タブにリベースボタン）   | 対応済み  |
-| FR_503    | FR-003（Refs タブに Stash 統合）     | 対応済み  |
-| FR_504    | FR-004（Commits タブにチェリーピックボタン） | 対応済み  |
-| FR_505    | FR-005（コンフリクト解決オーバーレイ）        | 対応済み  |
-| FR_506    | FR-003（Refs タブに Tags 統合）      | 対応済み  |
-| FR_507    | FR-007（操作後リフレッシュ）             | 対応済み  |
-| FR_508    | FR-008（ブランチパネル折りたたみ）          | 対応済み  |
-| FR_509    | FR-009（ブランチコンテキストメニュー）        | 対応済み  |
-| FR_510    | FR-010（アイコンのみツールバー）           | 対応済み  |
-| FR_511    | FR-011（コミットリセット）               | 対応済み  |
+| FR_701    | FR-001（Branches タブにマージボタン）    | 対応済み  |
+| FR_702    | FR-002（Branches タブにリベースボタン）   | 対応済み  |
+| FR_703    | FR-003（Refs タブに Stash 統合）     | 対応済み  |
+| FR_704    | FR-004（Commits タブにチェリーピックボタン） | 対応済み  |
+| FR_705    | FR-005（コンフリクト解決オーバーレイ）        | 対応済み  |
+| FR_706    | FR-003（Refs タブに Tags 統合）      | 対応済み  |
+| FR_707    | FR-007（操作後リフレッシュ）             | 対応済み  |
+| FR_708    | FR-008（ブランチパネル折りたたみ）          | 対応済み  |
+| FR_709    | FR-009（ブランチコンテキストメニュー）        | 対応済み  |
+| FR_710    | FR-010（アイコンのみツールバー）           | 対応済み  |
+| FR_711    | FR-011（コミットリセット）               | 対応済み  |
+| FR_712    | -                             | 未対応   |
