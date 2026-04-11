@@ -195,8 +195,7 @@ export function RebaseEditor({
     rebaseAbort(worktreePath)
     setEditedSteps([])
     onOpenChange(false)
-    onComplete?.()
-  }, [worktreePath, rebaseAbort, onOpenChange, onComplete])
+  }, [worktreePath, rebaseAbort, onOpenChange])
 
   const handleClose = useCallback(() => {
     onOpenChange(false)

@@ -106,6 +106,16 @@ export function BranchOperations({
     [worktreePath, deleteBranch, onRefresh],
   )
 
+  const handleMergeFromContext = useCallback((branchName: string) => {
+    setMergeTargetBranch(branchName)
+    setMergeOpen(true)
+  }, [])
+
+  const handleRebaseFromContext = useCallback((branchName: string) => {
+    setRebaseTargetBranch(branchName)
+    setRebaseOpen(true)
+  }, [])
+
   return (
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-2 p-2">
@@ -267,20 +277,10 @@ export function BranchOperations({
                       チェックアウト
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem
-                      onClick={() => {
-                        setMergeTargetBranch(branch.name)
-                        setMergeOpen(true)
-                      }}
-                    >
+                    <ContextMenuItem onClick={() => handleMergeFromContext(branch.name)}>
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => {
-                        setRebaseTargetBranch(branch.name)
-                        setRebaseOpen(true)
-                      }}
-                    >
+                    <ContextMenuItem onClick={() => handleRebaseFromContext(branch.name)}>
                       {branch.name} へリベース
                     </ContextMenuItem>
                     <ContextMenuSeparator />
@@ -379,20 +379,10 @@ export function BranchOperations({
                       チェックアウト
                     </ContextMenuItem>
                     <ContextMenuSeparator />
-                    <ContextMenuItem
-                      onClick={() => {
-                        setMergeTargetBranch(branch.name)
-                        setMergeOpen(true)
-                      }}
-                    >
+                    <ContextMenuItem onClick={() => handleMergeFromContext(branch.name)}>
                       {branch.name} を現在のブランチにマージ
                     </ContextMenuItem>
-                    <ContextMenuItem
-                      onClick={() => {
-                        setRebaseTargetBranch(branch.name)
-                        setRebaseOpen(true)
-                      }}
-                    >
+                    <ContextMenuItem onClick={() => handleRebaseFromContext(branch.name)}>
                       {branch.name} へリベース
                     </ContextMenuItem>
                     <ContextMenuSeparator />
