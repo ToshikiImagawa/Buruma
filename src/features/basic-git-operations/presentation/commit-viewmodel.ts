@@ -3,8 +3,8 @@ import type { Observable } from 'rxjs'
 import type { CommitRendererUseCase, GetOperationLoadingUseCase } from '../di-tokens'
 import type { CommitViewModel } from './viewmodel-interfaces'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
-import { BehaviorSubject } from 'rxjs'
 import { invokeCommand } from '@lib/invoke/commands'
+import { BehaviorSubject } from 'rxjs'
 
 export class CommitDefaultViewModel implements CommitViewModel {
   readonly loading$: Observable<boolean>

@@ -5,7 +5,7 @@ type: "spec"
 status: "approved"
 sdd-phase: "specify"
 created: "2026-03-25"
-updated: "2026-04-09"
+updated: "2026-04-11"
 depends-on: ["prd-worktree-management"]
 tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
@@ -63,6 +63,15 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | FR-017 | ファイルシステムウォッチャーによるワークツリーの変更検出を行う | 推奨 | FR_105 (FR_105_01) |
 | FR-018 | 変更検出時にワークツリー一覧を自動リフレッシュする | 推奨 | FR_105 (FR_105_02) |
 | FR-019 | 外部で作成/削除されたワークツリーを検出する | 推奨 | FR_105 (FR_105_03) |
+| FR-020 | ワークツリー作成ダイアログでローカル/リモートブランチを Combobox で選択できる（リアルタイムフィルタリング付き）。ブランチはグループラベル（Local / Remote）で分離表示する | 推奨 | FR_102 (FR_102_05) |
+| FR-021 | ワークツリー削除時にローカルブランチも同時に削除するオプションを提供する（チェックボックス、デフォルト ON）。削除は `git branch -d` で実行し、未マージの場合は警告を表示して `-D` を提案する | 推奨 | FR_103 (FR_103_05) |
+| FR-022 | 削除対象のブランチが他のワークツリーで使用中の場合、ブランチ削除オプションを無効化し「他のワークツリーで使用中」と表示する | 推奨 | FR_103 (FR_103_05) |
+| FR-023 | シンボリックリンク対象パターンをアプリデフォルト設定（`tauri-plugin-store`）で管理する。リポジトリローカル設定（`.buruma/symlink.json`）がある場合はそちらを優先する | 推奨 | FR_106 (FR_106_01) |
+| FR-024 | ワークツリー作成時にメインワークツリーから glob パターンにマッチしたファイル/ディレクトリをシンボリックリンクとして新規ワークツリーに作成する | 推奨 | FR_106 (FR_106_02) |
+| FR-025 | アプリ設定画面でシンボリックリンク対象パターンの追加・削除・一覧表示を提供する | 推奨 | FR_106 (FR_106_03) |
+| FR-026 | ワークツリー作成ダイアログで適用対象パターンの確認表示を行う（編集はアプリ設定画面で行う） | 推奨 | FR_106 (FR_106_03) |
+| FR-027 | シンボリックリンク作成に失敗したパターンは個別にログし、他のパターンの処理は続行する。ワークツリー作成自体は失敗させない | 推奨 | FR_106 (FR_106_04) |
+| FR-028 | メインワークツリーに対象ファイルが存在しないパターンはスキップして続行する。全パターンの処理結果（成功/スキップ/失敗）をまとめて通知する | 推奨 | FR_106 (FR_106_04) |
 
 ## 3.2. 非機能要件 (Non-Functional Requirements)
 
@@ -87,8 +96,8 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 
 | Command 名 | 概要 | 引数 | 戻り値 |
 |-----------|------|------|--------|
-| `worktree_create` | 新規ワークツリーを作成する | `WorktreeCreateParams` | `WorktreeInfo` |
-| `worktree_delete` | ワークツリーを削除する | `WorktreeDeleteParams` | `void` |
+| `worktree_create` | 新規ワークツリーを作成する（設定に基づきシンボリックリンクも自動作成） | `WorktreeCreateParams` | `WorktreeCreateResult` |
+| `worktree_delete` | ワークツリーを削除する（`deleteBranch=true` の場合はローカルブランチも削除） | `WorktreeDeleteParams` | `BranchDeleteResult \| null` |
 
 ### 4.1.3. ワークツリー状態監視（Events, Core → Webview `emit` / `listen`）
 
@@ -104,6 +113,13 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | `worktree_check_dirty` | ワークツリーに未コミット変更があるか確認する | `{ worktreePath: string }` | `boolean` |
 | `worktree_default_branch` | リポジトリのデフォルトブランチ名を取得する | `{ repoPath: string }` | `string` |
 
+### 4.1.5. シンボリックリンク設定（Commands, Webview → Core `invoke`）
+
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `worktree_symlink_config_get` | シンボリックリンク設定を取得する（リポジトリローカル設定があればそちらを優先、なければアプリデフォルト） | `{ repoPath: string }` | `SymlinkConfig` |
+| `worktree_symlink_config_set` | アプリデフォルトのシンボリックリンク設定を保存する | `{ config: SymlinkConfig }` | `void` |
+
 > **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出し、Rust 側の `Result<T, AppError>` を `IPCResult<T>` 形式に変換する。
 
 ## 4.2. React コンポーネント API
@@ -113,8 +129,8 @@ Buruma は Git ワークツリーを主軸とした GUI アプリケーション
 | `WorktreeList` | `{ repoPath: string; selectedPath: string \| null; onSelect: (worktree: WorktreeInfo) => void; onCreateClick: () => void }` | 左パネルのワークツリー一覧 |
 | `WorktreeListItem` | `{ worktree: WorktreeInfo; isSelected: boolean; isMain: boolean; onClick: () => void; onDeleteClick: () => void }` | ワークツリー一覧の各行 |
 | `WorktreeDetail` | `{ repoPath: string; worktreePath: string }` | 右パネルのワークツリー詳細（ブランチ、ステータス、ログ、差分、変更ファイル） |
-| `WorktreeCreateDialog` | `{ repoPath: string; open: boolean; onOpenChange: (open: boolean) => void; onCreated: (worktree: WorktreeInfo) => void }` | ワークツリー作成ダイアログ |
-| `WorktreeDeleteDialog` | `{ worktree: WorktreeInfo; open: boolean; onOpenChange: (open: boolean) => void; onDeleted: () => void }` | ワークツリー削除確認ダイアログ |
+| `WorktreeCreateDialog` | `{ repoPath: string; open: boolean; onOpenChange: (open: boolean) => void; onCreated: (result: WorktreeCreateResult) => void }` | ワークツリー作成ダイアログ。内部で `worktree_symlink_config_get` を呼び出し、適用対象パターンの確認表示を行う |
+| `WorktreeDeleteDialog` | `{ worktree: WorktreeInfo; open: boolean; onOpenChange: (open: boolean) => void; onDeleted: () => void; isBranchUsedElsewhere: boolean }` | ワークツリー削除確認ダイアログ（ブランチ同時削除オプション付き） |
 
 ## 4.3. 型定義
 
@@ -159,11 +175,27 @@ interface WorktreeCreateParams {
   startPoint?: string;           // 新規ブランチの起点（createNewBranch=true の場合）
 }
 
+// ワークツリー作成結果
+interface WorktreeCreateResult {
+  worktree: WorktreeInfo;        // 作成されたワークツリー情報
+  symlink?: SymlinkResult;       // シンボリックリンク処理結果（設定がない場合は undefined）
+}
+
 // ワークツリー削除パラメータ
 interface WorktreeDeleteParams {
   repoPath: string;              // リポジトリパス
   worktreePath: string;          // 削除対象パス
   force: boolean;                // 強制削除フラグ
+  deleteBranch: boolean;         // ローカルブランチも同時に削除するか
+}
+
+// ブランチ削除結果
+interface BranchDeleteResult {
+  deleted: boolean;              // ブランチが削除されたか
+  branchName: string;            // 対象ブランチ名
+  skipped: boolean;              // スキップされたか（他ワークツリーで使用中等）
+  skipReason?: string;           // スキップ理由
+  requireForce: boolean;         // 未マージのため -D が必要か
 }
 
 // ワークツリー状態変化イベント
@@ -175,6 +207,28 @@ interface WorktreeChangeEvent {
 
 // ワークツリー一覧の並び替えオプション
 type WorktreeSortOrder = 'name' | 'last-updated';
+
+// シンボリックリンク設定
+interface SymlinkConfig {
+  patterns: string[];            // glob パターンの配列（例: ["node_modules", "build/", "*.cache"]）
+  source: 'app' | 'repo';       // 設定の取得元（アプリデフォルト or リポジトリローカル）
+}
+
+// シンボリックリンク作成結果（パターンごと）
+interface SymlinkResultEntry {
+  pattern: string;               // 対象パターン
+  status: 'created' | 'skipped' | 'failed';  // 処理結果
+  targetPath?: string;           // シンボリックリンク先パス（created の場合）
+  reason?: string;               // スキップ/失敗の理由
+}
+
+// シンボリックリンク処理全体の結果
+interface SymlinkResult {
+  entries: SymlinkResultEntry[]; // 各パターンの処理結果
+  totalCreated: number;          // 作成成功数
+  totalSkipped: number;          // スキップ数
+  totalFailed: number;           // 失敗数
+}
 ```
 
 # 5. 用語集
@@ -189,12 +243,17 @@ type WorktreeSortOrder = 'name' | 'last-updated';
 | detached HEAD | 特定のブランチにチェックアウトしていない状態 |
 | 左パネル | Buruma の UI で常時表示されるワークツリー一覧エリア |
 | 右パネル（詳細パネル） | 選択したワークツリーの詳細情報を表示するエリア |
+| 未マージブランチ | デフォルトブランチにマージされていないコミットを含むブランチ。`git branch -d` で削除を拒否される |
+| Combobox | テキスト入力とドロップダウン一覧を組み合わせた選択UI。入力に応じてリアルタイムにフィルタリングされる |
+| シンボリックリンク | ファイルシステム上の別の場所にあるファイル/ディレクトリへの参照。実体は共有される |
+| glob パターン | ワイルドカード（`*`, `?`）を含むファイルマッチングパターン。例: `node_modules`, `*.cache` |
+| `.buruma/symlink.json` | リポジトリローカルのシンボリックリンク設定ファイル。メインワークツリーのルートに配置 |
 
 # 6. 使用例
 
 ```tsx
-import { invokeCommand, listenEvent } from '@/shared/lib/invoke'
-import type { WorktreeInfo, WorktreeChangeEvent } from '@/shared/domain'
+import { invokeCommand, listenEvent } from '@/lib/invoke'
+import type { WorktreeInfo, WorktreeChangeEvent } from '@/domain'
 
 // Webview 側：ワークツリー一覧を取得
 const result = await invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath })
@@ -217,8 +276,8 @@ if (created.success) {
 }
 
 // Webview 側：ワークツリーを削除（確認後）
-const deleted = await invokeCommand<void>('worktree_delete', {
-  params: { repoPath, worktreePath: worktree.path, force: false },
+const deleted = await invokeCommand<BranchDeleteResult | null>('worktree_delete', {
+  params: { repoPath, worktreePath: worktree.path, force: false, deleteBranch: true },
 })
 
 // Webview 側：ワークツリー状態変化の購読
@@ -355,6 +414,137 @@ sequenceDiagram
     Webview ->> Webview: ワークツリー一覧を再取得・更新
 ```
 
+## 7.5. ワークツリー作成時のブランチ選択フロー
+
+```mermaid
+sequenceDiagram
+    participant Webview as Webview (React)
+    participant Dialog as WorktreeCreateDialog
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+
+    Webview ->> Dialog: 作成ボタンクリック
+    Dialog ->> Invoke: invoke<BranchInfo[]>('git_branches', { worktreePath })
+    Invoke ->> Core: Tauri IPC
+    Core ->> Git: tokio::process::Command: git branch -a
+    Git -->> Core: ブランチ一覧（raw）
+    Core -->> Invoke: Ok(Vec<BranchInfo>)
+    Invoke -->> Dialog: ローカル/リモートブランチ一覧
+
+    Dialog ->> Dialog: Combobox でブランチ一覧を表示（Local / Remote グループ）
+    Dialog ->> Dialog: ユーザーがテキスト入力でフィルタリング
+    Dialog ->> Dialog: ブランチを選択（または新規ブランチ名を入力）
+
+    alt 既存ブランチを選択
+        Dialog ->> Dialog: createNewBranch=false, branch=選択したブランチ名
+    else 新規ブランチ名を入力
+        Dialog ->> Dialog: createNewBranch=true, branch=入力したブランチ名
+    end
+
+    Dialog ->> Invoke: invoke<WorktreeInfo>('worktree_create', { params })
+    Note right of Dialog: 以降は 7.2 のフローと同じ
+```
+
+## 7.6. ワークツリー削除時のブランチ同時削除フロー
+
+```mermaid
+sequenceDiagram
+    participant Webview as Webview (React)
+    participant Dialog as WorktreeDeleteDialog
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant Git as git CLI
+
+    Webview ->> Dialog: 削除ボタンクリック
+    Dialog ->> Dialog: ブランチが他のワークツリーで使用中か確認（isBranchUsedElsewhere prop）
+
+    alt ブランチが他のワークツリーで使用中
+        Dialog ->> Dialog: 「ローカルブランチも削除」チェックボックスを無効化
+        Dialog ->> Dialog: 「他のワークツリーで使用中」メッセージ表示
+    else ブランチが他で使用されていない
+        Dialog ->> Dialog: 「ローカルブランチも削除」チェックボックス表示（デフォルト ON）
+    end
+
+    Dialog ->> Invoke: invoke('worktree_delete', { params: { ..., deleteBranch } })
+    Invoke ->> Core: Tauri IPC
+
+    Core ->> Git: tokio::process::Command: git worktree remove [--force] <path>
+    Git -->> Core: ワークツリー削除結果
+
+    alt deleteBranch=true
+        Core ->> Git: tokio::process::Command: git branch -d <branch>
+        alt 未マージブランチ
+            Git -->> Core: エラー（not fully merged）
+            Core -->> Invoke: Ok(BranchDeleteResult { requireForce: true })
+            Invoke -->> Dialog: 未マージ警告を表示
+            Dialog ->> Dialog: ユーザーに強制削除 (-D) を提案
+
+            alt ユーザーが強制削除を承認
+                Dialog ->> Invoke: invoke('git_branch_delete', { ..., force: true })
+                Invoke ->> Core: Tauri IPC
+                Core ->> Git: tokio::process::Command: git branch -D <branch>
+                Git -->> Core: 削除成功
+                Core -->> Invoke: Ok(BranchDeleteResult { deleted: true })
+            else ユーザーがキャンセル
+                Dialog ->> Dialog: ブランチは残存、ワークツリーのみ削除完了
+            end
+        else マージ済みブランチ
+            Git -->> Core: 削除成功
+            Core -->> Invoke: Ok(BranchDeleteResult { deleted: true })
+        end
+    end
+
+    Invoke -->> Dialog: 削除完了
+    Dialog ->> Webview: onDeleted()
+```
+
+## 7.7. ワークツリー作成時のシンボリックリンク自動作成フロー
+
+```mermaid
+sequenceDiagram
+    participant Dialog as WorktreeCreateDialog
+    participant Invoke as "@tauri-apps/api/core"
+    participant Core as Tauri Core (Rust)
+    participant FS as ファイルシステム
+    participant Store as tauri-plugin-store
+
+    Note over Dialog,Core: worktree_create コマンド内で自動実行
+
+    Core ->> Core: ワークツリー作成完了（git worktree add）
+
+    alt .buruma/symlink.json が存在
+        Core ->> FS: .buruma/symlink.json を読み込み
+        FS -->> Core: SymlinkConfig { patterns, source: 'repo' }
+    else リポジトリローカル設定なし
+        Core ->> Store: アプリデフォルト設定を取得
+        Store -->> Core: SymlinkConfig { patterns, source: 'app' }
+    end
+
+    alt patterns が空
+        Core ->> Core: シンボリックリンク処理をスキップ
+    else patterns あり
+        Core ->> Core: メインワークツリーのパスを取得
+        loop 各 glob パターン
+            Core ->> FS: メインワークツリーでパターンにマッチするファイル/ディレクトリを検索
+            alt マッチあり
+                Core ->> FS: 新規ワークツリーにシンボリックリンクを作成
+                alt 作成成功
+                    Core ->> Core: SymlinkResultEntry { status: 'created' }
+                else 作成失敗
+                    Core ->> Core: SymlinkResultEntry { status: 'failed', reason }
+                    Note right of Core: 他のパターンの処理は続行
+                end
+            else マッチなし
+                Core ->> Core: SymlinkResultEntry { status: 'skipped', reason: '対象なし' }
+            end
+        end
+    end
+
+    Core -->> Invoke: Ok(WorktreeCreateResult { worktree, symlink })
+    Invoke -->> Dialog: 作成完了 + シンボリックリンク結果を通知
+```
+
 # 8. 制約事項
 
 - Webview から OS API（fs / process / shell）に直接アクセスしない（原則 A-001）
@@ -363,6 +553,14 @@ sequenceDiagram
 - IPC 通信は `IPCResult<T>` 互換ラッパー（`invokeCommand<T>`）で統一し、エラーハンドリングを一貫させる（原則 T-002）
 - 不可逆操作（ワークツリー削除）には確認ダイアログを必ず表示する（原則 B-002）
 - メインワークツリーの削除は常に防止する（FR_103_04）
+- ブランチ削除はまず `git branch -d`（安全モード）を試み、未マージの場合のみユーザー確認後に `-D` を実行する（B-002 準拠）
+- 他のワークツリーで使用中のブランチは削除しない（FR-022）
+- ブランチ一覧の取得は `basic-git-operations` の既存 `git_branches` IPC を再利用する（新規コマンド追加不要）
+- 未マージブランチの強制削除（`-D`）は `basic-git-operations` の既存 `git_branch_delete` IPC を再利用する
+- シンボリックリンク作成はワークツリー作成の付随処理であり、シンボリックリンク作成の失敗はワークツリー作成を失敗させない（FR-027）
+- シンボリックリンクのコピー元は常にメインワークツリーとする（ユーザー選択不可）
+- リポジトリローカル設定（`.buruma/symlink.json`）はメインワークツリーのルートに配置し、gitignore に追加することを推奨する
+- シンボリックリンク対象パターンは glob 形式で指定する
 - Git 2.5 以上が前提（`git worktree` コマンドの互換性）
 - ファイル監視には `notify` + `notify-debouncer-full` crate を使用する（原則 A-002）
 
@@ -392,6 +590,13 @@ sequenceDiagram
 | FR_103_02 | FR-011 + `worktree_check_dirty` IPC | 対応済み |
 | FR_103_03 | FR-012 + WorktreeDeleteParams.force | 対応済み |
 | FR_103_04 | FR-013 + WorktreeInfo.isMain チェック | 対応済み |
+| FR_102_05 | FR-020 + Combobox ブランチ選択（Local/Remote グループ表示、フィルタリング） | 対応済み |
+| FR_103_05 | FR-021, FR-022 + WorktreeDeleteParams.deleteBranch + BranchDeleteResult 型 | 対応済み |
+| FR_106 | FR-023〜FR-028 + SymlinkConfig / SymlinkResult 型 + worktree_symlink_config_get/set IPC | 対応済み |
+| FR_106_01 | FR-023 + SymlinkConfig 型（app/repo 2段構成） | 対応済み |
+| FR_106_02 | FR-024 + WorktreeCreateResult.symlink + 振る舞い図 7.7 | 対応済み |
+| FR_106_03 | FR-025, FR-026（アプリ設定画面で管理、ダイアログで確認表示） | 対応済み |
+| FR_106_04 | FR-027, FR-028 + SymlinkResultEntry.status（created/skipped/failed） | 対応済み |
 | FR_104 | FR-014〜FR-016（切り替え、詳細表示、ハイライト） | 対応済み |
 | FR_104_01 | FR-014 + WorktreeList.onSelect | 対応済み |
 | FR_104_02 | FR-015 + WorktreeDetail コンポーネント | 対応済み |
