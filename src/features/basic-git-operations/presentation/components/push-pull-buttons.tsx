@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { BranchInfo, GitProgressEvent } from '@domain'
+import { listenEventSync } from '@lib/invoke/events'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { listenEventSync } from '@lib/invoke/events'
 import { useRemoteOpsViewModel } from '../use-remote-ops-viewmodel'
 
 interface PushPullButtonsProps {

@@ -95,12 +95,9 @@ impl ClaudeRepository for DefaultClaudeRepository {
             .stdout(std::process::Stdio::piped())
             .stderr(std::process::Stdio::piped())
             .spawn()
-            .map_err(|e| {
-                AppError::Claude(format!("claude auth login の起動に失敗しました: {e}"))
-            })?;
+            .map_err(|e| AppError::Claude(format!("claude auth login の起動に失敗しました: {e}")))?;
 
-        let timeout_result =
-            tokio::time::timeout(std::time::Duration::from_secs(120), child.wait()).await;
+        let timeout_result = tokio::time::timeout(std::time::Duration::from_secs(120), child.wait()).await;
 
         match timeout_result {
             Ok(Ok(status)) if status.success() => Ok(()),
@@ -109,9 +106,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
                  ターミナルで 'claude auth login' を実行してからアプリを再起動してください。"
                     .to_string(),
             )),
-            Ok(Err(e)) => Err(AppError::Claude(format!(
-                "ログインプロセスエラー: {e}"
-            ))),
+            Ok(Err(e)) => Err(AppError::Claude(format!("ログインプロセスエラー: {e}"))),
             Err(_) => {
                 let _ = child.kill().await;
                 Err(AppError::Claude(
