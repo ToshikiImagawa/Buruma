@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { StashEntry } from '@domain'
+import type { GitStatus, StashEntry } from '@domain'
+import { FileChangeIcon } from '@/components/FileChangeIcon'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -15,9 +16,12 @@ import { useStashViewModel } from '../use-stash-viewmodel'
 
 interface StashManagerProps {
   worktreePath: string
+  status: GitStatus | null
+  selectedFile?: string | null
+  onFileSelect?: (filePath: string) => void
 }
 
-export function StashManager({ worktreePath }: StashManagerProps) {
+export function StashManager({ worktreePath, status, selectedFile, onFileSelect }: StashManagerProps) {
   const { loading, stashes, stashSave, stashList, stashPop, stashApply, stashDrop, stashClear } = useStashViewModel()
   const [message, setMessage] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState(false)
@@ -87,10 +91,45 @@ export function StashManager({ worktreePath }: StashManagerProps) {
             onKeyDown={handleKeyDown}
             disabled={loading}
           />
-          <Button size="sm" className="h-7 text-xs" onClick={handleSave} disabled={loading}>
+          <Button
+            size="sm"
+            className="h-7 text-xs"
+            onClick={handleSave}
+            disabled={loading || (!status?.staged.length && !status?.unstaged.length)}
+          >
             {loading ? '保存中...' : 'Stash'}
           </Button>
         </div>
+        {status && (status.staged.length > 0 || status.unstaged.length > 0) && (
+          <div className="mt-1 space-y-0.5">
+            <span className="text-xs text-muted-foreground">
+              保存対象 ({status.staged.length + status.unstaged.length} ファイル)
+            </span>
+            <div className="max-h-32 overflow-auto rounded border border-border/50 p-1">
+              {status.staged.map((file) => (
+                <button
+                  key={`staged-${file.path}`}
+                  className={`flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs hover:bg-accent ${selectedFile === file.path ? 'bg-accent' : ''}`}
+                  onClick={() => onFileSelect?.(file.path)}
+                >
+                  <FileChangeIcon status={file.status} />
+                  <span className="truncate">{file.path}</span>
+                  <span className="ml-auto shrink-0 text-[10px] text-muted-foreground">staged</span>
+                </button>
+              ))}
+              {status.unstaged.map((file) => (
+                <button
+                  key={`unstaged-${file.path}`}
+                  className={`flex w-full items-center gap-1.5 rounded px-1 py-0.5 text-left text-xs hover:bg-accent ${selectedFile === file.path ? 'bg-accent' : ''}`}
+                  onClick={() => onFileSelect?.(file.path)}
+                >
+                  <FileChangeIcon status={file.status} />
+                  <span className="truncate">{file.path}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <Separator />

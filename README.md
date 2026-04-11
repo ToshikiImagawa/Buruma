@@ -48,7 +48,7 @@ GUI から簡単に行えます。
 
 ファイルの変更内容をハンク表示またはサイドバイサイド表示で確認できます。
 
-<!-- ![差分ビュー](resources/screenshots/diff-view.png) -->
+![差分ビュー](resources/screenshots/diff-view.png)
 
 ### コミット履歴
 

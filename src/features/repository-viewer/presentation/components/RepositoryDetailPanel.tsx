@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FileDiff } from '@domain'
+import type { FileDiff, GitStatus } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
 import {
@@ -540,7 +540,7 @@ export function RepositoryDetailPanel() {
         </TabsContent>
 
         <TabsContent value="refs" className="mt-0 h-full">
-          <RefsTab worktreePath={selectedWorktree.path} />
+          <RefsTab worktreePath={selectedWorktree.path} status={status} allDiffs={allDiffs} />
         </TabsContent>
 
         <TabsContent value="claude" className="mt-0 h-full">
@@ -562,8 +562,20 @@ export function RepositoryDetailPanel() {
   )
 }
 
-function RefsTab({ worktreePath }: { worktreePath: string }) {
+function RefsTab({
+  worktreePath,
+  status,
+  allDiffs,
+}: {
+  worktreePath: string
+  status: GitStatus | null
+  allDiffs: FileDiff[]
+}) {
   const [view, setView] = useState<'stash' | 'tags'>('stash')
+  const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const { mode: stashViewMode, setMode: setStashViewMode } = useDiffViewMode('hunk')
+
+  const filteredDiffs = selectedFile ? allDiffs.filter((d) => d.filePath === selectedFile) : allDiffs
 
   return (
     <div className="flex h-full flex-col">
@@ -587,8 +599,72 @@ function RefsTab({ worktreePath }: { worktreePath: string }) {
           タグ
         </Button>
       </div>
-      <div className="flex-1 overflow-auto">
-        {view === 'stash' ? <StashManager worktreePath={worktreePath} /> : <TagManager worktreePath={worktreePath} />}
+      <div className="min-h-0 flex-1">
+        {view === 'stash' ? (
+          <ResizablePanelGroup direction="horizontal" className="h-full">
+            <ResizablePanel defaultSize={33} minSize={10}>
+              <div className="h-full overflow-auto">
+                <StashManager
+                  worktreePath={worktreePath}
+                  status={status}
+                  selectedFile={selectedFile}
+                  onFileSelect={setSelectedFile}
+                />
+              </div>
+            </ResizablePanel>
+            <ResizableHandle withHandle />
+            <ResizablePanel defaultSize={67} minSize={10}>
+              <div className="flex h-full flex-col overflow-hidden">
+                <TooltipProvider delayDuration={300}>
+                  <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">
+                    <span className="flex-1 text-xs text-muted-foreground">差分表示</span>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={stashViewMode === 'hunk' ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setStashViewMode('hunk')}
+                        >
+                          <List className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>ハンク表示</p>
+                      </TooltipContent>
+                    </Tooltip>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant={stashViewMode === 'monaco' ? 'secondary' : 'ghost'}
+                          size="icon"
+                          className="h-6 w-6"
+                          onClick={() => setStashViewMode('monaco')}
+                        >
+                          <SplitSquareHorizontal className="h-3.5 w-3.5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>サイドバイサイド表示</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </div>
+                </TooltipProvider>
+                <div className="min-h-0 flex-1">
+                  {stashViewMode === 'hunk' ? (
+                    <MultiFileDiffPanel worktreePath={worktreePath} diffs={filteredDiffs} />
+                  ) : (
+                    <MultiFileMonacoPanel worktreePath={worktreePath} diffs={filteredDiffs} />
+                  )}
+                </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        ) : (
+          <div className="h-full overflow-auto">
+            <TagManager worktreePath={worktreePath} />
+          </div>
+        )}
       </div>
     </div>
   )
