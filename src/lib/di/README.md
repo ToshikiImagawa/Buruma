@@ -12,14 +12,6 @@
 - **React 統合**: Provider と Hooks による React コンポーネントとの連携
 - **リソース管理**: `DisposableStack` と `TearDownable` によるサービスのクリーンアップ管理
 
-## インストール
-
-このライブラリは `@anthony-dena/ticketvc-venue-common` に含まれています。
-
-```typescript
-import { VContainer, createToken, asLazy } from '@anthony-dena/ticketvc-venue-common/lib/di'
-```
-
 ## 基本的な使い方
 
 ### トークンの作成
