@@ -258,7 +258,7 @@ export function RepositoryDetailPanel() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>ハンク表示</p>
+                        <p>差分表示</p>
                       </TooltipContent>
                     </Tooltip>
                     <Tooltip>
@@ -273,7 +273,7 @@ export function RepositoryDetailPanel() {
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent>
-                        <p>Monaco 表示</p>
+                        <p>サイドバイサイド表示</p>
                       </TooltipContent>
                     </Tooltip>
                   </div>
@@ -444,7 +444,7 @@ export function RepositoryDetailPanel() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>ハンク表示</p>
+                              <p>差分表示</p>
                             </TooltipContent>
                           </Tooltip>
                           <Tooltip>
@@ -459,7 +459,7 @@ export function RepositoryDetailPanel() {
                               </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p>Monaco 表示</p>
+                              <p>サイドバイサイド表示</p>
                             </TooltipContent>
                           </Tooltip>
                         </div>

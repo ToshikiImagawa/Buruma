@@ -36,17 +36,17 @@ Buruma は **Git Worktree を中心に設計されたデスクトップ Git GUI*
 同一リポジトリの複数チェックアウトを左パネルで一覧管理。パス・ブランチ名・変更状態を一目で把握し、ワンクリックで切り替えられます。新規作成や削除も
 GUI から簡単に行えます。
 
-<!-- ![Worktree 管理](resources/screenshots/worktree-list.png) -->
+![Worktree 管理](resources/screenshots/worktree-list.png)
 
 ### ステータス & ステージング
 
 変更ファイルをステージ済み・未ステージ・未追跡に分類して表示。ファイル単位またはハンク単位でステージング・アンステージングができ、意図した変更だけを正確にコミットできます。
 
-<!-- ![ステータス & ステージング](resources/screenshots/status-staging.png) -->
+![ステータス & ステージング](resources/screenshots/status-staging.png)
 
 ### 差分ビュー
 
-ファイルの変更内容をハンク表示またはサイドバイサイド表示（Monaco Editor）で確認できます。
+ファイルの変更内容をハンク表示またはサイドバイサイド表示で確認できます。
 
 <!-- ![差分ビュー](resources/screenshots/diff-view.png) -->
 
@@ -54,7 +54,7 @@ GUI から簡単に行えます。
 
 コミット履歴を一覧表示し、各コミットの詳細や変更ファイルを確認できます。ブランチの分岐状況も視覚的に把握できます。
 
-<!-- ![コミット履歴](resources/screenshots/commit-log.png) -->
+![コミット履歴](resources/screenshots/commit-log.png)
 
 ### ブランチ操作
 
