@@ -1,4 +1,5 @@
 import type { VContainerConfig } from '@lib/di'
+import { ErrorNotificationServiceToken } from '@/features/application-foundation/di-tokens'
 import { GitOperationsDefaultService } from './application/services/git-operations-service'
 import { CheckoutBranchUseCase } from './application/usecases/checkout-branch-usecase'
 import { CommitUseCase } from './application/usecases/commit-usecase'
@@ -97,6 +98,7 @@ export const basicGitOperationsConfig: VContainerConfig = {
       .registerSingleton(DeleteBranchRendererUseCaseToken, DeleteBranchUseCase, [
         GitOperationsRepositoryToken,
         GitOperationsServiceToken,
+        ErrorNotificationServiceToken,
       ])
       .registerSingleton(ResetRendererUseCaseToken, ResetUseCase, [
         GitOperationsRepositoryToken,

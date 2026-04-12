@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { BranchInfo } from '@domain'
 import { ArrowRightLeft, GitBranch, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -48,6 +48,7 @@ export function BranchOperations({
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
+  const pendingDeleteRef = useRef<string | null>(null)
   const [mergeOpen, setMergeOpen] = useState(false)
   const [mergeTargetBranch, setMergeTargetBranch] = useState<string>('')
   const [rebaseOpen, setRebaseOpen] = useState(false)
@@ -59,11 +60,11 @@ export function BranchOperations({
 
   // マージ未済エラー検出時に警告を表示
   useEffect(() => {
-    if (lastError?.code === 'BRANCH_NOT_MERGED' && deleteTarget) {
-      setShowNotMergedWarning(deleteTarget)
-      setDeleteTarget(null)
+    if (lastError?.code === 'BRANCH_NOT_MERGED' && pendingDeleteRef.current) {
+      setShowNotMergedWarning(pendingDeleteRef.current)
+      pendingDeleteRef.current = null
     }
-  }, [lastError, deleteTarget])
+  }, [lastError])
 
   const handleCreate = useCallback(() => {
     if (!newBranchName.trim()) return
@@ -86,6 +87,7 @@ export function BranchOperations({
 
   const handleDelete = useCallback(
     (branch: string, force: boolean) => {
+      pendingDeleteRef.current = branch
       deleteBranch(worktreePath, branch, false, force)
       setDeleteTarget(null)
       setShowNotMergedWarning(null)
