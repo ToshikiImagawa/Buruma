@@ -35,7 +35,10 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
     if (!createDialogOpen || !repoPath) return
     getBranches(repoPath)
       .then(setBranchList)
-      .catch(() => setBranchList(null))
+      .catch(() => {
+        // ブランチ取得失敗時は空のまま。ダイアログは開くが選択肢がない状態になる
+        setBranchList(null)
+      })
   }, [createDialogOpen, repoPath, getBranches])
 
   const localBranches = branchList?.local ?? []

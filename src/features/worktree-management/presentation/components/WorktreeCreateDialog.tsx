@@ -66,15 +66,19 @@ export function WorktreeCreateDialog({
     }
   }
 
-  // パス提案はブランチ名（origin/ 除去済み）で行う
   useEffect(() => {
     if (!branch) return
     let cancelled = false
-    onSuggestPath(repoPath, branch).then((path) => {
-      if (!cancelled) setWorktreePath(path)
-    })
+    const timer = setTimeout(() => {
+      onSuggestPath(repoPath, branch)
+        .then((path) => {
+          if (!cancelled) setWorktreePath(path)
+        })
+        .catch(() => {}) // パス提案失敗は補助機能なので無視
+    }, 200)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
   }, [branch, repoPath, onSuggestPath])
 

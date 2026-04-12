@@ -1,7 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
-import { WorktreeError } from '../../infrastructure/repositories/worktree-default-repository'
 import { DeleteWorktreeDefaultUseCase } from '../usecases/delete-worktree-usecase'
-import { createMockErrorService, createMockRepo, createMockService } from './helpers'
+import { TestWorktreeError, createMockErrorService, createMockRepo, createMockService } from './helpers'
 
 const baseParams = { repoPath: '/repo', worktreePath: '/wt', force: false }
 
@@ -20,7 +19,7 @@ describe('DeleteWorktreeUseCase', () => {
   })
 
   it('WORKTREE_DIRTY エラー (force=false) でリカバリーダイアログを要求する', async () => {
-    const error = new WorktreeError({ code: 'WORKTREE_DIRTY', message: 'dirty worktree' })
+    const error = new TestWorktreeError({ code: 'WORKTREE_DIRTY', message: 'dirty worktree' })
     const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
@@ -39,7 +38,7 @@ describe('DeleteWorktreeUseCase', () => {
   })
 
   it('force=true で失敗した場合はリカバリーではなくトーストを表示する', async () => {
-    const error = new WorktreeError({ code: 'WORKTREE_DIRTY', message: 'still dirty' })
+    const error = new TestWorktreeError({ code: 'WORKTREE_DIRTY', message: 'still dirty' })
     const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
@@ -53,7 +52,7 @@ describe('DeleteWorktreeUseCase', () => {
   })
 
   it('WORKTREE_DIRTY 以外のエラーはトーストを表示する', async () => {
-    const error = new WorktreeError({ code: 'GIT_ERROR', message: 'worktree not found' })
+    const error = new TestWorktreeError({ code: 'GIT_ERROR', message: 'worktree not found' })
     const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
