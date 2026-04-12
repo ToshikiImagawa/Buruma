@@ -17,15 +17,18 @@ export class DeleteWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeDel
       .then(() => this.repo.list(params.repoPath))
       .then((worktrees) => this.service.updateWorktrees(worktrees))
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error)
-        const canForceDelete = !params.force && (message.includes('--force') || message.includes('dirty'))
+        const isWorktreeDirty =
+          !params.force &&
+          error instanceof Error &&
+          'code' in error &&
+          (error as { code: string }).code === 'WORKTREE_DIRTY'
 
-        if (canForceDelete) {
+        if (isWorktreeDirty) {
           this.service.requestRecovery({
             title: 'ワークツリーの削除に失敗しました',
             message: '未コミットの変更があります。強制削除すると変更が失われます。',
             confirmLabel: '強制削除',
-            params: { ...params, force: true },
+            onConfirm: () => this.invoke({ ...params, force: true }),
           })
         } else {
           this.errorService.notifyError('ワークツリーの削除に失敗しました', error)

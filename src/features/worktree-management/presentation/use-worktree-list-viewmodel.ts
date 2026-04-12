@@ -21,7 +21,6 @@ export function useWorktreeListViewModel() {
     setSortOrder: useCallback((order: WorktreeSortOrder) => vm.setSortOrder(order), [vm]),
     getBranches: useCallback((worktreePath: string) => vm.getBranches(worktreePath), [vm]),
     suggestPath: useCallback((repoPath: string, branch: string) => vm.suggestPath(repoPath, branch), [vm]),
-    confirmRecovery: useCallback(() => vm.confirmRecovery(), [vm]),
     dismissRecovery: useCallback(() => vm.dismissRecovery(), [vm]),
   }
 }

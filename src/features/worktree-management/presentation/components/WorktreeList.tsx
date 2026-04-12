@@ -24,7 +24,6 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
     getBranches,
     suggestPath,
     recoveryRequest,
-    confirmRecovery,
     dismissRecovery,
   } = useWorktreeListViewModel()
 
@@ -34,7 +33,9 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
 
   useEffect(() => {
     if (!createDialogOpen || !repoPath) return
-    getBranches(repoPath).then(setBranchList)
+    getBranches(repoPath)
+      .then(setBranchList)
+      .catch(() => setBranchList(null))
   }, [createDialogOpen, repoPath, getBranches])
 
   const localBranches = branchList?.local ?? []
@@ -119,7 +120,10 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
           title={recoveryRequest.title}
           description={recoveryRequest.message}
           confirmLabel={recoveryRequest.confirmLabel}
-          onConfirm={confirmRecovery}
+          onConfirm={() => {
+            recoveryRequest.onConfirm()
+            dismissRecovery()
+          }}
           onCancel={dismissRecovery}
         />
       )}

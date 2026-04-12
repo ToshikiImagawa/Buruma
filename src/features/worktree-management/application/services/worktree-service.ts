@@ -47,10 +47,6 @@ export class WorktreeDefaultService implements WorktreeService {
     this._sortOrder$.next(order)
   }
 
-  get currentRecoveryRequest(): RecoveryRequest | null {
-    return this._recoveryRequest$.getValue()
-  }
-
   requestRecovery(request: RecoveryRequest): void {
     this._recoveryRequest$.next(request)
   }

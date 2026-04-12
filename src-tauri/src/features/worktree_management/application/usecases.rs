@@ -27,7 +27,19 @@ pub async fn delete_worktree(repo: &dyn WorktreeGitRepository, worktree_path: &s
             message: "メインワークツリーは削除できません".to_string(),
         });
     }
-    repo.remove_worktree(worktree_path, force).await
+    repo.remove_worktree(worktree_path, force).await.map_err(|e| {
+        // force=false で dirty worktree エラーの場合、フロントエンドが force delete を提案できるよう構造化
+        if !force {
+            let msg = e.to_string();
+            if msg.contains("--force") || msg.contains("dirty") || msg.contains("untracked") {
+                return AppError::GitOperation {
+                    code: "WORKTREE_DIRTY".to_string(),
+                    message: msg,
+                };
+            }
+        }
+        e
+    })
 }
 
 pub async fn suggest_path(repo: &dyn WorktreeGitRepository, repo_path: &str, branch: &str) -> AppResult<String> {

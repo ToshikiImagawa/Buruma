@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { BranchInfo } from '@domain'
-import type { KeyboardEvent } from 'react'
+import type { KeyboardEvent, WheelEvent } from 'react'
 import { cn } from '@lib/utils'
 import { Check, ChevronsUpDown, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -54,6 +54,12 @@ export function BranchCombobox({
     }
   }
 
+  // Dialog の react-remove-scroll が Popover Portal 内の wheel イベントをバブリングでブロックするため手動処理
+  const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    e.currentTarget.scrollTop += e.deltaY
+  }, [])
+
   const displayValue = value || undefined
 
   return (
@@ -81,7 +87,7 @@ export function BranchCombobox({
             onValueChange={setInputValue}
             onKeyDown={handleKeyDown}
           />
-          <CommandList className="overscroll-contain">
+          <CommandList className="overscroll-contain" onWheel={handleWheel}>
             <CommandEmpty>ブランチが見つかりません</CommandEmpty>
             {localBranches.length > 0 && (
               <CommandGroup heading="Local">

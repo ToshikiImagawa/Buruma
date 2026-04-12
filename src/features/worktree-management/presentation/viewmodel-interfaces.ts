@@ -20,7 +20,6 @@ export interface WorktreeListViewModel {
   setSortOrder(order: WorktreeSortOrder): void
   getBranches(worktreePath: string): Promise<BranchList>
   suggestPath(repoPath: string, branch: string): Promise<string>
-  confirmRecovery(): void
   dismissRecovery(): void
 }
 

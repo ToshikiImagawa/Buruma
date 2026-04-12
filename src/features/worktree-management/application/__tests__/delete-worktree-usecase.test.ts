@@ -1,50 +1,7 @@
-import type { ErrorNotificationService } from '@/features/application-foundation/application/services/error-notification-service-interface'
-import type { WorktreeRepository } from '../repositories/worktree-repository'
-import type { WorktreeService } from '../services/worktree-service-interface'
 import { describe, expect, it, vi } from 'vitest'
+import { WorktreeError } from '../../infrastructure/repositories/worktree-default-repository'
 import { DeleteWorktreeDefaultUseCase } from '../usecases/delete-worktree-usecase'
-
-function createMockRepo(overrides: Partial<WorktreeRepository> = {}): WorktreeRepository {
-  return {
-    list: vi.fn().mockResolvedValue([]),
-    getStatus: vi.fn(),
-    create: vi.fn(),
-    delete: vi.fn().mockResolvedValue(undefined),
-    suggestPath: vi.fn(),
-    checkDirty: vi.fn(),
-    getBranches: vi.fn(),
-    onChanged: vi.fn(),
-    ...overrides,
-  } as WorktreeRepository
-}
-
-function createMockService(): WorktreeService {
-  return {
-    worktrees$: null!,
-    selectedWorktreePath$: null!,
-    sortOrder$: null!,
-    recoveryRequest$: null!,
-    updateWorktrees: vi.fn(),
-    setSelectedWorktree: vi.fn(),
-    setSortOrder: vi.fn(),
-    requestRecovery: vi.fn(),
-    clearRecovery: vi.fn(),
-    setUp: vi.fn(),
-    tearDown: vi.fn(),
-  }
-}
-
-function createMockErrorService(): ErrorNotificationService {
-  return {
-    notifications$: null!,
-    addNotification: vi.fn(),
-    notifyError: vi.fn(),
-    removeNotification: vi.fn(),
-    clear: vi.fn(),
-    setUp: vi.fn(),
-    tearDown: vi.fn(),
-  }
-}
+import { createMockErrorService, createMockRepo, createMockService } from './helpers'
 
 const baseParams = { repoPath: '/repo', worktreePath: '/wt', force: false }
 
@@ -62,10 +19,9 @@ describe('DeleteWorktreeUseCase', () => {
     expect(service.requestRecovery).not.toHaveBeenCalled()
   })
 
-  it('dirty worktree エラー (force=false) でリカバリーダイアログを要求する', async () => {
-    const repo = createMockRepo({
-      delete: vi.fn().mockRejectedValue(new Error('cannot remove a dirty worktree; use --force to override')),
-    })
+  it('WORKTREE_DIRTY エラー (force=false) でリカバリーダイアログを要求する', async () => {
+    const error = new WorktreeError({ code: 'WORKTREE_DIRTY', message: 'dirty worktree' })
+    const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
     const useCase = new DeleteWorktreeDefaultUseCase(repo, service, errorService)
@@ -76,16 +32,15 @@ describe('DeleteWorktreeUseCase', () => {
     expect(service.requestRecovery).toHaveBeenCalledWith(
       expect.objectContaining({
         confirmLabel: '強制削除',
-        params: { ...baseParams, force: true },
+        onConfirm: expect.any(Function),
       }),
     )
     expect(errorService.notifyError).not.toHaveBeenCalled()
   })
 
   it('force=true で失敗した場合はリカバリーではなくトーストを表示する', async () => {
-    const repo = createMockRepo({
-      delete: vi.fn().mockRejectedValue(new Error('permission denied')),
-    })
+    const error = new WorktreeError({ code: 'WORKTREE_DIRTY', message: 'still dirty' })
+    const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
     const useCase = new DeleteWorktreeDefaultUseCase(repo, service, errorService)
@@ -97,10 +52,9 @@ describe('DeleteWorktreeUseCase', () => {
     expect(service.requestRecovery).not.toHaveBeenCalled()
   })
 
-  it('force=false でも --force を含まないエラーはトーストを表示する', async () => {
-    const repo = createMockRepo({
-      delete: vi.fn().mockRejectedValue(new Error('worktree not found')),
-    })
+  it('WORKTREE_DIRTY 以外のエラーはトーストを表示する', async () => {
+    const error = new WorktreeError({ code: 'GIT_ERROR', message: 'worktree not found' })
+    const repo = createMockRepo({ delete: vi.fn().mockRejectedValue(error) })
     const service = createMockService()
     const errorService = createMockErrorService()
     const useCase = new DeleteWorktreeDefaultUseCase(repo, service, errorService)

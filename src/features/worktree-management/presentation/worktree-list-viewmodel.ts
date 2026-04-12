@@ -71,14 +71,6 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     return this.suggestPathUseCase.invoke({ repoPath, branch })
   }
 
-  confirmRecovery(): void {
-    const request = this.worktreeService.currentRecoveryRequest
-    this.worktreeService.clearRecovery()
-    if (request) {
-      this.deleteUseCase.invoke(request.params as WorktreeDeleteParams)
-    }
-  }
-
   dismissRecovery(): void {
     this.worktreeService.clearRecovery()
   }

@@ -48,7 +48,7 @@ export interface RecoveryRequest {
   title: string
   message: string
   confirmLabel: string
-  params: unknown
+  onConfirm: () => void
 }
 
 /** デフォルト設定値 */
