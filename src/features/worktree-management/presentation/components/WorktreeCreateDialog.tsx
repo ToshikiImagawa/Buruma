@@ -25,8 +25,9 @@ interface WorktreeCreateDialogProps {
   onSubmit: (params: WorktreeCreateParams) => void
 }
 
-/** リモートブランチ名からリモート名プレフィックス（origin/ 等）を除去 */
+/** リモートブランチ名からリモート名プレフィックスを除去（例: "origin/feature/test" → "feature/test"） */
 const stripRemotePrefix = (name: string) => name.replace(/^[^/]+\//, '')
+// 注: git リモート名に "/" を含むケース（例: "my/remote"）は非対応。実用上 origin/upstream 等のみ
 
 export function WorktreeCreateDialog({
   open,
