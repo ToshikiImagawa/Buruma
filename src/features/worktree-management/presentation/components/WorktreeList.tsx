@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import type { BranchInfo, WorktreeInfo } from '@domain'
+import { useEffect, useState } from 'react'
+import type { BranchList, WorktreeInfo } from '@domain'
 import { Plus, RefreshCw } from 'lucide-react'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
@@ -30,25 +30,21 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
-  const [localBranches, setLocalBranches] = useState<BranchInfo[]>([])
-  const [remoteBranches, setRemoteBranches] = useState<BranchInfo[]>([])
-  const [defaultBranch, setDefaultBranch] = useState('')
+  const [branchList, setBranchList] = useState<BranchList | null>(null)
 
   useEffect(() => {
     if (!createDialogOpen || !repoPath) return
-    getBranches(repoPath).then((branchList) => {
-      setLocalBranches(branchList.local)
-      setRemoteBranches(branchList.remote)
-      setDefaultBranch(branchList.local.find((b) => b.isHead)?.name ?? branchList.current)
-    })
+    getBranches(repoPath).then(setBranchList)
   }, [createDialogOpen, repoPath, getBranches])
+
+  const localBranches = branchList?.local ?? []
+  const remoteBranches = branchList?.remote ?? []
+  const defaultBranch = branchList?.local.find((b) => b.isHead)?.name ?? branchList?.current ?? ''
 
   const handleSelect = (path: string) => {
     selectWorktree(path)
     onWorktreeSelected?.()
   }
-
-  const handleSuggestPath = useCallback((rp: string, branch: string) => suggestPath(rp, branch), [suggestPath])
 
   return (
     <div className="flex h-full flex-col">
@@ -95,7 +91,7 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
         localBranches={localBranches}
         remoteBranches={remoteBranches}
         defaultBranch={defaultBranch}
-        onSuggestPath={handleSuggestPath}
+        onSuggestPath={suggestPath}
         onSubmit={(params) => {
           createWorktree(params)
           setCreateDialogOpen(false)

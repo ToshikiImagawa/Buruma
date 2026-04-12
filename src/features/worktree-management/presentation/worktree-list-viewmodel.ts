@@ -20,7 +20,6 @@ import type {
   WorktreeService,
 } from '../di-tokens'
 import type { WorktreeListViewModel } from './viewmodel-interfaces'
-import { firstValueFrom } from 'rxjs'
 
 export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
   readonly worktrees$: Observable<WorktreeInfo[]>
@@ -72,8 +71,8 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     return this.suggestPathUseCase.invoke({ repoPath, branch })
   }
 
-  async confirmRecovery(): Promise<void> {
-    const request = await firstValueFrom(this.worktreeService.recoveryRequest$)
+  confirmRecovery(): void {
+    const request = this.worktreeService.currentRecoveryRequest
     this.worktreeService.clearRecovery()
     if (request) {
       this.deleteUseCase.invoke(request.params as WorktreeDeleteParams)

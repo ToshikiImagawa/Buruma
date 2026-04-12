@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react'
+import { useState } from 'react'
 import type { BranchInfo } from '@domain'
+import type { KeyboardEvent } from 'react'
 import { cn } from '@lib/utils'
 import { Check, ChevronsUpDown, GitBranch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -42,9 +43,9 @@ export function BranchCombobox({
     setInputValue('')
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (!allowFreeInput) return
-    if (e.key === 'Enter' && inputValue && !allBranches.some((b) => b.name === inputValue)) {
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (!allowFreeInput || !inputValue || hasExactMatch) return
+    if (e.key === 'Enter') {
       e.preventDefault()
       e.stopPropagation()
       onValueChange(inputValue)
@@ -52,12 +53,6 @@ export function BranchCombobox({
       setInputValue('')
     }
   }
-
-  // Dialog のスクロールロックが Popover Portal 内の wheel イベントをブロックするため手動で処理
-  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
-    e.stopPropagation()
-    e.currentTarget.scrollTop += e.deltaY
-  }, [])
 
   const displayValue = value || undefined
 
@@ -86,7 +81,7 @@ export function BranchCombobox({
             onValueChange={setInputValue}
             onKeyDown={handleKeyDown}
           />
-          <CommandList onWheel={handleWheel}>
+          <CommandList className="overscroll-contain">
             <CommandEmpty>ブランチが見つかりません</CommandEmpty>
             {localBranches.length > 0 && (
               <CommandGroup heading="Local">

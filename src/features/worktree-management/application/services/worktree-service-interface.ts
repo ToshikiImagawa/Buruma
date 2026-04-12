@@ -8,6 +8,7 @@ export interface WorktreeService extends ParameterizedService<WorktreeInfo[]> {
   readonly selectedWorktreePath$: Observable<string | null>
   readonly sortOrder$: Observable<WorktreeSortOrder>
   readonly recoveryRequest$: Observable<RecoveryRequest | null>
+  readonly currentRecoveryRequest: RecoveryRequest | null
   updateWorktrees(worktrees: WorktreeInfo[]): void
   setSelectedWorktree(path: string | null): void
   setSortOrder(order: WorktreeSortOrder): void
