@@ -214,6 +214,8 @@ export interface BranchInfo {
   name: string
   hash: string
   isHead: boolean
+  /** リモートプレフィックスを除いたブランチ名（リモートブランチのみ） */
+  localName?: string
   upstream?: string
   ahead?: number
   behind?: number

@@ -165,6 +165,10 @@ pub struct BranchInfo {
     pub name: String,
     pub hash: String,
     pub is_head: bool,
+    /// リモートプレフィックスを除いたブランチ名（例: "origin/feature/test" → "feature/test"）。
+    /// ローカルブランチの場合は None。
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub local_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

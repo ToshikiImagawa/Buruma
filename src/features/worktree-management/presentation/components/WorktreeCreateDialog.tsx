@@ -25,10 +25,6 @@ interface WorktreeCreateDialogProps {
   onSubmit: (params: WorktreeCreateParams) => void
 }
 
-/** リモートブランチ名からリモート名プレフィックスを除去（例: "origin/feature/test" → "feature/test"） */
-const stripRemotePrefix = (name: string) => name.replace(/^[^/]+\//, '')
-// 注: git リモート名に "/" を含むケース（例: "my/remote"）は非対応。実用上 origin/upstream 等のみ
-
 export function WorktreeCreateDialog({
   open,
   onOpenChange,
@@ -54,11 +50,11 @@ export function WorktreeCreateDialog({
   }, [open, defaultBranch])
 
   const handleBranchChange = (selectedBranch: string) => {
-    const isRemote = remoteBranches.some((b) => b.name === selectedBranch)
+    const remoteBranch = remoteBranches.find((b) => b.name === selectedBranch)
     const isLocal = localBranches.some((b) => b.name === selectedBranch)
-    if (isRemote) {
-      // リモートブランチ: ブランチ名は origin/ を除去、開始ポイントは完全名
-      setBranch(stripRemotePrefix(selectedBranch))
+    if (remoteBranch) {
+      // リモートブランチ: バックエンドが返す localName を使用、開始ポイントは完全名
+      setBranch(remoteBranch.localName ?? selectedBranch)
       setStartPoint(selectedBranch)
     } else if (isLocal) {
       setBranch(selectedBranch)
