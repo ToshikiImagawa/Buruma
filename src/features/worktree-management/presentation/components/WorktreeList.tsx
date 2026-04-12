@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import type { WorktreeInfo } from '@domain'
+import { useEffect, useState } from 'react'
+import type { BranchList, WorktreeInfo } from '@domain'
 import { Plus, RefreshCw } from 'lucide-react'
+import { ConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { useWorktreeListViewModel } from '../use-worktree-list-viewmodel'
 import { WorktreeCreateDialog } from './WorktreeCreateDialog'
@@ -13,11 +14,36 @@ interface WorktreeListProps {
 }
 
 export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps) {
-  const { worktrees, selectedPath, selectWorktree, createWorktree, deleteWorktree, refreshWorktrees } =
-    useWorktreeListViewModel()
+  const {
+    worktrees,
+    selectedPath,
+    selectWorktree,
+    createWorktree,
+    deleteWorktree,
+    refreshWorktrees,
+    getBranches,
+    suggestPath,
+    recoveryRequest,
+    dismissRecovery,
+  } = useWorktreeListViewModel()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
+  const [branchList, setBranchList] = useState<BranchList | null>(null)
+
+  useEffect(() => {
+    if (!createDialogOpen || !repoPath) return
+    getBranches(repoPath)
+      .then(setBranchList)
+      .catch(() => {
+        // ブランチ取得失敗時は空のまま。ダイアログは開くが選択肢がない状態になる
+        setBranchList(null)
+      })
+  }, [createDialogOpen, repoPath, getBranches])
+
+  const localBranches = branchList?.local ?? []
+  const remoteBranches = branchList?.remote ?? []
+  const defaultBranch = branchList?.local.find((b) => b.isHead)?.name ?? branchList?.current ?? ''
 
   const handleSelect = (path: string) => {
     selectWorktree(path)
@@ -66,6 +92,10 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         repoPath={repoPath}
+        localBranches={localBranches}
+        remoteBranches={remoteBranches}
+        defaultBranch={defaultBranch}
+        onSuggestPath={suggestPath}
         onSubmit={(params) => {
           createWorktree(params)
           setCreateDialogOpen(false)
@@ -84,6 +114,20 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
             deleteWorktree(params)
             setDeleteTarget(null)
           }}
+        />
+      )}
+
+      {recoveryRequest && (
+        <ConfirmationDialog
+          open
+          title={recoveryRequest.title}
+          description={recoveryRequest.message}
+          confirmLabel={recoveryRequest.confirmLabel}
+          onConfirm={() => {
+            recoveryRequest.onConfirm()
+            dismissRecovery()
+          }}
+          onCancel={dismissRecovery}
         />
       )}
     </div>

@@ -1,4 +1,4 @@
-//! UseCase ��装 — 旧 TS worktree-management を 1:1 移植。
+//! UseCase 実装 — 旧 TS worktree-management を 1:1 移植。
 
 use crate::error::{AppError, AppResult};
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
@@ -25,6 +25,13 @@ pub async fn delete_worktree(repo: &dyn WorktreeGitRepository, worktree_path: &s
         return Err(AppError::GitOperation {
             code: "CANNOT_DELETE_MAIN_WORKTREE".to_string(),
             message: "メインワークツリーは削除できません".to_string(),
+        });
+    }
+    // force=false かつ dirty な場合、git の stderr パースに頼らず事前検出して構造化エラーを返す
+    if !force && repo.is_dirty(worktree_path).await.unwrap_or(false) {
+        return Err(AppError::GitOperation {
+            code: "WORKTREE_DIRTY".to_string(),
+            message: "未コミットの変更があるため削除できません".to_string(),
         });
     }
     repo.remove_worktree(worktree_path, force).await

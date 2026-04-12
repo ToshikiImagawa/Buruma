@@ -322,16 +322,23 @@ fn parse_branch_output(raw: &str) -> BranchList {
         }
 
         let display_name = name.strip_prefix("remotes/").unwrap_or(name);
-        let info = BranchInfo {
-            name: display_name.to_string(),
-            hash: hash.to_string(),
-            is_head: is_current,
-        };
 
         if name.starts_with("remotes/") {
-            remote.push(info);
+            // "remotes/origin/feature/test" → display_name="origin/feature/test" → local_name="feature/test"
+            let local_name = display_name.find('/').map(|i| display_name[i + 1..].to_string());
+            remote.push(BranchInfo {
+                name: display_name.to_string(),
+                hash: hash.to_string(),
+                is_head: is_current,
+                local_name,
+            });
         } else {
-            local.push(info);
+            local.push(BranchInfo {
+                name: display_name.to_string(),
+                hash: hash.to_string(),
+                is_head: is_current,
+                local_name: None,
+            });
         }
     }
 
@@ -517,6 +524,9 @@ mod tests {
         assert_eq!(branches.local[2].name, "feature/wt");
         assert!(!branches.local[2].is_head);
         assert_eq!(branches.remote[0].name, "origin/main");
+        assert_eq!(branches.remote[0].local_name, Some("main".to_string()));
+        // ローカルブランチの local_name は None
+        assert_eq!(branches.local[0].local_name, None);
     }
 
     #[test]

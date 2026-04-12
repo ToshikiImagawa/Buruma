@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import type { WorktreeCreateParams } from '@domain'
-import { invokeCommand } from '@lib/invoke/commands'
+import type { BranchInfo, WorktreeCreateParams } from '@domain'
+import { BranchCombobox } from '@/components/branch-combobox'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -18,10 +18,23 @@ interface WorktreeCreateDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   repoPath: string
+  localBranches: BranchInfo[]
+  remoteBranches: BranchInfo[]
+  defaultBranch: string
+  onSuggestPath: (repoPath: string, branch: string) => Promise<string>
   onSubmit: (params: WorktreeCreateParams) => void
 }
 
-export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }: WorktreeCreateDialogProps) {
+export function WorktreeCreateDialog({
+  open,
+  onOpenChange,
+  repoPath,
+  localBranches,
+  remoteBranches,
+  defaultBranch,
+  onSuggestPath,
+  onSubmit,
+}: WorktreeCreateDialogProps) {
   const [branch, setBranch] = useState('')
   const [worktreePath, setWorktreePath] = useState('')
   const [createNewBranch, setCreateNewBranch] = useState(true)
@@ -32,29 +45,42 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
       setBranch('')
       setWorktreePath('')
       setCreateNewBranch(true)
-      setStartPoint('')
-      // デフォルトブランチを取得して開始ポイントに設定
-      invokeCommand<string>('worktree_default_branch', { repoPath }).then((result) => {
-        if (result.success) {
-          setStartPoint(result.data)
-        }
-      })
+      setStartPoint(defaultBranch)
     }
-  }, [open, repoPath])
+  }, [open, defaultBranch])
+
+  const handleBranchChange = (selectedBranch: string) => {
+    const remoteBranch = remoteBranches.find((b) => b.name === selectedBranch)
+    const isLocal = localBranches.some((b) => b.name === selectedBranch)
+    if (remoteBranch) {
+      // リモートブランチ: バックエンドが返す localName を使用、開始ポイントは完全名
+      setBranch(remoteBranch.localName ?? selectedBranch)
+      setStartPoint(selectedBranch)
+    } else if (isLocal) {
+      setBranch(selectedBranch)
+      setStartPoint(selectedBranch)
+    } else {
+      // 自由入力: 対応するブランチがないのでデフォルトブランチを開始ポイントに
+      setBranch(selectedBranch)
+      setStartPoint(defaultBranch)
+    }
+  }
 
   useEffect(() => {
     if (!branch) return
     let cancelled = false
-    invokeCommand<string>('worktree_suggest_path', { repoPath, branch }).then((result) => {
-      if (cancelled) return
-      if (result.success) {
-        setWorktreePath(result.data)
-      }
-    })
+    const timer = setTimeout(() => {
+      onSuggestPath(repoPath, branch)
+        .then((path) => {
+          if (!cancelled) setWorktreePath(path)
+        })
+        .catch(() => {}) // パス提案失敗は補助機能なので無視
+    }, 200)
     return () => {
       cancelled = true
+      clearTimeout(timer)
     }
-  }, [branch, repoPath])
+  }, [branch, repoPath, onSuggestPath])
 
   const canSubmit = branch.trim() !== '' && worktreePath.trim() !== ''
 
@@ -80,11 +106,13 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
         <div className="space-y-4 py-2">
           <div className="space-y-2">
             <Label htmlFor="wt-branch">ブランチ名</Label>
-            <Input
-              id="wt-branch"
+            <BranchCombobox
+              localBranches={localBranches}
+              remoteBranches={remoteBranches}
               value={branch}
-              onChange={(e) => setBranch(e.target.value)}
-              placeholder="feature/my-branch"
+              onValueChange={handleBranchChange}
+              placeholder="ブランチを選択または入力..."
+              allowFreeInput={createNewBranch}
             />
           </div>
 
@@ -106,11 +134,13 @@ export function WorktreeCreateDialog({ open, onOpenChange, repoPath, onSubmit }:
           {createNewBranch && (
             <div className="space-y-2">
               <Label htmlFor="wt-start-point">開始ポイント（任意）</Label>
-              <Input
-                id="wt-start-point"
+              <BranchCombobox
+                localBranches={localBranches}
+                remoteBranches={remoteBranches}
                 value={startPoint}
-                onChange={(e) => setStartPoint(e.target.value)}
-                placeholder="HEAD"
+                onValueChange={setStartPoint}
+                placeholder="ブランチを選択または入力..."
+                allowFreeInput
               />
             </div>
           )}

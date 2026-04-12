@@ -43,6 +43,14 @@ export interface ErrorNotification {
 /** エラー重大度 */
 export type ErrorSeverity = 'info' | 'warning' | 'error'
 
+/** リカバリーリクエスト（確認ダイアログ用） */
+export interface RecoveryRequest {
+  title: string
+  message: string
+  confirmLabel: string
+  onConfirm: () => void
+}
+
 /** デフォルト設定値 */
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',
@@ -206,6 +214,8 @@ export interface BranchInfo {
   name: string
   hash: string
   isHead: boolean
+  /** リモートプレフィックスを除いたブランチ名（リモートブランチのみ） */
+  localName?: string
   upstream?: string
   ahead?: number
   behind?: number

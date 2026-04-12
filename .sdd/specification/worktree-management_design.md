@@ -48,8 +48,8 @@ risk: "high"
 | DI 設定 (renderer) | renderer | — | 🟢 | di-tokens.ts / di-config.ts |
 | Worktree domain types | shared | domain | 🟢 | WorktreeInfo, WorktreeStatus 等 |
 | IPC 型拡張 | shared | types | 🟢 | IPCChannelMap 拡張 |
-| BranchCombobox 共通コンポーネント | renderer | presentation (共有) | 🔴 | FR_102_05: `src/components/branch-combobox.tsx`（FR_712 design と共有） |
-| WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🔴 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得 |
+| BranchCombobox 共通コンポーネント | renderer | presentation (共有) | 🟢 | FR_102_05: `src/components/branch-combobox.tsx`（FR_712 design と共有） |
+| WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🟢 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得、invokeCommand 排除 |
 | DeleteWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_103_05: ブランチ同時削除ロジック追加 |
 | WorktreeDeleteDialog ブランチ削除UI | renderer | presentation | 🔴 | FR_103_05: チェックボックス追加、他WT使用中判定 |
 | SymlinkService | main | application | 🔴 | FR_106: 設定読み込み + glob マッチ + symlink 作成 |
@@ -924,7 +924,7 @@ export type WorktreeSortOrder = 'name' | 'last-updated';
 
 `wrapHandler<T>()` ユーティリティを使い、UseCase の戻り値を `IPCResult<T>` に統一する。ハンドラーは7つの個別 UseCase を受け取り、各 UseCase の `invoke()` メソッドを呼び出す。
 
-```typescript
+```rs
 // src-tauri/src/features/worktree_management/presentation/commands.rs (概念例)
 import type { WorktreeCreateParams, WorktreeDeleteParams } from '@domain'
 import type { IPCResult } from '@lib/ipc'
@@ -940,7 +940,7 @@ import type {
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
 // Tauri (@tauri-apps/api): #[tauri::command]
 
-// wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に���換する
+// wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に変換する
 function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaited<T>>> {
   return Promise.resolve()
     .then(() => handler())
@@ -1176,7 +1176,7 @@ export class WorktreeDefaultWatcher implements WorktreeWatcher {
 
 > **重要:** Tauri 移行後は `@tauri-apps/api` を直接 import し、`src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。preload 層は Tauri では不要のため削除する。worktree 名前空間は `src/lib/invoke/tauri-api.ts` にヘルパー関数として集約する。
 
-```typescript
+```ts
 // src/lib/invoke/tauri-api.ts の worktree セクション
 import { invokeCommand } from './commands'
 import type {
@@ -1206,7 +1206,7 @@ export const worktreeApi = {
       callback(event)
     })
   },
-},
+}
 ```
 
 ### IPC 型定義の拡張
@@ -1392,7 +1392,7 @@ pub async fn repository_open(
 **変更内容:**
 
 - [FIX-023] Tauri Core (Rust)側 di-tokens で UseCase IF 型を `FunctionUseCase` の型エイリアスとして定義（具象クラスからの import を排除）
-- [FIX-024] メインプ��セス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
+- [FIX-024] メインプロセス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
 - [FIX-025] Webview 側 DI Config を `useClass + deps` パターンに統一（RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数を維持）
 - [FIX-026] ViewModel から Service 直参照を排除（GetSelectedPathUseCase, SetSortOrderUseCase を追加し UseCase 経由に統一）
 - [FIX-027] WorktreeDetailViewModel 簡素化（worktreeStatus$/refreshStatus() を削除、selectedWorktree$ のみ）
