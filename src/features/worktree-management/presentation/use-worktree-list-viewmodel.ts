@@ -17,5 +17,7 @@ export function useWorktreeListViewModel() {
     deleteWorktree: useCallback((params: WorktreeDeleteParams) => vm.deleteWorktree(params), [vm]),
     refreshWorktrees: useCallback(() => vm.refreshWorktrees(), [vm]),
     setSortOrder: useCallback((order: WorktreeSortOrder) => vm.setSortOrder(order), [vm]),
+    getBranches: useCallback((worktreePath: string) => vm.getBranches(worktreePath), [vm]),
+    suggestPath: useCallback((repoPath: string, branch: string) => vm.suggestPath(repoPath, branch), [vm]),
   }
 }

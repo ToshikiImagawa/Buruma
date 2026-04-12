@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import type { BranchInfo } from '@domain'
 import { cn } from '@lib/utils'
 import { Check, ChevronsUpDown, GitBranch } from 'lucide-react'
@@ -31,8 +31,12 @@ export function BranchCombobox({
   const [inputValue, setInputValue] = useState('')
 
   const allBranches = [...localBranches, ...remoteBranches]
+  const hasExactMatch = allBranches.some((b) => b.name === inputValue)
+  const showFreeInput = allowFreeInput && inputValue && !hasExactMatch
 
-  const handleSelect = (branchName: string) => {
+  const handleSelect = (prefixedValue: string) => {
+    // cmdk の value にはグループプレフィックス (local: / remote:) が付いているので除去
+    const branchName = prefixedValue.replace(/^(?:local|remote):/, '')
     onValueChange(branchName)
     setOpen(false)
     setInputValue('')
@@ -42,11 +46,18 @@ export function BranchCombobox({
     if (!allowFreeInput) return
     if (e.key === 'Enter' && inputValue && !allBranches.some((b) => b.name === inputValue)) {
       e.preventDefault()
+      e.stopPropagation()
       onValueChange(inputValue)
       setOpen(false)
       setInputValue('')
     }
   }
+
+  // Dialog のスクロールロックが Popover Portal 内の wheel イベントをブロックするため手動で処理
+  const handleWheel = useCallback((e: React.WheelEvent<HTMLDivElement>) => {
+    e.stopPropagation()
+    e.currentTarget.scrollTop += e.deltaY
+  }, [])
 
   const displayValue = value || undefined
 
@@ -75,23 +86,12 @@ export function BranchCombobox({
             onValueChange={setInputValue}
             onKeyDown={handleKeyDown}
           />
-          <CommandList>
-            <CommandEmpty>
-              {allowFreeInput && inputValue ? (
-                <button
-                  className="w-full cursor-pointer px-2 py-1.5 text-left text-sm hover:bg-accent"
-                  onClick={() => handleSelect(inputValue)}
-                >
-                  「{inputValue}」を使用
-                </button>
-              ) : (
-                'ブランチが見つかりません'
-              )}
-            </CommandEmpty>
+          <CommandList onWheel={handleWheel}>
+            <CommandEmpty>ブランチが見つかりません</CommandEmpty>
             {localBranches.length > 0 && (
               <CommandGroup heading="Local">
                 {localBranches.map((branch) => (
-                  <CommandItem key={branch.name} value={branch.name} onSelect={handleSelect}>
+                  <CommandItem key={`local:${branch.name}`} value={`local:${branch.name}`} onSelect={handleSelect}>
                     <Check className={cn('mr-1.5 h-3.5 w-3.5', value === branch.name ? 'opacity-100' : 'opacity-0')} />
                     <span className="truncate">{branch.name}</span>
                     {branch.isHead && <span className="ml-auto text-xs text-muted-foreground">HEAD</span>}
@@ -102,11 +102,18 @@ export function BranchCombobox({
             {remoteBranches.length > 0 && (
               <CommandGroup heading="Remote">
                 {remoteBranches.map((branch) => (
-                  <CommandItem key={branch.name} value={branch.name} onSelect={handleSelect}>
+                  <CommandItem key={`remote:${branch.name}`} value={`remote:${branch.name}`} onSelect={handleSelect}>
                     <Check className={cn('mr-1.5 h-3.5 w-3.5', value === branch.name ? 'opacity-100' : 'opacity-0')} />
                     <span className="truncate">{branch.name}</span>
                   </CommandItem>
                 ))}
+              </CommandGroup>
+            )}
+            {showFreeInput && (
+              <CommandGroup forceMount>
+                <CommandItem forceMount value={inputValue} onSelect={() => handleSelect(inputValue)}>
+                  「{inputValue}」を使用
+                </CommandItem>
               </CommandGroup>
             )}
           </CommandList>

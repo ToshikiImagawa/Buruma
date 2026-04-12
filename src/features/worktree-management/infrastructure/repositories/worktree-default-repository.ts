@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   WorktreeChangeEvent,
   WorktreeCreateParams,
   WorktreeDeleteParams,
@@ -41,6 +42,12 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
 
   async checkDirty(worktreePath: string): Promise<boolean> {
     const result = await invokeCommand<boolean>('worktree_check_dirty', { worktreePath })
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
+  async getBranches(worktreePath: string): Promise<BranchList> {
+    const result = await invokeCommand<BranchList>('git_branches', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }

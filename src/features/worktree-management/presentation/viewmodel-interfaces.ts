@@ -1,4 +1,4 @@
-import type { WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeSortOrder } from '@domain'
+import type { BranchList, WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeSortOrder } from '@domain'
 import type { Observable } from 'rxjs'
 
 /** ワークツリー一覧 ViewModel インターフェース */
@@ -10,6 +10,8 @@ export interface WorktreeListViewModel {
   deleteWorktree(params: WorktreeDeleteParams): void
   refreshWorktrees(): void
   setSortOrder(order: WorktreeSortOrder): void
+  getBranches(worktreePath: string): Promise<BranchList>
+  suggestPath(repoPath: string, branch: string): Promise<string>
 }
 
 /** ワークツリー詳細 ViewModel インターフェース */

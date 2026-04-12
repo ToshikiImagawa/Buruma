@@ -4,6 +4,7 @@ import { WorktreeDefaultService } from './application/services/worktree-service'
 import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeDefaultUseCase } from './application/usecases/create-worktree-usecase'
 import { DeleteWorktreeDefaultUseCase } from './application/usecases/delete-worktree-usecase'
+import { GetBranchesDefaultUseCase } from './application/usecases/get-branches-usecase'
 import { GetSelectedPathDefaultUseCase } from './application/usecases/get-selected-path-usecase'
 import { GetSelectedWorktreeDefaultUseCase } from './application/usecases/get-selected-worktree-usecase'
 import { GetWorktreeStatusDefaultUseCase } from './application/usecases/get-worktree-status-usecase'
@@ -16,6 +17,7 @@ import {
   CheckDirtyUseCaseToken,
   CreateWorktreeUseCaseToken,
   DeleteWorktreeUseCaseToken,
+  GetBranchesUseCaseToken,
   GetSelectedPathUseCaseToken,
   GetSelectedWorktreeUseCaseToken,
   GetWorktreeStatusUseCaseToken,
@@ -71,6 +73,7 @@ export const worktreeManagementConfig: VContainerConfig = {
       .registerSingleton(GetSelectedPathUseCaseToken, GetSelectedPathDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetBranchesUseCaseToken, GetBranchesDefaultUseCase, [WorktreeRepositoryToken])
 
     // 4. ViewModels (transient, useClass + deps)
     container
@@ -82,6 +85,8 @@ export const worktreeManagementConfig: VContainerConfig = {
         RefreshWorktreesUseCaseToken,
         GetSelectedPathUseCaseToken,
         SetSortOrderUseCaseToken,
+        GetBranchesUseCaseToken,
+        SuggestPathUseCaseToken,
       ])
       .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [
         GetSelectedWorktreeUseCaseToken,

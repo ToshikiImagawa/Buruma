@@ -1,4 +1,5 @@
 import type {
+  BranchList,
   WorktreeCreateParams,
   WorktreeDeleteParams,
   WorktreeInfo,
@@ -31,6 +32,7 @@ export type GetWorktreeStatusUseCase = FunctionUseCase<
   { repoPath: string; worktreePath: string },
   Promise<WorktreeStatus>
 >
+export type GetBranchesUseCase = FunctionUseCase<string, Promise<BranchList>>
 
 // --- Token 定義 ---
 export const WorktreeRepositoryToken = createToken<WorktreeRepository>('WorktreeRepository')
@@ -47,6 +49,7 @@ export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUs
 export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('GetSelectedPathUseCase')
 export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
 export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
+export const GetBranchesUseCaseToken = createToken<GetBranchesUseCase>('GetBranchesUseCase')
 
 export const WorktreeListViewModelToken = createToken<WorktreeListViewModel>('WorktreeListViewModel')
 export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>('WorktreeDetailViewModel')

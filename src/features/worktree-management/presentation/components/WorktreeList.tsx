@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import type { WorktreeInfo } from '@domain'
+import { useCallback, useEffect, useState } from 'react'
+import type { BranchInfo, WorktreeInfo } from '@domain'
 import { Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useWorktreeListViewModel } from '../use-worktree-list-viewmodel'
@@ -13,16 +13,38 @@ interface WorktreeListProps {
 }
 
 export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps) {
-  const { worktrees, selectedPath, selectWorktree, createWorktree, deleteWorktree, refreshWorktrees } =
-    useWorktreeListViewModel()
+  const {
+    worktrees,
+    selectedPath,
+    selectWorktree,
+    createWorktree,
+    deleteWorktree,
+    refreshWorktrees,
+    getBranches,
+    suggestPath,
+  } = useWorktreeListViewModel()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
+  const [localBranches, setLocalBranches] = useState<BranchInfo[]>([])
+  const [remoteBranches, setRemoteBranches] = useState<BranchInfo[]>([])
+  const [defaultBranch, setDefaultBranch] = useState('')
+
+  useEffect(() => {
+    if (!createDialogOpen || !repoPath) return
+    getBranches(repoPath).then((branchList) => {
+      setLocalBranches(branchList.local)
+      setRemoteBranches(branchList.remote)
+      setDefaultBranch(branchList.local.find((b) => b.isHead)?.name ?? branchList.current)
+    })
+  }, [createDialogOpen, repoPath, getBranches])
 
   const handleSelect = (path: string) => {
     selectWorktree(path)
     onWorktreeSelected?.()
   }
+
+  const handleSuggestPath = useCallback((rp: string, branch: string) => suggestPath(rp, branch), [suggestPath])
 
   return (
     <div className="flex h-full flex-col">
@@ -66,6 +88,10 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
         open={createDialogOpen}
         onOpenChange={setCreateDialogOpen}
         repoPath={repoPath}
+        localBranches={localBranches}
+        remoteBranches={remoteBranches}
+        defaultBranch={defaultBranch}
+        onSuggestPath={handleSuggestPath}
         onSubmit={(params) => {
           createWorktree(params)
           setCreateDialogOpen(false)
