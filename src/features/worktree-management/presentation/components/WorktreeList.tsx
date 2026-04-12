@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { BranchInfo, WorktreeInfo } from '@domain'
 import { Plus, RefreshCw } from 'lucide-react'
+import { ConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { useWorktreeListViewModel } from '../use-worktree-list-viewmodel'
 import { WorktreeCreateDialog } from './WorktreeCreateDialog'
@@ -22,6 +23,9 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
     refreshWorktrees,
     getBranches,
     suggestPath,
+    recoveryRequest,
+    confirmRecovery,
+    dismissRecovery,
   } = useWorktreeListViewModel()
 
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
@@ -110,6 +114,17 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
             deleteWorktree(params)
             setDeleteTarget(null)
           }}
+        />
+      )}
+
+      {recoveryRequest && (
+        <ConfirmationDialog
+          open
+          title={recoveryRequest.title}
+          description={recoveryRequest.message}
+          confirmLabel={recoveryRequest.confirmLabel}
+          onConfirm={confirmRecovery}
+          onCancel={dismissRecovery}
         />
       )}
     </div>

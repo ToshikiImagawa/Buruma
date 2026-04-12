@@ -940,7 +940,7 @@ import type {
 import { ipcFailure, ipcSuccess } from '@lib/ipc'
 // Tauri (@tauri-apps/api): #[tauri::command]
 
-// wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に���換する
+// wrapHandler は UseCase が返す素の値を IPCResult<T> に変換し、例外を ipcFailure に変換する
 function wrapHandler<T>(handler: () => T | Promise<T>): Promise<IPCResult<Awaited<T>>> {
   return Promise.resolve()
     .then(() => handler())
@@ -1392,7 +1392,7 @@ pub async fn repository_open(
 **変更内容:**
 
 - [FIX-023] Tauri Core (Rust)側 di-tokens で UseCase IF 型を `FunctionUseCase` の型エイリアスとして定義（具象クラスからの import を排除）
-- [FIX-024] メインプ��セス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
+- [FIX-024] メインプロセス側 DI Config を `useClass + deps` パターンに統一（ファクトリー関数を排除）
 - [FIX-025] Webview 側 DI Config を `useClass + deps` パターンに統一（RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数を維持）
 - [FIX-026] ViewModel から Service 直参照を排除（GetSelectedPathUseCase, SetSortOrderUseCase を追加し UseCase 経由に統一）
 - [FIX-027] WorktreeDetailViewModel 簡素化（worktreeStatus$/refreshStatus() を削除、selectedWorktree$ のみ）

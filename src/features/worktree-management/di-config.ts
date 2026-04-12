@@ -1,5 +1,5 @@
 import type { VContainerConfig } from '@lib/di'
-import { RepositoryServiceToken } from '@/features/application-foundation/di-tokens'
+import { ErrorNotificationServiceToken, RepositoryServiceToken } from '@/features/application-foundation/di-tokens'
 import { WorktreeDefaultService } from './application/services/worktree-service'
 import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
 import { CreateWorktreeDefaultUseCase } from './application/usecases/create-worktree-usecase'
@@ -52,10 +52,12 @@ export const worktreeManagementConfig: VContainerConfig = {
       .registerSingleton(CreateWorktreeUseCaseToken, CreateWorktreeDefaultUseCase, [
         WorktreeRepositoryToken,
         WorktreeServiceToken,
+        ErrorNotificationServiceToken,
       ])
       .registerSingleton(DeleteWorktreeUseCaseToken, DeleteWorktreeDefaultUseCase, [
         WorktreeRepositoryToken,
         WorktreeServiceToken,
+        ErrorNotificationServiceToken,
       ])
       // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
       .registerSingleton(
@@ -65,6 +67,7 @@ export const worktreeManagementConfig: VContainerConfig = {
             container.resolve(WorktreeRepositoryToken),
             container.resolve(WorktreeServiceToken),
             () => currentRepoPath,
+            container.resolve(ErrorNotificationServiceToken),
           ),
       )
       .registerSingleton(SuggestPathUseCaseToken, SuggestPathDefaultUseCase, [WorktreeRepositoryToken])
@@ -87,6 +90,7 @@ export const worktreeManagementConfig: VContainerConfig = {
         SetSortOrderUseCaseToken,
         GetBranchesUseCaseToken,
         SuggestPathUseCaseToken,
+        WorktreeServiceToken,
       ])
       .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [
         GetSelectedWorktreeUseCaseToken,

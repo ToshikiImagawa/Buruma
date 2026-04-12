@@ -1,4 +1,4 @@
-//! UseCase ��装 — 旧 TS worktree-management を 1:1 移植。
+//! UseCase 実装 — 旧 TS worktree-management を 1:1 移植。
 
 use crate::error::{AppError, AppResult};
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;

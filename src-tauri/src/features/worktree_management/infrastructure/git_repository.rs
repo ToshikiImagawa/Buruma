@@ -1,4 +1,4 @@
-//! DefaultWorktreeGitRepository — git CLI で worktree 操作��実行。
+//! DefaultWorktreeGitRepository — git CLI で worktree 操作を実行。
 //! 旧 TS `worktree-git-default-repository.ts` の 1:1 移植。
 
 use std::path::Path;

@@ -43,6 +43,14 @@ export interface ErrorNotification {
 /** エラー重大度 */
 export type ErrorSeverity = 'info' | 'warning' | 'error'
 
+/** リカバリーリクエスト（確認ダイアログ用） */
+export interface RecoveryRequest {
+  title: string
+  message: string
+  confirmLabel: string
+  params: unknown
+}
+
 /** デフォルト設定値 */
 export const DEFAULT_SETTINGS: AppSettings = {
   theme: 'system',

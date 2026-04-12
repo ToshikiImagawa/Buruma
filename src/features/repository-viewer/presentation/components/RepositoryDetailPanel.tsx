@@ -412,7 +412,7 @@ export function RepositoryDetailPanel() {
                         onReset={(hash, mode) => {
                           if (mode === 'hard') {
                             const confirmed = window.confirm(
-                              'Hard リセットを実行すると、未コミッ��の変更が全て失われます。実行しますか？',
+                              'Hard リセットを実行すると、未コミットの変更が全て失われます。実行しますか？',
                             )
                             if (!confirmed) return
                           }

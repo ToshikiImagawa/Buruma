@@ -1,3 +1,4 @@
+import type { ErrorNotificationService } from '@/features/application-foundation/application/services/error-notification-service-interface'
 import type { WorktreeCreateParams } from '@domain'
 import type { ConsumerUseCase } from '@lib/usecase/types'
 import type { WorktreeRepository } from '../repositories/worktree-repository'
@@ -7,6 +8,7 @@ export class CreateWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeCre
   constructor(
     private readonly repo: WorktreeRepository,
     private readonly service: WorktreeService,
+    private readonly errorService: ErrorNotificationService,
   ) {}
 
   invoke(params: WorktreeCreateParams): void {
@@ -15,7 +17,7 @@ export class CreateWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeCre
       .then(() => this.repo.list(params.repoPath))
       .then((worktrees) => this.service.updateWorktrees(worktrees))
       .catch((error: unknown) => {
-        console.error('[worktree]', error)
+        this.errorService.notifyError('ワークツリーの作成に失敗しました', error)
       })
   }
 }
