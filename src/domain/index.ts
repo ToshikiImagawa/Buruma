@@ -121,6 +121,44 @@ export interface WorktreeChangeEvent {
 /** ワークツリー一覧の並び替えオプション */
 export type WorktreeSortOrder = 'name' | 'last-updated'
 
+// --- FR_106: シンボリックリンク ---
+
+/** ワークツリー作成結果（worktree + symlink 結果） */
+export interface WorktreeCreateResult {
+  worktree: WorktreeInfo
+  symlink?: SymlinkResult
+}
+
+/** シンボリックリンク設定 */
+export interface SymlinkConfig {
+  patterns: string[]
+  source: 'app' | 'repo'
+}
+
+/** シンボリックリンク設定保存パラメータ（IPC 用） */
+export interface SymlinkConfigSetParams {
+  repoPath: string
+  config: SymlinkConfig
+}
+
+/** シンボリックリンク作成結果 */
+export interface SymlinkResult {
+  entries: SymlinkResultEntry[]
+  totalCreated: number
+  totalSkipped: number
+  totalFailed: number
+}
+
+/** パターン単位のシンボリックリンク結果エントリ */
+export interface SymlinkResultEntry {
+  pattern: string
+  status: 'created' | 'skipped' | 'partial' | 'failed'
+  matched: number
+  created: number
+  failed: number
+  reason?: string
+}
+
 // --- リポジトリ閲覧 ---
 
 /** Git ステータス情報 */

@@ -1,7 +1,9 @@
 import type {
   BranchList,
   RecoveryRequest,
+  SymlinkConfig,
   WorktreeCreateParams,
+  WorktreeCreateResult,
   WorktreeDeleteParams,
   WorktreeInfo,
   WorktreeSortOrder,
@@ -12,6 +14,7 @@ import type {
   DeleteWorktreeUseCase,
   GetBranchesUseCase,
   GetSelectedPathUseCase,
+  GetSymlinkConfigUseCase,
   ListWorktreesUseCase,
   RefreshWorktreesUseCase,
   SelectWorktreeUseCase,
@@ -37,6 +40,7 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     private readonly getBranchesUseCase: GetBranchesUseCase,
     private readonly suggestPathUseCase: SuggestPathUseCase,
     private readonly worktreeService: WorktreeService,
+    private readonly getSymlinkConfigUseCase: GetSymlinkConfigUseCase,
   ) {
     this.worktrees$ = this.listUseCase.store
     this.selectedPath$ = this.getSelectedPathUseCase.store
@@ -47,8 +51,8 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     this.selectUseCase.invoke(path)
   }
 
-  createWorktree(params: WorktreeCreateParams): void {
-    this.createUseCase.invoke(params)
+  createWorktree(params: WorktreeCreateParams): Promise<WorktreeCreateResult> {
+    return this.createUseCase.invoke(params)
   }
 
   deleteWorktree(params: WorktreeDeleteParams): void {
@@ -65,6 +69,10 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
 
   getBranches(worktreePath: string): Promise<BranchList> {
     return this.getBranchesUseCase.invoke(worktreePath)
+  }
+
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig> {
+    return this.getSymlinkConfigUseCase.invoke(repoPath)
   }
 
   suggestPath(repoPath: string, branch: string): Promise<string> {

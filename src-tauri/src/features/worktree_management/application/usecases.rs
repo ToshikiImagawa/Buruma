@@ -2,7 +2,13 @@
 
 use crate::error::{AppError, AppResult};
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
-use crate::features::worktree_management::domain::{WorktreeCreateParams, WorktreeInfo, WorktreeStatus};
+use crate::features::worktree_management::application::symlink_interfaces::{
+    SymlinkConfigRepository, SymlinkFileRepository,
+};
+use crate::features::worktree_management::application::symlink_service::SymlinkService;
+use crate::features::worktree_management::domain::{
+    WorktreeCreateParams, WorktreeCreateResult, WorktreeInfo, WorktreeStatus,
+};
 
 pub async fn list_worktrees(repo: &dyn WorktreeGitRepository, repo_path: &str) -> AppResult<Vec<WorktreeInfo>> {
     repo.list_worktrees(repo_path).await
@@ -14,9 +20,29 @@ pub async fn get_worktree_status(repo: &dyn WorktreeGitRepository, worktree_path
 
 pub async fn create_worktree(
     repo: &dyn WorktreeGitRepository,
+    symlink_config_repo: &dyn SymlinkConfigRepository,
+    symlink_file_repo: &dyn SymlinkFileRepository,
     params: &WorktreeCreateParams,
-) -> AppResult<WorktreeInfo> {
-    repo.add_worktree(params).await
+) -> AppResult<WorktreeCreateResult> {
+    // 1. ワークツリー作成
+    let worktree = repo.add_worktree(params).await?;
+
+    // 2. シンボリックリンク設定を取得（エラー時は symlink=None で続行）
+    let symlink = match symlink_config_repo.get_config(&params.repo_path).await {
+        Ok(config) if !config.patterns.is_empty() => {
+            // 3. メインWTパスを特定（git rev-parse --git-common-dir ベース）
+            match repo.get_main_worktree_path(&params.repo_path).await {
+                Ok(main_path) => {
+                    let service = SymlinkService::new(symlink_file_repo);
+                    Some(service.execute(&main_path, &worktree.path, &config).await)
+                }
+                Err(_) => None,
+            }
+        }
+        _ => None,
+    };
+
+    Ok(WorktreeCreateResult { worktree, symlink })
 }
 
 pub async fn delete_worktree(repo: &dyn WorktreeGitRepository, worktree_path: &str, force: bool) -> AppResult<()> {

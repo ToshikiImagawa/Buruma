@@ -14,9 +14,10 @@ import { useSettingsViewModel } from '../use-settings-viewmodel'
 interface SettingsDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  children?: React.ReactNode
 }
 
-export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
+export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogProps) {
   const { settings, updateSettings, setTheme } = useSettingsViewModel()
   const { authStatus, isAuthChecking, isLoggingIn, login, logout } = useClaudeAuth()
 
@@ -146,6 +147,12 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 Claude Code CLI の認証状態です。コミットメッセージ生成やセッション機能に必要です
               </p>
             </div>
+            {children && (
+              <>
+                <Separator />
+                {children}
+              </>
+            )}
           </div>
         </div>
       </DialogContent>

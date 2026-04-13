@@ -13,7 +13,7 @@ import {
 } from '@/features/application-foundation/presentation/components'
 import { useRepositorySelectorViewModel } from '@/features/application-foundation/presentation/use-repository-selector-viewmodel'
 import { RepositoryDetailPanel } from '@/features/repository-viewer/presentation/components'
-import { WorktreeList } from '@/features/worktree-management/presentation/components'
+import { SymlinkSettingsSection, WorktreeList } from '@/features/worktree-management/presentation/components'
 
 function AppContent() {
   const [settingsOpen, setSettingsOpen] = useState(false)
@@ -50,7 +50,9 @@ function AppContent() {
       </AppLayout>
 
       <RepositorySelectorDialog open={repositorySelectorOpen} onOpenChange={setRepositorySelectorOpen} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen}>
+        <SymlinkSettingsSection repoPath={currentRepository?.path ?? null} />
+      </SettingsDialog>
       <ErrorNotificationToast />
       <Toaster />
     </>

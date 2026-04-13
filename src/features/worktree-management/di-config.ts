@@ -7,11 +7,13 @@ import { DeleteWorktreeDefaultUseCase } from './application/usecases/delete-work
 import { GetBranchesDefaultUseCase } from './application/usecases/get-branches-usecase'
 import { GetSelectedPathDefaultUseCase } from './application/usecases/get-selected-path-usecase'
 import { GetSelectedWorktreeDefaultUseCase } from './application/usecases/get-selected-worktree-usecase'
+import { GetSymlinkConfigDefaultUseCase } from './application/usecases/get-symlink-config-usecase'
 import { GetWorktreeStatusDefaultUseCase } from './application/usecases/get-worktree-status-usecase'
 import { ListWorktreesDefaultUseCase } from './application/usecases/list-worktrees-usecase'
 import { RefreshWorktreesDefaultUseCase } from './application/usecases/refresh-worktrees-usecase'
 import { SelectWorktreeDefaultUseCase } from './application/usecases/select-worktree-usecase'
 import { SetSortOrderDefaultUseCase } from './application/usecases/set-sort-order-usecase'
+import { SetSymlinkConfigDefaultUseCase } from './application/usecases/set-symlink-config-usecase'
 import { SuggestPathDefaultUseCase } from './application/usecases/suggest-path-usecase'
 import {
   CheckDirtyUseCaseToken,
@@ -20,18 +22,22 @@ import {
   GetBranchesUseCaseToken,
   GetSelectedPathUseCaseToken,
   GetSelectedWorktreeUseCaseToken,
+  GetSymlinkConfigUseCaseToken,
   GetWorktreeStatusUseCaseToken,
   ListWorktreesUseCaseToken,
   RefreshWorktreesUseCaseToken,
   SelectWorktreeUseCaseToken,
   SetSortOrderUseCaseToken,
+  SetSymlinkConfigUseCaseToken,
   SuggestPathUseCaseToken,
+  SymlinkSettingsViewModelToken,
   WorktreeDetailViewModelToken,
   WorktreeListViewModelToken,
   WorktreeRepositoryToken,
   WorktreeServiceToken,
 } from './di-tokens'
 import { WorktreeDefaultRepository } from './infrastructure/repositories/worktree-default-repository'
+import { SymlinkSettingsDefaultViewModel } from './presentation/symlink-settings-viewmodel'
 import { WorktreeDetailDefaultViewModel } from './presentation/worktree-detail-viewmodel'
 import { WorktreeListDefaultViewModel } from './presentation/worktree-list-viewmodel'
 
@@ -77,6 +83,11 @@ export const worktreeManagementConfig: VContainerConfig = {
       .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusDefaultUseCase, [WorktreeRepositoryToken])
       .registerSingleton(GetBranchesUseCaseToken, GetBranchesDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetSymlinkConfigUseCaseToken, GetSymlinkConfigDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(SetSymlinkConfigUseCaseToken, SetSymlinkConfigDefaultUseCase, [
+        WorktreeRepositoryToken,
+        ErrorNotificationServiceToken,
+      ])
 
     // 4. ViewModels (transient, useClass + deps)
     container
@@ -91,9 +102,14 @@ export const worktreeManagementConfig: VContainerConfig = {
         GetBranchesUseCaseToken,
         SuggestPathUseCaseToken,
         WorktreeServiceToken,
+        GetSymlinkConfigUseCaseToken,
       ])
       .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [
         GetSelectedWorktreeUseCaseToken,
+      ])
+      .registerTransient(SymlinkSettingsViewModelToken, SymlinkSettingsDefaultViewModel, [
+        GetSymlinkConfigUseCaseToken,
+        SetSymlinkConfigUseCaseToken,
       ])
   },
 

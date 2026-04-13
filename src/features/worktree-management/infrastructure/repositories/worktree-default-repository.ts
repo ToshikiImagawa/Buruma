@@ -1,7 +1,9 @@
 import type {
   BranchList,
+  SymlinkConfig,
   WorktreeChangeEvent,
   WorktreeCreateParams,
+  WorktreeCreateResult,
   WorktreeDeleteParams,
   WorktreeInfo,
   WorktreeStatus,
@@ -33,8 +35,8 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
     return result.data
   }
 
-  async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const result = await invokeCommand<WorktreeInfo>('worktree_create', { params })
+  async create(params: WorktreeCreateParams): Promise<WorktreeCreateResult> {
+    const result = await invokeCommand<WorktreeCreateResult>('worktree_create', { params })
     if (result.success === false) throw new WorktreeError(result.error)
     return result.data
   }
@@ -60,6 +62,17 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
     const result = await invokeCommand<BranchList>('git_branches', { args: { worktreePath } })
     if (result.success === false) throw new WorktreeError(result.error)
     return result.data
+  }
+
+  async getSymlinkConfig(repoPath: string): Promise<SymlinkConfig> {
+    const result = await invokeCommand<SymlinkConfig>('worktree_symlink_config_get', { repoPath })
+    if (result.success === false) throw new WorktreeError(result.error)
+    return result.data
+  }
+
+  async setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void> {
+    const result = await invokeCommand<void>('worktree_symlink_config_set', { repoPath, config })
+    if (result.success === false) throw new WorktreeError(result.error)
   }
 
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void {

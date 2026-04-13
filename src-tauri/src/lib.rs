@@ -117,7 +117,7 @@ pub fn run() {
             features::basic_git_operations::presentation::commands::git_branch_checkout,
             features::basic_git_operations::presentation::commands::git_branch_delete,
             features::basic_git_operations::presentation::commands::git_reset,
-            // worktree-management (7)
+            // worktree-management (9)
             features::worktree_management::presentation::commands::worktree_list,
             features::worktree_management::presentation::commands::worktree_status,
             features::worktree_management::presentation::commands::worktree_create,
@@ -125,6 +125,8 @@ pub fn run() {
             features::worktree_management::presentation::commands::worktree_suggest_path,
             features::worktree_management::presentation::commands::worktree_check_dirty,
             features::worktree_management::presentation::commands::worktree_default_branch,
+            features::worktree_management::presentation::commands::worktree_symlink_config_get,
+            features::worktree_management::presentation::commands::worktree_symlink_config_set,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

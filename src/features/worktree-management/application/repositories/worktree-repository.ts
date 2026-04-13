@@ -1,7 +1,9 @@
 import type {
   BranchList,
+  SymlinkConfig,
   WorktreeChangeEvent,
   WorktreeCreateParams,
+  WorktreeCreateResult,
   WorktreeDeleteParams,
   WorktreeInfo,
   WorktreeStatus,
@@ -24,10 +26,12 @@ export function hasWorktreeErrorCode(error: unknown, code: WorktreeErrorCode): b
 export interface WorktreeRepository {
   list(repoPath: string): Promise<WorktreeInfo[]>
   getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus>
-  create(params: WorktreeCreateParams): Promise<WorktreeInfo>
+  create(params: WorktreeCreateParams): Promise<WorktreeCreateResult>
   delete(params: WorktreeDeleteParams): Promise<void>
   suggestPath(repoPath: string, branch: string): Promise<string>
   checkDirty(worktreePath: string): Promise<boolean>
   getBranches(worktreePath: string): Promise<BranchList>
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig>
+  setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void>
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
 }

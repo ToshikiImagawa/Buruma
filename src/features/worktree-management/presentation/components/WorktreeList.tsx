@@ -22,6 +22,7 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
     deleteWorktree,
     refreshWorktrees,
     getBranches,
+    getSymlinkConfig,
     suggestPath,
     recoveryRequest,
     dismissRecovery,
@@ -30,16 +31,29 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
   const [createDialogOpen, setCreateDialogOpen] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState<WorktreeInfo | null>(null)
   const [branchList, setBranchList] = useState<BranchList | null>(null)
+  const [symlinkPatterns, setSymlinkPatterns] = useState<string[] | undefined>(undefined)
 
   useEffect(() => {
     if (!createDialogOpen || !repoPath) return
+    let stale = false
     getBranches(repoPath)
-      .then(setBranchList)
-      .catch(() => {
-        // ブランチ取得失敗時は空のまま。ダイアログは開くが選択肢がない状態になる
-        setBranchList(null)
+      .then((b) => {
+        if (!stale) setBranchList(b)
       })
-  }, [createDialogOpen, repoPath, getBranches])
+      .catch(() => {
+        if (!stale) setBranchList(null)
+      })
+    getSymlinkConfig(repoPath)
+      .then((config) => {
+        if (!stale) setSymlinkPatterns(config.patterns.length > 0 ? config.patterns : undefined)
+      })
+      .catch(() => {
+        if (!stale) setSymlinkPatterns(undefined)
+      })
+    return () => {
+      stale = true
+    }
+  }, [createDialogOpen, repoPath, getBranches, getSymlinkConfig])
 
   const localBranches = branchList?.local ?? []
   const remoteBranches = branchList?.remote ?? []
@@ -95,6 +109,7 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
         localBranches={localBranches}
         remoteBranches={remoteBranches}
         defaultBranch={defaultBranch}
+        symlinkPatterns={symlinkPatterns}
         onSuggestPath={suggestPath}
         onSubmit={(params) => {
           createWorktree(params)

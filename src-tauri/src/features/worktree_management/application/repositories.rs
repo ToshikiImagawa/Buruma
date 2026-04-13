@@ -15,4 +15,6 @@ pub trait WorktreeGitRepository: Send + Sync {
     async fn get_default_branch(&self, repo_path: &str) -> AppResult<String>;
     async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String>;
     async fn is_main_worktree(&self, worktree_path: &str) -> AppResult<bool>;
+    /// メインワークツリーのパスを取得する（git rev-parse --git-common-dir ベース）。
+    async fn get_main_worktree_path(&self, repo_path: &str) -> AppResult<String>;
 }
