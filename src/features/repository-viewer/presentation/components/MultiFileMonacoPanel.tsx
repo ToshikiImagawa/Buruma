@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { DiffTarget, FileContents, FileDiff } from '@domain'
-import { invokeCommand } from '@lib/invoke/commands'
+import { useResolve } from '@lib/di/v-container-provider'
 import { DiffEditor } from '@monaco-editor/react'
 import { ChevronDown, ChevronRight, FileMinus, FilePen, FilePlus, FileSymlink } from 'lucide-react'
 import { Virtuoso } from 'react-virtuoso'
+import { GetFileContentsCommitUseCaseToken, GetFileContentsUseCaseToken } from '../../di-tokens'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface MultiFileMonacoPanelProps {
@@ -68,6 +69,9 @@ function MonacoFileSection({
   collapsed: boolean
   onToggleCollapse: () => void
 }) {
+  const getFileContents = useResolve(GetFileContentsUseCaseToken)
+  const getFileContentsCommit = useResolve(GetFileContentsCommitUseCaseToken)
+
   const [contents, setContents] = useState<FileContents | null>(null)
   const [loading, setLoading] = useState(false)
   const Icon = statusIcon[diff.status] ?? FilePen
@@ -82,25 +86,34 @@ function MonacoFileSection({
     setLoading(true)
 
     const load = async () => {
-      if (commitHash) {
-        const result = await invokeCommand<FileContents>('git_file_contents_commit', {
-          args: { worktreePath, hash: commitHash, filePath: diff.filePath },
-        })
-        if (!cancelled && result.success) setContents(result.data)
-      } else {
-        const result = await invokeCommand<FileContents>('git_file_contents', {
-          args: { worktreePath, filePath: diff.filePath, staged: staged ?? false },
-        })
-        if (!cancelled && result.success) setContents(result.data)
+      try {
+        if (commitHash) {
+          const data = await getFileContentsCommit.invoke({
+            worktreePath,
+            hash: commitHash,
+            filePath: diff.filePath,
+          })
+          if (!cancelled) setContents(data)
+        } else {
+          const data = await getFileContents.invoke({
+            worktreePath,
+            filePath: diff.filePath,
+            staged: staged ?? false,
+          })
+          if (!cancelled) setContents(data)
+        }
+      } catch {
+        // file contents 読み込み失敗は無視
+      } finally {
+        if (!cancelled) setLoading(false)
       }
-      if (!cancelled) setLoading(false)
     }
 
     load()
     return () => {
       cancelled = true
     }
-  }, [collapsed, contents, worktreePath, commitHash, staged, diff.filePath])
+  }, [collapsed, contents, worktreePath, commitHash, staged, diff.filePath, getFileContents, getFileContentsCommit])
 
   return (
     <div className="border-b border-border/50">

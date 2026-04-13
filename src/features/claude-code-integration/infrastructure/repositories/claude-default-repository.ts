@@ -76,6 +76,14 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return listenEventSync('claude-explain-result', callback)
   }
 
+  async generateCommitMessage(worktreePath: string, diffText: string): Promise<string> {
+    const result = await invokeCommand<string>('claude_generate_commit_message', {
+      args: { worktreePath, diffText },
+    })
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
   async checkAuth(): Promise<ClaudeAuthStatus> {
     const result = await invokeCommand<ClaudeAuthStatus>('claude_check_auth')
     if (result.success === false) throw new Error(result.error.message)

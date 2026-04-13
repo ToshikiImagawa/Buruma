@@ -6,7 +6,7 @@ import type {
   ReviewComment,
   SessionStatus,
 } from '@domain'
-import type { ConsumerUseCase, ObservableStoreUseCase, SupplierUseCase } from '@lib/usecase/types'
+import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase, SupplierUseCase } from '@lib/usecase/types'
 import type { ClaudeRepository } from './application/repositories/claude-repository'
 import type { ClaudeService } from './application/services/claude-service-interface'
 import type { ExplainDiffInput } from './application/usecases/explain-diff-usecase'
@@ -39,6 +39,10 @@ export type GetReviewSummaryRendererUseCase = ObservableStoreUseCase<string>
 export type GetIsReviewingRendererUseCase = ObservableStoreUseCase<boolean>
 export type GetExplanationRendererUseCase = ObservableStoreUseCase<string>
 export type GetIsExplainingRendererUseCase = ObservableStoreUseCase<boolean>
+export type GenerateCommitMessageRendererUseCase = FunctionUseCase<
+  { worktreePath: string; diffText: string },
+  Promise<string>
+>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
@@ -75,6 +79,10 @@ export const GetExplanationRendererUseCaseToken = createToken<GetExplanationRend
 )
 export const GetIsExplainingRendererUseCaseToken = createToken<GetIsExplainingRendererUseCase>(
   'GetIsExplainingRendererUseCase',
+)
+
+export const GenerateCommitMessageRendererUseCaseToken = createToken<GenerateCommitMessageRendererUseCase>(
+  'GenerateCommitMessageRendererUseCase',
 )
 
 export const ClaudeSessionViewModelToken = createToken<ClaudeSessionViewModel>('ClaudeSessionViewModel')

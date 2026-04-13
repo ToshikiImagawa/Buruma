@@ -7,6 +7,8 @@ import { GetCommitDetailUseCase } from './application/usecases/get-commit-detail
 import { GetDiffCommitUseCase } from './application/usecases/get-diff-commit-usecase'
 import { GetDiffStagedUseCase } from './application/usecases/get-diff-staged-usecase'
 import { GetDiffUseCase } from './application/usecases/get-diff-usecase'
+import { GetFileContentsCommitUseCase } from './application/usecases/get-file-contents-commit-usecase'
+import { GetFileContentsUseCase } from './application/usecases/get-file-contents-usecase'
 import { GetFileTreeUseCase } from './application/usecases/get-file-tree-usecase'
 import { GetLogUseCase } from './application/usecases/get-log-usecase'
 import { GetStatusUseCase } from './application/usecases/get-status-usecase'
@@ -20,6 +22,8 @@ import {
   GetDiffCommitUseCaseToken,
   GetDiffStagedUseCaseToken,
   GetDiffUseCaseToken,
+  GetFileContentsCommitUseCaseToken,
+  GetFileContentsUseCaseToken,
   GetFileTreeUseCaseToken,
   GetLogUseCaseToken,
   GetStatusUseCaseToken,
@@ -54,6 +58,8 @@ export const repositoryViewerConfig: VContainerConfig = {
       .registerSingleton(GetDiffCommitUseCaseToken, GetDiffCommitUseCase, [GitViewerRepositoryToken])
       .registerSingleton(GetBranchesUseCaseToken, GetBranchesUseCase, [GitViewerRepositoryToken])
       .registerSingleton(GetFileTreeUseCaseToken, GetFileTreeUseCase, [GitViewerRepositoryToken])
+      .registerSingleton(GetFileContentsUseCaseToken, GetFileContentsUseCase, [GitViewerRepositoryToken])
+      .registerSingleton(GetFileContentsCommitUseCaseToken, GetFileContentsCommitUseCase, [GitViewerRepositoryToken])
 
     // ViewModels (transient)
     container

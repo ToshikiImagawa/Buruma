@@ -1,6 +1,7 @@
 import type {
   BranchList,
   CommitDetail,
+  FileContents,
   FileDiff,
   FileTreeNode,
   GitDiffQuery,
@@ -36,6 +37,14 @@ export type GetDiffCommitUseCase = FunctionUseCase<
 >
 export type GetBranchesUseCase = FunctionUseCase<string, Promise<BranchList>>
 export type GetFileTreeUseCase = FunctionUseCase<string, Promise<FileTreeNode>>
+export type GetFileContentsUseCase = FunctionUseCase<
+  { worktreePath: string; filePath: string; staged: boolean },
+  Promise<FileContents>
+>
+export type GetFileContentsCommitUseCase = FunctionUseCase<
+  { worktreePath: string; hash: string; filePath: string },
+  Promise<FileContents>
+>
 
 // UseCase Tokens
 export const GetStatusUseCaseToken = createToken<GetStatusUseCase>('GetStatusUseCase')
@@ -46,6 +55,9 @@ export const GetDiffStagedUseCaseToken = createToken<GetDiffStagedUseCase>('GetD
 export const GetDiffCommitUseCaseToken = createToken<GetDiffCommitUseCase>('GetDiffCommitUseCase')
 export const GetBranchesUseCaseToken = createToken<GetBranchesUseCase>('GetBranchesUseCase')
 export const GetFileTreeUseCaseToken = createToken<GetFileTreeUseCase>('GetFileTreeUseCase')
+export const GetFileContentsUseCaseToken = createToken<GetFileContentsUseCase>('GetFileContentsUseCase')
+export const GetFileContentsCommitUseCaseToken =
+  createToken<GetFileContentsCommitUseCase>('GetFileContentsCommitUseCase')
 
 // Service Token
 export const RepositoryViewerServiceToken = createToken<RepositoryViewerService>('RepositoryViewerService')

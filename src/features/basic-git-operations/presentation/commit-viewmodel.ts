@@ -1,9 +1,10 @@
-import type { CommitResult, FileDiff } from '@domain'
+import type { GenerateCommitMessageRendererUseCase } from '@/features/claude-code-integration/di-tokens'
+import type { GetDiffStagedUseCase } from '@/features/repository-viewer/di-tokens'
+import type { CommitResult } from '@domain'
 import type { Observable } from 'rxjs'
 import type { CommitRendererUseCase, GetOperationLoadingUseCase } from '../di-tokens'
 import type { CommitViewModel } from './viewmodel-interfaces'
 import { formatDiffsAsText } from '@lib/format-diffs-as-text'
-import { invokeCommand } from '@lib/invoke/commands'
 import { BehaviorSubject } from 'rxjs'
 
 export class CommitDefaultViewModel implements CommitViewModel {
@@ -21,6 +22,8 @@ export class CommitDefaultViewModel implements CommitViewModel {
   constructor(
     private readonly commitUseCase: CommitRendererUseCase,
     getOperationLoadingUseCase: GetOperationLoadingUseCase,
+    private readonly getDiffStagedUseCase: GetDiffStagedUseCase,
+    private readonly generateCommitMessageUseCase: GenerateCommitMessageRendererUseCase,
   ) {
     this.loading$ = getOperationLoadingUseCase.store
   }
@@ -40,18 +43,9 @@ export class CommitDefaultViewModel implements CommitViewModel {
     this._generating$.next(true)
     this._generateError$.next(null)
     try {
-      const diffResult = await invokeCommand<FileDiff[]>('git_diff_staged', { query: { worktreePath } })
-      if (diffResult.success === false) {
-        this._generateError$.next(diffResult.error.message)
-        return ''
-      }
-      const diffText = formatDiffsAsText(diffResult.data)
-      const result = await invokeCommand<string>('claude_generate_commit_message', { args: { worktreePath, diffText } })
-      if (result.success === false) {
-        this._generateError$.next(result.error.message)
-        return ''
-      }
-      return result.data
+      const diffs = await this.getDiffStagedUseCase.invoke({ worktreePath })
+      const diffText = formatDiffsAsText(diffs)
+      return await this.generateCommitMessageUseCase.invoke({ worktreePath, diffText })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       this._generateError$.next(message)

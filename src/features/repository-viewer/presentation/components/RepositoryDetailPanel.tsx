@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FileDiff, GitStatus } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
-import { invokeCommand } from '@lib/invoke/commands'
+import { useResolve } from '@lib/di/v-container-provider'
 import {
   Archive,
   Bookmark,
@@ -39,6 +39,7 @@ import { useBranchOpsViewModel } from '@/features/basic-git-operations/presentat
 import { ClaudeSessionPanel } from '@/features/claude-code-integration/presentation/components'
 import { useWorktreeDetailViewModel } from '@/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import { useWorktreeListViewModel } from '@/features/worktree-management/presentation/use-worktree-list-viewmodel'
+import { GetDiffCommitUseCaseToken, GetDiffStagedUseCaseToken, GetDiffUseCaseToken } from '../../di-tokens'
 import { useBranchListViewModel } from '../use-branch-list-viewmodel'
 import { useDiffViewMode } from '../use-diff-view-mode'
 import { useGitRefreshCoordinator } from '../use-git-refresh-coordinator'
@@ -51,6 +52,10 @@ import { MultiFileDiffPanel } from './MultiFileDiffPanel'
 import { MultiFileMonacoPanel } from './MultiFileMonacoPanel'
 
 export function RepositoryDetailPanel() {
+  const getDiff = useResolve(GetDiffUseCaseToken)
+  const getDiffStaged = useResolve(GetDiffStagedUseCaseToken)
+  const getDiffCommit = useResolve(GetDiffCommitUseCaseToken)
+
   const { selectedWorktree } = useWorktreeDetailViewModel()
   const { refreshWorktrees } = useWorktreeListViewModel()
   const { status, loadStatus } = useStatusViewModel()
@@ -84,15 +89,16 @@ export function RepositoryDetailPanel() {
 
   const loadAllDiffs = useCallback(async () => {
     if (!worktreePath) return
-    const [unstagedResult, stagedResult] = await Promise.all([
-      invokeCommand<FileDiff[]>('git_diff', { query: { worktreePath } }),
-      invokeCommand<FileDiff[]>('git_diff_staged', { query: { worktreePath } }),
-    ])
-    const diffs: FileDiff[] = []
-    if (unstagedResult.success) diffs.push(...unstagedResult.data)
-    if (stagedResult.success) diffs.push(...stagedResult.data)
-    setAllDiffs(diffs)
-  }, [worktreePath])
+    try {
+      const [unstaged, staged] = await Promise.all([
+        getDiff.invoke({ worktreePath }),
+        getDiffStaged.invoke({ worktreePath }),
+      ])
+      setAllDiffs([...unstaged, ...staged])
+    } catch {
+      setAllDiffs([])
+    }
+  }, [worktreePath, getDiff, getDiffStaged])
 
   useEffect(() => {
     if (worktreePath) {
@@ -131,11 +137,12 @@ export function RepositoryDetailPanel() {
       setCommitDiffs([])
       return
     }
-    const result = await invokeCommand<FileDiff[]>('git_diff_commit', {
-      args: { worktreePath, hash: selectedCommitHash },
-    })
-    if (result.success) setCommitDiffs(result.data)
-  }, [worktreePath, selectedCommitHash])
+    try {
+      setCommitDiffs(await getDiffCommit.invoke({ worktreePath, hash: selectedCommitHash }))
+    } catch {
+      setCommitDiffs([])
+    }
+  }, [worktreePath, selectedCommitHash, getDiffCommit])
 
   useEffect(() => {
     if (selectedCommitHash && commitViewMode === 'hunk') {

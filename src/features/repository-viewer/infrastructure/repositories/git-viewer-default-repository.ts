@@ -1,6 +1,7 @@
 import type {
   BranchList,
   CommitDetail,
+  FileContents,
   FileDiff,
   FileTreeNode,
   GitDiffQuery,
@@ -56,6 +57,20 @@ export class GitViewerDefaultRepository implements GitViewerRepository {
 
   async getFileTree(worktreePath: string): Promise<FileTreeNode> {
     const result = await invokeCommand<FileTreeNode>('git_file_tree', { args: { worktreePath } })
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
+  async getFileContents(worktreePath: string, filePath: string, staged: boolean): Promise<FileContents> {
+    const result = await invokeCommand<FileContents>('git_file_contents', { args: { worktreePath, filePath, staged } })
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
+  async getFileContentsCommit(worktreePath: string, hash: string, filePath: string): Promise<FileContents> {
+    const result = await invokeCommand<FileContents>('git_file_contents_commit', {
+      args: { worktreePath, hash, filePath },
+    })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }

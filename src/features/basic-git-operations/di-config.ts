@@ -1,5 +1,7 @@
 import type { VContainerConfig } from '@lib/di'
 import { ErrorNotificationServiceToken } from '@/features/application-foundation/di-tokens'
+import { GenerateCommitMessageRendererUseCaseToken } from '@/features/claude-code-integration/di-tokens'
+import { GetDiffStagedUseCaseToken } from '@/features/repository-viewer/di-tokens'
 import { GitOperationsDefaultService } from './application/services/git-operations-service'
 import { CheckoutBranchUseCase } from './application/usecases/checkout-branch-usecase'
 import { CommitUseCase } from './application/usecases/commit-usecase'
@@ -125,6 +127,8 @@ export const basicGitOperationsConfig: VContainerConfig = {
       .registerTransient(CommitViewModelToken, CommitDefaultViewModel, [
         CommitRendererUseCaseToken,
         GetOperationLoadingUseCaseToken,
+        GetDiffStagedUseCaseToken,
+        GenerateCommitMessageRendererUseCaseToken,
       ])
       .registerTransient(RemoteOpsViewModelToken, RemoteOpsDefaultViewModel, [
         PushRendererUseCaseToken,
