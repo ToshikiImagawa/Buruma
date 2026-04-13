@@ -113,7 +113,8 @@ function MonacoFileSection({
     return () => {
       cancelled = true
     }
-  }, [collapsed, contents, worktreePath, commitHash, staged, diff.filePath, getFileContents, getFileContentsCommit])
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- contents はガード用。deps に含めると setContents 後に無駄な再実行が走る
+  }, [collapsed, worktreePath, commitHash, staged, diff.filePath, getFileContents, getFileContentsCommit])
 
   return (
     <div className="border-b border-border/50">
