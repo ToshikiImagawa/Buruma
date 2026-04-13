@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "in-progress"
 created: "2026-03-25"
-updated: "2026-04-11"
+updated: "2026-04-13"
 depends-on: ["spec-worktree-management"]
 tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_103_05 / FR_106 は未実装）
+**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_106 実装済み、FR_103_05 は未実装）
 
 ## 1.1. 実装進捗
 
@@ -1317,6 +1317,7 @@ export const worktreeApi = {
 | detached HEAD 状態のワークツリーの表示方法 | 低 | ブランチ名の代わりに HEAD の短縮 SHA を表示。UI 上で視覚的に区別可能にする |
 | RefreshWorktreesUseCase の repoPath 取得方法 | 中 | application-foundation の RepositoryService（currentRepository$）から repoPath を取得する。feature 間依存は shared インターフェース経由で解決し、直接参照は避ける。実装時に DI 設計を確定する |
 | ConsumerUseCase の非同期エラーハンドリング方針 | 低 | `invoke()` が `void` を返す UseCase では、Promise の reject を ViewModel 側または ErrorNotificationService 経由でハンドリングする。application-foundation の OpenRepositoryUseCase パターンを参考にする |
+| SettingsDialog の A-004 違反 | 低 | `SettingsDialog`（application-foundation）が `claude-code-integration` の `useClaudeAuth` を直接 import しており A-004（feature 間直接参照禁止）に違反。FR_106 で追加したスロット方式（`children` prop）と同様に、Claude 認証セクションも外部から注入する形にリファクタリングする |
 
 ---
 

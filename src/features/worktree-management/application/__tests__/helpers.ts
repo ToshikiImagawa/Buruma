@@ -24,6 +24,8 @@ export function createMockRepo(overrides: Partial<WorktreeRepository> = {}): Wor
     suggestPath: vi.fn(),
     checkDirty: vi.fn(),
     getBranches: vi.fn(),
+    getSymlinkConfig: vi.fn().mockResolvedValue({ patterns: [], source: 'app' }),
+    setSymlinkConfig: vi.fn().mockResolvedValue(undefined),
     onChanged: vi.fn(),
     ...overrides,
   } as WorktreeRepository
