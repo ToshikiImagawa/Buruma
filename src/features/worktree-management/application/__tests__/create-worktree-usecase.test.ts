@@ -1,16 +1,27 @@
+import type { WorktreeInfo } from '@domain'
 import { describe, expect, it, vi } from 'vitest'
 import { CreateWorktreeDefaultUseCase } from '../usecases/create-worktree-usecase'
 import { createMockErrorService, createMockRepo, createMockService } from './helpers'
 
 describe('CreateWorktreeUseCase', () => {
-  it('成功時は ErrorNotificationService に通知しない', async () => {
-    const repo = createMockRepo()
+  it('成功時は WorktreeCreateResult を返し ErrorNotificationService に通知しない', async () => {
+    const expectedResult = {
+      worktree: { path: '/wt', branch: 'test' } as WorktreeInfo,
+      symlink: { entries: [], totalCreated: 1, totalSkipped: 0, totalFailed: 0 },
+    }
+    const repo = createMockRepo({ create: vi.fn().mockResolvedValue(expectedResult) })
     const service = createMockService()
     const errorService = createMockErrorService()
     const useCase = new CreateWorktreeDefaultUseCase(repo, service, errorService)
 
-    await useCase.invoke({ repoPath: '/repo', worktreePath: '/wt', branch: 'test', createNewBranch: true })
+    const result = await useCase.invoke({
+      repoPath: '/repo',
+      worktreePath: '/wt',
+      branch: 'test',
+      createNewBranch: true,
+    })
 
+    expect(result).toBe(expectedResult)
     expect(errorService.notifyError).not.toHaveBeenCalled()
     expect(service.updateWorktrees).toHaveBeenCalled()
   })
