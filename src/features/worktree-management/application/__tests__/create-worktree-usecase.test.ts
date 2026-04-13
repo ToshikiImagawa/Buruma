@@ -7,7 +7,7 @@ describe('CreateWorktreeUseCase', () => {
   it('成功時は WorktreeCreateResult を返し ErrorNotificationService に通知しない', async () => {
     const expectedResult = {
       worktree: { path: '/wt', branch: 'test' } as WorktreeInfo,
-      symlink: { entries: [], totalCreated: 1, totalSkipped: 0, totalFailed: 0 },
+      symlink: { entries: [], totalCreated: 0, totalSkipped: 0, totalFailed: 0 },
     }
     const repo = createMockRepo({ create: vi.fn().mockResolvedValue(expectedResult) })
     const service = createMockService()
