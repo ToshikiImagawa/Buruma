@@ -17,7 +17,12 @@ use crate::features::claude_code_integration::infrastructure::claude_repository:
 use crate::features::repository_viewer::application::repositories::GitReadRepository;
 use crate::features::repository_viewer::infrastructure::git_repository::DefaultGitReadRepository;
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
+use crate::features::worktree_management::application::symlink_interfaces::{
+    SymlinkConfigRepository, SymlinkFileRepository,
+};
 use crate::features::worktree_management::infrastructure::git_repository::DefaultWorktreeGitRepository;
+use crate::features::worktree_management::infrastructure::symlink_config_repository::DefaultSymlinkConfigRepository;
+use crate::features::worktree_management::infrastructure::symlink_file_repository::DefaultSymlinkFileRepository;
 use crate::features::worktree_management::infrastructure::watcher::WorktreeWatcher;
 
 pub struct AppState {
@@ -35,6 +40,8 @@ pub struct AppState {
     pub git_read_repo: Arc<dyn GitReadRepository>,
     // worktree-management
     pub worktree_repo: Arc<dyn WorktreeGitRepository>,
+    pub symlink_config_repo: Arc<dyn SymlinkConfigRepository>,
+    pub symlink_file_repo: Arc<dyn SymlinkFileRepository>,
     pub worktree_watcher: Option<WorktreeWatcher>,
     pub app_handle: Mutex<Option<tauri::AppHandle>>,
 }
@@ -50,6 +57,8 @@ impl AppState {
             git_write_repo: Arc::new(DefaultGitWriteRepository),
             git_read_repo: Arc::new(DefaultGitReadRepository),
             worktree_repo: Arc::new(DefaultWorktreeGitRepository),
+            symlink_config_repo: Arc::new(DefaultSymlinkConfigRepository::new(app_handle.clone())),
+            symlink_file_repo: Arc::new(DefaultSymlinkFileRepository),
             worktree_watcher: Some(WorktreeWatcher::new()),
             app_handle: Mutex::new(Some(app_handle.clone())),
         }

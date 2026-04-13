@@ -21,6 +21,7 @@ interface WorktreeCreateDialogProps {
   localBranches: BranchInfo[]
   remoteBranches: BranchInfo[]
   defaultBranch: string
+  symlinkPatterns?: string[]
   onSuggestPath: (repoPath: string, branch: string) => Promise<string>
   onSubmit: (params: WorktreeCreateParams) => void
 }
@@ -32,6 +33,7 @@ export function WorktreeCreateDialog({
   localBranches,
   remoteBranches,
   defaultBranch,
+  symlinkPatterns,
   onSuggestPath,
   onSubmit,
 }: WorktreeCreateDialogProps) {
@@ -142,6 +144,19 @@ export function WorktreeCreateDialog({
                 placeholder="ブランチを選択または入力..."
                 allowFreeInput
               />
+            </div>
+          )}
+
+          {symlinkPatterns && symlinkPatterns.length > 0 && (
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">シンボリックリンク対象</Label>
+              <div className="flex flex-wrap gap-1">
+                {symlinkPatterns.map((pattern, i) => (
+                  <code key={i} className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                    {pattern}
+                  </code>
+                ))}
+              </div>
             </div>
           )}
         </div>

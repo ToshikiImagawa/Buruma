@@ -52,11 +52,12 @@ risk: "high"
 | WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🟢 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得、invokeCommand 排除 |
 | DeleteWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_103_05: ブランチ同時削除ロジック追加 |
 | WorktreeDeleteDialog ブランチ削除UI | renderer | presentation | 🔴 | FR_103_05: チェックボックス追加、他WT使用中判定 |
-| SymlinkService | main | application | 🔴 | FR_106: 設定読み込み + glob マッチ + symlink 作成 |
-| SymlinkConfigRepository | main | infrastructure | 🔴 | FR_106: `.buruma/symlink.json` + tauri-plugin-store |
-| CreateWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_106: symlink 自動作成統合、WorktreeCreateResult 返却 |
-| IPC Handlers (symlink config) | main | presentation | 🔴 | FR_106: `worktree_symlink_config_get/set` |
-| Settings シンボリックリンクセクション | renderer | presentation | 🔴 | FR_106: 設定管理UI（application-foundation Settings に追加） |
+| SymlinkService | main | application | 🟢 | FR_106: 設定読み込み + glob マッチ + symlink 作成 |
+| SymlinkConfigRepository | main | infrastructure | 🟢 | FR_106: `.buruma/symlink.json` + tauri-plugin-store |
+| SymlinkFileRepository | main | infrastructure | 🟢 | FR_106: クロスプラットフォーム symlink 作成 |
+| CreateWorktreeMainUseCase 拡張 | main | application | 🟢 | FR_106: symlink 自動作成統合、WorktreeCreateResult 返却 |
+| IPC Handlers (symlink config) | main | presentation | 🟢 | FR_106: `worktree_symlink_config_get/set` |
+| Settings シンボリックリンクセクション | renderer | presentation | 🟢 | FR_106: 設定管理UI（SettingsDialog スロット方式、A-004 準拠） |
 
 ---
 
@@ -896,8 +897,10 @@ interface SymlinkResult {
 
 interface SymlinkResultEntry {
   pattern: string;
-  status: 'created' | 'skipped' | 'failed';
-  targetPath?: string;
+  status: 'created' | 'skipped' | 'partial' | 'failed';
+  matched: number;
+  created: number;
+  failed: number;
   reason?: string;
 }
 
@@ -1223,7 +1226,7 @@ export const worktreeApi = {
 'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
 'worktree:default-branch': { args: [string]; result: IPCResult<string> }
 'worktree:symlink-config-get': { args: [{ repoPath: string }]; result: IPCResult<SymlinkConfig> }  // FR_106: 設定取得
-'worktree:symlink-config-set': { args: [SymlinkConfig]; result: IPCResult<void> }  // FR_106: 設定保存
+'worktree:symlink-config-set': { args: [{ repoPath: string; config: SymlinkConfig }]; result: IPCResult<void> }  // FR_106: 設定保存（repoPath 付き）
 
 // FR_102_05: ブランチ一覧は basic-git-operations の既存 'git:branches' コマンドを再利用（IPCChannelMap 登録済み）
 

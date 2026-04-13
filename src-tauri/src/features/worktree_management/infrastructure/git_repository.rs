@@ -133,6 +133,18 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
         Ok(is_main_worktree(worktree_path).await)
     }
 
+    async fn get_main_worktree_path(&self, repo_path: &str) -> AppResult<String> {
+        let common_dir = git_raw(repo_path, &["rev-parse", "--git-common-dir"]).await?;
+        let common_dir = common_dir.trim();
+        let resolved = if Path::new(common_dir).is_absolute() {
+            common_dir.to_string()
+        } else {
+            Path::new(repo_path).join(common_dir).to_string_lossy().to_string()
+        };
+        let main_path = resolved.trim_end_matches("/.git").trim_end_matches("\\.git");
+        Ok(main_path.to_string())
+    }
+
     async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String> {
         let worktrees = self.list_worktrees(repo_path).await?;
         let main_wt = worktrees.iter().find(|wt| wt.is_main);

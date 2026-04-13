@@ -11,7 +11,7 @@ use tauri::State;
 use crate::error::AppError;
 use crate::features::worktree_management::application::usecases;
 use crate::features::worktree_management::domain::{
-    WorktreeCreateParams, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus,
+    SymlinkConfig, WorktreeCreateParams, WorktreeCreateResult, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus,
 };
 use crate::state::AppState;
 
@@ -42,8 +42,14 @@ pub async fn worktree_status(
 pub async fn worktree_create(
     params: WorktreeCreateParams,
     state: State<'_, AppState>,
-) -> Result<WorktreeInfo, AppError> {
-    usecases::create_worktree(state.worktree_repo.as_ref(), &params).await
+) -> Result<WorktreeCreateResult, AppError> {
+    usecases::create_worktree(
+        state.worktree_repo.as_ref(),
+        state.symlink_config_repo.as_ref(),
+        state.symlink_file_repo.as_ref(),
+        &params,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -68,4 +74,21 @@ pub async fn worktree_check_dirty(worktreePath: String, state: State<'_, AppStat
 #[tauri::command]
 pub async fn worktree_default_branch(repoPath: String, state: State<'_, AppState>) -> Result<String, AppError> {
     usecases::get_default_branch(state.worktree_repo.as_ref(), &repoPath).await
+}
+
+#[tauri::command]
+pub async fn worktree_symlink_config_get(
+    repoPath: String,
+    state: State<'_, AppState>,
+) -> Result<SymlinkConfig, AppError> {
+    state.symlink_config_repo.get_config(&repoPath).await
+}
+
+#[tauri::command]
+pub async fn worktree_symlink_config_set(
+    repoPath: String,
+    config: SymlinkConfig,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    state.symlink_config_repo.set_config(&repoPath, &config).await
 }
