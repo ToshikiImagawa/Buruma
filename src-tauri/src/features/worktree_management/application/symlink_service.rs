@@ -187,9 +187,8 @@ mod tests {
 
     #[tokio::test]
     async fn test_successful_symlink_creation() {
-        let tmp = std::env::temp_dir().join("buruma_test_symlink_ok");
-        let _ = std::fs::remove_dir_all(&tmp);
-        let main_dir = tmp.join("main");
+        let tmp = tempfile::tempdir().unwrap();
+        let main_dir = tmp.path().join("main");
         std::fs::create_dir_all(main_dir.join("node_modules")).unwrap();
 
         let repo = MockSymlinkFileRepo::new();
@@ -202,15 +201,12 @@ mod tests {
         assert_eq!(result.entries[0].matched, 1);
         assert_eq!(result.entries[0].created, 1);
         assert_eq!(result.total_created, 1);
-
-        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
     async fn test_partial_failure() {
-        let tmp = std::env::temp_dir().join("buruma_test_symlink_partial");
-        let _ = std::fs::remove_dir_all(&tmp);
-        let main_dir = tmp.join("main");
+        let tmp = tempfile::tempdir().unwrap();
+        let main_dir = tmp.path().join("main");
         std::fs::create_dir_all(&main_dir).unwrap();
         std::fs::write(main_dir.join("a.cache"), "").unwrap();
         std::fs::write(main_dir.join("b.cache"), "").unwrap();
@@ -227,8 +223,6 @@ mod tests {
         assert_eq!(result.entries[0].failed, 1);
         assert_eq!(result.total_created, 1);
         assert_eq!(result.total_failed, 1);
-
-        let _ = std::fs::remove_dir_all(&tmp);
     }
 
     #[tokio::test]
