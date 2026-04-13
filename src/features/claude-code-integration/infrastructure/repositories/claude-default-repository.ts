@@ -41,7 +41,7 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
   }
 
   async getOutput(worktreePath: string): Promise<ClaudeOutput[]> {
-    const result = await invokeCommand<ClaudeOutput[]>('claude_get_output', { args: { worktreePath } })
+    const result = await invokeCommand('claude_get_output', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
@@ -77,7 +77,7 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
   }
 
   async generateCommitMessage(worktreePath: string, diffText: string): Promise<string> {
-    const result = await invokeCommand<string>('claude_generate_commit_message', {
+    const result = await invokeCommand('claude_generate_commit_message', {
       args: { worktreePath, diffText },
     })
     if (result.success === false) throw new Error(result.error.message)
@@ -85,7 +85,7 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
   }
 
   async checkAuth(): Promise<ClaudeAuthStatus> {
-    const result = await invokeCommand<ClaudeAuthStatus>('claude_check_auth')
+    const result = await invokeCommand('claude_check_auth')
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
