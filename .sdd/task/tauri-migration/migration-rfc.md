@@ -125,14 +125,14 @@ Phase I: 実装移行
 | P4 | Spec 7 + tauri-migration_spec.md | ✅ 完了 (2026-04-09) |
 | P5 | Design 7 + tauri-migration_design.md | ✅ 完了 (2026-04-09) |
 | P6 | 全体検証 | ✅ 完了 (2026-04-09) |
-| IA | Tauri 初期化 + ディレクトリ再配置 + 疎通 | 🔴 未着手 |
-| IB | application-foundation | 🔴 未着手 |
-| IC | worktree-management | 🔴 未着手 |
-| ID | repository-viewer | 🔴 未着手 |
-| IE | basic-git-operations | 🔴 未着手 |
-| IF | advanced-git-operations | 🔴 未着手 |
-| IG | claude-code-integration | 🔴 未着手 |
-| IH | クリーンアップ | 🔴 未着手 |
+| IA | Tauri 初期化 + ディレクトリ再配置 + 疎通 | ✅ 完了 |
+| IB | application-foundation | ✅ 完了 |
+| IC | worktree-management | ✅ 完了 |
+| ID | repository-viewer | ✅ 完了 |
+| IE | basic-git-operations | ✅ 完了 |
+| IF | advanced-git-operations | ✅ 完了 |
+| IG | claude-code-integration | ✅ 完了 |
+| IH | クリーンアップ | 🟡 ほぼ完了（残: IPCChannelMap 型安全化） |
 
 ## Phase P6 検証結果 (2026-04-09)
 
