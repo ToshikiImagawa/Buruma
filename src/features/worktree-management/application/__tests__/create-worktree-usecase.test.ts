@@ -9,10 +9,10 @@ describe('CreateWorktreeUseCase', () => {
     const errorService = createMockErrorService()
     const useCase = new CreateWorktreeDefaultUseCase(repo, service, errorService)
 
-    useCase.invoke({ repoPath: '/repo', worktreePath: '/wt', branch: 'test', createNewBranch: true })
-    await vi.waitFor(() => expect(service.updateWorktrees).toHaveBeenCalled())
+    await useCase.invoke({ repoPath: '/repo', worktreePath: '/wt', branch: 'test', createNewBranch: true })
 
     expect(errorService.notifyError).not.toHaveBeenCalled()
+    expect(service.updateWorktrees).toHaveBeenCalled()
   })
 
   it('失敗時に notifyError を呼び出す', async () => {
@@ -23,8 +23,9 @@ describe('CreateWorktreeUseCase', () => {
     const errorService = createMockErrorService()
     const useCase = new CreateWorktreeDefaultUseCase(repo, service, errorService)
 
-    useCase.invoke({ repoPath: '/repo', worktreePath: '/wt', branch: 'test', createNewBranch: true })
-    await vi.waitFor(() => expect(errorService.notifyError).toHaveBeenCalled())
+    await expect(
+      useCase.invoke({ repoPath: '/repo', worktreePath: '/wt', branch: 'test', createNewBranch: true }),
+    ).rejects.toThrow('branch already exists')
 
     expect(errorService.notifyError).toHaveBeenCalledWith('ワークツリーの作成に失敗しました', expect.any(Error))
     expect(service.updateWorktrees).not.toHaveBeenCalled()

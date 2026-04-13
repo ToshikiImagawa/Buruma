@@ -1,5 +1,5 @@
 import type { ErrorNotificationService } from '@/features/application-foundation/application/services/error-notification-service-interface'
-import type { WorktreeInfo } from '@domain'
+import type { WorktreeCreateResult, WorktreeInfo } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { WorktreeRepository } from '../repositories/worktree-repository'
 import type { WorktreeService } from '../services/worktree-service-interface'
@@ -19,7 +19,7 @@ export function createMockRepo(overrides: Partial<WorktreeRepository> = {}): Wor
   return {
     list: vi.fn().mockResolvedValue([]),
     getStatus: vi.fn(),
-    create: vi.fn().mockResolvedValue({} as WorktreeInfo),
+    create: vi.fn().mockResolvedValue({ worktree: {} as WorktreeInfo } as WorktreeCreateResult),
     delete: vi.fn().mockResolvedValue(undefined),
     suggestPath: vi.fn(),
     checkDirty: vi.fn(),
