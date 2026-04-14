@@ -59,6 +59,21 @@ pub struct WorktreeDeleteParams {
     pub repo_path: String,
     pub worktree_path: String,
     pub force: bool,
+    pub delete_branch: bool,
+}
+
+// --- FR_103_05: ブランチ同時削除 ---
+
+/// ブランチ削除結果（3バリアント）
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase", tag = "type")]
+pub enum BranchDeleteResult {
+    /// ブランチ削除成功
+    Deleted { branch_name: String },
+    /// ブランチ削除をスキップ（他WTで使用中等）
+    Skipped { branch_name: String, skip_reason: String },
+    /// 未マージのため強制削除が必要
+    RequireForce { branch_name: String },
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

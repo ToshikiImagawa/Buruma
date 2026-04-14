@@ -7,7 +7,7 @@ use crate::features::worktree_management::application::symlink_interfaces::{
 };
 use crate::features::worktree_management::application::symlink_service::SymlinkService;
 use crate::features::worktree_management::domain::{
-    WorktreeCreateParams, WorktreeCreateResult, WorktreeInfo, WorktreeStatus,
+    BranchDeleteResult, WorktreeCreateParams, WorktreeCreateResult, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus,
 };
 
 pub async fn list_worktrees(repo: &dyn WorktreeGitRepository, repo_path: &str) -> AppResult<Vec<WorktreeInfo>> {
@@ -45,7 +45,12 @@ pub async fn create_worktree(
     Ok(WorktreeCreateResult { worktree, symlink })
 }
 
-pub async fn delete_worktree(repo: &dyn WorktreeGitRepository, worktree_path: &str, force: bool) -> AppResult<()> {
+pub async fn delete_worktree(
+    repo: &dyn WorktreeGitRepository,
+    params: &WorktreeDeleteParams,
+) -> AppResult<Option<BranchDeleteResult>> {
+    let worktree_path = &params.worktree_path;
+
     // メインワークツリーの削除を防止（安全性要件 B-002）
     if repo.is_main_worktree(worktree_path).await? {
         return Err(AppError::GitOperation {
@@ -54,13 +59,42 @@ pub async fn delete_worktree(repo: &dyn WorktreeGitRepository, worktree_path: &s
         });
     }
     // force=false かつ dirty な場合、git の stderr パースに頼らず事前検出して構造化エラーを返す
-    if !force && repo.is_dirty(worktree_path).await.unwrap_or(false) {
+    if !params.force && repo.is_dirty(worktree_path).await.unwrap_or(false) {
         return Err(AppError::GitOperation {
             code: "WORKTREE_DIRTY".to_string(),
             message: "未コミットの変更があるため削除できません".to_string(),
         });
     }
-    repo.remove_worktree(worktree_path, force).await
+
+    // 削除前にブランチ名を取得（worktree 削除後は取得できなくなるため）
+    let branch_name = if params.delete_branch {
+        let worktrees = repo.list_worktrees(&params.repo_path).await.unwrap_or_default();
+        worktrees
+            .iter()
+            .find(|wt| wt.path == *worktree_path)
+            .and_then(|wt| wt.branch.clone())
+            .map(|branch| (branch, worktrees))
+    } else {
+        None
+    };
+
+    repo.remove_worktree(worktree_path, params.force).await?;
+
+    if let Some((branch, worktrees)) = branch_name {
+        let is_used = worktrees
+            .iter()
+            .any(|wt| wt.path != *worktree_path && wt.branch.as_deref() == Some(&branch));
+        if is_used {
+            return Ok(Some(BranchDeleteResult::Skipped {
+                branch_name: branch,
+                skip_reason: "他のワークツリーで使用中です".to_string(),
+            }));
+        }
+        let result = repo.delete_branch(&params.repo_path, &branch, false).await?;
+        return Ok(Some(result));
+    }
+
+    Ok(None)
 }
 
 pub async fn suggest_path(repo: &dyn WorktreeGitRepository, repo_path: &str, branch: &str) -> AppResult<String> {

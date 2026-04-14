@@ -15,8 +15,17 @@ export class DeleteWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeDel
   invoke(params: WorktreeDeleteParams): void {
     this.repo
       .delete(params)
-      .then(() => this.repo.list(params.repoPath))
-      .then((worktrees) => this.service.updateWorktrees(worktrees))
+      .then((branchResult) => {
+        if (branchResult?.type === 'requireForce') {
+          this.service.requestRecovery({
+            title: 'ブランチの削除に失敗しました',
+            message: `ブランチ "${branchResult.branchName}" は未マージです。強制削除しますか？`,
+            confirmLabel: '強制削除',
+            onConfirm: () => this.forceDeleteBranch(params.repoPath, branchResult.branchName),
+          })
+        }
+        return this.refreshWorktrees(params.repoPath)
+      })
       .catch((error: unknown) => {
         if (!params.force && hasWorktreeErrorCode(error, WORKTREE_ERROR_CODES.DIRTY)) {
           this.service.requestRecovery({
@@ -29,5 +38,19 @@ export class DeleteWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeDel
           this.errorService.notifyError('ワークツリーの削除に失敗しました', error)
         }
       })
+  }
+
+  /** 未マージブランチを -D で強制削除 */
+  private forceDeleteBranch(repoPath: string, branchName: string): void {
+    this.repo
+      .forceDeleteBranch(repoPath, branchName)
+      .then(() => this.refreshWorktrees(repoPath))
+      .catch((error: unknown) => {
+        this.errorService.notifyError('ブランチの強制削除に失敗しました', error)
+      })
+  }
+
+  private refreshWorktrees(repoPath: string): Promise<void> {
+    return this.repo.list(repoPath).then((worktrees) => this.service.updateWorktrees(worktrees))
   }
 }

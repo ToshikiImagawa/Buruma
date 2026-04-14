@@ -11,7 +11,8 @@ use tauri::State;
 use crate::error::AppError;
 use crate::features::worktree_management::application::usecases;
 use crate::features::worktree_management::domain::{
-    SymlinkConfig, WorktreeCreateParams, WorktreeCreateResult, WorktreeDeleteParams, WorktreeInfo, WorktreeStatus,
+    BranchDeleteResult, SymlinkConfig, WorktreeCreateParams, WorktreeCreateResult, WorktreeDeleteParams, WorktreeInfo,
+    WorktreeStatus,
 };
 use crate::state::AppState;
 
@@ -53,8 +54,11 @@ pub async fn worktree_create(
 }
 
 #[tauri::command]
-pub async fn worktree_delete(params: WorktreeDeleteParams, state: State<'_, AppState>) -> Result<(), AppError> {
-    usecases::delete_worktree(state.worktree_repo.as_ref(), &params.worktree_path, params.force).await
+pub async fn worktree_delete(
+    params: WorktreeDeleteParams,
+    state: State<'_, AppState>,
+) -> Result<Option<BranchDeleteResult>, AppError> {
+    usecases::delete_worktree(state.worktree_repo.as_ref(), &params).await
 }
 
 #[tauri::command]

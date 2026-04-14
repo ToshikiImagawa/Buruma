@@ -9,7 +9,7 @@ use tokio::process::Command;
 use crate::error::{AppError, AppResult};
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
 use crate::features::worktree_management::domain::{
-    FileChange, FileChangeStatus, WorktreeCreateParams, WorktreeInfo, WorktreeStatus,
+    BranchDeleteResult, FileChange, FileChangeStatus, WorktreeCreateParams, WorktreeInfo, WorktreeStatus,
 };
 
 pub struct DefaultWorktreeGitRepository;
@@ -143,6 +143,31 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
         };
         let main_path = resolved.trim_end_matches("/.git").trim_end_matches("\\.git");
         Ok(main_path.to_string())
+    }
+
+    async fn delete_branch(&self, repo_path: &str, branch: &str, force: bool) -> AppResult<BranchDeleteResult> {
+        let flag = if force { "-D" } else { "-d" };
+        let output = Command::new("git")
+            .args(["-C", repo_path, "branch", flag, branch])
+            .output()
+            .await
+            .map_err(|e| AppError::GitError(format!("git branch {flag} failed: {e}")))?;
+
+        if output.status.success() {
+            return Ok(BranchDeleteResult::Deleted {
+                branch_name: branch.to_string(),
+            });
+        }
+
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        // 未マージブランチの場合、git branch -d は "not fully merged" を含むエラーを返す
+        if !force && stderr.contains("not fully merged") {
+            return Ok(BranchDeleteResult::RequireForce {
+                branch_name: branch.to_string(),
+            });
+        }
+
+        Err(AppError::GitError(stderr.trim().to_string()))
     }
 
     async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String> {

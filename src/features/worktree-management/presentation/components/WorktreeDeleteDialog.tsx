@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { WorktreeDeleteParams, WorktreeInfo } from '@domain'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Dialog,
   DialogContent,
@@ -18,12 +19,29 @@ interface WorktreeDeleteDialogProps {
   onOpenChange: (open: boolean) => void
   worktree: WorktreeInfo
   repoPath: string
+  /** 全ワークツリー一覧（他WTでのブランチ使用中チェック用） */
+  worktrees: WorktreeInfo[]
   onConfirm: (params: WorktreeDeleteParams) => void
 }
 
-export function WorktreeDeleteDialog({ open, onOpenChange, worktree, repoPath, onConfirm }: WorktreeDeleteDialogProps) {
+export function WorktreeDeleteDialog({
+  open,
+  onOpenChange,
+  worktree,
+  repoPath,
+  worktrees,
+  onConfirm,
+}: WorktreeDeleteDialogProps) {
   const [force, setForce] = useState(false)
+  const [deleteBranch, setDeleteBranch] = useState(true)
   const displayName = worktree.path.split('/').pop() ?? worktree.path
+
+  // ブランチが他のワークツリーで使用中かチェック
+  const isBranchUsedByOther =
+    worktree.branch != null && worktrees.some((wt) => wt.path !== worktree.path && wt.branch === worktree.branch)
+
+  // detached HEAD の場合はブランチ削除オプションを表示しない
+  const hasBranch = worktree.branch != null
 
   if (worktree.isMain) {
     return (
@@ -65,13 +83,42 @@ export function WorktreeDeleteDialog({ open, onOpenChange, worktree, repoPath, o
             <Label htmlFor="wt-force">強制削除（未コミット変更を破棄）</Label>
             <Switch id="wt-force" checked={force} onCheckedChange={setForce} />
           </div>
+
+          {hasBranch && (
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="wt-delete-branch"
+                  checked={isBranchUsedByOther ? false : deleteBranch}
+                  onCheckedChange={(checked) => setDeleteBranch(checked === true)}
+                  disabled={isBranchUsedByOther}
+                />
+                <Label htmlFor="wt-delete-branch" className={isBranchUsedByOther ? 'text-muted-foreground' : ''}>
+                  ローカルブランチも削除する（{worktree.branch}）
+                </Label>
+              </div>
+              {isBranchUsedByOther && (
+                <p className="ml-6 text-xs text-muted-foreground">他のワークツリーで使用中のため削除できません</p>
+              )}
+            </div>
+          )}
         </div>
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             キャンセル
           </Button>
-          <Button variant="destructive" onClick={() => onConfirm({ repoPath, worktreePath: worktree.path, force })}>
+          <Button
+            variant="destructive"
+            onClick={() =>
+              onConfirm({
+                repoPath,
+                worktreePath: worktree.path,
+                force,
+                deleteBranch: hasBranch && !isBranchUsedByOther && deleteBranch,
+              })
+            }
+          >
             削除
           </Button>
         </DialogFooter>

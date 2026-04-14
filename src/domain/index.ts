@@ -109,7 +109,14 @@ export interface WorktreeDeleteParams {
   repoPath: string
   worktreePath: string
   force: boolean
+  deleteBranch: boolean
 }
+
+/** ブランチ削除結果（FR_103_05） */
+export type BranchDeleteResult =
+  | { type: 'deleted'; branchName: string }
+  | { type: 'skipped'; branchName: string; skipReason: string }
+  | { type: 'requireForce'; branchName: string }
 
 /** ワークツリー状態変化イベント */
 export interface WorktreeChangeEvent {
