@@ -491,6 +491,13 @@ export interface ConflictResolveAllOptions {
   strategy: 'ours' | 'theirs'
 }
 
+/** AI コンフリクト解決の進捗 */
+export interface ConflictResolvingProgress {
+  total: number
+  completed: number
+  failed: number
+}
+
 /** AI コンフリクト解決リクエスト */
 export interface ConflictResolveAIRequest {
   worktreePath: string

@@ -13,7 +13,6 @@ interface ThreeWayMergeViewProps {
 export function ThreeWayMergeView({ threeWayContent, onResolve, aiMergedContent }: ThreeWayMergeViewProps) {
   const [resultContent, setResultContent] = useState('')
 
-  // コンテンツが変更されたら結果エディタを更新
   useEffect(() => {
     if (threeWayContent) {
       setResultContent(threeWayContent.merged)

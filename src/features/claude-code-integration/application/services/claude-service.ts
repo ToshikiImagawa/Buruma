@@ -3,13 +3,14 @@ import type {
   ClaudeOutput,
   ClaudeSession,
   ConflictResolveResult,
+  ConflictResolvingProgress,
   ExplainResult,
   ReviewComment,
   ReviewResult,
   SessionStatus,
 } from '@domain'
 import type { Observable } from 'rxjs'
-import type { ClaudeService, ConflictResolvingProgress } from './claude-service-interface'
+import type { ClaudeService } from './claude-service-interface'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
 

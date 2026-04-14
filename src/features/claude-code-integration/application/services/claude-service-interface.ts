@@ -3,6 +3,7 @@ import type {
   ClaudeOutput,
   ClaudeSession,
   ConflictResolveResult,
+  ConflictResolvingProgress,
   ExplainResult,
   ReviewComment,
   ReviewResult,
@@ -10,12 +11,6 @@ import type {
 } from '@domain'
 import type { BaseService } from '@lib/service'
 import type { Observable } from 'rxjs'
-
-export interface ConflictResolvingProgress {
-  total: number
-  completed: number
-  failed: number
-}
 
 export interface ClaudeService extends BaseService {
   readonly currentSession$: Observable<ClaudeSession | null>

@@ -1,9 +1,9 @@
-import type { ConflictResolveResult, ThreeWayContent } from '@domain'
+import type { ConflictResolveResult, ConflictResolvingProgress, ThreeWayContent } from '@domain'
 import type { Observable, Subscription } from 'rxjs'
-import type { ClaudeService, ConflictResolvingProgress } from '../application/services/claude-service-interface'
+import type { ClaudeService } from '../application/services/claude-service-interface'
 import type { ResolveConflictRendererUseCase } from '../di-tokens'
 import type { ClaudeConflictViewModel } from './viewmodel-interfaces'
-import { filter, skip } from 'rxjs'
+import { filter, skip, take } from 'rxjs'
 
 const MAX_CONCURRENT = 3
 
@@ -26,14 +26,14 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
     this.service.setResolvingProgress(null)
     this.service.setConflictResult(null)
 
-    const sub = this.service.conflictResult$
+    this.service.conflictResult$
       .pipe(
         skip(1),
         filter((r): r is ConflictResolveResult => r !== null),
+        take(1),
       )
       .subscribe(() => {
         this.service.setResolvingConflict(false)
-        sub.unsubscribe()
       })
 
     this.resolveConflictUseCase.invoke({ worktreePath, filePath, threeWayContent })
@@ -50,7 +50,7 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
     const queue = [...files]
     let completed = 0
     let failed = 0
-    let inFlight = 0
+    const inFlightPaths = new Set<string>()
 
     let sub: Subscription | null = null
 
@@ -62,9 +62,9 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
     }
 
     const launchNext = () => {
-      while (inFlight < MAX_CONCURRENT && queue.length > 0) {
+      while (inFlightPaths.size < MAX_CONCURRENT && queue.length > 0) {
         const file = queue.shift()!
-        inFlight++
+        inFlightPaths.add(file.filePath)
         this.resolveConflictUseCase.invoke({
           worktreePath,
           filePath: file.filePath,
@@ -77,9 +77,10 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
       .pipe(
         skip(1),
         filter((r): r is ConflictResolveResult => r !== null),
+        filter((r) => inFlightPaths.has(r.filePath)),
       )
       .subscribe((result) => {
-        inFlight--
+        inFlightPaths.delete(result.filePath)
         if (result.status === 'resolved') completed++
         else failed++
         this.service.setResolvingProgress({ total, completed, failed })

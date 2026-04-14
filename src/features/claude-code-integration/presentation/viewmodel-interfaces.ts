@@ -1,13 +1,13 @@
 import type {
   ClaudeOutput,
   ConflictResolveResult,
+  ConflictResolvingProgress,
   DiffTarget,
   ReviewComment,
   SessionStatus,
   ThreeWayContent,
 } from '@domain'
 import type { Observable } from 'rxjs'
-import type { ConflictResolvingProgress } from '../application/services/claude-service-interface'
 
 export interface ClaudeSessionViewModel {
   readonly status$: Observable<SessionStatus>
