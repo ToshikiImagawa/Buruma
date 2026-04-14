@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "in-progress"
 created: "2026-03-25"
-updated: "2026-04-13"
+updated: "2026-04-14"
 depends-on: ["spec-worktree-management"]
 tags: ["worktree", "core", "ui", "tauri-migration"]
 category: "core"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_106 実装済み、FR_103_05 は未実装）
+**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_106 完了、FR_103_05 は未実装）
 
 ## 1.1. 実装進捗
 
@@ -41,7 +41,7 @@ risk: "high"
 | IPC Handlers (worktree:*) | main | presentation | 🟢 | IPC チャネル登録・ルーティング |
 | DI 設定 (main) | main | — | 🟢 | di-tokens.ts / di-config.ts |
 | WorktreeService | renderer | application | 🟢 | BehaviorSubject 状態管理 |
-| UseCases | renderer | application | 🟢 | List, Create, Delete, Select 等（9実装） |
+| UseCases | renderer | application | 🟢 | List, Create, Delete, Select, GetBranches, SymlinkConfig 等（14実装） |
 | WorktreeDefaultRepository | renderer | infrastructure | 🟢 | IPC クライアント |
 | ViewModels | renderer | presentation | 🟢 | WorktreeList / Detail ViewModel |
 | React Components | renderer | presentation | 🟢 | WorktreeList, Detail, Dialogs（5コンポーネント） |
@@ -181,17 +181,10 @@ graph TD
 
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
-| ListWorktreesMainUseCase | application | FunctionUseCase を継承、ワークツリー一覧取得 + dirty 並列チェック | `src-tauri/src/features/worktree_management/application/usecases/list_worktrees_main_usecase.rs` |
-| GetWorktreeStatusMainUseCase | application | FunctionUseCase を継承、ワークツリーステータス取得 | `src-tauri/src/features/worktree_management/application/usecases/get_worktree_status_main_usecase.rs` |
-| CreateWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー作成 | `src-tauri/src/features/worktree_management/application/usecases/create_worktree_main_usecase.rs` |
-| DeleteWorktreeMainUseCase | application | FunctionUseCase を継承、ワークツリー削除（メイン WT 保護付き） | `src-tauri/src/features/worktree_management/application/usecases/delete_worktree_main_usecase.rs` |
-| SuggestPathMainUseCase | application | FunctionUseCase を継承、パス提案（メイン WT パス解決） | `src-tauri/src/features/worktree_management/application/usecases/suggest_path_main_usecase.rs` |
-| CheckDirtyMainUseCase | application | FunctionUseCase を継承、dirty チェック | `src-tauri/src/features/worktree_management/application/usecases/check_dirty_main_usecase.rs` |
-| GetDefaultBranchMainUseCase | application | FunctionUseCase を継承、デフォルトブランチ検出 | `src-tauri/src/features/worktree_management/application/usecases/get_default_branch_main_usecase.rs` |
-| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/worktree_interfaces.rs` |
-| WorktreeWatcher IF | application | ファイル監視の抽象インターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/worktree_interfaces.rs` |
-| WorktreeGitDefaultRepository | infrastructure | git CLI (tokio::process::Command) ラッパー（list, add, remove, status） | `src-tauri/src/features/worktree_management/infrastructure/worktree_git_service.rs` |
-| WorktreeWatcher | infrastructure | notify + notify-debouncer-full による `.git/worktrees` 監視 | `src-tauri/src/features/worktree_management/infrastructure/worktree_watcher.rs` |
+| UseCases（関数群） | application | `pub async fn` 関数として定義（list_worktrees, get_worktree_status, create_worktree, delete_worktree, suggest_path, check_dirty, get_default_branch） | `src-tauri/src/features/worktree_management/application/usecases.rs` |
+| WorktreeGitRepository IF | application | Git 操作の抽象インターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/repositories.rs` |
+| WorktreeGitDefaultRepository | infrastructure | git CLI (tokio::process::Command) ラッパー（list, add, remove, status） | `src-tauri/src/features/worktree_management/infrastructure/git_repository.rs` |
+| WorktreeWatcher | infrastructure | notify + notify-debouncer-full による `.git/worktrees` 監視 | `src-tauri/src/features/worktree_management/infrastructure/watcher.rs` |
 | IPC Handlers | presentation | worktree:* チャネル登録、`#[tauri::command]` パターン | `src-tauri/src/features/worktree_management/presentation/commands.rs` |
 | SymlinkService | application | FR_106: 設定読み込み + glob マッチ判定のオーケストレーション（実際の symlink 作成は SymlinkFileRepository IF 経由で infrastructure 層に委譲） | `src-tauri/src/features/worktree_management/application/symlink_service.rs` |
 | SymlinkConfigRepository IF | application | FR_106: シンボリックリンク設定の読み書きインターフェース（Rust trait） | `src-tauri/src/features/worktree_management/application/symlink_interfaces.rs` |
@@ -205,14 +198,16 @@ graph TD
 | モジュール名 | 層 | 責務 | 配置場所 |
 |------------|-----|------|---------|
 | WorktreeService | application | BehaviorSubject による状態管理（worktrees$, selectedPath$） | `src/features/worktree-management/application/worktree-service.ts` |
-| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/features/worktree-management/di-tokens.ts` |
+| WorktreeRepository IF | application | IPC クライアントの抽象インターフェース | `src/features/worktree-management/application/repositories/worktree-repository.ts` |
 | UseCases | application | List, Create, Delete, Select, Refresh, SuggestPath, CheckDirty | `src/features/worktree-management/application/usecases/*.ts` |
-| WorktreeDefaultRepository | infrastructure | invokeCommand / listenEvent ラッパー.worktree 経由の IPC クライアント | `src/features/worktree-management/infrastructure/worktree-default-repository.ts` |
+| WorktreeDefaultRepository | infrastructure | invokeCommand / listenEventSync 経由の IPC クライアント | `src/features/worktree-management/infrastructure/repositories/worktree-default-repository.ts` |
 | WorktreeListViewModel | presentation | 一覧画面の ViewModel（UseCase 経由で Observable 公開） | `src/features/worktree-management/presentation/worktree-list-viewmodel.ts` |
 | WorktreeDetailViewModel | presentation | 詳細パネルの ViewModel | `src/features/worktree-management/presentation/worktree-detail-viewmodel.ts` |
 | useWorktreeListViewModel | presentation | Hook ラッパー（useResolve + useObservable） | `src/features/worktree-management/presentation/use-worktree-list-viewmodel.ts` |
 | useWorktreeDetailViewModel | presentation | Hook ラッパー | `src/features/worktree-management/presentation/use-worktree-detail-viewmodel.ts` |
-| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs | `src/features/worktree-management/presentation/components/*.tsx` |
+| React Components | presentation | WorktreeList, WorktreeListItem, WorktreeDetail, Dialogs, SymlinkSettingsSection | `src/features/worktree-management/presentation/components/*.tsx` |
+| SymlinkSettingsViewModel | presentation | FR_106: シンボリックリンク設定の ViewModel | `src/features/worktree-management/presentation/symlink-settings-viewmodel.ts` |
+| useSymlinkSettingsViewModel | presentation | FR_106: SymlinkSettingsViewModel の Hook ラッパー | `src/features/worktree-management/presentation/use-symlink-settings-viewmodel.ts` |
 | BranchCombobox | presentation (共有) | FR_102_05/FR_712: ブランチ選択 Combobox 共通コンポーネント | `src/components/branch-combobox.tsx` |
 | DI Tokens (renderer) | — | createToken 定義、Repository/Service/UseCase/ViewModel IF | `src/features/worktree-management/di-tokens.ts` |
 | DI Config (renderer) | — | VContainerConfig { register, setUp } | `src/features/worktree-management/di-config.ts` |
@@ -250,7 +245,7 @@ export type GetWorktreeStatusMainUseCase = FunctionUseCase<
   { repoPath: string; worktreePath: string },
   Promise<WorktreeStatus>
 >
-export type CreateWorktreeMainUseCase = FunctionUseCase<WorktreeCreateParams, Promise<WorktreeInfo>>
+export type CreateWorktreeMainUseCase = FunctionUseCase<WorktreeCreateParams, Promise<WorktreeCreateResult>>
 export type DeleteWorktreeMainUseCase = FunctionUseCase<WorktreeDeleteParams, Promise<void>>
 export type SuggestPathMainUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
 export type CheckDirtyMainUseCase = FunctionUseCase<string, Promise<boolean>>
@@ -355,39 +350,60 @@ import type {
 import type { ParameterizedService } from '@lib/service'
 
 // --- Repository IF ---
+// 実際の定義: src/features/worktree-management/application/repositories/worktree-repository.ts
 export interface WorktreeRepository {
   list(repoPath: string): Promise<WorktreeInfo[]>
   getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus>
-  create(params: WorktreeCreateParams): Promise<WorktreeInfo>
+  create(params: WorktreeCreateParams): Promise<WorktreeCreateResult>
   delete(params: WorktreeDeleteParams): Promise<void>
   suggestPath(repoPath: string, branch: string): Promise<string>
   checkDirty(worktreePath: string): Promise<boolean>
+  getBranches(worktreePath: string): Promise<BranchList>               // FR_102_05
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig>           // FR_106
+  setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void>  // FR_106
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
 }
 
 // --- Service IF ---
+// 実際の定義: src/features/worktree-management/application/services/worktree-service-interface.ts
 export interface WorktreeService extends ParameterizedService<WorktreeInfo[]> {
   readonly worktrees$: Observable<WorktreeInfo[]>
   readonly selectedWorktreePath$: Observable<string | null>
   readonly sortOrder$: Observable<WorktreeSortOrder>
+  readonly recoveryRequest$: Observable<RecoveryRequest | null>
   updateWorktrees(worktrees: WorktreeInfo[]): void
   setSelectedWorktree(path: string | null): void
   setSortOrder(order: WorktreeSortOrder): void
+  requestRecovery(request: RecoveryRequest): void
+  clearRecovery(): void
 }
 
 // --- ViewModel IF ---
+// 実際の定義: src/features/worktree-management/presentation/viewmodel-interfaces.ts
 export interface WorktreeListViewModel {
   readonly worktrees$: Observable<WorktreeInfo[]>
   readonly selectedPath$: Observable<string | null>
+  readonly recoveryRequest$: Observable<RecoveryRequest | null>
   selectWorktree(path: string | null): void
-  createWorktree(params: WorktreeCreateParams): void
+  createWorktree(params: WorktreeCreateParams): Promise<WorktreeCreateResult>
   deleteWorktree(params: WorktreeDeleteParams): void
   refreshWorktrees(): void
   setSortOrder(order: WorktreeSortOrder): void
+  getBranches(worktreePath: string): Promise<BranchList>
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig>
+  suggestPath(repoPath: string, branch: string): Promise<string>
+  dismissRecovery(): void
 }
 
 export interface WorktreeDetailViewModel {
   readonly selectedWorktree$: Observable<WorktreeInfo | null>
+}
+
+export interface SymlinkSettingsViewModel {
+  readonly config$: Observable<SymlinkConfig | null>
+  loadConfig(repoPath: string): void
+  addPattern(repoPath: string, pattern: string): void
+  removePattern(repoPath: string, index: number): void
 }
 
 // --- Detail 用 UseCase 型 ---
@@ -397,13 +413,16 @@ export type GetWorktreeStatusUseCase = FunctionUseCase<{ repoPath: string; workt
 // --- UseCase 型 ---
 export type ListWorktreesUseCase = ObservableStoreUseCase<WorktreeInfo[]>
 export type SelectWorktreeUseCase = ConsumerUseCase<string | null>
-export type CreateWorktreeUseCase = ConsumerUseCase<WorktreeCreateParams>
+export type CreateWorktreeUseCase = FunctionUseCase<WorktreeCreateParams, Promise<WorktreeCreateResult>>
 export type DeleteWorktreeUseCase = ConsumerUseCase<WorktreeDeleteParams>
 export type RefreshWorktreesUseCase = RunnableUseCase
 export type SuggestPathUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
 export type CheckDirtyUseCase = FunctionUseCase<string, Promise<boolean>>
 export type GetSelectedPathUseCase = ObservableStoreUseCase<string | null>
 export type SetSortOrderUseCase = ConsumerUseCase<WorktreeSortOrder>
+export type GetBranchesUseCase = FunctionUseCase<string, Promise<BranchList>>                         // FR_102_05
+export type GetSymlinkConfigUseCase = FunctionUseCase<string, Promise<SymlinkConfig>>                 // FR_106
+export type SetSymlinkConfigUseCase = FunctionUseCase<{ repoPath: string; config: SymlinkConfig }, Promise<void>>  // FR_106
 
 // --- Token 定義 ---
 // Repository
@@ -422,57 +441,26 @@ export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUs
 export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
 export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('GetSelectedPathUseCase')
 export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
+export const GetBranchesUseCaseToken = createToken<GetBranchesUseCase>('GetBranchesUseCase')                  // FR_102_05
+export const GetSymlinkConfigUseCaseToken = createToken<GetSymlinkConfigUseCase>('GetSymlinkConfigUseCase')  // FR_106
+export const SetSymlinkConfigUseCaseToken = createToken<SetSymlinkConfigUseCase>('SetSymlinkConfigUseCase')  // FR_106
 // ViewModels
 export const WorktreeListViewModelToken = createToken<WorktreeListViewModel>('WorktreeListViewModel')
 export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>('WorktreeDetailViewModel')
+export const SymlinkSettingsViewModelToken = createToken<SymlinkSettingsViewModel>('SymlinkSettingsViewModel')  // FR_106
 ```
 
 ### Webview 側 DI Config
 
 ```typescript
-// src/features/worktree-management/di-config.ts
-import type { VContainerConfig } from '@lib/di'
-import { RepositoryServiceToken } from '@/features/application-foundation/di-tokens'
-import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
-import { CreateWorktreeDefaultUseCase } from './application/usecases/create-worktree-usecase'
-import { DeleteWorktreeDefaultUseCase } from './application/usecases/delete-worktree-usecase'
-import { GetSelectedPathDefaultUseCase } from './application/usecases/get-selected-path-usecase'
-import { GetSelectedWorktreeDefaultUseCase } from './application/usecases/get-selected-worktree-usecase'
-import { GetWorktreeStatusDefaultUseCase } from './application/usecases/get-worktree-status-usecase'
-import { ListWorktreesDefaultUseCase } from './application/usecases/list-worktrees-usecase'
-import { RefreshWorktreesDefaultUseCase } from './application/usecases/refresh-worktrees-usecase'
-import { SelectWorktreeDefaultUseCase } from './application/usecases/select-worktree-usecase'
-import { SetSortOrderDefaultUseCase } from './application/usecases/set-sort-order-usecase'
-import { SuggestPathDefaultUseCase } from './application/usecases/suggest-path-usecase'
-import { WorktreeService } from './application/services/worktree-service'
-import {
-  CheckDirtyUseCaseToken,
-  CreateWorktreeUseCaseToken,
-  DeleteWorktreeUseCaseToken,
-  GetSelectedPathUseCaseToken,
-  GetSelectedWorktreeUseCaseToken,
-  GetWorktreeStatusUseCaseToken,
-  ListWorktreesUseCaseToken,
-  RefreshWorktreesUseCaseToken,
-  SelectWorktreeUseCaseToken,
-  SetSortOrderUseCaseToken,
-  SuggestPathUseCaseToken,
-  WorktreeDetailViewModelToken,
-  WorktreeListViewModelToken,
-  WorktreeRepositoryToken,
-  WorktreeServiceToken,
-} from './di-tokens'
-import { WorktreeDefaultRepository } from './infrastructure/worktree-default-repository'
-import { WorktreeDetailViewModel } from './presentation/worktree-detail-viewmodel'
-import { WorktreeListViewModel } from './presentation/worktree-list-viewmodel'
-
+// src/features/worktree-management/di-config.ts（概要 — 実際のコードと同期）
 export const worktreeManagementConfig: VContainerConfig = {
   register(container) {
     // 1. Infrastructure (singleton)
     container.registerSingleton(WorktreeRepositoryToken, WorktreeDefaultRepository)
 
     // 2. Services (singleton)
-    container.registerSingleton(WorktreeServiceToken, WorktreeService)
+    container.registerSingleton(WorktreeServiceToken, WorktreeDefaultService)
 
     // 3. UseCases (singleton, useClass + deps)
     container
@@ -481,34 +469,38 @@ export const worktreeManagementConfig: VContainerConfig = {
       .registerSingleton(CreateWorktreeUseCaseToken, CreateWorktreeDefaultUseCase, [
         WorktreeRepositoryToken,
         WorktreeServiceToken,
+        ErrorNotificationServiceToken,
       ])
       .registerSingleton(DeleteWorktreeUseCaseToken, DeleteWorktreeDefaultUseCase, [
         WorktreeRepositoryToken,
         WorktreeServiceToken,
+        ErrorNotificationServiceToken,
       ])
       // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
-      .registerSingleton(RefreshWorktreesUseCaseToken, () => {
-        const repoService = container.resolve(RepositoryServiceToken)
-        let currentRepoPath: string | null = null
-        repoService.currentRepository$.subscribe((repo) => {
-          currentRepoPath = repo?.path ?? null
-        })
-        return new RefreshWorktreesDefaultUseCase(
+      .registerSingleton(RefreshWorktreesUseCaseToken, () =>
+        new RefreshWorktreesDefaultUseCase(
           container.resolve(WorktreeRepositoryToken),
           container.resolve(WorktreeServiceToken),
           () => currentRepoPath,
-        )
-      })
+          container.resolve(ErrorNotificationServiceToken),
+        ),
+      )
       .registerSingleton(SuggestPathUseCaseToken, SuggestPathDefaultUseCase, [WorktreeRepositoryToken])
       .registerSingleton(CheckDirtyUseCaseToken, CheckDirtyDefaultUseCase, [WorktreeRepositoryToken])
       .registerSingleton(GetSelectedWorktreeUseCaseToken, GetSelectedWorktreeDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(GetSelectedPathUseCaseToken, GetSelectedPathDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderDefaultUseCase, [WorktreeServiceToken])
       .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetBranchesUseCaseToken, GetBranchesDefaultUseCase, [WorktreeRepositoryToken])      // FR_102_05
+      .registerSingleton(GetSymlinkConfigUseCaseToken, GetSymlinkConfigDefaultUseCase, [WorktreeRepositoryToken])  // FR_106
+      .registerSingleton(SetSymlinkConfigUseCaseToken, SetSymlinkConfigDefaultUseCase, [
+        WorktreeRepositoryToken,
+        ErrorNotificationServiceToken,
+      ])  // FR_106
 
     // 4. ViewModels (transient, useClass + deps)
     container
-      .registerTransient(WorktreeListViewModelToken, WorktreeListViewModel, [
+      .registerTransient(WorktreeListViewModelToken, WorktreeListDefaultViewModel, [
         ListWorktreesUseCaseToken,
         SelectWorktreeUseCaseToken,
         CreateWorktreeUseCaseToken,
@@ -516,8 +508,16 @@ export const worktreeManagementConfig: VContainerConfig = {
         RefreshWorktreesUseCaseToken,
         GetSelectedPathUseCaseToken,
         SetSortOrderUseCaseToken,
+        GetBranchesUseCaseToken,           // FR_102_05
+        SuggestPathUseCaseToken,
+        WorktreeServiceToken,
+        GetSymlinkConfigUseCaseToken,      // FR_106
       ])
-      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailViewModel, [GetSelectedWorktreeUseCaseToken])
+      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [GetSelectedWorktreeUseCaseToken])
+      .registerTransient(SymlinkSettingsViewModelToken, SymlinkSettingsDefaultViewModel, [  // FR_106
+        GetSymlinkConfigUseCaseToken,
+        SetSymlinkConfigUseCaseToken,
+      ])
   },
 
   setUp: async (container) => {
@@ -526,6 +526,11 @@ export const worktreeManagementConfig: VContainerConfig = {
     const repoService = container.resolve(RepositoryServiceToken)
 
     service.setUp([])
+
+    // RefreshWorktreesUseCase 用の repoPath 追跡
+    const repoPathSubscription = repoService.currentRepository$.subscribe((repo) => {
+      currentRepoPath = repo?.path ?? null
+    })
 
     // リポジトリ変更時にワークツリー一覧を読み込む
     const repoSubscription = repoService.currentRepository$.subscribe((currentRepo) => {
@@ -546,8 +551,10 @@ export const worktreeManagementConfig: VContainerConfig = {
     })
 
     return () => {
+      repoPathSubscription.unsubscribe()
       repoSubscription.unsubscribe()
       unsubscribeChanged()
+      currentRepoPath = null
       service.tearDown()
     }
   },
@@ -634,18 +641,18 @@ export class ListWorktreesDefaultUseCase implements ObservableStoreUseCase<Workt
   }
 }
 
-// Consumer パターン（副作用のみ）
-export class CreateWorktreeDefaultUseCase implements ConsumerUseCase<WorktreeCreateParams> {
+// Function パターン（戻り値あり — FR_106 で WorktreeCreateResult を返す）
+export class CreateWorktreeDefaultUseCase implements FunctionUseCase<WorktreeCreateParams, Promise<WorktreeCreateResult>> {
   constructor(
     private readonly repo: WorktreeRepository,
     private readonly service: WorktreeService,
+    private readonly errorService: ErrorNotificationService,
   ) {}
-  invoke(params: WorktreeCreateParams): void {
-    this.repo.create(params).then(() => {
-      this.repo.list(params.repoPath).then((worktrees) => {
-        this.service.updateWorktrees(worktrees)
-      })
-    })
+  async invoke(params: WorktreeCreateParams): Promise<WorktreeCreateResult> {
+    const result = await this.repo.create(params)
+    const worktrees = await this.repo.list(params.repoPath)
+    this.service.updateWorktrees(worktrees)
+    return result
   }
 }
 
@@ -674,33 +681,31 @@ export class SuggestPathDefaultUseCase implements FunctionUseCase<{ repoPath: st
 IPC クライアントとして `invokeCommand / listenEvent ラッパー.worktree` を呼び出し、`IPCResult<T>` を例外に変換する。
 
 ```typescript
-// src/features/worktree-management/infrastructure/worktree-default-repository.ts
-import type { WorktreeRepository } from '../di-tokens'
+// src/features/worktree-management/infrastructure/repositories/worktree-default-repository.ts
+import type { WorktreeRepository } from '../../application/repositories/worktree-repository'
 
 export class WorktreeDefaultRepository implements WorktreeRepository {
   async list(repoPath: string): Promise<WorktreeInfo[]> {
-    const result = await invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath })
-    if (result.success === false) throw new Error(result.error.message)
+    const result = await invokeCommand('worktree_list', { repoPath })
+    if (result.success === false) throw new WorktreeError(result.error)
     return result.data
   }
 
-  async create(params: WorktreeCreateParams): Promise<WorktreeInfo> {
-    const result = await invokeCommand<WorktreeInfo>('worktree_create', { params })
-    if (result.success === false) throw new Error(result.error.message)
+  async create(params: WorktreeCreateParams): Promise<WorktreeCreateResult> {
+    const result = await invokeCommand('worktree_create', { params })
+    if (result.success === false) throw new WorktreeError(result.error)
     return result.data
   }
 
   async delete(params: WorktreeDeleteParams): Promise<void> {
-    const result = await invokeCommand<void>('worktree_delete', { params })
-    if (result.success === false) throw new Error(result.error.message)
+    const result = await invokeCommand('worktree_delete', { params })
+    if (result.success === false) throw new WorktreeError(result.error)
   }
 
-  // ... getStatus, suggestPath, checkDirty も同パターン
+  // ... getStatus, suggestPath, checkDirty, getBranches, getSymlinkConfig, setSymlinkConfig も同パターン
 
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void {
-    return listenEventSync<WorktreeChangeEvent>('worktree-changed', (event) => {
-      callback(event)
-    })
+    return listenEventSync('worktree-changed', callback)
   }
 }
 ```
@@ -720,35 +725,25 @@ export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
     private readonly refreshUseCase: RefreshWorktreesUseCase,
     private readonly getSelectedPathUseCase: GetSelectedPathUseCase,
     private readonly setSortOrderUseCase: SetSortOrderUseCase,
+    private readonly getBranchesUseCase: GetBranchesUseCase,         // FR_102_05
+    private readonly suggestPathUseCase: SuggestPathUseCase,
+    private readonly worktreeService: WorktreeService,
+    private readonly getSymlinkConfigUseCase: GetSymlinkConfigUseCase, // FR_106
   ) {}
 
-  get worktrees$(): Observable<WorktreeInfo[]> {
-    return this.listUseCase.store
-  }
+  get worktrees$(): Observable<WorktreeInfo[]> { return this.listUseCase.store }
+  get selectedPath$(): Observable<string | null> { return this.getSelectedPathUseCase.store }
+  get recoveryRequest$(): Observable<RecoveryRequest | null> { return this.worktreeService.recoveryRequest$ }
 
-  get selectedPath$(): Observable<string | null> {
-    return this.getSelectedPathUseCase.store
-  }
-
-  selectWorktree(path: string | null): void {
-    this.selectUseCase.invoke(path)
-  }
-
-  createWorktree(params: WorktreeCreateParams): void {
-    this.createUseCase.invoke(params)
-  }
-
-  deleteWorktree(params: WorktreeDeleteParams): void {
-    this.deleteUseCase.invoke(params)
-  }
-
-  refreshWorktrees(): void {
-    this.refreshUseCase.invoke()
-  }
-
-  setSortOrder(order: WorktreeSortOrder): void {
-    this.setSortOrderUseCase.invoke(order)
-  }
+  selectWorktree(path: string | null): void { this.selectUseCase.invoke(path) }
+  createWorktree(params: WorktreeCreateParams): Promise<WorktreeCreateResult> { return this.createUseCase.invoke(params) }
+  deleteWorktree(params: WorktreeDeleteParams): void { this.deleteUseCase.invoke(params) }
+  refreshWorktrees(): void { this.refreshUseCase.invoke() }
+  setSortOrder(order: WorktreeSortOrder): void { this.setSortOrderUseCase.invoke(order) }
+  getBranches(worktreePath: string): Promise<BranchList> { return this.getBranchesUseCase.invoke(worktreePath) }
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig> { return this.getSymlinkConfigUseCase.invoke(repoPath) }
+  suggestPath(repoPath: string, branch: string): Promise<string> { return this.suggestPathUseCase.invoke({ repoPath, branch }) }
+  dismissRecovery(): void { this.worktreeService.clearRecovery() }
 }
 ```
 
@@ -997,106 +992,107 @@ export function registerIPCHandlers(
 
 ### 個別 UseCase クラス（7つ）
 
-各 UseCase は `FunctionUseCase<T, R>` を implements し、コンストラクタで `WorktreeGitRepository` を受け取る。**IPCResult を返さない**（presentation 層の wrapHandler が処理）。配置先は `src-tauri/src/features/worktree_management/application/usecases/` ディレクトリ。
+各 UseCase は `pub async fn` 関数として定義し、`WorktreeGitRepository` trait を `&dyn` で受け取る。**`AppResult<T>` を返す**（presentation 層の `#[tauri::command]` ハンドラーが `AppError` を JSON にシリアライズ）。配置先は `src-tauri/src/features/worktree_management/application/usecases.rs`（単一ファイル）。
 
-| UseCase クラス | 型パラメータ | 責務 |
+| UseCase 関数 | シグネチャ | 責務 |
 |---------------|------------|------|
-| ListWorktreesMainUseCase | `FunctionUseCase<string, Promise<WorktreeInfo[]>>` | ワークツリー一覧取得 + dirty 並列チェック |
-| GetWorktreeStatusMainUseCase | `FunctionUseCase<{repoPath, worktreePath}, Promise<WorktreeStatus>>` | ワークツリーステータス取得 |
-| CreateWorktreeMainUseCase | `FunctionUseCase<WorktreeCreateParams, Promise<WorktreeInfo>>` | ワークツリー作成 |
-| DeleteWorktreeMainUseCase | `FunctionUseCase<WorktreeDeleteParams, Promise<void>>` | ワークツリー削除（メイン WT 保護付き） |
-| SuggestPathMainUseCase | `FunctionUseCase<{repoPath, branch}, Promise<string>>` | パス提案（メイン WT パス解決） |
-| CheckDirtyMainUseCase | `FunctionUseCase<string, Promise<boolean>>` | dirty チェック |
-| GetDefaultBranchMainUseCase | `FunctionUseCase<string, Promise<string>>` | デフォルトブランチ検出 |
+| `list_worktrees` | `(repo, repo_path) -> AppResult<Vec<WorktreeInfo>>` | ワークツリー一覧取得 |
+| `get_worktree_status` | `(repo, worktree_path) -> AppResult<WorktreeStatus>` | ワークツリーステータス取得 |
+| `create_worktree` | `(repo, symlink_config_repo, symlink_file_repo, params) -> AppResult<WorktreeCreateResult>` | ワークツリー作成 + FR_106 symlink 自動作成 |
+| `delete_worktree` | `(repo, worktree_path, force) -> AppResult<()>` | ワークツリー削除（メイン WT 保護 + dirty チェック付き） |
+| `suggest_path` | `(repo, repo_path, branch) -> AppResult<String>` | パス提案（メイン WT パス解決） |
+| `check_dirty` | `(repo, worktree_path) -> AppResult<bool>` | dirty チェック |
+| `get_default_branch` | `(repo, repo_path) -> AppResult<String>` | デフォルトブランチ検出 |
 
 代表的な実装例:
 
-```typescript
-// src-tauri/src/features/worktree_management/application/usecases/list_worktrees_main_usecase.rs (概念例)
-import type { WorktreeInfo } from '@domain'
-import type { FunctionUseCase } from '@lib/usecase/types'
-import type { WorktreeGitRepository } from '../worktree-interfaces'
+```rust
+// src-tauri/src/features/worktree_management/application/usecases.rs (概念例)
+use crate::error::{AppError, AppResult};
+use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
+use crate::features::worktree_management::application::symlink_interfaces::{
+    SymlinkConfigRepository, SymlinkFileRepository,
+};
+use crate::features::worktree_management::application::symlink_service::SymlinkService;
+use crate::features::worktree_management::domain::{
+    WorktreeCreateParams, WorktreeCreateResult, WorktreeInfo, WorktreeStatus,
+};
 
-export class ListWorktreesMainUseCase implements FunctionUseCase<string, Promise<WorktreeInfo[]>> {
-  constructor(private readonly gitService: WorktreeGitRepository) {}
-
-  async invoke(repoPath: string): Promise<WorktreeInfo[]> {
-    const worktrees = await this.gitService.listWorktrees(repoPath)
-    // 各ワークツリーの dirty チェックを並列実行
-    const results = await Promise.all(
-      worktrees.map(async (wt) => ({
-        ...wt,
-        isDirty: await this.gitService.isDirty(wt.path),
-      })),
-    )
-    return results
-  }
+pub async fn list_worktrees(
+    repo: &dyn WorktreeGitRepository, repo_path: &str,
+) -> AppResult<Vec<WorktreeInfo>> {
+    repo.list_worktrees(repo_path).await
 }
 
-// src-tauri/src/features/worktree_management/application/usecases/delete_worktree_main_usecase.rs (概念例)
-import type { WorktreeDeleteParams } from '@domain'
-import type { FunctionUseCase } from '@lib/usecase/types'
-import type { WorktreeGitRepository } from '../worktree-interfaces'
+pub async fn create_worktree(
+    repo: &dyn WorktreeGitRepository,
+    symlink_config_repo: &dyn SymlinkConfigRepository,
+    symlink_file_repo: &dyn SymlinkFileRepository,
+    params: &WorktreeCreateParams,
+) -> AppResult<WorktreeCreateResult> {
+    let worktree = repo.add_worktree(params).await?;
+    // シンボリックリンク設定を取得（エラー時は symlink=None で続行）
+    let symlink = match symlink_config_repo.get_config(&params.repo_path).await {
+        Ok(config) if !config.patterns.is_empty() => {
+            match repo.get_main_worktree_path(&params.repo_path).await {
+                Ok(main_path) => {
+                    let service = SymlinkService::new(symlink_file_repo);
+                    Some(service.execute(&main_path, &worktree.path, &config).await)
+                }
+                Err(_) => None,
+            }
+        }
+        _ => None,
+    };
+    Ok(WorktreeCreateResult { worktree, symlink })
+}
 
-export class DeleteWorktreeMainUseCase
-  implements FunctionUseCase<WorktreeDeleteParams, Promise<void>>
-{
-  constructor(private readonly gitService: WorktreeGitRepository) {}
-
-  async invoke(params: WorktreeDeleteParams): Promise<void> {
-    // メインワークツリー削除防止（サービス層チェック）
-    const isMain = await this.gitService.isMainWorktree(params.worktreePath)
-    if (isMain) {
-      throw new Error('メインワークツリーは削除できません')
+pub async fn delete_worktree(
+    repo: &dyn WorktreeGitRepository, worktree_path: &str, force: bool,
+) -> AppResult<()> {
+    // メインワークツリー削除防止（安全性要件 B-002）
+    if repo.is_main_worktree(worktree_path).await? {
+        return Err(AppError::GitOperation {
+            code: "CANNOT_DELETE_MAIN_WORKTREE".to_string(),
+            message: "メインワークツリーは削除できません".to_string(),
+        });
     }
-    await this.gitService.removeWorktree(params.worktreePath, params.force)
-  }
+    if !force && repo.is_dirty(worktree_path).await.unwrap_or(false) {
+        return Err(AppError::GitOperation {
+            code: "WORKTREE_DIRTY".to_string(),
+            message: "未コミットの変更があるため削除できません".to_string(),
+        });
+    }
+    repo.remove_worktree(worktree_path, force).await
 }
 
-// src-tauri/src/features/worktree_management/application/usecases/suggest_path_main_usecase.rs (概念例)
-import type { FunctionUseCase } from '@lib/usecase/types'
-import type { WorktreeGitRepository } from '../worktree-interfaces'
-import path from 'node:path'
-
-export class SuggestPathMainUseCase
-  implements FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
-{
-  constructor(private readonly gitService: WorktreeGitRepository) {}
-
-  async invoke(params: { repoPath: string; branch: string }): Promise<string> {
-    // メインワークツリーのパスを基準にする
-    const worktrees = await this.gitService.listWorktrees(params.repoPath)
-    const mainWorktree = worktrees.find((wt) => wt.isMain)
-    const basePath = mainWorktree?.path ?? params.repoPath
-
-    const parentDir = path.dirname(basePath)
-    const repoName = path.basename(basePath)
-    const sanitizedBranch = params.branch.replace(/[/\\:*?"<>|]/g, '-')
-    return path.join(parentDir, `${repoName}+${sanitizedBranch}`)
-  }
+pub async fn suggest_path(
+    repo: &dyn WorktreeGitRepository, repo_path: &str, branch: &str,
+) -> AppResult<String> {
+    repo.suggest_path(repo_path, branch).await
 }
 ```
 
 ### WorktreeGitRepository インターフェース
 
-```typescript
-// src-tauri/src/features/worktree_management/application/worktree_interfaces.rs (概念例)
-import type { WorktreeInfo, WorktreeStatus, WorktreeCreateParams } from '@domain'
-import type { AppHandle } from '@tauri-apps/api'
+```rust
+// src-tauri/src/features/worktree_management/application/repositories.rs (概念例)
+use async_trait::async_trait;
+use crate::error::AppResult;
+use crate::features::worktree_management::domain::{WorktreeCreateParams, WorktreeInfo, WorktreeStatus};
 
-export interface WorktreeGitRepository {
-  listWorktrees(repoPath: string): Promise<WorktreeInfo[]>
-  getStatus(worktreePath: string): Promise<WorktreeStatus>
-  addWorktree(params: WorktreeCreateParams): Promise<WorktreeInfo>
-  removeWorktree(worktreePath: string, force: boolean): Promise<void>
-  isMainWorktree(worktreePath: string): Promise<boolean>
-  isDirty(worktreePath: string): Promise<boolean>
-  getDefaultBranch(repoPath: string): Promise<string>
-}
-
-export interface WorktreeWatcher {
-  start(repoPath: string, appHandle: AppHandle): void
-  stop(): void
+#[async_trait]
+pub trait WorktreeGitRepository: Send + Sync {
+    async fn list_worktrees(&self, repo_path: &str) -> AppResult<Vec<WorktreeInfo>>;
+    async fn get_status(&self, worktree_path: &str) -> AppResult<WorktreeStatus>;
+    async fn add_worktree(&self, params: &WorktreeCreateParams) -> AppResult<WorktreeInfo>;
+    async fn remove_worktree(&self, worktree_path: &str, force: bool) -> AppResult<()>;
+    async fn is_dirty(&self, worktree_path: &str) -> AppResult<bool>;
+    async fn get_default_branch(&self, repo_path: &str) -> AppResult<String>;
+    async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String>;
+    async fn is_main_worktree(&self, worktree_path: &str) -> AppResult<bool>;
+    /// メインワークツリーのパスを取得する（git rev-parse --git-common-dir ベース）。
+    async fn get_main_worktree_path(&self, repo_path: &str) -> AppResult<String>;
 }
 ```
 
@@ -1105,68 +1101,71 @@ export interface WorktreeWatcher {
 ### WorktreeGitDefaultRepository
 
 ```rust
-// src-tauri/src/features/worktree_management/infrastructure/worktree_git_service.rs (概念例)
+// src-tauri/src/features/worktree_management/infrastructure/git_repository.rs (概念例)
 // Rust 実装: tokio::process::Command 経由の git CLI
 
 impl WorktreeGitRepository for WorktreeGitDefaultRepository {
-  async fn list_worktrees(&self, repo_path: &str) -> Result<Vec<WorktreeInfo>> {
-    // Rust 実装: tokio::process::Command::new("git")
-    //   .args(["-C", repo_path, "worktree", "list", "--porcelain"])
-    //   で実行し出力をパース
+  async fn list_worktrees(&self, repo_path: &str) -> AppResult<Vec<WorktreeInfo>> {
+    // git -C repo_path worktree list --porcelain で実行し出力をパース
   }
 
-  async fn get_status(&self, worktree_path: &str) -> Result<WorktreeStatus> {
-    // Rust 実装: tokio::process::Command::new("git")
-    //   .args(["-C", worktree_path, "status", "--porcelain"])
-    //   で実行し出力をパース
+  async fn get_status(&self, worktree_path: &str) -> AppResult<WorktreeStatus> {
+    // git -C worktree_path status --porcelain で実行し出力をパース
   }
 
-  async fn add_worktree(&self, params: &WorktreeCreateParams) -> Result<WorktreeInfo> {
-    // Rust 実装: tokio::process::Command::new("git")
-    //   .args(["-C", &params.repo_path, "worktree", "add", ...])
-    //   create_new_branch ? git worktree add -b <branch> <path> <start-point>
+  async fn add_worktree(&self, params: &WorktreeCreateParams) -> AppResult<WorktreeInfo> {
+    // create_new_branch ? git worktree add -b <branch> <path> <start-point>
     //                     : git worktree add <path> <branch>
   }
 
-  async fn remove_worktree(&self, worktree_path: &str, force: bool) -> Result<()> {
+  async fn remove_worktree(&self, worktree_path: &str, force: bool) -> AppResult<()> {
     // git worktree remove [--force] <path>
   }
 
-  async fn is_main_worktree(&self, worktree_path: &str) -> Result<bool> {
+  async fn is_dirty(&self, worktree_path: &str) -> AppResult<bool> {
+    // git -C worktree_path status --porcelain で実行し出力が空でなければ dirty
+  }
+
+  async fn get_default_branch(&self, repo_path: &str) -> AppResult<String> {
+    // git -C repo_path symbolic-ref refs/remotes/origin/HEAD でデフォルトブランチを検出
+  }
+
+  async fn suggest_path(&self, repo_path: &str, branch: &str) -> AppResult<String> {
+    // メインWTパスの親ディレクトリ + リポジトリ名+ブランチ名 形式でパス提案
+  }
+
+  async fn is_main_worktree(&self, worktree_path: &str) -> AppResult<bool> {
     // .git がファイルではなくディレクトリならメインワークツリー
   }
 
-  async fn is_dirty(&self, worktree_path: &str) -> Result<bool> {
-    // Rust 実装: tokio::process::Command::new("git")
-    //   .args(["-C", worktree_path, "status", "--porcelain"])
-    //   で実行し出力が空でなければ dirty
+  async fn get_main_worktree_path(&self, repo_path: &str) -> AppResult<String> {
+    // git -C repo_path rev-parse --git-common-dir でメインWTパスを取得
   }
 }
 ```
 
-> **設計判断:** `isDirty(worktreePath)` は `repoPath` を受け取らない。git CLI は `-C worktreePath` でワークツリーパスを直接指定して実行でき、`.git` ファイル経由で親リポジトリを自動的に解決する。
+> **設計判断:** `is_dirty(worktree_path)` は `repo_path` を受け取らない。git CLI は `-C worktree_path` でワークツリーパスを直接指定して実行でき、`.git` ファイル経由で親リポジトリを自動的に解決する。
 
 ### WorktreeWatcher
 
-```typescript
-// src-tauri/src/features/worktree_management/infrastructure/worktree_watcher.rs (概念例)
-// Rust 側: notify + notify-debouncer-full crate による実装
-import type { WorktreeWatcher } from '../application/worktree_interfaces'
+```rust
+// src-tauri/src/features/worktree_management/infrastructure/watcher.rs (概念例)
+// Rust 実装: notify + notify-debouncer-full crate による .git/worktrees 監視
 
-export class WorktreeDefaultWatcher implements WorktreeWatcher {
-  // Rust 側では RecommendedWatcher + DebounceEventHandler で実装
-
-  start(repoPath: string, appHandle: AppHandle): void {
-    // .git/worktrees ディレクトリを notify + notify-debouncer-full で監視
+pub struct WorktreeWatcher {
+    // RecommendedWatcher + DebounceEventHandler で実装
     // デバウンス: 300ms（短時間の連続イベントを集約）
-    // 変更検出時: window.app_handle.emit('worktree-changed', event)
-  }
+}
 
-  stop(): void {
-    if (this.debounceTimer) clearTimeout(this.debounceTimer)
-    this.watcher?.close()
-    this.watcher = null
-  }
+impl WorktreeWatcher {
+    pub fn start(&mut self, repo_path: &str, app_handle: AppHandle) {
+        // .git/worktrees ディレクトリを notify で監視
+        // 変更検出時: app_handle.emit("worktree-changed", event)
+    }
+
+    pub fn stop(&mut self) {
+        // watcher を drop してリソース解放
+    }
 }
 ```
 
@@ -1177,64 +1176,42 @@ export class WorktreeDefaultWatcher implements WorktreeWatcher {
 
 ## 6.4. Tauri invoke/listen API
 
-> **重要:** Tauri 移行後は `@tauri-apps/api` を直接 import し、`src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパー経由で呼び出す。preload 層は Tauri では不要のため削除する。worktree 名前空間は `src/lib/invoke/tauri-api.ts` にヘルパー関数として集約する。
+> **重要:** Tauri 移行後は `src/lib/invoke/commands.ts` の `invokeCommand()` ラッパー経由で Rust コマンドを呼び出す。`IPCCommandMap` による型推論で戻り値型は自動解決されるため、明示的な `<T>` 指定は不要。実装では各 infrastructure リポジトリが `invokeCommand` を直接使用する（中間の `worktreeApi` ヘルパーは不要）。
 
 ```ts
-// src/lib/invoke/tauri-api.ts の worktree セクション
-import { invokeCommand } from './commands'
-import type {
-  WorktreeInfo,
-  WorktreeStatus,
-  WorktreeCreateParams,
-  WorktreeDeleteParams,
-} from '@/shared/domain'
+// src/features/worktree-management/infrastructure/repositories/worktree-default-repository.ts（利用例）
+import { invokeCommand } from '@lib/invoke/commands'
+import { listenEventSync } from '@lib/invoke/events'
 
-export const worktreeApi = {
-  list: (repoPath: string) =>
-    invokeCommand<WorktreeInfo[]>('worktree_list', { repoPath }),
-  status: (repoPath: string, worktreePath: string) =>
-    invokeCommand<WorktreeStatus>('worktree_status', { repoPath, worktreePath }),
-  create: (params: WorktreeCreateParams) =>
-    invokeCommand<WorktreeInfo>('worktree_create', { params }),
-  delete: (params: WorktreeDeleteParams) =>
-    invokeCommand<void>('worktree_delete', { params }),
-  suggestPath: (repoPath: string, branch: string) =>
-    invokeCommand<string>('worktree_suggest_path', { repoPath, branch }),
-  checkDirty: (worktreePath: string) =>
-    invokeCommand<boolean>('worktree_check_dirty', { worktreePath }),
-  defaultBranch: (repoPath: string) =>
-    invokeCommand<string>('worktree_default_branch', { repoPath }),
-  onChanged: (callback: (event: WorktreeChangeEvent) => void): (() => void) => {
-    return listenEventSync<WorktreeChangeEvent>('worktree-changed', (event) => {
-      callback(event)
-    })
-  },
-}
+// IPCCommandMap により引数・戻り値型が自動推論される（<T> 不要）
+const result = await invokeCommand('worktree_list', { repoPath })       // => IPCResult<WorktreeInfo[]>
+const result = await invokeCommand('worktree_create', { params })       // => IPCResult<WorktreeCreateResult>
+const result = await invokeCommand('worktree_check_dirty', { worktreePath }) // => IPCResult<boolean>
+
+// イベント受信（IPCEventMap により payload 型が自動推論）
+const unlisten = listenEventSync('worktree-changed', (event) => { /* WorktreeChangeEvent */ })
 ```
 
 ### IPC 型定義の拡張
 
-`src/lib/ipc.ts` に以下を追加:
+`src/lib/ipc.ts` の `IPCCommandMap` / `IPCEventMap` に以下を追加:
 
 ```typescript
-// IPCChannelMap に追加
-'worktree:list': { args: [string]; result: IPCResult<WorktreeInfo[]> }
-'worktree:status': { args: [{ repoPath: string; worktreePath: string }]; result: IPCResult<WorktreeStatus> }
-'worktree:create': { args: [WorktreeCreateParams]; result: IPCResult<WorktreeCreateResult> }  // FR_106: 戻り値を WorktreeCreateResult に変更
-'worktree:delete': { args: [WorktreeDeleteParams]; result: IPCResult<BranchDeleteResult | null> }  // FR_103_05: ブランチ削除結果を返す
-'worktree:suggest-path': { args: [{ repoPath: string; branch: string }]; result: IPCResult<string> }
-'worktree:check-dirty': { args: [string]; result: IPCResult<boolean> }
-'worktree:default-branch': { args: [string]; result: IPCResult<string> }
-'worktree:symlink-config-get': { args: [{ repoPath: string }]; result: IPCResult<SymlinkConfig> }  // FR_106: 設定取得
-'worktree:symlink-config-set': { args: [{ repoPath: string; config: SymlinkConfig }]; result: IPCResult<void> }  // FR_106: 設定保存（repoPath 付き）
+// IPCCommandMap に追加（snake_case 命名）
+worktree_list: { args: { repoPath: string }; result: WorktreeInfo[] }
+worktree_status: { args: { repoPath: string; worktreePath: string }; result: WorktreeStatus }
+worktree_create: { args: { params: WorktreeCreateParams }; result: WorktreeCreateResult }  // FR_106: 戻り値を WorktreeCreateResult に変更
+worktree_delete: { args: { params: WorktreeDeleteParams }; result: void }
+worktree_suggest_path: { args: { repoPath: string; branch: string }; result: string }
+worktree_check_dirty: { args: { worktreePath: string }; result: boolean }
+worktree_default_branch: { args: { repoPath: string }; result: string }
+worktree_symlink_config_get: { args: { repoPath: string }; result: SymlinkConfig }  // FR_106: 設定取得
+worktree_symlink_config_set: { args: { repoPath: string; config: SymlinkConfig }; result: void }  // FR_106: 設定保存
 
-// FR_102_05: ブランチ一覧は basic-git-operations の既存 'git:branches' コマンドを再利用（IPCChannelMap 登録済み）
+// FR_102_05: ブランチ一覧は basic-git-operations の既存 'git_branches' コマンドを再利用（IPCCommandMap 登録済み）
 
-// IPCEventMap に追加
+// IPCEventMap に追加（kebab-case 命名）
 'worktree-changed': WorktreeChangeEvent
-
-// Tauri invoke/listen API（src/lib/invoke/tauri-api.ts で定義）
-// worktreeApi.list(), worktreeApi.status() 等の型安全なラッパー関数として公開
 ```
 
 ---
@@ -1322,6 +1299,26 @@ export const worktreeApi = {
 ---
 
 # 10. 変更履歴
+
+## v6.0 (2026-04-14)
+
+**check-spec 結果に基づく設計 ↔ 実装整合性修正**
+
+- UseCase 数を「9実装」→「14実装」に修正（FR_102_05/FR_106 追加分を反映）
+- Rust モジュール表: 個別 UseCase ファイル → `usecases.rs` 1 ファイル、`repositories.rs`/`git_repository.rs`/`watcher.rs` に修正
+- Webview モジュール表: WorktreeRepository IF / WorktreeDefaultRepository のパス修正、SymlinkSettingsViewModel 追加
+- CreateWorktreeUseCase の型を `ConsumerUseCase` → `FunctionUseCase<WorktreeCreateParams, Promise<WorktreeCreateResult>>` に修正
+- WorktreeRepository IF コードブロック: `create()` 戻り値型修正、`getBranches`/`getSymlinkConfig`/`setSymlinkConfig` 追加
+- WorktreeService IF コードブロック: `recoveryRequest$`/`requestRecovery()`/`clearRecovery()` 追加
+- ViewModel IF コードブロック: 実装と一致するように全面書き換え + SymlinkSettingsViewModel 追加
+- UseCase 型定義・Token 定義: FR_102_05/FR_106 の新規 UseCase 3 種 + SymlinkSettingsViewModelToken 追加
+- DI Config コードブロック: 実装に一致するように全面書き換え（14 UseCase + 3 ViewModel + setUp/tearDown）
+- Rust UseCase コード例: TypeScript class → Rust `pub async fn` 関数パターンに修正
+- Rust WorktreeGitRepository IF: TypeScript → Rust trait 構文に修正、`get_main_worktree_path` 追加
+- Rust WorktreeGitDefaultRepository: ファイルパス修正（`git_repository.rs`）、全 9 メソッド記載
+- Rust WorktreeWatcher: TypeScript → Rust 構文に修正、ファイルパス修正（`watcher.rs`）
+- IPC 型定義: コロン区切り命名（`'worktree:list'`）→ snake_case（`worktree_list`）に統一、`IPCCommandMap` 形式に修正
+- Tauri invoke/listen API セクション: `worktreeApi` ヘルパー → infrastructure 層直接利用 + `IPCCommandMap` 型推論に修正
 
 ## v5.0 (2026-04-11)
 
