@@ -1,0 +1,85 @@
+import type {
+  BranchList,
+  RecoveryRequest,
+  SymlinkConfig,
+  WorktreeCreateParams,
+  WorktreeCreateResult,
+  WorktreeDeleteParams,
+  WorktreeInfo,
+  WorktreeSortOrder,
+} from '@domain'
+import type { Observable } from 'rxjs'
+import type {
+  CreateWorktreeUseCase,
+  DeleteWorktreeUseCase,
+  GetBranchesUseCase,
+  GetSelectedPathUseCase,
+  GetSymlinkConfigUseCase,
+  ListWorktreesUseCase,
+  RefreshWorktreesUseCase,
+  SelectWorktreeUseCase,
+  SetSortOrderUseCase,
+  SuggestPathUseCase,
+  WorktreeService,
+} from '../di-tokens'
+import type { WorktreeListViewModel } from './viewmodel-interfaces'
+
+export class WorktreeListDefaultViewModel implements WorktreeListViewModel {
+  readonly worktrees$: Observable<WorktreeInfo[]>
+  readonly selectedPath$: Observable<string | null>
+  readonly recoveryRequest$: Observable<RecoveryRequest | null>
+
+  constructor(
+    private readonly listUseCase: ListWorktreesUseCase,
+    private readonly selectUseCase: SelectWorktreeUseCase,
+    private readonly createUseCase: CreateWorktreeUseCase,
+    private readonly deleteUseCase: DeleteWorktreeUseCase,
+    private readonly refreshUseCase: RefreshWorktreesUseCase,
+    private readonly getSelectedPathUseCase: GetSelectedPathUseCase,
+    private readonly setSortOrderUseCase: SetSortOrderUseCase,
+    private readonly getBranchesUseCase: GetBranchesUseCase,
+    private readonly suggestPathUseCase: SuggestPathUseCase,
+    private readonly worktreeService: WorktreeService,
+    private readonly getSymlinkConfigUseCase: GetSymlinkConfigUseCase,
+  ) {
+    this.worktrees$ = this.listUseCase.store
+    this.selectedPath$ = this.getSelectedPathUseCase.store
+    this.recoveryRequest$ = this.worktreeService.recoveryRequest$
+  }
+
+  selectWorktree(path: string | null): void {
+    this.selectUseCase.invoke(path)
+  }
+
+  createWorktree(params: WorktreeCreateParams): Promise<WorktreeCreateResult> {
+    return this.createUseCase.invoke(params)
+  }
+
+  deleteWorktree(params: WorktreeDeleteParams): void {
+    this.deleteUseCase.invoke(params)
+  }
+
+  refreshWorktrees(): void {
+    this.refreshUseCase.invoke()
+  }
+
+  setSortOrder(order: WorktreeSortOrder): void {
+    this.setSortOrderUseCase.invoke(order)
+  }
+
+  getBranches(worktreePath: string): Promise<BranchList> {
+    return this.getBranchesUseCase.invoke(worktreePath)
+  }
+
+  getSymlinkConfig(repoPath: string): Promise<SymlinkConfig> {
+    return this.getSymlinkConfigUseCase.invoke(repoPath)
+  }
+
+  suggestPath(repoPath: string, branch: string): Promise<string> {
+    return this.suggestPathUseCase.invoke({ repoPath, branch })
+  }
+
+  dismissRecovery(): void {
+    this.worktreeService.clearRecovery()
+  }
+}

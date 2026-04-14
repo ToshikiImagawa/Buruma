@@ -1,0 +1,7 @@
+node_modules
+out
+dist
+.vite
+src-tauri/target/
+src-tauri/gen/
+*.md

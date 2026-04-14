@@ -1,0 +1,70 @@
+import type {
+  BranchList,
+  SymlinkConfig,
+  WorktreeCreateParams,
+  WorktreeCreateResult,
+  WorktreeDeleteParams,
+  WorktreeInfo,
+  WorktreeSortOrder,
+  WorktreeStatus,
+} from '@domain'
+import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase, RunnableUseCase } from '@lib/usecase/types'
+import type { WorktreeRepository } from './application/repositories/worktree-repository'
+import type { WorktreeService } from './application/services/worktree-service-interface'
+import type {
+  SymlinkSettingsViewModel,
+  WorktreeDetailViewModel,
+  WorktreeListViewModel,
+} from './presentation/viewmodel-interfaces'
+import { createToken } from '@lib/di'
+
+// re-export for convenience
+export type { WorktreeRepository } from './application/repositories/worktree-repository'
+export type { WorktreeService } from './application/services/worktree-service-interface'
+export type {
+  WorktreeListViewModel,
+  WorktreeDetailViewModel,
+  SymlinkSettingsViewModel,
+} from './presentation/viewmodel-interfaces'
+
+// --- UseCase 型 ---
+export type ListWorktreesUseCase = ObservableStoreUseCase<WorktreeInfo[]>
+export type SelectWorktreeUseCase = ConsumerUseCase<string | null>
+export type CreateWorktreeUseCase = FunctionUseCase<WorktreeCreateParams, Promise<WorktreeCreateResult>>
+export type DeleteWorktreeUseCase = ConsumerUseCase<WorktreeDeleteParams>
+export type RefreshWorktreesUseCase = RunnableUseCase
+export type SuggestPathUseCase = FunctionUseCase<{ repoPath: string; branch: string }, Promise<string>>
+export type CheckDirtyUseCase = FunctionUseCase<string, Promise<boolean>>
+export type GetSelectedWorktreeUseCase = ObservableStoreUseCase<WorktreeInfo | null>
+export type GetSelectedPathUseCase = ObservableStoreUseCase<string | null>
+export type SetSortOrderUseCase = ConsumerUseCase<WorktreeSortOrder>
+export type GetWorktreeStatusUseCase = FunctionUseCase<
+  { repoPath: string; worktreePath: string },
+  Promise<WorktreeStatus>
+>
+export type GetBranchesUseCase = FunctionUseCase<string, Promise<BranchList>>
+export type GetSymlinkConfigUseCase = FunctionUseCase<string, Promise<SymlinkConfig>>
+export type SetSymlinkConfigUseCase = FunctionUseCase<{ repoPath: string; config: SymlinkConfig }, Promise<void>>
+
+// --- Token 定義 ---
+export const WorktreeRepositoryToken = createToken<WorktreeRepository>('WorktreeRepository')
+export const WorktreeServiceToken = createToken<WorktreeService>('WorktreeService')
+
+export const ListWorktreesUseCaseToken = createToken<ListWorktreesUseCase>('ListWorktreesUseCase')
+export const SelectWorktreeUseCaseToken = createToken<SelectWorktreeUseCase>('SelectWorktreeUseCase')
+export const CreateWorktreeUseCaseToken = createToken<CreateWorktreeUseCase>('CreateWorktreeUseCase')
+export const DeleteWorktreeUseCaseToken = createToken<DeleteWorktreeUseCase>('DeleteWorktreeUseCase')
+export const RefreshWorktreesUseCaseToken = createToken<RefreshWorktreesUseCase>('RefreshWorktreesUseCase')
+export const SuggestPathUseCaseToken = createToken<SuggestPathUseCase>('SuggestPathUseCase')
+export const CheckDirtyUseCaseToken = createToken<CheckDirtyUseCase>('CheckDirtyUseCase')
+export const GetSelectedWorktreeUseCaseToken = createToken<GetSelectedWorktreeUseCase>('GetSelectedWorktreeUseCase')
+export const GetSelectedPathUseCaseToken = createToken<GetSelectedPathUseCase>('GetSelectedPathUseCase')
+export const SetSortOrderUseCaseToken = createToken<SetSortOrderUseCase>('SetSortOrderUseCase')
+export const GetWorktreeStatusUseCaseToken = createToken<GetWorktreeStatusUseCase>('GetWorktreeStatusUseCase')
+export const GetBranchesUseCaseToken = createToken<GetBranchesUseCase>('GetBranchesUseCase')
+export const GetSymlinkConfigUseCaseToken = createToken<GetSymlinkConfigUseCase>('GetSymlinkConfigUseCase')
+export const SetSymlinkConfigUseCaseToken = createToken<SetSymlinkConfigUseCase>('SetSymlinkConfigUseCase')
+
+export const WorktreeListViewModelToken = createToken<WorktreeListViewModel>('WorktreeListViewModel')
+export const WorktreeDetailViewModelToken = createToken<WorktreeDetailViewModel>('WorktreeDetailViewModel')
+export const SymlinkSettingsViewModelToken = createToken<SymlinkSettingsViewModel>('SymlinkSettingsViewModel')

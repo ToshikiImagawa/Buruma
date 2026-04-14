@@ -1,0 +1,154 @@
+import type { VContainerConfig } from '@lib/di'
+import { ErrorNotificationServiceToken, RepositoryServiceToken } from '@/features/application-foundation/di-tokens'
+import { WorktreeDefaultService } from './application/services/worktree-service'
+import { CheckDirtyDefaultUseCase } from './application/usecases/check-dirty-usecase'
+import { CreateWorktreeDefaultUseCase } from './application/usecases/create-worktree-usecase'
+import { DeleteWorktreeDefaultUseCase } from './application/usecases/delete-worktree-usecase'
+import { GetBranchesDefaultUseCase } from './application/usecases/get-branches-usecase'
+import { GetSelectedPathDefaultUseCase } from './application/usecases/get-selected-path-usecase'
+import { GetSelectedWorktreeDefaultUseCase } from './application/usecases/get-selected-worktree-usecase'
+import { GetSymlinkConfigDefaultUseCase } from './application/usecases/get-symlink-config-usecase'
+import { GetWorktreeStatusDefaultUseCase } from './application/usecases/get-worktree-status-usecase'
+import { ListWorktreesDefaultUseCase } from './application/usecases/list-worktrees-usecase'
+import { RefreshWorktreesDefaultUseCase } from './application/usecases/refresh-worktrees-usecase'
+import { SelectWorktreeDefaultUseCase } from './application/usecases/select-worktree-usecase'
+import { SetSortOrderDefaultUseCase } from './application/usecases/set-sort-order-usecase'
+import { SetSymlinkConfigDefaultUseCase } from './application/usecases/set-symlink-config-usecase'
+import { SuggestPathDefaultUseCase } from './application/usecases/suggest-path-usecase'
+import {
+  CheckDirtyUseCaseToken,
+  CreateWorktreeUseCaseToken,
+  DeleteWorktreeUseCaseToken,
+  GetBranchesUseCaseToken,
+  GetSelectedPathUseCaseToken,
+  GetSelectedWorktreeUseCaseToken,
+  GetSymlinkConfigUseCaseToken,
+  GetWorktreeStatusUseCaseToken,
+  ListWorktreesUseCaseToken,
+  RefreshWorktreesUseCaseToken,
+  SelectWorktreeUseCaseToken,
+  SetSortOrderUseCaseToken,
+  SetSymlinkConfigUseCaseToken,
+  SuggestPathUseCaseToken,
+  SymlinkSettingsViewModelToken,
+  WorktreeDetailViewModelToken,
+  WorktreeListViewModelToken,
+  WorktreeRepositoryToken,
+  WorktreeServiceToken,
+} from './di-tokens'
+import { WorktreeDefaultRepository } from './infrastructure/repositories/worktree-default-repository'
+import { SymlinkSettingsDefaultViewModel } from './presentation/symlink-settings-viewmodel'
+import { WorktreeDetailDefaultViewModel } from './presentation/worktree-detail-viewmodel'
+import { WorktreeListDefaultViewModel } from './presentation/worktree-list-viewmodel'
+
+let currentRepoPath: string | null = null
+
+export const worktreeManagementConfig: VContainerConfig = {
+  register(container) {
+    // 1. Infrastructure (singleton)
+    container.registerSingleton(WorktreeRepositoryToken, WorktreeDefaultRepository)
+
+    // 2. Services (singleton)
+    container.registerSingleton(WorktreeServiceToken, WorktreeDefaultService)
+
+    // 3. UseCases (singleton, useClass + deps)
+    container
+      .registerSingleton(ListWorktreesUseCaseToken, ListWorktreesDefaultUseCase, [WorktreeServiceToken])
+      .registerSingleton(SelectWorktreeUseCaseToken, SelectWorktreeDefaultUseCase, [WorktreeServiceToken])
+      .registerSingleton(CreateWorktreeUseCaseToken, CreateWorktreeDefaultUseCase, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+        ErrorNotificationServiceToken,
+      ])
+      .registerSingleton(DeleteWorktreeUseCaseToken, DeleteWorktreeDefaultUseCase, [
+        WorktreeRepositoryToken,
+        WorktreeServiceToken,
+        ErrorNotificationServiceToken,
+      ])
+      // RefreshWorktreesUseCase はコールバック引数があるためファクトリー関数
+      .registerSingleton(
+        RefreshWorktreesUseCaseToken,
+        () =>
+          new RefreshWorktreesDefaultUseCase(
+            container.resolve(WorktreeRepositoryToken),
+            container.resolve(WorktreeServiceToken),
+            () => currentRepoPath,
+            container.resolve(ErrorNotificationServiceToken),
+          ),
+      )
+      .registerSingleton(SuggestPathUseCaseToken, SuggestPathDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(CheckDirtyUseCaseToken, CheckDirtyDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetSelectedWorktreeUseCaseToken, GetSelectedWorktreeDefaultUseCase, [WorktreeServiceToken])
+      .registerSingleton(GetSelectedPathUseCaseToken, GetSelectedPathDefaultUseCase, [WorktreeServiceToken])
+      .registerSingleton(SetSortOrderUseCaseToken, SetSortOrderDefaultUseCase, [WorktreeServiceToken])
+      .registerSingleton(GetWorktreeStatusUseCaseToken, GetWorktreeStatusDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetBranchesUseCaseToken, GetBranchesDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(GetSymlinkConfigUseCaseToken, GetSymlinkConfigDefaultUseCase, [WorktreeRepositoryToken])
+      .registerSingleton(SetSymlinkConfigUseCaseToken, SetSymlinkConfigDefaultUseCase, [
+        WorktreeRepositoryToken,
+        ErrorNotificationServiceToken,
+      ])
+
+    // 4. ViewModels (transient, useClass + deps)
+    container
+      .registerTransient(WorktreeListViewModelToken, WorktreeListDefaultViewModel, [
+        ListWorktreesUseCaseToken,
+        SelectWorktreeUseCaseToken,
+        CreateWorktreeUseCaseToken,
+        DeleteWorktreeUseCaseToken,
+        RefreshWorktreesUseCaseToken,
+        GetSelectedPathUseCaseToken,
+        SetSortOrderUseCaseToken,
+        GetBranchesUseCaseToken,
+        SuggestPathUseCaseToken,
+        WorktreeServiceToken,
+        GetSymlinkConfigUseCaseToken,
+      ])
+      .registerTransient(WorktreeDetailViewModelToken, WorktreeDetailDefaultViewModel, [
+        GetSelectedWorktreeUseCaseToken,
+      ])
+      .registerTransient(SymlinkSettingsViewModelToken, SymlinkSettingsDefaultViewModel, [
+        GetSymlinkConfigUseCaseToken,
+        SetSymlinkConfigUseCaseToken,
+      ])
+  },
+
+  setUp: async (container) => {
+    const repo = container.resolve(WorktreeRepositoryToken)
+    const service = container.resolve(WorktreeServiceToken)
+    const repoService = container.resolve(RepositoryServiceToken)
+
+    service.setUp([])
+
+    // RefreshWorktreesUseCase 用の repoPath 追跡
+    const repoPathSubscription = repoService.currentRepository$.subscribe((repo) => {
+      currentRepoPath = repo?.path ?? null
+    })
+
+    // リポジトリ変更時にワークツリー一覧を読み込む
+    const repoSubscription = repoService.currentRepository$.subscribe((currentRepo) => {
+      if (currentRepo) {
+        repo
+          .list(currentRepo.path)
+          .then((worktrees) => service.updateWorktrees(worktrees))
+          .catch(() => service.updateWorktrees([]))
+      } else {
+        service.updateWorktrees([])
+      }
+    })
+
+    // worktree:changed イベントの購読（リアルタイム更新）
+    const unsubscribeChanged = repo.onChanged(() => {
+      const refreshUseCase = container.resolve(RefreshWorktreesUseCaseToken)
+      refreshUseCase.invoke()
+    })
+
+    return () => {
+      repoPathSubscription.unsubscribe()
+      repoSubscription.unsubscribe()
+      unsubscribeChanged()
+      currentRepoPath = null
+      service.tearDown()
+    }
+  },
+}

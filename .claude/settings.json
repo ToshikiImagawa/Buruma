@@ -1,0 +1,22 @@
+{
+  "enabledPlugins": {
+    "sdd-workflow@ai-sdd-workflow": true,
+    "serena@claude-plugins-official": true
+  },
+  "extraKnownMarketplaces": {
+    "ai-sdd-workflow": {
+      "source": {
+        "source": "github",
+        "repo": "ToshikiImagawa/ai-sdd-workflow"
+      },
+      "autoUpdate": true
+    },
+    "claude-plugins-official": {
+      "source": {
+        "source": "github",
+        "repo": "anthropics/claude-plugins-official"
+      },
+      "autoUpdate": true
+    }
+  }
+}

@@ -1,0 +1,7 @@
+# nvm 環境の場合、GUI アプリ（Tauri 等）からの git 実行時に PATH が不足するため解決
+if [ -s "$HOME/.nvm/nvm.sh" ]; then
+  export NVM_DIR="$HOME/.nvm"
+  . "$NVM_DIR/nvm.sh"
+fi
+
+npx lint-staged
