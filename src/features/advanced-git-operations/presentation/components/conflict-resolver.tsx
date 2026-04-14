@@ -6,6 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useConflictViewModel } from '../use-conflict-viewmodel'
 import { ThreeWayMergeView } from './three-way-merge-view'
 
+const EMPTY_THREE_WAY: ThreeWayContent = { base: '', ours: '', theirs: '', merged: '' }
+
 interface ConflictResolverProps {
   worktreePath: string
   operationType: 'merge' | 'rebase' | 'cherry-pick'
@@ -55,7 +57,10 @@ export function ConflictResolver({
     return null
   }, [conflictResult, selectedFile])
 
-  const unresolvedFiles = conflictFiles.filter((f: ConflictFile) => f.status !== 'resolved')
+  const unresolvedFiles = useMemo(
+    () => conflictFiles.filter((f: ConflictFile) => f.status !== 'resolved'),
+    [conflictFiles],
+  )
   const allResolved = conflictFiles.length > 0 && unresolvedFiles.length === 0
   const isDisabled = loading || isResolvingConflict
 
@@ -96,7 +101,7 @@ export function ConflictResolver({
       worktreePath,
       unresolvedFiles.map((f: ConflictFile) => ({
         filePath: f.filePath,
-        threeWayContent: { base: '', ours: '', theirs: '', merged: '' },
+        threeWayContent: EMPTY_THREE_WAY,
       })),
     )
   }, [unresolvedFiles, worktreePath, onAIResolveAll])
