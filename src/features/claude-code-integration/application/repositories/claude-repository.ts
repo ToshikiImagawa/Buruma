@@ -3,6 +3,8 @@ import type {
   ClaudeCommand,
   ClaudeOutput,
   ClaudeSession,
+  ConflictResolveAIRequest,
+  ConflictResolveResult,
   DiffTarget,
   ExplainResult,
   ReviewResult,
@@ -22,6 +24,8 @@ export interface ClaudeRepository {
   onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void
   onReviewResult(callback: (result: ReviewResult) => void): () => void
   onExplainResult(callback: (result: ExplainResult) => void): () => void
+  resolveConflict(request: ConflictResolveAIRequest): Promise<void>
+  onConflictResolved(callback: (result: ConflictResolveResult) => void): () => void
   generateCommitMessage(worktreePath: string, diffText: string): Promise<string>
   checkAuth(): Promise<ClaudeAuthStatus>
   login(): Promise<void>

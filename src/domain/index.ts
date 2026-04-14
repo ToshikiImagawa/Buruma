@@ -491,6 +491,28 @@ export interface ConflictResolveAllOptions {
   strategy: 'ours' | 'theirs'
 }
 
+/** AI コンフリクト解決リクエスト */
+export interface ConflictResolveAIRequest {
+  worktreePath: string
+  filePath: string
+  threeWayContent: ThreeWayContent
+}
+
+/** AI コンフリクト解決結果（discriminated union） */
+export type ConflictResolveResult =
+  | {
+      worktreePath: string
+      filePath: string
+      status: 'resolved'
+      mergedContent: string
+    }
+  | {
+      worktreePath: string
+      filePath: string
+      status: 'failed'
+      error: string
+    }
+
 /** タグ情報 */
 export interface TagInfo {
   name: string

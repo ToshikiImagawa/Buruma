@@ -1,18 +1,41 @@
 import { useCallback, useEffect, useState } from 'react'
-import type { ConflictFile } from '@domain'
+import type { ConflictFile, ConflictResolveResult, ThreeWayContent } from '@domain'
+import { Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useConflictViewModel } from '../use-conflict-viewmodel'
 import { ThreeWayMergeView } from './three-way-merge-view'
+
+interface ConflictResolvingProgress {
+  total: number
+  completed: number
+  failed: number
+}
 
 interface ConflictResolverProps {
   worktreePath: string
   operationType: 'merge' | 'rebase' | 'cherry-pick'
   onComplete: () => void
   onAbort: () => void
+  // AI conflict resolution (optional, injected from claude-code-integration)
+  onAIResolve?: (filePath: string, threeWayContent: ThreeWayContent) => void
+  onAIResolveAll?: (worktreePath: string, files: Array<{ filePath: string; threeWayContent: ThreeWayContent }>) => void
+  isResolvingConflict?: boolean
+  conflictResult?: ConflictResolveResult | null
+  resolvingProgress?: ConflictResolvingProgress | null
 }
 
-export function ConflictResolver({ worktreePath, operationType, onComplete, onAbort }: ConflictResolverProps) {
+export function ConflictResolver({
+  worktreePath,
+  operationType,
+  onComplete,
+  onAbort,
+  onAIResolve,
+  onAIResolveAll,
+  isResolvingConflict = false,
+  conflictResult,
+  resolvingProgress,
+}: ConflictResolverProps) {
   const {
     loading,
     conflictFiles,
@@ -25,15 +48,29 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
   } = useConflictViewModel()
 
   const [selectedFile, setSelectedFile] = useState<string | null>(null)
+  const [aiMergedContent, setAiMergedContent] = useState<string | null>(null)
 
   // マウント時にコンフリクトファイル一覧を取得
   useEffect(() => {
     conflictList(worktreePath)
   }, [worktreePath, conflictList])
 
+  // AI 解決結果が来たら、選択中のファイルの結果をマージエディタに反映（B-002: プレビュー後に適用）
+  useEffect(() => {
+    if (
+      conflictResult &&
+      selectedFile &&
+      conflictResult.filePath === selectedFile &&
+      conflictResult.status === 'resolved'
+    ) {
+      setAiMergedContent(conflictResult.mergedContent)
+    }
+  }, [conflictResult, selectedFile])
+
   const handleFileClick = useCallback(
     (filePath: string) => {
       setSelectedFile(filePath)
+      setAiMergedContent(null)
       conflictFileContent(worktreePath, filePath)
     },
     [worktreePath, conflictFileContent],
@@ -48,11 +85,31 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
         resolution: { type: 'manual', content },
       })
       conflictMarkResolved(worktreePath, selectedFile)
-      // 一覧を再取得
+      setAiMergedContent(null)
       conflictList(worktreePath)
     },
     [worktreePath, selectedFile, conflictResolve, conflictMarkResolved, conflictList],
   )
+
+  const handleAIResolve = useCallback(() => {
+    if (!selectedFile || !threeWayContent || !onAIResolve) return
+    onAIResolve(selectedFile, threeWayContent)
+  }, [selectedFile, threeWayContent, onAIResolve])
+
+  const handleAIResolveAll = useCallback(() => {
+    if (!onAIResolveAll) return
+    const unresolvedFiles = conflictFiles.filter((f: ConflictFile) => f.status !== 'resolved')
+    if (unresolvedFiles.length === 0) return
+    // threeWayContent は各ファイルごとに読み込みが必要なため、
+    // コールバックに worktreePath とファイル一覧を渡し、統合レイヤーで content をロードする
+    onAIResolveAll(
+      worktreePath,
+      unresolvedFiles.map((f: ConflictFile) => ({
+        filePath: f.filePath,
+        threeWayContent: { base: '', ours: '', theirs: '', merged: '' },
+      })),
+    )
+  }, [conflictFiles, worktreePath, onAIResolveAll])
 
   const handleAcceptOursAll = useCallback(() => {
     conflictResolveAll({ worktreePath, strategy: 'ours' })
@@ -65,6 +122,7 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
   }, [worktreePath, conflictResolveAll, conflictList])
 
   const allResolved = conflictFiles.length > 0 && conflictFiles.every((f: ConflictFile) => f.status === 'resolved')
+  const isDisabled = loading || isResolvingConflict
 
   const operationLabel =
     operationType === 'merge' ? 'マージ' : operationType === 'rebase' ? 'リベース' : 'チェリーピック'
@@ -85,7 +143,7 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
                   selectedFile === file.filePath ? 'bg-accent' : ''
                 }`}
                 onClick={() => handleFileClick(file.filePath)}
-                disabled={loading}
+                disabled={isDisabled}
               >
                 <span
                   className={`h-2 w-2 shrink-0 rounded-full ${
@@ -107,7 +165,7 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
               size="sm"
               className="h-7 w-full text-xs"
               onClick={handleAcceptOursAll}
-              disabled={loading}
+              disabled={isDisabled}
             >
               Accept Ours (All)
             </Button>
@@ -116,17 +174,78 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
               size="sm"
               className="h-7 w-full text-xs"
               onClick={handleAcceptTheirsAll}
-              disabled={loading}
+              disabled={isDisabled}
             >
               Accept Theirs (All)
             </Button>
           </div>
 
+          {/* AI コンフリクト解決ボタン */}
+          {onAIResolve && (
+            <div className="mt-2 flex flex-col gap-1">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-7 w-full gap-1 text-xs"
+                onClick={handleAIResolve}
+                disabled={isDisabled || !selectedFile || !threeWayContent}
+              >
+                {isResolvingConflict && !resolvingProgress ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  <Sparkles className="h-3 w-3" />
+                )}
+                AI Resolve
+              </Button>
+              {onAIResolveAll && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-7 w-full gap-1 text-xs"
+                  onClick={handleAIResolveAll}
+                  disabled={
+                    isDisabled || conflictFiles.filter((f: ConflictFile) => f.status !== 'resolved').length === 0
+                  }
+                >
+                  {isResolvingConflict && resolvingProgress ? (
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                  ) : (
+                    <Sparkles className="h-3 w-3" />
+                  )}
+                  AI Resolve All
+                </Button>
+              )}
+              {/* 一括解決の進捗表示 */}
+              {resolvingProgress && (
+                <div className="space-y-1">
+                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full rounded-full bg-primary transition-all"
+                      style={{
+                        width: `${((resolvingProgress.completed + resolvingProgress.failed) / resolvingProgress.total) * 100}%`,
+                      }}
+                    />
+                  </div>
+                  <p className="text-center text-xs text-muted-foreground">
+                    {resolvingProgress.completed + resolvingProgress.failed}/{resolvingProgress.total}
+                    {resolvingProgress.failed > 0 && ` (${resolvingProgress.failed} failed)`}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
           <div className="mt-2 flex flex-col gap-1">
-            <Button size="sm" className="h-7 w-full text-xs" onClick={onComplete} disabled={!allResolved || loading}>
+            <Button size="sm" className="h-7 w-full text-xs" onClick={onComplete} disabled={!allResolved || isDisabled}>
               {loading ? '処理中...' : 'Continue'}
             </Button>
-            <Button variant="destructive" size="sm" className="h-7 w-full text-xs" onClick={onAbort} disabled={loading}>
+            <Button
+              variant="destructive"
+              size="sm"
+              className="h-7 w-full text-xs"
+              onClick={onAbort}
+              disabled={isDisabled}
+            >
               Abort
             </Button>
           </div>
@@ -136,7 +255,11 @@ export function ConflictResolver({ worktreePath, operationType, onComplete, onAb
       {/* 右パネル: 3ウェイマージビュー */}
       <div className="flex-1">
         {selectedFile ? (
-          <ThreeWayMergeView threeWayContent={threeWayContent} onResolve={handleResolve} />
+          <ThreeWayMergeView
+            threeWayContent={threeWayContent}
+            onResolve={handleResolve}
+            aiMergedContent={aiMergedContent}
+          />
         ) : (
           <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
             ファイルを選択してコンフリクトを解決してください

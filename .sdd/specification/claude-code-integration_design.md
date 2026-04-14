@@ -4,7 +4,7 @@ title: "Claude Code 連携"
 type: "design"
 status: "approved"
 sdd-phase: "plan"
-impl-status: "in-progress"
+impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["spec-claude-code-integration"]
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_506 AI コンフリクト解決は未実装）
+**ステータス:** 🟢 実装完了（v0.1.0 基盤 + FR_506 AI コンフリクト解決）
 
 ## 1.1. 実装進捗
 
@@ -35,8 +35,8 @@ risk: "high"
 | commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
 | CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
 | OutputParser (ClaudeDefaultOutputParser) | 🟢 | CLI 出力の JSON 解析・構造化。フォールバック付き |
-| IPC ハンドラー（claude:*） | 🟢 | 9 チャネル + 3 イベント登録済み |
-| Tauri invoke/listen API（claude） | 🟢 | 型安全な  API 公開済み（10 メソッド + 3 イベント） |
+| IPC ハンドラー（claude:*） | 🟢 | 10 チャネル + 4 イベント登録済み（FR_506 追加分含む） |
+| Tauri invoke/listen API（claude） | 🟢 | 型安全な API 公開済み（11 メソッド + 4 イベント） |
 | ClaudeSessionPanel | 🟢 | セッション操作 UI + 未認証時ログインボタン表示 |
 | ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
 | コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
@@ -45,12 +45,11 @@ risk: "high"
 | DiffExplanationView | 🟢 | 差分解説表示 UI。コピーボタン付き |
 | ReviewDiffMainUseCase / ExplainDiffMainUseCase | 🟢 | レビュー/解説 UseCase + プロンプトビルダー |
 | ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | Webview 側 ViewModel + Hook ラッパー |
-| ResolveConflictMainUseCase | 🔴 | FR_506: コンフリクト解決 UseCase（ワンショット実行） |
-| conflict-resolve-prompt.ts | 🔴 | FR_506: コンフリクト解決用プロンプトビルダー |
-| IPC ハンドラー（claude_resolve_conflict） | 🔴 | FR_506: コンフリクト解決 IPC + イベント |
-| ClaudeConflictViewModel | 🔴 | FR_506: Webview 側 ViewModel（解決進捗・結果管理） |
-| useClaudeConflictViewModel | 🔴 | FR_506: Hook ラッパー |
-| ConflictResolver AI ボタン統合 | 🔴 | FR_506: ConflictResolver への Props 注入（ui-integration 経由） |
+| ResolveConflictMainUseCase | 🟢 | FR_506: コンフリクト解決 UseCase（ワンショット実行）。Rust 側 resolve_conflict + プロンプト構築実装済み |
+| IPC ハンドラー（claude_resolve_conflict） | 🟢 | FR_506: コンフリクト解決 IPC + claude-conflict-resolved イベント |
+| ClaudeConflictViewModel | 🟢 | FR_506: Webview 側 ViewModel（resolveConflict/resolveAll + 3並列制御 + 進捗 Observable） |
+| useClaudeConflictViewModel | 🟢 | FR_506: Hook ラッパー |
+| ConflictResolver AI ボタン統合 | 🟢 | FR_506: ConflictResolver への Props 注入（RepositoryDetailPanel 経由）。AI Resolve / AI Resolve All ボタン + 進捗バー |
 
 ---
 

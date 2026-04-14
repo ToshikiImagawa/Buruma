@@ -2,13 +2,14 @@ import type {
   ClaudeAuthStatus,
   ClaudeOutput,
   ClaudeSession,
+  ConflictResolveResult,
   ExplainResult,
   ReviewComment,
   ReviewResult,
   SessionStatus,
 } from '@domain'
 import type { Observable } from 'rxjs'
-import type { ClaudeService } from './claude-service-interface'
+import type { ClaudeService, ConflictResolvingProgress } from './claude-service-interface'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
 
@@ -25,6 +26,9 @@ export class ClaudeDefaultService implements ClaudeService {
   private readonly _isReviewing$ = new BehaviorSubject<boolean>(false)
   private readonly _explanation$ = new BehaviorSubject<string>('')
   private readonly _isExplaining$ = new BehaviorSubject<boolean>(false)
+  private readonly _isResolvingConflict$ = new BehaviorSubject<boolean>(false)
+  private readonly _conflictResult$ = new BehaviorSubject<ConflictResolveResult | null>(null)
+  private readonly _resolvingProgress$ = new BehaviorSubject<ConflictResolvingProgress | null>(null)
 
   readonly currentSession$: Observable<ClaudeSession | null>
   readonly outputs$: Observable<ClaudeOutput[]>
@@ -37,6 +41,9 @@ export class ClaudeDefaultService implements ClaudeService {
   readonly isReviewing$: Observable<boolean>
   readonly explanation$: Observable<string>
   readonly isExplaining$: Observable<boolean>
+  readonly isResolvingConflict$: Observable<boolean>
+  readonly conflictResult$: Observable<ConflictResolveResult | null>
+  readonly resolvingProgress$: Observable<ConflictResolvingProgress | null>
 
   constructor() {
     this.currentSession$ = this._currentSession$.asObservable()
@@ -50,6 +57,9 @@ export class ClaudeDefaultService implements ClaudeService {
     this.isReviewing$ = this._isReviewing$.asObservable()
     this.explanation$ = this._explanation$.asObservable()
     this.isExplaining$ = this._isExplaining$.asObservable()
+    this.isResolvingConflict$ = this._isResolvingConflict$.asObservable()
+    this.conflictResult$ = this._conflictResult$.asObservable()
+    this.resolvingProgress$ = this._resolvingProgress$.asObservable()
   }
 
   setUp(): void {
@@ -67,6 +77,9 @@ export class ClaudeDefaultService implements ClaudeService {
     this._isReviewing$.complete()
     this._explanation$.complete()
     this._isExplaining$.complete()
+    this._isResolvingConflict$.complete()
+    this._conflictResult$.complete()
+    this._resolvingProgress$.complete()
   }
 
   updateSession(session: ClaudeSession | null): void {
@@ -113,5 +126,17 @@ export class ClaudeDefaultService implements ClaudeService {
 
   setExplaining(explaining: boolean): void {
     this._isExplaining$.next(explaining)
+  }
+
+  setResolvingConflict(resolving: boolean): void {
+    this._isResolvingConflict$.next(resolving)
+  }
+
+  setConflictResult(result: ConflictResolveResult | null): void {
+    this._conflictResult$.next(result)
+  }
+
+  setResolvingProgress(progress: ConflictResolvingProgress | null): void {
+    this._resolvingProgress$.next(progress)
   }
 }

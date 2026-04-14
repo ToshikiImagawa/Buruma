@@ -13,12 +13,14 @@ import { GetReviewSummaryUseCase } from './application/usecases/get-review-summa
 import { GetSessionStatusUseCase } from './application/usecases/get-session-status-usecase'
 import { LoginUseCase } from './application/usecases/login-usecase'
 import { LogoutUseCase } from './application/usecases/logout-usecase'
+import { ResolveConflictUseCase } from './application/usecases/resolve-conflict-usecase'
 import { ReviewDiffUseCase } from './application/usecases/review-diff-usecase'
 import { SendCommandUseCase } from './application/usecases/send-command-usecase'
 import { StartSessionUseCase } from './application/usecases/start-session-usecase'
 import { StopSessionUseCase } from './application/usecases/stop-session-usecase'
 import {
   CheckAuthRendererUseCaseToken,
+  ClaudeConflictViewModelToken,
   ClaudeExplainViewModelToken,
   ClaudeRepositoryToken,
   ClaudeReviewViewModelToken,
@@ -36,12 +38,14 @@ import {
   GetSessionStatusRendererUseCaseToken,
   LoginRendererUseCaseToken,
   LogoutRendererUseCaseToken,
+  ResolveConflictRendererUseCaseToken,
   ReviewDiffRendererUseCaseToken,
   SendCommandRendererUseCaseToken,
   StartSessionRendererUseCaseToken,
   StopSessionRendererUseCaseToken,
 } from './di-tokens'
 import { ClaudeDefaultRepository } from './infrastructure/repositories/claude-default-repository'
+import { ClaudeConflictDefaultViewModel } from './presentation/claude-conflict-viewmodel'
 import { ClaudeExplainDefaultViewModel } from './presentation/claude-explain-viewmodel'
 import { ClaudeReviewDefaultViewModel } from './presentation/claude-review-viewmodel'
 import { ClaudeSessionDefaultViewModel } from './presentation/claude-session-viewmodel'
@@ -79,6 +83,11 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       .registerSingleton(GetIsReviewingRendererUseCaseToken, GetIsReviewingUseCase, [ClaudeServiceToken])
       .registerSingleton(GetExplanationRendererUseCaseToken, GetExplanationUseCase, [ClaudeServiceToken])
       .registerSingleton(GetIsExplainingRendererUseCaseToken, GetIsExplainingUseCase, [ClaudeServiceToken])
+      .registerSingleton(ResolveConflictRendererUseCaseToken, ResolveConflictUseCase, [ClaudeRepositoryToken])
+      .registerTransient(ClaudeConflictViewModelToken, ClaudeConflictDefaultViewModel, [
+        ResolveConflictRendererUseCaseToken,
+        ClaudeServiceToken,
+      ])
       .registerTransient(ClaudeReviewViewModelToken, ClaudeReviewDefaultViewModel, [
         ReviewDiffRendererUseCaseToken,
         GetReviewCommentsRendererUseCaseToken,
@@ -132,11 +141,16 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       service.setExplaining(false)
     })
 
+    const unsubConflictResolved = repo.onConflictResolved((result) => {
+      service.setConflictResult(result)
+    })
+
     return () => {
       unsubOutput()
       unsubSessionChanged()
       unsubReviewResult()
       unsubExplainResult()
+      unsubConflictResolved()
       service.tearDown()
     }
   },

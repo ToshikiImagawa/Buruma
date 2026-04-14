@@ -1,12 +1,12 @@
-//! 12 #[tauri::command] for claude-code-integration.
+//! 13 #[tauri::command] for claude-code-integration.
 
 use tauri::State;
 
 use crate::error::AppError;
 use crate::features::claude_code_integration::application::usecases;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, GenerateCommitMessageArgs,
-    WorktreePathArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
+    GenerateCommitMessageArgs, WorktreePathArgs,
 };
 use crate::state::AppState;
 
@@ -105,4 +105,15 @@ pub async fn claude_explain_diff(
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
     usecases::explain_diff(state.claude_repo.as_ref(), &args, app).await
+}
+
+// --- AI Conflict Resolution ---
+
+#[tauri::command]
+pub async fn claude_resolve_conflict(
+    args: ConflictResolveRequest,
+    state: State<'_, AppState>,
+    app: tauri::AppHandle,
+) -> Result<(), AppError> {
+    usecases::resolve_conflict(state.claude_repo.as_ref(), &args, app).await
 }

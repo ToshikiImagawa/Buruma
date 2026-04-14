@@ -2,6 +2,7 @@ import type {
   ClaudeAuthStatus,
   ClaudeOutput,
   ClaudeSession,
+  ConflictResolveResult,
   ExplainResult,
   ReviewComment,
   ReviewResult,
@@ -9,6 +10,12 @@ import type {
 } from '@domain'
 import type { BaseService } from '@lib/service'
 import type { Observable } from 'rxjs'
+
+export interface ConflictResolvingProgress {
+  total: number
+  completed: number
+  failed: number
+}
 
 export interface ClaudeService extends BaseService {
   readonly currentSession$: Observable<ClaudeSession | null>
@@ -22,6 +29,9 @@ export interface ClaudeService extends BaseService {
   readonly isReviewing$: Observable<boolean>
   readonly explanation$: Observable<string>
   readonly isExplaining$: Observable<boolean>
+  readonly isResolvingConflict$: Observable<boolean>
+  readonly conflictResult$: Observable<ConflictResolveResult | null>
+  readonly resolvingProgress$: Observable<ConflictResolvingProgress | null>
   updateSession(session: ClaudeSession | null): void
   appendOutput(output: ClaudeOutput): void
   clearOutputs(): void
@@ -32,4 +42,7 @@ export interface ClaudeService extends BaseService {
   setReviewing(reviewing: boolean): void
   setExplainResult(result: ExplainResult): void
   setExplaining(explaining: boolean): void
+  setResolvingConflict(resolving: boolean): void
+  setConflictResult(result: ConflictResolveResult | null): void
+  setResolvingProgress(progress: ConflictResolvingProgress | null): void
 }

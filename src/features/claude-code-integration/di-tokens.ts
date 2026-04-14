@@ -3,6 +3,7 @@ import type {
   ClaudeCommand,
   ClaudeOutput,
   ClaudeSession,
+  ConflictResolveAIRequest,
   ReviewComment,
   SessionStatus,
 } from '@domain'
@@ -12,6 +13,7 @@ import type { ClaudeService } from './application/services/claude-service-interf
 import type { ExplainDiffInput } from './application/usecases/explain-diff-usecase'
 import type { ReviewDiffInput } from './application/usecases/review-diff-usecase'
 import type {
+  ClaudeConflictViewModel,
   ClaudeExplainViewModel,
   ClaudeReviewViewModel,
   ClaudeSessionViewModel,
@@ -43,6 +45,7 @@ export type GenerateCommitMessageRendererUseCase = FunctionUseCase<
   { worktreePath: string; diffText: string },
   Promise<string>
 >
+export type ResolveConflictRendererUseCase = ConsumerUseCase<ConflictResolveAIRequest>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
@@ -85,6 +88,11 @@ export const GenerateCommitMessageRendererUseCaseToken = createToken<GenerateCom
   'GenerateCommitMessageRendererUseCase',
 )
 
+export const ResolveConflictRendererUseCaseToken = createToken<ResolveConflictRendererUseCase>(
+  'ResolveConflictRendererUseCase',
+)
+
 export const ClaudeSessionViewModelToken = createToken<ClaudeSessionViewModel>('ClaudeSessionViewModel')
 export const ClaudeReviewViewModelToken = createToken<ClaudeReviewViewModel>('ClaudeReviewViewModel')
 export const ClaudeExplainViewModelToken = createToken<ClaudeExplainViewModel>('ClaudeExplainViewModel')
+export const ClaudeConflictViewModelToken = createToken<ClaudeConflictViewModel>('ClaudeConflictViewModel')

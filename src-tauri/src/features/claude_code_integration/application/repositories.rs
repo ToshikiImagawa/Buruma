@@ -4,7 +4,8 @@ use async_trait::async_trait;
 
 use crate::error::AppResult;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, GenerateCommitMessageArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
+    GenerateCommitMessageArgs,
 };
 
 #[async_trait]
@@ -25,4 +26,6 @@ pub trait ClaudeRepository: Send + Sync {
     async fn generate_commit_message(&self, args: &GenerateCommitMessageArgs) -> AppResult<String>;
     async fn review_diff(&self, args: &DiffReviewArgs, app_handle: tauri::AppHandle) -> AppResult<()>;
     async fn explain_diff(&self, args: &DiffReviewArgs, app_handle: tauri::AppHandle) -> AppResult<()>;
+    // AI Conflict Resolution
+    async fn resolve_conflict(&self, args: &ConflictResolveRequest, app_handle: tauri::AppHandle) -> AppResult<()>;
 }

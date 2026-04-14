@@ -7,9 +7,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 interface ThreeWayMergeViewProps {
   threeWayContent: ThreeWayContent | null
   onResolve: (content: string) => void
+  aiMergedContent?: string | null
 }
 
-export function ThreeWayMergeView({ threeWayContent, onResolve }: ThreeWayMergeViewProps) {
+export function ThreeWayMergeView({ threeWayContent, onResolve, aiMergedContent }: ThreeWayMergeViewProps) {
   const [resultContent, setResultContent] = useState('')
 
   // コンテンツが変更されたら結果エディタを更新
@@ -18,6 +19,13 @@ export function ThreeWayMergeView({ threeWayContent, onResolve }: ThreeWayMergeV
       setResultContent(threeWayContent.merged)
     }
   }, [threeWayContent])
+
+  // AI 解決結果が来たら Result タブに反映（B-002: プレビュー後にユーザーが Apply）
+  useEffect(() => {
+    if (aiMergedContent != null) {
+      setResultContent(aiMergedContent)
+    }
+  }, [aiMergedContent])
 
   const handleEditorChange = useCallback((value: string | undefined) => {
     if (value !== undefined) {
