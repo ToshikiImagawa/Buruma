@@ -112,7 +112,7 @@ export interface WorktreeDeleteParams {
   deleteBranch: boolean
 }
 
-/** ブランチ削除結果（FR_103_05） */
+/** ブランチ削除結果 */
 export type BranchDeleteResult =
   | { type: 'deleted'; branchName: string }
   | { type: 'skipped'; branchName: string; skipReason: string }

@@ -35,7 +35,7 @@ export interface WorktreeRepository {
   getBranches(worktreePath: string): Promise<BranchList>
   getSymlinkConfig(repoPath: string): Promise<SymlinkConfig>
   setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void>
-  /** 未マージブランチを強制削除する（FR_103_05: requireForce 後の再試行用） */
+  /** 未マージブランチを強制削除する（requireForce 後の再試行用） */
   forceDeleteBranch(repoPath: string, branch: string): Promise<void>
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
 }

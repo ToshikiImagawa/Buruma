@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { WorktreeDeleteParams, WorktreeInfo } from '@domain'
 import { AlertTriangle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -36,11 +36,16 @@ export function WorktreeDeleteDialog({
   const [deleteBranch, setDeleteBranch] = useState(true)
   const displayName = worktree.path.split('/').pop() ?? worktree.path
 
-  // ブランチが他のワークツリーで使用中かチェック
+  useEffect(() => {
+    if (open) {
+      setForce(false)
+      setDeleteBranch(true)
+    }
+  }, [open])
+
   const isBranchUsedByOther =
     worktree.branch != null && worktrees.some((wt) => wt.path !== worktree.path && wt.branch === worktree.branch)
 
-  // detached HEAD の場合はブランチ削除オプションを表示しない
   const hasBranch = worktree.branch != null
 
   if (worktree.isMain) {
