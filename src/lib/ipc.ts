@@ -21,8 +21,10 @@ import type {
   CommitDetail,
   CommitResult,
   ConflictFile,
+  ConflictResolveAIRequest,
   ConflictResolveAllOptions,
   ConflictResolveOptions,
+  ConflictResolveResult,
   DiffTarget,
   ErrorNotification,
   ExplainResult,
@@ -189,6 +191,10 @@ export interface IPCCommandMap {
     args: { args: { worktreePath: string; diffText: string } }
     result: string
   }
+  claude_resolve_conflict: {
+    args: { args: ConflictResolveAIRequest }
+    result: void
+  }
   claude_check_auth: { args: void; result: ClaudeAuthStatus }
   claude_login: { args: void; result: void }
   claude_logout: { args: void; result: void }
@@ -204,4 +210,5 @@ export interface IPCEventMap {
   'claude-command-completed': { worktreePath: string }
   'claude-review-result': ReviewResult
   'claude-explain-result': ExplainResult
+  'claude-conflict-resolved': ConflictResolveResult
 }

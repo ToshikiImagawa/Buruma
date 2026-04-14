@@ -144,6 +144,45 @@ pub struct DiffReviewArgs {
     pub diff_text: String,
 }
 
+// --- AI コンフリクト解決 ---
+
+/// AI コンフリクト解決で使用する 3 ウェイマージ内容。
+/// advanced_git_operations 側の ThreeWayContent と同一構造だが、
+/// feature 間直接参照禁止 (A-004) に準拠するため独立定義。
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ThreeWayContent {
+    pub base: String,
+    pub ours: String,
+    pub theirs: String,
+    pub merged: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ConflictResolveRequest {
+    pub worktree_path: String,
+    pub file_path: String,
+    pub three_way_content: ThreeWayContent,
+}
+
+#[derive(Debug, Clone, Serialize)]
+#[serde(tag = "status", rename_all = "camelCase")]
+pub enum ConflictResolveResult {
+    #[serde(rename = "resolved")]
+    Resolved {
+        worktree_path: String,
+        file_path: String,
+        merged_content: String,
+    },
+    #[serde(rename = "failed")]
+    Failed {
+        worktree_path: String,
+        file_path: String,
+        error: String,
+    },
+}
+
 // --- イベント完了通知 ---
 
 #[derive(Debug, Clone, Serialize)]

@@ -66,7 +66,7 @@ pub fn run() {
             features::repository_viewer::presentation::commands::git_file_tree,
             features::repository_viewer::presentation::commands::git_file_contents,
             features::repository_viewer::presentation::commands::git_file_contents_commit,
-            // claude-code-integration (12)
+            // claude-code-integration (13)
             features::claude_code_integration::presentation::commands::claude_start_session,
             features::claude_code_integration::presentation::commands::claude_stop_session,
             features::claude_code_integration::presentation::commands::claude_get_session,
@@ -79,6 +79,7 @@ pub fn run() {
             features::claude_code_integration::presentation::commands::claude_generate_commit_message,
             features::claude_code_integration::presentation::commands::claude_review_diff,
             features::claude_code_integration::presentation::commands::claude_explain_diff,
+            features::claude_code_integration::presentation::commands::claude_resolve_conflict,
             // advanced-git-operations (24)
             features::advanced_git_operations::presentation::commands::git_merge,
             features::advanced_git_operations::presentation::commands::git_merge_abort,

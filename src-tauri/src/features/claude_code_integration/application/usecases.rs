@@ -1,9 +1,10 @@
-//! claude-code-integration UseCase 関数（12 個）。
+//! claude-code-integration UseCase 関数（13 個）。
 
 use crate::error::AppResult;
 use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, GenerateCommitMessageArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
+    GenerateCommitMessageArgs,
 };
 
 pub async fn start_session(
@@ -63,4 +64,12 @@ pub async fn review_diff(repo: &dyn ClaudeRepository, args: &DiffReviewArgs, app
 
 pub async fn explain_diff(repo: &dyn ClaudeRepository, args: &DiffReviewArgs, app: tauri::AppHandle) -> AppResult<()> {
     repo.explain_diff(args, app).await
+}
+
+pub async fn resolve_conflict(
+    repo: &dyn ClaudeRepository,
+    args: &ConflictResolveRequest,
+    app: tauri::AppHandle,
+) -> AppResult<()> {
+    repo.resolve_conflict(args, app).await
 }

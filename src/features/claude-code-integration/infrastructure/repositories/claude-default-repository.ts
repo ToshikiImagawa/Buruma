@@ -3,6 +3,8 @@ import type {
   ClaudeCommand,
   ClaudeOutput,
   ClaudeSession,
+  ConflictResolveAIRequest,
+  ConflictResolveResult,
   DiffTarget,
   ExplainResult,
   ReviewResult,
@@ -74,6 +76,15 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
 
   onExplainResult(callback: (result: ExplainResult) => void): () => void {
     return listenEventSync('claude-explain-result', callback)
+  }
+
+  async resolveConflict(request: ConflictResolveAIRequest): Promise<void> {
+    const result = await invokeCommand('claude_resolve_conflict', { args: request })
+    if (result.success === false) throw new Error(result.error.message)
+  }
+
+  onConflictResolved(callback: (result: ConflictResolveResult) => void): () => void {
+    return listenEventSync('claude-conflict-resolved', callback)
   }
 
   async generateCommitMessage(worktreePath: string, diffText: string): Promise<string> {

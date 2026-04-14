@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { FileDiff, GitStatus } from '@domain'
+import type { FileDiff, GitStatus, ThreeWayContent } from '@domain'
 import type { PanelImperativeHandle } from 'react-resizable-panels'
 import type { CommitLogHandle } from './CommitLog'
 import { useResolve } from '@lib/di/v-container-provider'
@@ -37,6 +37,8 @@ import { PushPullButtons } from '@/features/basic-git-operations/presentation/co
 import { StagingArea } from '@/features/basic-git-operations/presentation/components/staging-area'
 import { useBranchOpsViewModel } from '@/features/basic-git-operations/presentation/use-branch-ops-viewmodel'
 import { ClaudeSessionPanel } from '@/features/claude-code-integration/presentation/components'
+// cross-feature 参照: AI コンフリクト解決を ConflictResolver に Props 注入するために claude-code-integration の ViewModel を使用。
+import { useClaudeConflictViewModel } from '@/features/claude-code-integration/presentation/use-claude-conflict-viewmodel'
 import { useWorktreeDetailViewModel } from '@/features/worktree-management/presentation/use-worktree-detail-viewmodel'
 import { useWorktreeListViewModel } from '@/features/worktree-management/presentation/use-worktree-list-viewmodel'
 import { GetDiffCommitUseCaseToken, GetDiffStagedUseCaseToken, GetDiffUseCaseToken } from '../../di-tokens'
@@ -62,6 +64,13 @@ export function RepositoryDetailPanel() {
   const { branches, loadBranches } = useBranchListViewModel()
   const { tags, tagList } = useTagViewModel()
   const { resetToCommit } = useBranchOpsViewModel()
+  const {
+    isResolvingConflict,
+    conflictResult,
+    resolvingProgress,
+    resolveConflict: claudeResolveConflict,
+    resolveAll: claudeResolveAll,
+  } = useClaudeConflictViewModel()
 
   const commitLogRef = useRef<CommitLogHandle>(null)
   const branchPanelRef = useRef<PanelImperativeHandle>(null)
@@ -163,6 +172,20 @@ export function RepositoryDetailPanel() {
     handleRefresh()
   }, [handleRefresh])
 
+  const handleAIResolve = useCallback(
+    (filePath: string, threeWayContent: ThreeWayContent) => {
+      claudeResolveConflict(worktreePath, filePath, threeWayContent)
+    },
+    [worktreePath, claudeResolveConflict],
+  )
+
+  const handleAIResolveAll = useCallback(
+    (_worktreePath: string, files: Array<{ filePath: string; threeWayContent: ThreeWayContent }>) => {
+      claudeResolveAll(_worktreePath, files)
+    },
+    [claudeResolveAll],
+  )
+
   const handleTreeFileSelect = useCallback((filePath: string) => {
     setTreeFilePath(filePath)
   }, [])
@@ -186,6 +209,11 @@ export function RepositoryDetailPanel() {
         operationType={conflictOperation}
         onComplete={handleConflictDismiss}
         onAbort={handleConflictDismiss}
+        onAIResolve={handleAIResolve}
+        onAIResolveAll={handleAIResolveAll}
+        isResolvingConflict={isResolvingConflict}
+        conflictResult={conflictResult}
+        resolvingProgress={resolvingProgress}
       />
     )
   }

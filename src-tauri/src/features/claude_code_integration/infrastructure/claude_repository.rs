@@ -6,8 +6,8 @@ use tauri::Emitter;
 use crate::error::{AppError, AppResult};
 use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, DiffReviewArgs, ExplainResult,
-    GenerateCommitMessageArgs, ReviewComment, ReviewResult, ReviewSeverity,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, ConflictResolveResult,
+    DiffReviewArgs, ExplainResult, GenerateCommitMessageArgs, ReviewComment, ReviewResult, ReviewSeverity,
 };
 use crate::features::claude_code_integration::infrastructure::session_manager::ClaudeSessionManager;
 
@@ -236,6 +236,65 @@ impl ClaudeRepository for DefaultClaudeRepository {
             };
 
             let _ = app_handle.emit("claude-explain-result", &result);
+        });
+
+        Ok(())
+    }
+
+    async fn resolve_conflict(&self, args: &ConflictResolveRequest, app_handle: tauri::AppHandle) -> AppResult<()> {
+        let worktree_path = args.worktree_path.clone();
+        let file_path = args.file_path.clone();
+        let three_way = args.three_way_content.clone();
+
+        tokio::spawn(async move {
+            let prompt = format!(
+                "You are resolving a git merge conflict for the file: {file_path}\n\n\
+                 Below are the three versions of the file.\n\n\
+                 === BASE (common ancestor) ===\n{base}\n\n\
+                 === OURS (current branch) ===\n{ours}\n\n\
+                 === THEIRS (incoming branch) ===\n{theirs}\n\n\
+                 Merge these three versions into a single resolved file that preserves \
+                 the intent of both OURS and THEIRS changes relative to BASE.\n\n\
+                 IMPORTANT: Reply with ONLY the merged file content. \
+                 Do NOT include any explanation, markdown fences, or extra text.",
+                file_path = file_path,
+                base = three_way.base,
+                ours = three_way.ours,
+                theirs = three_way.theirs,
+            );
+
+            let output = tokio::process::Command::new("claude")
+                .args(["-p", &prompt])
+                .current_dir(&worktree_path)
+                .output()
+                .await;
+
+            let result = match output {
+                Ok(out) if out.status.success() => ConflictResolveResult::Resolved {
+                    worktree_path: worktree_path.clone(),
+                    file_path: file_path.clone(),
+                    merged_content: String::from_utf8_lossy(&out.stdout).trim().to_string(),
+                },
+                Ok(out) => {
+                    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
+                    ConflictResolveResult::Failed {
+                        worktree_path: worktree_path.clone(),
+                        file_path: file_path.clone(),
+                        error: if stderr.is_empty() {
+                            "Conflict resolution failed".to_string()
+                        } else {
+                            stderr
+                        },
+                    }
+                }
+                Err(e) => ConflictResolveResult::Failed {
+                    worktree_path: worktree_path.clone(),
+                    file_path: file_path.clone(),
+                    error: format!("Failed to run claude: {e}"),
+                },
+            };
+
+            let _ = app_handle.emit("claude-conflict-resolved", &result);
         });
 
         Ok(())
