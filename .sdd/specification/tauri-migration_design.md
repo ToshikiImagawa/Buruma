@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-04-09"
-updated: "2026-04-10"
+updated: "2026-04-14"
 depends-on: ["spec-tauri-migration"]
 tags: ["migration", "tauri", "rust", "architecture", "tauri-migration"]
 category: "infrastructure"
@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 進行中（Phase P 完了、Phase IA〜IG 完了、Phase IH 部分完了）
+**ステータス:** 🟢 完了（Phase P 完了、Phase IA〜IH 全完了）
 
 ## 1.1. 実装進捗
 
@@ -43,7 +43,7 @@ risk: "high"
 | Phase IE | basic-git-operations feature 移行 | 🟢 完了 |
 | Phase IF | advanced-git-operations feature 移行 | 🟢 完了 |
 | Phase IG | claude-code-integration feature 移行 | 🟢 完了 |
-| Phase IH | Electron 依存削除・shim 削除・CLAUDE.md 更新 | 🟡 部分完了（Electron 依存パッケージ削除完了、残: CLAUDE.md パスエイリアス更新、IPCChannelMap 型安全化） |
+| Phase IH | Electron 依存削除・shim 削除・CLAUDE.md 更新 | 🟢 完了（依存削除・shim 削除・ipc.ts 整理・presentation 層書き換え・vitest.setup.ts・CLAUDE.md・CI・IPCCommandMap/IPCEventMap 型安全化 全完了） |
 
 ---
 

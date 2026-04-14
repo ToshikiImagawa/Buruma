@@ -6,19 +6,21 @@
  * Repository 層がこのラッパーを直接使用する。
  */
 
-import type { IPCError, IPCResult } from '@lib/ipc'
+import type { IPCCommandMap, IPCError, IPCResult } from '@lib/ipc'
 import { invoke } from '@tauri-apps/api/core'
 
 /**
- * Tauri command を呼び出し、結果を `IPCResult<T>` として返す。
- *
- * @param cmd - Tauri 側の `#[tauri::command]` 関数名 (snake_case)
- * @param args - command 引数 (Rust 側の #[tauri::command] 関数のパラメータにマッピングされる)
- * @returns 成功時は `{ success: true, data }`、失敗時は `{ success: false, error }`
+ * 型安全な Tauri command 呼び出し。コマンド名から引数型・戻り値型を自動推論する。
  */
-export async function invokeCommand<T>(cmd: string, args?: Record<string, unknown>): Promise<IPCResult<T>> {
+export async function invokeCommand<K extends keyof IPCCommandMap>(
+  cmd: K,
+  ...rest: IPCCommandMap[K]['args'] extends void ? [] : [args: IPCCommandMap[K]['args']]
+): Promise<IPCResult<IPCCommandMap[K]['result']>>
+/** @deprecated IPCCommandMap に定義されたコマンド名を使用してください */
+export async function invokeCommand<T>(cmd: string, args?: Record<string, unknown>): Promise<IPCResult<T>>
+export async function invokeCommand(cmd: string, args?: Record<string, unknown>): Promise<IPCResult<unknown>> {
   try {
-    const data = await invoke<T>(cmd, args)
+    const data = await invoke(cmd, args)
     return { success: true, data }
   } catch (e) {
     return { success: false, error: toIpcError(e) }

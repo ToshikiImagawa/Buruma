@@ -2,6 +2,7 @@ import type { VContainerConfig } from '@lib/di'
 import { ClaudeDefaultService } from './application/services/claude-service'
 import { CheckAuthUseCase } from './application/usecases/check-auth-usecase'
 import { ExplainDiffUseCase } from './application/usecases/explain-diff-usecase'
+import { GenerateCommitMessageUseCase } from './application/usecases/generate-commit-message-usecase'
 import { GetCurrentSessionUseCase } from './application/usecases/get-current-session-usecase'
 import { GetExplanationUseCase } from './application/usecases/get-explanation-usecase'
 import { GetIsExplainingUseCase } from './application/usecases/get-is-explaining-usecase'
@@ -24,6 +25,7 @@ import {
   ClaudeServiceToken,
   ClaudeSessionViewModelToken,
   ExplainDiffRendererUseCaseToken,
+  GenerateCommitMessageRendererUseCaseToken,
   GetCurrentSessionRendererUseCaseToken,
   GetExplanationRendererUseCaseToken,
   GetIsExplainingRendererUseCaseToken,
@@ -64,6 +66,9 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LoginRendererUseCaseToken, LoginUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LogoutRendererUseCaseToken, LogoutUseCase, [ClaudeRepositoryToken])
+      .registerSingleton(GenerateCommitMessageRendererUseCaseToken, GenerateCommitMessageUseCase, [
+        ClaudeRepositoryToken,
+      ])
       .registerSingleton(ReviewDiffRendererUseCaseToken, ReviewDiffUseCase, [ClaudeRepositoryToken, ClaudeServiceToken])
       .registerSingleton(ExplainDiffRendererUseCaseToken, ExplainDiffUseCase, [
         ClaudeRepositoryToken,

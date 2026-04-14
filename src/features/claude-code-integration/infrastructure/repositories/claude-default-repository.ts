@@ -13,46 +13,46 @@ import { listenEventSync } from '@lib/invoke/events'
 
 export class ClaudeDefaultRepository implements ClaudeRepository {
   async startSession(worktreePath: string): Promise<ClaudeSession> {
-    const result = await invokeCommand<ClaudeSession>('claude_start_session', { args: { worktreePath } })
+    const result = await invokeCommand('claude_start_session', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async stopSession(worktreePath: string): Promise<void> {
-    const result = await invokeCommand<void>('claude_stop_session', { args: { worktreePath } })
+    const result = await invokeCommand('claude_stop_session', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
   }
 
   async getSession(worktreePath: string): Promise<ClaudeSession | null> {
-    const result = await invokeCommand<ClaudeSession | null>('claude_get_session', { args: { worktreePath } })
+    const result = await invokeCommand('claude_get_session', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async getAllSessions(): Promise<ClaudeSession[]> {
-    const result = await invokeCommand<ClaudeSession[]>('claude_get_all_sessions')
+    const result = await invokeCommand('claude_get_all_sessions')
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async sendCommand(command: ClaudeCommand): Promise<void> {
-    const result = await invokeCommand<void>('claude_send_command', { command })
+    const result = await invokeCommand('claude_send_command', { command })
     if (result.success === false) throw new Error(result.error.message)
   }
 
   async getOutput(worktreePath: string): Promise<ClaudeOutput[]> {
-    const result = await invokeCommand<ClaudeOutput[]>('claude_get_output', { args: { worktreePath } })
+    const result = await invokeCommand('claude_get_output', { args: { worktreePath } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async reviewDiff(worktreePath: string, diffTarget: DiffTarget, diffText: string): Promise<void> {
-    const result = await invokeCommand<void>('claude_review_diff', { args: { worktreePath, diffTarget, diffText } })
+    const result = await invokeCommand('claude_review_diff', { args: { worktreePath, diffTarget, diffText } })
     if (result.success === false) throw new Error(result.error.message)
   }
 
   async explainDiff(worktreePath: string, diffTarget: DiffTarget, diffText: string): Promise<void> {
-    const result = await invokeCommand<void>('claude_explain_diff', { args: { worktreePath, diffTarget, diffText } })
+    const result = await invokeCommand('claude_explain_diff', { args: { worktreePath, diffTarget, diffText } })
     if (result.success === false) throw new Error(result.error.message)
   }
 
@@ -76,19 +76,27 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return listenEventSync('claude-explain-result', callback)
   }
 
+  async generateCommitMessage(worktreePath: string, diffText: string): Promise<string> {
+    const result = await invokeCommand('claude_generate_commit_message', {
+      args: { worktreePath, diffText },
+    })
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
   async checkAuth(): Promise<ClaudeAuthStatus> {
-    const result = await invokeCommand<ClaudeAuthStatus>('claude_check_auth')
+    const result = await invokeCommand('claude_check_auth')
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
 
   async login(): Promise<void> {
-    const result = await invokeCommand<void>('claude_login')
+    const result = await invokeCommand('claude_login')
     if (result.success === false) throw new Error(result.error.message)
   }
 
   async logout(): Promise<void> {
-    const result = await invokeCommand<void>('claude_logout')
+    const result = await invokeCommand('claude_logout')
     if (result.success === false) throw new Error(result.error.message)
   }
 }

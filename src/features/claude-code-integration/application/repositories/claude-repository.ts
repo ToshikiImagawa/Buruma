@@ -22,6 +22,7 @@ export interface ClaudeRepository {
   onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void
   onReviewResult(callback: (result: ReviewResult) => void): () => void
   onExplainResult(callback: (result: ExplainResult) => void): () => void
+  generateCommitMessage(worktreePath: string, diffText: string): Promise<string>
   checkAuth(): Promise<ClaudeAuthStatus>
   login(): Promise<void>
   logout(): Promise<void>
