@@ -1,3 +1,4 @@
+import type { IPCEventMap } from '@lib/ipc'
 import type { EventCallback } from '@tauri-apps/api/event'
 import { listen } from '@tauri-apps/api/event'
 
@@ -12,16 +13,18 @@ import { listen } from '@tauri-apps/api/event'
  */
 
 /**
- * Tauri event を購読し、同期的に unsubscribe 関数を返す。
- *
- * @param eventName - Tauri 側の event 名 (kebab-case 推奨)
- * @param callback - payload を受け取るコールバック
- * @returns unsubscribe 関数 (呼び出すと listener が解除される)
+ * 型安全な Tauri event 購読。イベント名からペイロード型を自動推論する。
  */
-export function listenEventSync<T>(eventName: string, callback: (payload: T) => void): () => void {
+export function listenEventSync<K extends keyof IPCEventMap>(
+  eventName: K,
+  callback: (payload: IPCEventMap[K]) => void,
+): () => void
+/** @deprecated IPCEventMap に定義されたイベント名を使用してください */
+export function listenEventSync<T>(eventName: string, callback: (payload: T) => void): () => void
+export function listenEventSync(eventName: string, callback: (payload: unknown) => void): () => void {
   let unlisten: (() => void) | null = null
   let cancelled = false
-  listen<T>(eventName, ((evt) => callback(evt.payload)) as EventCallback<T>)
+  listen(eventName, ((evt: { payload: unknown }) => callback(evt.payload)) as EventCallback<unknown>)
     .then((fn) => {
       if (cancelled) {
         fn()

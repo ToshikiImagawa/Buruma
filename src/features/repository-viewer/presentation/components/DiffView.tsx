@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { DiffDisplayMode, FileContents, FileDiff, ReviewComment } from '@domain'
 import type { editor } from 'monaco-editor'
-import { invokeCommand } from '@lib/invoke/commands'
+import { useResolve } from '@lib/di/v-container-provider'
 import { DiffEditor } from '@monaco-editor/react'
 import { Button } from '@/components/ui/button'
+import {
+  GetDiffCommitUseCaseToken,
+  GetDiffStagedUseCaseToken,
+  GetDiffUseCaseToken,
+  GetFileContentsCommitUseCaseToken,
+  GetFileContentsUseCaseToken,
+} from '../../di-tokens'
 import { AiDiffPanel } from './AiDiffPanel'
 
 interface DiffViewProps {
@@ -14,6 +21,12 @@ interface DiffViewProps {
 }
 
 export function DiffView({ worktreePath, filePath, staged = false, commitHash }: DiffViewProps) {
+  const getFileContents = useResolve(GetFileContentsUseCaseToken)
+  const getFileContentsCommit = useResolve(GetFileContentsCommitUseCaseToken)
+  const getDiff = useResolve(GetDiffUseCaseToken)
+  const getDiffStaged = useResolve(GetDiffStagedUseCaseToken)
+  const getDiffCommit = useResolve(GetDiffCommitUseCaseToken)
+
   const [displayMode, setDisplayMode] = useState<DiffDisplayMode>('side-by-side')
   const [contents, setContents] = useState<FileContents | null>(null)
   const [loading, setLoading] = useState(false)
@@ -39,44 +52,33 @@ export function DiffView({ worktreePath, filePath, staged = false, commitHash }:
     setError(null)
     try {
       if (commitHash) {
-        const result = await invokeCommand<FileContents>('git_file_contents_commit', {
-          args: { worktreePath, hash: commitHash, filePath },
-        })
-        if (result.success === false) setError(result.error.message)
-        else setContents(result.data)
+        const data = await getFileContentsCommit.invoke({ worktreePath, hash: commitHash, filePath })
+        setContents(data)
       } else {
-        const result = await invokeCommand<FileContents>('git_file_contents', {
-          args: { worktreePath, filePath, staged },
-        })
-        if (result.success === false) setError(result.error.message)
-        else setContents(result.data)
+        const data = await getFileContents.invoke({ worktreePath, filePath, staged })
+        setContents(data)
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally {
       setLoading(false)
     }
-  }, [worktreePath, filePath, staged, commitHash])
+  }, [worktreePath, filePath, staged, commitHash, getFileContents, getFileContentsCommit])
 
   const loadDiffs = useCallback(async () => {
     if (!filePath) return
-    if (commitHash) {
-      const result = await invokeCommand<FileDiff[]>('git_diff_commit', {
-        args: { worktreePath, hash: commitHash, filePath },
-      })
-      if (result.success) setDiffs(result.data)
-    } else if (staged) {
-      const result = await invokeCommand<FileDiff[]>('git_diff_staged', {
-        query: { worktreePath, filePath },
-      })
-      if (result.success) setDiffs(result.data)
-    } else {
-      const result = await invokeCommand<FileDiff[]>('git_diff', {
-        query: { worktreePath, filePath },
-      })
-      if (result.success) setDiffs(result.data)
+    try {
+      if (commitHash) {
+        setDiffs(await getDiffCommit.invoke({ worktreePath, hash: commitHash, filePath }))
+      } else if (staged) {
+        setDiffs(await getDiffStaged.invoke({ worktreePath, filePath }))
+      } else {
+        setDiffs(await getDiff.invoke({ worktreePath, filePath }))
+      }
+    } catch {
+      // diff 読み込み失敗は無視（contents のエラーで十分）
     }
-  }, [worktreePath, filePath, staged, commitHash])
+  }, [worktreePath, filePath, staged, commitHash, getDiff, getDiffStaged, getDiffCommit])
 
   useEffect(() => {
     loadContents()

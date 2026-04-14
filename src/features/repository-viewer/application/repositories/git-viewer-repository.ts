@@ -1,6 +1,7 @@
 import type {
   BranchList,
   CommitDetail,
+  FileContents,
   FileDiff,
   FileTreeNode,
   GitDiffQuery,
@@ -19,4 +20,6 @@ export interface GitViewerRepository {
   getDiffCommit(worktreePath: string, hash: string, filePath?: string): Promise<FileDiff[]>
   getBranches(worktreePath: string): Promise<BranchList>
   getFileTree(worktreePath: string): Promise<FileTreeNode>
+  getFileContents(worktreePath: string, filePath: string, staged: boolean): Promise<FileContents>
+  getFileContentsCommit(worktreePath: string, hash: string, filePath: string): Promise<FileContents>
 }
