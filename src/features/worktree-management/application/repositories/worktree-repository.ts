@@ -1,4 +1,5 @@
 import type {
+  BranchDeleteResult,
   BranchList,
   SymlinkConfig,
   WorktreeChangeEvent,
@@ -13,6 +14,7 @@ import type {
 export const WORKTREE_ERROR_CODES = {
   DIRTY: 'WORKTREE_DIRTY',
   CANNOT_DELETE_MAIN: 'CANNOT_DELETE_MAIN_WORKTREE',
+  BRANCH_NOT_MERGED: 'BRANCH_NOT_MERGED',
 } as const
 
 type WorktreeErrorCode = (typeof WORKTREE_ERROR_CODES)[keyof typeof WORKTREE_ERROR_CODES]
@@ -27,11 +29,13 @@ export interface WorktreeRepository {
   list(repoPath: string): Promise<WorktreeInfo[]>
   getStatus(repoPath: string, worktreePath: string): Promise<WorktreeStatus>
   create(params: WorktreeCreateParams): Promise<WorktreeCreateResult>
-  delete(params: WorktreeDeleteParams): Promise<void>
+  delete(params: WorktreeDeleteParams): Promise<BranchDeleteResult | null>
   suggestPath(repoPath: string, branch: string): Promise<string>
   checkDirty(worktreePath: string): Promise<boolean>
   getBranches(worktreePath: string): Promise<BranchList>
   getSymlinkConfig(repoPath: string): Promise<SymlinkConfig>
   setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void>
+  /** 未マージブランチを強制削除する（requireForce 後の再試行用） */
+  forceDeleteBranch(repoPath: string, branch: string): Promise<void>
   onChanged(callback: (event: WorktreeChangeEvent) => void): () => void
 }

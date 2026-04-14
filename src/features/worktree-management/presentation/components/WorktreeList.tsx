@@ -125,6 +125,7 @@ export function WorktreeList({ repoPath, onWorktreeSelected }: WorktreeListProps
           }}
           worktree={deleteTarget}
           repoPath={repoPath}
+          worktrees={worktrees}
           onConfirm={(params) => {
             deleteWorktree(params)
             setDeleteTarget(null)

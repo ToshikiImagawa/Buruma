@@ -1,4 +1,5 @@
 import type {
+  BranchDeleteResult,
   BranchList,
   SymlinkConfig,
   WorktreeChangeEvent,
@@ -41,9 +42,10 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
     return result.data
   }
 
-  async delete(params: WorktreeDeleteParams): Promise<void> {
+  async delete(params: WorktreeDeleteParams): Promise<BranchDeleteResult | null> {
     const result = await invokeCommand('worktree_delete', { params })
     if (result.success === false) throw new WorktreeError(result.error)
+    return result.data
   }
 
   async suggestPath(repoPath: string, branch: string): Promise<string> {
@@ -72,6 +74,13 @@ export class WorktreeDefaultRepository implements WorktreeRepository {
 
   async setSymlinkConfig(repoPath: string, config: SymlinkConfig): Promise<void> {
     const result = await invokeCommand('worktree_symlink_config_set', { repoPath, config })
+    if (result.success === false) throw new WorktreeError(result.error)
+  }
+
+  async forceDeleteBranch(repoPath: string, branch: string): Promise<void> {
+    const result = await invokeCommand('git_branch_delete', {
+      args: { worktreePath: repoPath, branch, force: true },
+    })
     if (result.success === false) throw new WorktreeError(result.error)
   }
 

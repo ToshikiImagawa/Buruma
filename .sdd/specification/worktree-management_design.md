@@ -23,7 +23,7 @@ risk: "high"
 
 # 1. 実装ステータス
 
-**ステータス:** 🟡 一部実装済み（v0.1.0 基盤完了、FR_102_05 / FR_106 完了、FR_103_05 は未実装）
+**ステータス:** 🟢 実装完了（v0.1.0 基盤完了、FR_102_05 / FR_106 / FR_103_05 完了）
 
 ## 1.1. 実装進捗
 
@@ -50,8 +50,8 @@ risk: "high"
 | IPC 型拡張 | shared | types | 🟢 | IPCChannelMap 拡張 |
 | BranchCombobox 共通コンポーネント | renderer | presentation (共有) | 🟢 | FR_102_05: `src/components/branch-combobox.tsx`（FR_712 design と共有） |
 | WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🟢 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得、invokeCommand 排除 |
-| DeleteWorktreeMainUseCase 拡張 | main | application | 🔴 | FR_103_05: ブランチ同時削除ロジック追加 |
-| WorktreeDeleteDialog ブランチ削除UI | renderer | presentation | 🔴 | FR_103_05: チェックボックス追加、他WT使用中判定 |
+| DeleteWorktreeMainUseCase 拡張 | main | application | 🟢 | FR_103_05: ブランチ同時削除ロジック追加 |
+| WorktreeDeleteDialog ブランチ削除UI | renderer | presentation | 🟢 | FR_103_05: チェックボックス追加、他WT使用中判定 |
 | SymlinkService | main | application | 🟢 | FR_106: 設定読み込み + glob マッチ + symlink 作成 |
 | SymlinkConfigRepository | main | infrastructure | 🟢 | FR_106: `.buruma/symlink.json` + tauri-plugin-store |
 | SymlinkFileRepository | main | infrastructure | 🟢 | FR_106: クロスプラットフォーム symlink 作成 |

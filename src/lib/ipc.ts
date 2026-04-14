@@ -10,6 +10,7 @@ import type {
   BranchCheckoutArgs,
   BranchCreateArgs,
   BranchDeleteArgs,
+  BranchDeleteResult,
   BranchList,
   CherryPickOptions,
   CherryPickResult,
@@ -165,7 +166,7 @@ export interface IPCCommandMap {
   worktree_list: { args: { repoPath: string }; result: WorktreeInfo[] }
   worktree_status: { args: { repoPath: string; worktreePath: string }; result: WorktreeStatus }
   worktree_create: { args: { params: WorktreeCreateParams }; result: WorktreeCreateResult }
-  worktree_delete: { args: { params: WorktreeDeleteParams }; result: void }
+  worktree_delete: { args: { params: WorktreeDeleteParams }; result: BranchDeleteResult | null }
   worktree_suggest_path: { args: { repoPath: string; branch: string }; result: string }
   worktree_check_dirty: { args: { worktreePath: string }; result: boolean }
   worktree_default_branch: { args: { repoPath: string }; result: string }

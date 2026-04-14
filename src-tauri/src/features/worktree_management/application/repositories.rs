@@ -3,7 +3,9 @@
 use async_trait::async_trait;
 
 use crate::error::AppResult;
-use crate::features::worktree_management::domain::{WorktreeCreateParams, WorktreeInfo, WorktreeStatus};
+use crate::features::worktree_management::domain::{
+    BranchDeleteResult, WorktreeCreateParams, WorktreeInfo, WorktreeStatus,
+};
 
 #[async_trait]
 pub trait WorktreeGitRepository: Send + Sync {
@@ -17,4 +19,7 @@ pub trait WorktreeGitRepository: Send + Sync {
     async fn is_main_worktree(&self, worktree_path: &str) -> AppResult<bool>;
     /// メインワークツリーのパスを取得する（git rev-parse --git-common-dir ベース）。
     async fn get_main_worktree_path(&self, repo_path: &str) -> AppResult<String>;
+    /// ローカルブランチを削除する。
+    /// force=false: `git branch -d`, force=true: `git branch -D`
+    async fn delete_branch(&self, repo_path: &str, branch: &str, force: bool) -> AppResult<BranchDeleteResult>;
 }
