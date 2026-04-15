@@ -134,6 +134,10 @@ pub struct WorktreePathArgs {
 pub struct GenerateCommitMessageArgs {
     pub worktree_path: String,
     pub diff_text: String,
+    /// AppSettings.commitMessageRules を反映するカスタムルール。
+    /// None / 空文字列の場合はデフォルトプロンプトのみを使用する。
+    #[serde(default)]
+    pub rules: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

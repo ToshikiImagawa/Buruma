@@ -189,7 +189,7 @@ export interface IPCCommandMap {
     result: void
   }
   claude_generate_commit_message: {
-    args: { args: { worktreePath: string; diffText: string } }
+    args: { args: { worktreePath: string; diffText: string; rules?: string | null } }
     result: string
   }
   claude_resolve_conflict: {
