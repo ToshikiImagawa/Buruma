@@ -8,7 +8,7 @@ impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["spec-claude-code-integration"]
-tags: ["claude-code", "ai", "cli", "session", "child-process", "tauri-migration"]
+tags: ["claude-code", "ai", "cli", "session", "child-process"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"
@@ -622,85 +622,3 @@ claude: {
 - `ConflictResolveRequest.filePath` に対してパストラバーサル攻撃の検証を行う（10.2 の入力バリデーションと同様）
 - AI が生成した merged コンテンツは必ずプレビュー表示し、ユーザーの承認を経てから適用する（B-002 準拠）
 
----
-
-# 11. 変更履歴
-
-## v5.0 (2026-04-11)
-
-**FR_506: AI コンフリクト解決の設計追加**
-
-- impl-status を `implemented` → `in-progress` に変更
-- 実装進捗テーブルに新規モジュール 6件（🔴 未実装）を追加
-- モジュール分割表に ResolveConflictMainUseCase、conflict-resolve-prompt、ClaudeConflictViewModel 等を追加
-- データモデルに ConflictResolveRequest、ConflictResolveResult（discriminated union）を追加
-- 設計判断に 5件追加（実行方式、送信形式、プロンプト設計、UI注入方式、並列数制御）
-- セキュリティ考慮事項 10.4 にコンフリクト内容送信の注意を追加
-
-**設計のポイント**:
-- 既存の ReviewDiff/ExplainDiff と同じワンショット実行パターンを踏襲
-- ThreeWayContent を構造化プロンプトで送信し AI の解決精度を最大化
-- ConflictResolver への AI ボタン注入は Props 経由（A-004 準拠）
-- 一括解決は 3 並列 + プログレスバー
-- AI 結果は必ずプレビュー → 承認/拒否のフローを経る（B-002 準拠）
-
-## v4.0 (2026-04-09)
-
-**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
-
-- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
-- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
-- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
-- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
-- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
-- Preload API ブロックを削除（Tauri では preload 不要）
-- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
-- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
-- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
-- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
-- `electron-store` → `tauri-plugin-store` に置換
-- `child_process.spawn` → `tokio::process::Command` に置換
-- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
-
-**移行ガイド:**
-
-```typescript
-// ❌ 旧コード (Electron)
-const result = await window.electronAPI.repository.open()
-if (result.success) { /* ... */ }
-
-// ✅ 新コード (Tauri)
-import { invokeCommand } from '@/shared/lib/invoke'
-const result = await invokeCommand<RepositoryInfo | null>('repository_open')
-if (result.success) { /* ... */ }
-```
-
-```rust
-// ✅ Rust 側 (新規)
-#[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> AppResult<Option<RepositoryInfo>> {
-    state.open_repository_dialog_usecase.invoke().await
-}
-```
-
----
-
-## v1.1 (2026-04-05)
-
-**変更内容:**
-
-- PRD レビュー指摘反映: DC_503（Webviewからの tokio::process::Command 直接使用禁止）を設計目標に追加
-- NFR_501（セッション起動30秒以内）を NFR 実現方針に反映
-- モジュール配置パスを Clean Architecture 4層 + feature ディレクトリ構成に修正
-- status を approved に変更
-
-## v1.0 (2026-03-25)
-
-**変更内容:**
-
-- 初版作成
-- ClaudeProcessManager、SessionStore、OutputParser の設計を定義
-- IPC ハンドラー、Tauri invoke/listen API、Webview型定義を定義
-- セキュリティ考慮事項を記載

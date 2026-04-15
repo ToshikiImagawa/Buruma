@@ -8,7 +8,7 @@ created: "2026-04-14"
 updated: "2026-04-14"
 depends-on: ["design-worktree-management"]
 ticket: "FR_103_05"
-tags: ["worktree", "core", "ui", "tauri-migration"]
+tags: ["worktree", "core", "ui"]
 category: "core"
 priority: "critical"
 ---

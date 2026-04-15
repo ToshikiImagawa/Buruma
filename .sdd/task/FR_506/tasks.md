@@ -8,7 +8,7 @@ created: "2026-04-14"
 updated: "2026-04-14"
 depends-on: ["design-claude-code-integration"]
 ticket: "FR_506"
-tags: ["claude-code", "ai", "conflict-resolution", "tauri-migration"]
+tags: ["claude-code", "ai", "conflict-resolution"]
 category: "ai-integration"
 priority: "medium"
 ---

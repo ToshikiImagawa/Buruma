@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-claude-code-integration"]
-tags: ["claude-code", "ai", "cli", "session", "tauri-migration"]
+tags: ["claude-code", "ai", "cli", "session"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"

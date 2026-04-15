@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-repository-viewer", "prd-application-foundation"]
-tags: ["git", "staging", "commit", "push", "pull", "branch", "tauri-migration"]
+tags: ["git", "staging", "commit", "push", "pull", "branch"]
 category: "git-operations"
 priority: "high"
 risk: "high"
