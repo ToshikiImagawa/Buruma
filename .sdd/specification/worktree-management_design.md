@@ -47,7 +47,7 @@ risk: "high"
 | React Components | renderer | presentation | 🟢 | WorktreeList, Detail, Dialogs（5コンポーネント） |
 | DI 設定 (renderer) | renderer | — | 🟢 | di-tokens.ts / di-config.ts |
 | Worktree domain types | shared | domain | 🟢 | WorktreeInfo, WorktreeStatus 等 |
-| IPC 型拡張 | shared | types | 🟢 | IPCChannelMap 拡張 |
+| IPC 型拡張 | shared | types | 🟢 | IPCCommandMap 拡張 |
 | BranchCombobox 共通コンポーネント | renderer | presentation (共有) | 🟢 | FR_102_05: `src/components/branch-combobox.tsx`（FR_712 design と共有） |
 | WorktreeCreateDialog ブランチ選択UI | renderer | presentation | 🟢 | FR_102_05: BranchCombobox 統合、ブランチ一覧取得、invokeCommand 排除 |
 | DeleteWorktreeMainUseCase 拡張 | main | application | 🟢 | FR_103_05: ブランチ同時削除ロジック追加 |
@@ -217,7 +217,7 @@ graph TD
 | モジュール名 | 責務 | 配置場所 |
 |------------|------|---------|
 | Worktree domain types | WorktreeInfo, WorktreeStatus 等の純粋な型定義 | `src/domain/index.ts` に追加 |
-| IPC 型拡張 | IPCChannelMap, IPCEventMap への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
+| IPC 型拡張 | IPCCommandMap, IPCEventMap への worktree 名前空間追加 | `src/lib/ipc.ts` に追加 |
 | Tauri invoke/listen API (worktree) | 型安全な worktree API | `@tauri-apps/api` の invoke/listen を直接使用（preload 層は Tauri では不要） |
 | Symlink domain types | FR_106: SymlinkConfig, SymlinkResult, SymlinkResultEntry, WorktreeCreateResult | `src/domain/index.ts` に追加 |
 | BranchDeleteResult domain type | FR_103_05: ブランチ削除結果型 | `src/domain/index.ts` に追加 |
@@ -678,7 +678,7 @@ export class SuggestPathDefaultUseCase implements FunctionUseCase<{ repoPath: st
 
 ### Infrastructure 層: WorktreeDefaultRepository
 
-IPC クライアントとして `invokeCommand / listenEvent ラッパー.worktree` を呼び出し、`IPCResult<T>` を例外に変換する。
+IPC クライアントとして `invokeCommand / listenEventSync` ラッパーを呼び出し、`IPCResult<T>` を例外に変換する。
 
 ```typescript
 // src/features/worktree-management/infrastructure/repositories/worktree-default-repository.ts

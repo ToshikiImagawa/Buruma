@@ -198,7 +198,7 @@ const handleRebaseFromContext = (branchName: string) => {
 
 ### 4.4.4. ViewModel の変更
 
-既存の `RebaseViewModel` に `branches$` Observable と `fetchBranches()` メソッドを追加。ブランチ一覧の取得は `IPCChannelMap` に登録済みの `git_branches` IPC を infrastructure 層の Repository 経由で呼び出す（A-004 準拠: ViewModel → UseCase → Repository の依存方向）。
+既存の `RebaseViewModel` に `branches$` Observable と `fetchBranches()` メソッドを追加。ブランチ一覧の取得は `IPCCommandMap` に登録済みの `git_branches` IPC を infrastructure 層の Repository 経由で呼び出す（A-004 準拠: ViewModel → UseCase → Repository の依存方向）。
 
 ブランチ一覧取得は `advanced-git-operations` の infrastructure 層に新規 Repository（または既存リポジトリの拡張）を作成し、`invokeCommand('git_branches', ...)` を呼び出す。`basic-git-operations` feature の UseCase を直接注入しない（A-004: feature 間直接参照禁止）。
 

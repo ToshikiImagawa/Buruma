@@ -179,7 +179,7 @@ graph TD
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
 | GitViewerRepository IF | application | IPC 経由の Git 読み取りインターフェース（status, log, diff 等 8 メソッド。file-contents は DiffViewModel が直接取得するため含まない） | `src/features/repository-viewer/application/repositories/git-viewer-repository.ts` |
-| GitViewerDefaultRepository | infrastructure | `invokeCommand / listenEvent ラッパー.git.*` への委譲実装 | `src/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
+| GitViewerDefaultRepository | infrastructure | `invokeCommand('git_*', ...)` への委譲実装（IPC 経由） | `src/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
 | RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/features/repository-viewer/application/services/` |
 | UseCase x8 | application | GetStatus, GetLog, GetCommitDetail, GetDiff, GetDiffStaged, GetDiffCommit, GetBranches, GetFileTree | `src/features/repository-viewer/application/usecases/` |
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/features/repository-viewer/presentation/` |

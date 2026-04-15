@@ -40,7 +40,7 @@ risk: "high"
 | infrastructure 層（Webview Repository）         | 🟢                | 🟢 `invoke()` 直呼びに書き換え                                                                                              |
 | infrastructure 層（Rust Repository impl）      | -                 | 🟢 `tauri-plugin-store` / `tauri-plugin-dialog` / `tokio::process::Command` 経由                                        |
 | presentation 層（ViewModel）                    | 🟢                | 🟢 Webview 側はそのまま維持                                                                                                 |
-| presentation 層（Hook ラッパー）                   | 🟢                | 🟢 Webview 側は維持（`listenEvent` 購読を async 対応）                                                                        |
+| presentation 層（Hook ラッパー）                   | 🟢                | 🟢 Webview 側は維持（`listenEventSync` 購読）                                                                               |
 | presentation 層（React コンポーネント）              | 🟢                | 🟢 Webview 側は維持                                                                           |
 | presentation 層（Rust `#[tauri::command]`）    | -                 | 🟢 10 コマンド（`repository_*`, `settings_*`）を実装済み                                                                        |
 
@@ -126,7 +126,7 @@ graph TD
         end
         subgraph "infrastructure (renderer)"
             RepoDefault[Repository Default]
-            IPCClient["IPC Client<br/>invokeCommand / listenEvent ラッパー"]
+            IPCClient["IPC Client<br/>invokeCommand / listenEventSync ラッパー"]
             RepoIF -.->|DI| RepoDefault
             RepoDefault --> IPCClient
         end

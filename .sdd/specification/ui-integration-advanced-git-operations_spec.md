@@ -94,7 +94,7 @@ interface RebaseEditorProps {
 
 ### ブランチ一覧取得
 
-`src/lib/ipc.ts` の `IPCChannelMap` に登録済みの `git_branches` コマンド（`basic-git-operations` で定義）を再利用する。新規 IPC コマンドは追加しない。同様に `git_rebase_get_commits`（`advanced-git-operations` で定義）も既存のものをそのまま使用する。
+`src/lib/ipc.ts` の `IPCCommandMap` に登録済みの `git_branches` コマンド（`basic-git-operations` で定義）を再利用する。新規 IPC コマンドは追加しない。同様に `git_rebase_get_commits`（`advanced-git-operations` で定義）も既存のものをそのまま使用する。
 
 ## 4.3. 状態管理
 

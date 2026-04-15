@@ -534,8 +534,8 @@ claude: {
 ## 6.6. Webview 側の型定義
 
 ```typescript
-// Tauri 移行後は不要。invokeCommand / listenEvent ラッパーを使用
-// 各コマンドの型は src/lib/ipc.ts の IPCChannelMap で定義
+// Tauri 移行後は不要。invokeCommand / listenEventSync ラッパーを使用
+// 各コマンドの型は src/lib/ipc.ts の IPCCommandMap で定義
 // イベントの型は src/lib/ipc.ts の IPCEventMap で定義
 ```
 

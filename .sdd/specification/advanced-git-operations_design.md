@@ -1125,7 +1125,7 @@ src/features/advanced-git-operations/
 **セクション 5（データモデル）:**
 
 - 型定義を `src/domain/index.ts` に追加する方針に更新（`src/types/git-advanced.ts` ではなく）
-- 既存の `IPCChannelMap` / `IPCEventMap` に新チャネルを追加
+- 既存の `IPCCommandMap` / `IPCEventMap` に新チャネルを追加
 
 **セクション 6（インターフェース定義）:**
 
