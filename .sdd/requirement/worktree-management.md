@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["prd-application-foundation"]
-tags: ["worktree", "core", "ui", "tauri-migration"]
+tags: ["worktree", "core", "ui"]
 category: "core"
 priority: "critical"
 risk: "high"

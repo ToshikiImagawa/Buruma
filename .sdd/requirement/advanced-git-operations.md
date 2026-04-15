@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["prd-basic-git-operations"]
-tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tauri-migration"]
+tags: ["git", "merge", "rebase", "stash", "cherry-pick", "conflict"]
 category: "git-operations"
 priority: "medium"
 risk: "high"

@@ -8,7 +8,7 @@ impl-status: "implemented"
 created: "2026-04-04"
 updated: "2026-04-11"
 depends-on: [ "spec-ui-integration-advanced-git-operations" ]
-tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag", "tauri-migration"]
+tags: [ "ui", "integration", "git", "merge", "rebase", "stash", "cherry-pick", "conflict", "tag"]
 category: "ui-integration"
 priority: "high"
 risk: "low"
@@ -198,7 +198,7 @@ const handleRebaseFromContext = (branchName: string) => {
 
 ### 4.4.4. ViewModel の変更
 
-既存の `RebaseViewModel` に `branches$` Observable と `fetchBranches()` メソッドを追加。ブランチ一覧の取得は `IPCChannelMap` に登録済みの `git_branches` IPC を infrastructure 層の Repository 経由で呼び出す（A-004 準拠: ViewModel → UseCase → Repository の依存方向）。
+既存の `RebaseViewModel` に `branches$` Observable と `fetchBranches()` メソッドを追加。ブランチ一覧の取得は `IPCCommandMap` に登録済みの `git_branches` IPC を infrastructure 層の Repository 経由で呼び出す（A-004 準拠: ViewModel → UseCase → Repository の依存方向）。
 
 ブランチ一覧取得は `advanced-git-operations` の infrastructure 層に新規 Repository（または既存リポジトリの拡張）を作成し、`invokeCommand('git_branches', ...)` を呼び出す。`basic-git-operations` feature の UseCase を直接注入しない（A-004: feature 間直接参照禁止）。
 
@@ -359,80 +359,3 @@ const BranchOperations = ({ onConflict }) => (<>
 | Rebase onto UI方式 | 2ステップ（内部 state 切替） / 2ダイアログ分離 | 内部 state 切替（1ダイアログ） | ダイアログ数を増やさず既存 RebaseEditor を拡張。initialOnto で Step 1 スキップも自然に表現可能 |
 | ブランチ Combobox 配置 | 各 feature で個別実装 / src/components/ に共通化 | src/components/ に共通コンポーネント（BranchCombobox） | worktree-management（FR_102_05）と共有。A-004 feature 間直接参照禁止に準拠しつつ DRY を実現 |
 
----
-
-# 9. 変更履歴
-
-## v5.0 (2026-04-11)
-
-**FR-012: Rebase onto ブランチ選択UI 追加**
-
-- 4.4節: RebaseEditor 2ステップ化設計を追加（内部 state 切替、initialOnto によるスキップ）
-- 4.4.1: BranchCombobox 共通コンポーネント設計を追加（`src/components/branch-combobox.tsx`）
-- 4.4.2: RebaseEditor の Props 変更（`initialOnto?: string`）と条件付きレンダリング設計
-- 4.4.3: BranchOperations との連携設計（コンテキストメニュー → rebaseTargetBranch → initialOnto）
-- 4.4.4: ViewModel の変更設計（branches$ Observable 追加）
-- 技術スタックに shadcn/ui Combobox を追加
-- 変更対象ファイル表に rebase-editor.tsx、branch-combobox.tsx を追加
-- 設計判断に 2ステップ方式、Combobox 共通化の2決定を追加
-- impl-status を `implemented` → `in-progress` に変更
-
-## v4.0 (2026-04-09)
-
-**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
-
-- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
-- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
-- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
-- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
-- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
-- Preload API ブロックを削除（Tauri では preload 不要）
-- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
-- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
-- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
-- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
-- `electron-store` → `tauri-plugin-store` に置換
-- `child_process.spawn` → `tokio::process::Command` に置換
-- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
-
-**移行ガイド:**
-
-```typescript
-// ❌ 旧コード (Electron)
-const result = await window.electronAPI.repository.open()
-if (result.success) { /* ... */ }
-
-// ✅ 新コード (Tauri)
-import { invokeCommand } from '@/shared/lib/invoke'
-const result = await invokeCommand<RepositoryInfo | null>('repository_open')
-if (result.success) { /* ... */ }
-```
-
-```rust
-// ✅ Rust 側 (新規)
-#[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> AppResult<Option<RepositoryInfo>> {
-    state.open_repository_dialog_usecase.invoke().await
-}
-```
-
----
-
-## v1.1 (2026-04-05)
-
-**変更内容:**
-
-- FR-008: ブランチパネル折りたたみ設計を追加（ResizablePanel collapsible + 縦アイコンバー）
-- FR-009: ブランチコンテキストメニュー設計を追加（shadcn/ui context-menu、ブランチ名付き項目）
-- FR-010: アイコンのみツールバー設計を追加（縦アイコンバーに移動）
-- FR-011: コミットリセット設計を追加（git:reset IPC フル実装、soft/mixed/hard サブメニュー）
-- 技術スタックに context-menu を追加
-- 設計判断に折りたたみ方式・コンテキストメニュー項目・ツールバーレイアウトの3決定を追加
-
-## v1.0 (2026-04-04)
-
-**変更内容:**
-
-- 初版作成

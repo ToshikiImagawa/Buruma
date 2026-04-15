@@ -8,7 +8,7 @@ impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-10"
 depends-on: [ "spec-application-foundation" ]
-tags: [ "foundation", "ipc", "tauri", "tauri-migration", "error-handling", "clean-architecture", "di", "rxjs" ]
+tags: [ "foundation", "ipc", "tauri", "error-handling", "clean-architecture", "di", "rxjs" ]
 category: "infrastructure"
 priority: "high"
 risk: "high"
@@ -40,7 +40,7 @@ risk: "high"
 | infrastructure 層（Webview Repository）         | 🟢                | 🟢 `invoke()` 直呼びに書き換え                                                                                              |
 | infrastructure 層（Rust Repository impl）      | -                 | 🟢 `tauri-plugin-store` / `tauri-plugin-dialog` / `tokio::process::Command` 経由                                        |
 | presentation 層（ViewModel）                    | 🟢                | 🟢 Webview 側はそのまま維持                                                                                                 |
-| presentation 層（Hook ラッパー）                   | 🟢                | 🟢 Webview 側は維持（`listenEvent` 購読を async 対応）                                                                        |
+| presentation 層（Hook ラッパー）                   | 🟢                | 🟢 Webview 側は維持（`listenEventSync` 購読）                                                                               |
 | presentation 層（React コンポーネント）              | 🟢                | 🟢 Webview 側は維持                                                                           |
 | presentation 層（Rust `#[tauri::command]`）    | -                 | 🟢 10 コマンド（`repository_*`, `settings_*`）を実装済み                                                                        |
 
@@ -126,7 +126,7 @@ graph TD
         end
         subgraph "infrastructure (renderer)"
             RepoDefault[Repository Default]
-            IPCClient["IPC Client<br/>invokeCommand / listenEvent ラッパー"]
+            IPCClient["IPC Client<br/>invokeCommand / listenEventSync ラッパー"]
             RepoIF -.->|DI| RepoDefault
             RepoDefault --> IPCClient
         end
@@ -512,100 +512,3 @@ export function registerIPCHandlers(
 | Tauri Core (Rust) UseCase のユニットテスト                   | 低   | ✅ 解決済み。RepositoryMainUseCase（13テスト）、SettingsMainUseCase（5テスト）を作成                                                                                    |
 | ドキュメント移行注記の削除                              | 低   | ✅ 解決済み。design.md, CONSTITUTION.md の移行注記を削除                                                                                                          |
 
----
-
-# 10. 変更履歴
-
-## v4.0 (2026-04-09)
-
-**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
-
-- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
-- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
-- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
-- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
-- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
-- Preload API ブロックを削除（Tauri では preload 不要）
-- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
-- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
-- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
-- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
-- `electron-store` → `tauri-plugin-store` に置換
-- `child_process.spawn` → `tokio::process::Command` に置換
-- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
-
-**移行ガイド:**
-
-```typescript
-// ❌ 旧コード (Electron)
-const result = await window.electronAPI.repository.open()
-if (result.success) { /* ... */ }
-
-// ✅ 新コード (Tauri)
-import { invokeCommand } from '@/shared/lib/invoke'
-const result = await invokeCommand<RepositoryInfo | null>('repository_open')
-if (result.success) { /* ... */ }
-```
-
-```rust
-// ✅ Rust 側 (新規)
-#[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> AppResult<Option<RepositoryInfo>> {
-    state.open_repository_dialog_usecase.invoke().await
-}
-```
-
----
-
-## v3.0 (2026-03-26)
-
-**変更内容:**
-
-- プロセス別ディレクトリ分離を設計方針として決定（`src-tauri/src/`, `src/`, `src/`,
-  `(削除: Tauri では preload 不要)`）
-- Tauri Core (Rust)側にも Clean Architecture 4層構成を適用
-    - presentation: IPC Handler（Controller 相当）
-    - application: UseCase（Git 検証、履歴管理ビジネスルール）
-    - infrastructure: tauri-plugin-store, execFile, dialog
-    - domain: shared/ から参照
-- Tauri Core (Rust)でも VContainer を使用（container API）
-- IPC の層の位置づけを明確化（Webview 側 = infrastructure、Tauri Core (Rust)側 = presentation）
-- 設計判断「Tauri Core (Rust)は infrastructure のみ」を「4層構成」に変更
-
-## v2.1 (2026-03-26)
-
-**変更内容:**
-
-- React コンポーネント実装完了（presentation 層）
-    - RepositorySelectorDialog: リポジトリ選択ダイアログ
-    - RecentRepositoriesList: 最近開いたリポジトリ一覧
-    - SettingsDialog: 設定ダイアログ（テーマ、Git パス、デフォルトディレクトリ）
-    - ErrorNotificationToast: エラー通知トースト（Sonner）
-    - AppLayout: メインレイアウト
-    - MainHeader: ヘッダーコンポーネント
-    - ThemeProvider: テーマ切り替え（light/dark/system）
-- コンポーネントテスト追加（186 テスト全てパス）
-- アクセシビリティ対応（ARIA 属性、キーボードナビゲーション）
-- tauri-plugin-store の ESM 互換性を検証・確認
-
-## v2.0
-
-**変更内容:**
-
-- Clean Architecture 4層構成に全面改定（A-004）
-- DI コンテナ（VContainer）による依存関係管理を追加（A-003）
-- UseCase（ステートレス）/ Service（ステートフル）パターンを導入
-- ViewModel + Hook ラッパーによる MVVM パターンを導入
-- RxJS Observable による非同期データフローを追加（A-006）
-- モジュール分割を `src/features/application-foundation/` 配下の4層構成に変更
-- テスト戦略を層ごとに再定義
-- Tauri Core (Rust)側は infrastructure 層のみとする設計判断を追加
-
-## v1.0
-
-**変更内容:**
-
-- 初版作成
-- IPC 通信基盤、リポジトリ管理、設定管理、エラーハンドリングの設計を定義

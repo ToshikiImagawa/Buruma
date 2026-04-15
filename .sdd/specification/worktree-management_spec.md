@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["prd-worktree-management"]
-tags: ["worktree", "core", "ui", "tauri-migration"]
+tags: ["worktree", "core", "ui"]
 category: "core"
 priority: "critical"
 risk: "high"

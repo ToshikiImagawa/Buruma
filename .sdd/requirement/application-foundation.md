@@ -6,7 +6,7 @@ status: "approved"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: []
-tags: ["foundation", "ipc", "tauri", "error-handling", "tauri-migration"]
+tags: ["foundation", "ipc", "tauri", "error-handling"]
 category: "infrastructure"
 priority: "high"
 risk: "high"

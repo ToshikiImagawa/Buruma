@@ -8,7 +8,7 @@ impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: [ "spec-repository-viewer" ]
-tags: [ "viewer", "status", "log", "diff", "tauri-migration"]
+tags: [ "viewer", "status", "log", "diff"]
 category: "viewer"
 priority: "high"
 risk: "medium"
@@ -179,7 +179,7 @@ graph TD
 | モジュール名 | 層 | 責務 | 配置場所 |
 |---|---|---|---|
 | GitViewerRepository IF | application | IPC 経由の Git 読み取りインターフェース（status, log, diff 等 8 メソッド。file-contents は DiffViewModel が直接取得するため含まない） | `src/features/repository-viewer/application/repositories/git-viewer-repository.ts` |
-| GitViewerDefaultRepository | infrastructure | `invokeCommand / listenEvent ラッパー.git.*` への委譲実装 | `src/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
+| GitViewerDefaultRepository | infrastructure | `invokeCommand('git_*', ...)` への委譲実装（IPC 経由） | `src/features/repository-viewer/infrastructure/repositories/git-viewer-default-repository.ts` |
 | RepositoryViewerService | application | 選択コミット・差分モード等の状態管理（BehaviorSubject） | `src/features/repository-viewer/application/services/` |
 | UseCase x8 | application | GetStatus, GetLog, GetCommitDetail, GetDiff, GetDiffStaged, GetDiffCommit, GetBranches, GetFileTree | `src/features/repository-viewer/application/usecases/` |
 | ViewModel x5 + Hook x5 | presentation | StatusVM, CommitLogVM, DiffViewVM, BranchListVM, FileTreeVM | `src/features/repository-viewer/presentation/` |
@@ -362,100 +362,3 @@ interface GraphLayout {
 | ブランチグラフの描画ライブラリ | 低 | **解決済み**: `CommitSummary.parents` からレーン計算 + Canvas API 描画（`BranchGraphCanvas`） |
 | git CLI (tokio::process::Command) の同時実行制御 | 中 | 未対応。現時点で問題は報告されていないが、同一リポジトリへの並行操作でロック競合の可能性あり |
 
----
-
-# 10. 変更履歴
-
-## v4.1 (2026-04-11)
-
-**コード品質改善（/simplify レビュー）**
-
-- `FileChangeIcon` を `StatusView.tsx` からローカル定義を削除し、`src/components/FileChangeIcon.tsx` に共有コンポーネントとして抽出（basic-git-operations の `StagingArea` と共有）
-- `RepositoryDetailPanel` の `loadAllDiffs` useEffect から不要な `statusViewMode` 依存を除去（表示モード切替時に同一データの不要な IPC 再取得が発生していたバグを修正）
-- `CommitLog` の不要な WHAT コメント（`// コンテナサイズの取得`、`// スクロール追跡`）を削除
-- `CommitDetailView` のインラインアイコン表示を共有 `FileChangeIcon` に置換
-- `FileChangeIcon` の `status` prop を `string` → `FileChangeStatus` に型安全化、`copied` ケースを追加
-- `src/shared/` フラット化: ドキュメント内パス参照を `src/domain/`・`src/lib/` に更新
-
-## v4.0 (2026-04-09)
-
-**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
-
-- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
-- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
-- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
-- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
-- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
-- Preload API ブロックを削除（Tauri では preload 不要）
-- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
-- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
-- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
-- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
-- `electron-store` → `tauri-plugin-store` に置換
-- `child_process.spawn` → `tokio::process::Command` に置換
-- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
-
-**移行ガイド:**
-
-```typescript
-// ❌ 旧コード (Electron)
-const result = await window.electronAPI.repository.open()
-if (result.success) { /* ... */ }
-
-// ✅ 新コード (Tauri)
-import { invokeCommand } from '@/shared/lib/invoke'
-const result = await invokeCommand<RepositoryInfo | null>('repository_open')
-if (result.success) { /* ... */ }
-```
-
-```rust
-// ✅ Rust 側 (新規)
-#[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> AppResult<Option<RepositoryInfo>> {
-    state.open_repository_dialog_usecase.invoke().await
-}
-```
-
----
-
-## v3.0 (2026-04-05)
-
-**変更内容:**
-
-- BranchGraphCanvas に RefMap 連携を追加（HEAD/ブランチ/タグ/リモートのノード種別描画）
-- マージ線の色分けを2色分割描画に変更（垂直区間=子の色、斜め区間=第1親は子の色/第2親は親の色）
-- CommitItem に ref バッジ（HEAD/ローカル/リモート/タグ）を DOM 表示
-- `buildRefMap()` 純粋関数を追加（`ref-map.ts`）
-- CommitLog に `forwardRef` + `scrollToHash` を追加（ブランチクリックでスクロール）
-- `getBranches` を `--no-abbrev` に変更（フルハッシュで RefMap と一致）
-- ブランチタブをコミットタブに統合（3パネルレイアウト）、タブを4つに削減
-- ResizablePanelGroup による分割パネルリサイズ対応
-- Canvas 背景色を `getComputedStyle().backgroundColor` で取得（ライト/ダークモード対応）
-- `useTagViewModel` を cross-feature 参照で利用（タグデータを CommitLog に props 経由で供給）
-
-## v2.0 (2026-04-01)
-
-**変更内容:**
-
-- アーキテクチャをフラット構造から Clean Architecture 4層 + feature ディレクトリ構成に変更
-- `GitService` を `GitReadRepository` IF + `GitReadDefaultRepository` 実装に分離（DI 対応）
-- 差分表示を `@monaco-editor/react` DiffEditor に変更（ファイル全体テキストを IPC で取得）
-- `git:file-contents` / `git:file-contents-commit` IPC チャネルを追加
-- ブランチグラフ表示を追加（`CommitSummary.parents` → `computeGraphLayout()` → `BranchGraphCanvas` Canvas 描画）
-- IPC ハンドラーに `worktreePath` パストラバーサル防止バリデーションを追加
-- `RepositoryDetailPanel` タブ統合コンポーネントを追加（ステータス/コミット/ファイル/リファレンス）
-- Webview 側に ViewModel + Hook パターン、RepositoryViewerService（状態管理）を追加
-- 仕様書のフィールド名を `FileChange.type` → `FileChange.status` に統一（既存 worktree-management との整合性）
-- `impl-status` を `implemented` に更新
-- 未解決課題（Monaco 統合、ブランチグラフ）を解決済みに更新
-
-## v1.0 (2026-03-25)
-
-**変更内容:**
-
-- 初版作成
-- GitService、IPC ハンドラー、Tauri invoke/listen API、Webviewコンポーネントの設計を定義
-- Monaco Editor による差分表示の設計を定義
-- 仮想スクロールによるコミットログのパフォーマンス設計を定義

@@ -7,7 +7,7 @@ sdd-phase: "specify"
 created: "2026-03-25"
 updated: "2026-04-09"
 depends-on: ["prd-claude-code-integration"]
-tags: ["claude-code", "ai", "cli", "session", "tauri-migration"]
+tags: ["claude-code", "ai", "cli", "session"]
 category: "ai-integration"
 priority: "medium"
 risk: "high"
@@ -152,7 +152,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
 | `claude-conflict-resolved` | AI コンフリクト解決結果が返された | `ConflictResolveResult` |
 
-> **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEvent<T>` を使用する。
+> **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEventSync<T>` を使用する。
 
 ## 4.2. React コンポーネント API
 

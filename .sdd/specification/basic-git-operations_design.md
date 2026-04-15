@@ -8,7 +8,7 @@ impl-status: "implemented"
 created: "2026-03-25"
 updated: "2026-04-11"
 depends-on: ["spec-basic-git-operations"]
-tags: ["git", "staging", "commit", "push", "pull", "branch", "git-cli", "tokio", "tauri-migration"]
+tags: ["git", "staging", "commit", "push", "pull", "branch", "git-cli", "tokio"]
 category: "git-operations"
 priority: "high"
 risk: "high"
@@ -662,74 +662,3 @@ export const rendererConfigs = [
 | コンフリクト発生時の UI フロー | 中 | 本機能では通知のみ。解決 UI は Advanced Git Operations |
 | 大規模リポジトリでのパフォーマンス | 中 | ファイル数が多い場合の仮想スクロール等は実装時に検討 |
 
----
-
-# 10. 変更履歴
-
-## v4.1 (2026-04-11)
-
-**コード品質改善（/simplify レビュー）**
-
-- `StagingArea` コンポーネントから `FileChangeIcon` のローカル定義を削除し、`src/components/FileChangeIcon.tsx` の共有コンポーネントに置き換え（repository-viewer の `StatusView` と共有）
-- `src/shared/` フラット化: ドキュメント内パス参照を `src/domain/`・`src/lib/` に更新
-
-## v4.0 (2026-04-09)
-
-**Tauri 2 + Rust 移行（Electron からの全面刷新、破壊的変更）**
-
-- 実装ステータスを `implemented` → `not-implemented` にリセット（旧 Electron 実装は凍結）
-- 技術スタック表を Tauri 2 + Rust + Vite 6 + tokio + git CLI shell out + notify + tauri-plugin-store + tauri-plugin-dialog + thiserror 版に全面刷新
-- システム構成図を Webview (React) / Tauri Core (Rust) の 2 境界分割に更新
-- モジュール分割表を `src/features/{feature-name}/` (TypeScript) + `src-tauri/src/features/{feature_name}/` (Rust) の 2 部構成に
-- IPC Handler コード例を `ipcMain.handle` から Rust `#[tauri::command]` に置換
-- Preload API ブロックを削除（Tauri では preload 不要）
-- IPC チャネル名を snake_case (command) / kebab-case (event) に変換
-- DI 記述を Webview (VContainer) と Rust (`tauri::State<T>` + `Arc<dyn Trait>`) の 2 部構成に
-- `simple-git` → `tokio::process::Command` 経由の `git` CLI shell out 方式に変更
-- `chokidar` → `notify` + `notify-debouncer-full` crate に置換
-- `electron-store` → `tauri-plugin-store` に置換
-- `child_process.spawn` → `tokio::process::Command` に置換
-- DC_001 を「Tauri セキュリティ制約」（CSP + capabilities + 入力バリデーション）に書き換え
-
-**移行ガイド:**
-
-```typescript
-// ❌ 旧コード (Electron)
-const result = await window.electronAPI.repository.open()
-if (result.success) { /* ... */ }
-
-// ✅ 新コード (Tauri)
-import { invokeCommand } from '@/shared/lib/invoke'
-const result = await invokeCommand<RepositoryInfo | null>('repository_open')
-if (result.success) { /* ... */ }
-```
-
-```rust
-// ✅ Rust 側 (新規)
-#[tauri::command]
-pub async fn repository_open(
-    state: State<'_, AppState>,
-) -> AppResult<Option<RepositoryInfo>> {
-    state.open_repository_dialog_usecase.invoke().await
-}
-```
-
----
-
-## v2.0 (2026-04-02)
-
-**変更内容:**
-
-- Clean Architecture 4層構成に全面リファクタリング
-- DI パターン（VContainerConfig + Token + deps）を適用
-- ViewModel + Hook パターンを適用
-- `repoPath` → `worktreePath` に統一（B-001 準拠）
-- `GitService` → `GitWriteRepository`（命名ルール準拠）
-- Phase 1/Phase 2 スコープ分割を反映
-- Clarify の決定事項を統合
-
-## v1.0 (2026-03-25)
-
-**変更内容:**
-
-- 初版作成
