@@ -26,7 +26,7 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
     this.service.setResolvingProgress(null)
     this.service.setConflictResult(null)
 
-    this.service.conflictResult$
+    const sub = this.service.conflictResult$
       .pipe(
         skip(1),
         filter((r): r is ConflictResolveResult => r !== null),
@@ -36,7 +36,10 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
         this.service.setResolvingConflict(false)
       })
 
-    this.resolveConflictUseCase.invoke({ worktreePath, filePath, threeWayContent })
+    this.resolveConflictUseCase.invoke({ worktreePath, filePath, threeWayContent }).catch(() => {
+      sub.unsubscribe()
+      this.service.setResolvingConflict(false)
+    })
   }
 
   resolveAll(worktreePath: string, files: Array<{ filePath: string; threeWayContent: ThreeWayContent }>): void {
@@ -54,7 +57,12 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
 
     let sub: Subscription | null = null
 
-    const checkDone = () => {
+    const onTaskComplete = (filePath: string, success: boolean) => {
+      inFlightPaths.delete(filePath)
+      if (success) completed++
+      else failed++
+      this.service.setResolvingProgress({ total, completed, failed })
+      launchNext()
       if (completed + failed >= total) {
         sub?.unsubscribe()
         this.service.setResolvingConflict(false)
@@ -65,11 +73,15 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
       while (inFlightPaths.size < MAX_CONCURRENT && queue.length > 0) {
         const file = queue.shift()!
         inFlightPaths.add(file.filePath)
-        this.resolveConflictUseCase.invoke({
-          worktreePath,
-          filePath: file.filePath,
-          threeWayContent: file.threeWayContent,
-        })
+        this.resolveConflictUseCase
+          .invoke({
+            worktreePath,
+            filePath: file.filePath,
+            threeWayContent: file.threeWayContent,
+          })
+          .catch(() => {
+            onTaskComplete(file.filePath, false)
+          })
       }
     }
 
@@ -80,12 +92,7 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
         filter((r) => inFlightPaths.has(r.filePath)),
       )
       .subscribe((result) => {
-        inFlightPaths.delete(result.filePath)
-        if (result.status === 'resolved') completed++
-        else failed++
-        this.service.setResolvingProgress({ total, completed, failed })
-        launchNext()
-        checkDone()
+        onTaskComplete(result.filePath, result.status === 'resolved')
       })
 
     launchNext()

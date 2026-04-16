@@ -66,6 +66,7 @@ export interface ConflictViewModel {
   readonly threeWayContent$: Observable<ThreeWayContent | null>
   conflictList(worktreePath: string): void
   conflictFileContent(worktreePath: string, filePath: string): void
+  getConflictFileContent(worktreePath: string, filePath: string): Promise<ThreeWayContent>
   conflictResolve(options: ConflictResolveOptions): void
   conflictResolveAll(options: ConflictResolveAllOptions): void
   conflictMarkResolved(worktreePath: string, filePath: string): void

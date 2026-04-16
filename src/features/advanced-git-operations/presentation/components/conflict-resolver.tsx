@@ -1,12 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { ConflictFile, ConflictResolveResult, ConflictResolvingProgress, ThreeWayContent } from '@domain'
 import { Loader2, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { useConflictViewModel } from '../use-conflict-viewmodel'
 import { ThreeWayMergeView } from './three-way-merge-view'
-
-const EMPTY_THREE_WAY: ThreeWayContent = { base: '', ours: '', theirs: '', merged: '' }
 
 interface ConflictResolverProps {
   worktreePath: string
@@ -38,6 +36,7 @@ export function ConflictResolver({
     threeWayContent,
     conflictList,
     conflictFileContent,
+    getConflictFileContent,
     conflictResolve,
     conflictResolveAll,
     conflictMarkResolved,
@@ -95,16 +94,22 @@ export function ConflictResolver({
     onAIResolve(selectedFile, threeWayContent)
   }, [selectedFile, threeWayContent, onAIResolve])
 
-  const handleAIResolveAll = useCallback(() => {
-    if (!onAIResolveAll || unresolvedFiles.length === 0) return
-    onAIResolveAll(
-      worktreePath,
-      unresolvedFiles.map((f: ConflictFile) => ({
-        filePath: f.filePath,
-        threeWayContent: EMPTY_THREE_WAY,
-      })),
-    )
-  }, [unresolvedFiles, worktreePath, onAIResolveAll])
+  const isFetchingRef = useRef(false)
+  const handleAIResolveAll = useCallback(async () => {
+    if (!onAIResolveAll || unresolvedFiles.length === 0 || isFetchingRef.current) return
+    isFetchingRef.current = true
+    try {
+      const files = await Promise.all(
+        unresolvedFiles.map(async (f: ConflictFile) => ({
+          filePath: f.filePath,
+          threeWayContent: await getConflictFileContent(worktreePath, f.filePath),
+        })),
+      )
+      onAIResolveAll(worktreePath, files)
+    } finally {
+      isFetchingRef.current = false
+    }
+  }, [unresolvedFiles, worktreePath, onAIResolveAll, getConflictFileContent])
 
   const handleAcceptOursAll = useCallback(() => {
     conflictResolveAll({ worktreePath, strategy: 'ours' })
@@ -210,7 +215,7 @@ export function ConflictResolver({
                     <div
                       className="h-full rounded-full bg-primary transition-all"
                       style={{
-                        width: `${((resolvingProgress.completed + resolvingProgress.failed) / resolvingProgress.total) * 100}%`,
+                        width: `${((resolvingProgress.completed + resolvingProgress.failed) / Math.max(resolvingProgress.total, 1)) * 100}%`,
                       }}
                     />
                   </div>

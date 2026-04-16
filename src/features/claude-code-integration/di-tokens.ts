@@ -45,7 +45,7 @@ export type GenerateCommitMessageRendererUseCase = FunctionUseCase<
   { worktreePath: string; diffText: string },
   Promise<string>
 >
-export type ResolveConflictRendererUseCase = ConsumerUseCase<ConflictResolveAIRequest>
+export type ResolveConflictRendererUseCase = FunctionUseCase<ConflictResolveAIRequest, Promise<void>>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')

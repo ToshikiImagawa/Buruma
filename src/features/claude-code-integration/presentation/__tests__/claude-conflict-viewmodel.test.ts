@@ -6,7 +6,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ClaudeConflictDefaultViewModel } from '../claude-conflict-viewmodel'
 
 function createMockUseCase(): ResolveConflictRendererUseCase {
-  return { invoke: vi.fn() }
+  return { invoke: vi.fn().mockResolvedValue(undefined) }
 }
 
 function createMockService(): ClaudeService & {

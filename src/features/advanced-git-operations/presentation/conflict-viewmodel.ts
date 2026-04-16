@@ -53,6 +53,10 @@ export class ConflictDefaultViewModel implements ConflictViewModel {
       })
   }
 
+  getConflictFileContent(worktreePath: string, filePath: string): Promise<ThreeWayContent> {
+    return this.conflictFileContentUseCase.invoke({ worktreePath, filePath })
+  }
+
   conflictResolve(options: ConflictResolveOptions): void {
     this.conflictResolveUseCase.invoke(options)
   }
