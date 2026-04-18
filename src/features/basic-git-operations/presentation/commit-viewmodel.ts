@@ -1,3 +1,4 @@
+import type { GetSettingsUseCase } from '@/features/application-foundation/di-tokens'
 import type { GenerateCommitMessageRendererUseCase } from '@/features/claude-code-integration/di-tokens'
 import type { GetDiffStagedUseCase } from '@/features/repository-viewer/di-tokens'
 import type { CommitResult } from '@domain'
@@ -24,6 +25,7 @@ export class CommitDefaultViewModel implements CommitViewModel {
     getOperationLoadingUseCase: GetOperationLoadingUseCase,
     private readonly getDiffStagedUseCase: GetDiffStagedUseCase,
     private readonly generateCommitMessageUseCase: GenerateCommitMessageRendererUseCase,
+    private readonly getSettingsUseCase: GetSettingsUseCase,
   ) {
     this.loading$ = getOperationLoadingUseCase.store
   }
@@ -45,7 +47,8 @@ export class CommitDefaultViewModel implements CommitViewModel {
     try {
       const diffs = await this.getDiffStagedUseCase.invoke({ worktreePath })
       const diffText = formatDiffsAsText(diffs)
-      return await this.generateCommitMessageUseCase.invoke({ worktreePath, diffText })
+      const rules = this.getSettingsUseCase.property.value.commitMessageRules
+      return await this.generateCommitMessageUseCase.invoke({ worktreePath, diffText, rules })
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error)
       this._generateError$.next(message)

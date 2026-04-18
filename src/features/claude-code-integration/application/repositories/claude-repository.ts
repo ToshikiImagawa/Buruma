@@ -26,7 +26,7 @@ export interface ClaudeRepository {
   onExplainResult(callback: (result: ExplainResult) => void): () => void
   resolveConflict(request: ConflictResolveAIRequest): Promise<void>
   onConflictResolved(callback: (result: ConflictResolveResult) => void): () => void
-  generateCommitMessage(worktreePath: string, diffText: string): Promise<string>
+  generateCommitMessage(worktreePath: string, diffText: string, rules?: string | null): Promise<string>
   checkAuth(): Promise<ClaudeAuthStatus>
   login(): Promise<void>
   logout(): Promise<void>

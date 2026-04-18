@@ -42,7 +42,7 @@ export type GetIsReviewingRendererUseCase = ObservableStoreUseCase<boolean>
 export type GetExplanationRendererUseCase = ObservableStoreUseCase<string>
 export type GetIsExplainingRendererUseCase = ObservableStoreUseCase<boolean>
 export type GenerateCommitMessageRendererUseCase = FunctionUseCase<
-  { worktreePath: string; diffText: string },
+  { worktreePath: string; diffText: string; rules?: string | null },
   Promise<string>
 >
 export type ResolveConflictRendererUseCase = FunctionUseCase<ConflictResolveAIRequest, Promise<void>>

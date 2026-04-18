@@ -87,9 +87,9 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return listenEventSync('claude-conflict-resolved', callback)
   }
 
-  async generateCommitMessage(worktreePath: string, diffText: string): Promise<string> {
+  async generateCommitMessage(worktreePath: string, diffText: string, rules?: string | null): Promise<string> {
     const result = await invokeCommand('claude_generate_commit_message', {
-      args: { worktreePath, diffText },
+      args: { worktreePath, diffText, rules: rules ?? null },
     })
     if (result.success === false) throw new Error(result.error.message)
     return result.data

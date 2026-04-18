@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-11"
+updated: "2026-04-15"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process"]
 category: "ai-integration"
@@ -32,7 +32,7 @@ risk: "high"
 | ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装。ワンショット generateText、認証管理（checkAuth/login）も提供 |
 | SessionStore | 🟢 | インメモリセッション管理（max 1000 出力バッファ） |
 | GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
-| commit-message.ts (prompt) | 🟢 | コミットメッセージ生成用プロンプトビルダー。カスタムルール対応（AppSettings.commitMessageRules） |
+| build_commit_message_prompt (Rust) | 🟢 | コミットメッセージ生成用プロンプトビルダー。`GenerateCommitMessageArgs.rules` を反映してカスタムルール対応（AppSettings.commitMessageRules） |
 | CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
 | OutputParser (ClaudeDefaultOutputParser) | 🟢 | CLI 出力の JSON 解析・構造化。フォールバック付き |
 | IPC ハンドラー（claude:*） | 🟢 | 10 チャネル + 4 イベント登録済み（FR_506 追加分含む） |
@@ -203,11 +203,13 @@ type SessionMap = Map<string, InternalSession>;
 interface GenerateCommitMessageArgs {
   worktreePath: string;
   diffText: string; // unified diff 形式のテキスト
+  rules?: string | null; // AppSettings.commitMessageRules を転送（null / undefined でデフォルト）
 }
 
 // AppSettings 拡張（commitMessageRules）
 // commitMessageRules: string | null — null はデフォルトルール使用
-// > **注記**: `commitMessageRules` のプロンプトへの反映は未実装。Rust 側の `generate_commit_message` はハードコードされたプロンプトを使用している。
+// Webview 側の CommitDefaultViewModel で AppSettings.commitMessageRules を読み出し、
+// IPC 引数 `rules` に転送。Rust 側の `build_commit_message_prompt` がルールをプロンプトに反映する。
 
 // FR_506: AI コンフリクト解決リクエスト
 interface ConflictResolveRequest {
