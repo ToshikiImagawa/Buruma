@@ -73,9 +73,9 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
       })
   }
 
-  getRebaseCommits(worktreePath: string, onto: string): void {
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): void {
     this.getRebaseCommitsUseCase
-      .invoke({ worktreePath, onto })
+      .invoke({ worktreePath, onto, upstream })
       .then((commits) => {
         this._rebaseCommits$.next(commits)
       })

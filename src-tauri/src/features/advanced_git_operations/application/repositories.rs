@@ -20,7 +20,12 @@ pub trait GitAdvancedRepository: Send + Sync {
     async fn rebase_interactive(&self, options: &InteractiveRebaseOptions) -> AppResult<RebaseResult>;
     async fn rebase_abort(&self, worktree_path: &str) -> AppResult<()>;
     async fn rebase_continue(&self, worktree_path: &str) -> AppResult<RebaseResult>;
-    async fn rebase_get_commits(&self, worktree_path: &str, onto: &str) -> AppResult<Vec<RebaseStep>>;
+    async fn rebase_get_commits(
+        &self,
+        worktree_path: &str,
+        onto: &str,
+        upstream: Option<&str>,
+    ) -> AppResult<Vec<RebaseStep>>;
     // Stash
     async fn stash_save(&self, options: &StashSaveOptions) -> AppResult<()>;
     async fn stash_list(&self, worktree_path: &str) -> AppResult<Vec<StashEntry>>;

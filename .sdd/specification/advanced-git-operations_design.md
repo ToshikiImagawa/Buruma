@@ -335,16 +335,23 @@ export interface MergeStatus {
 
 // === リベース関連 ===
 
-/** リベースオプション */
+/**
+ * リベースオプション（`git rebase [--onto <onto>] <upstream>` に対応）
+ * - `onto`: 乗せ替え先（newbase）。
+ * - `upstream`: 再適用するコミット範囲の起点。未指定時は `git rebase <onto>` と等価。
+ *   指定時は `git rebase --onto <onto> <upstream>` で分岐元の付け替えが可能。
+ */
 export interface RebaseOptions {
   worktreePath: string
   onto: string
+  upstream?: string
 }
 
 /** インタラクティブリベースオプション */
 export interface InteractiveRebaseOptions {
   worktreePath: string
   onto: string
+  upstream?: string
   steps: RebaseStep[]
 }
 
@@ -501,7 +508,7 @@ export interface GitAdvancedRepository {
   rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult>
   rebaseAbort(worktreePath: string): Promise<void>
   rebaseContinue(worktreePath: string): Promise<RebaseResult>
-  getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]>
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): Promise<RebaseStep[]>
   // スタッシュ
   stashSave(options: StashSaveOptions): Promise<void>
   stashList(worktreePath: string): Promise<StashEntry[]>
@@ -594,7 +601,7 @@ export interface AdvancedOperationsRepository {
   rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult>
   rebaseAbort(worktreePath: string): Promise<void>
   rebaseContinue(worktreePath: string): Promise<RebaseResult>
-  getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]>
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): Promise<RebaseStep[]>
   stashSave(options: StashSaveOptions): Promise<void>
   stashList(worktreePath: string): Promise<StashEntry[]>
   stashPop(worktreePath: string, index: number): Promise<void>
@@ -655,7 +662,8 @@ export interface RebaseViewModel {
   rebaseInteractive(options: InteractiveRebaseOptions): void
   rebaseAbort(worktreePath: string): void
   rebaseContinue(worktreePath: string): void
-  getRebaseCommits(worktreePath: string, onto: string): void
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): void
+  clearState(): void
 }
 
 export interface StashViewModel {
@@ -915,6 +923,7 @@ export const rendererConfigs = [
 | 3ウェイ内容取得方式 | `git show :N:` / ファイル解析 | `git show :1:`, `:2:`, `:3:` | Git の stage number を利用した標準的な方法（base=:1, ours=:2, theirs=:3） |
 | DI deps 配列の定数化 | 毎回インライン指定 / 定数化 | `REPO_AND_SERVICE` 定数で共通化 | Webview di-config で 24 UseCase に同じ `[RepositoryToken, ServiceToken]` を繰り返す冗長性を削減 |
 | 3ウェイマージ UI レイアウト（実装時更新） | 横並び3カラム / タブ切り替え | Tabs（Base / Ours vs Theirs Diff / Result）+ Monaco Editor | 横並び3パネルではなくタブ切り替えで画面幅の制約に対応。DiffEditor で ours/theirs を比較表示 |
+| `git rebase --onto` サポート（実装時追加） | (A) 単純 rebase のみ / (B) `--onto <newbase> <upstream>` 対応 / (C) 常に 2 引数指定 | (B) 詳細モードトグルで切り替え | デフォルトはシンプル（upstream = onto 兼用）。詳細モードで upstream を別途指定し、分岐元付け替えに対応。UI 複雑度を最小化しつつ両ユースケースをカバー（FR-010b） |
 
 ## 9.2. 解決済みの課題
 

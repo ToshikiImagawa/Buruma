@@ -4,7 +4,7 @@ import type { AdvancedOperationsRepository } from '../repositories/advanced-oper
 import type { AdvancedOperationsService } from '../services/advanced-operations-service-interface'
 
 export class GetRebaseCommitsUseCase implements FunctionUseCase<
-  { worktreePath: string; onto: string },
+  { worktreePath: string; onto: string; upstream?: string },
   Promise<RebaseStep[]>
 > {
   constructor(
@@ -12,11 +12,11 @@ export class GetRebaseCommitsUseCase implements FunctionUseCase<
     private readonly service: AdvancedOperationsService,
   ) {}
 
-  invoke(input: { worktreePath: string; onto: string }): Promise<RebaseStep[]> {
+  invoke(input: { worktreePath: string; onto: string; upstream?: string }): Promise<RebaseStep[]> {
     this.service.setLoading(true)
     this.service.clearError()
     return this.repository
-      .getRebaseCommits(input.worktreePath, input.onto)
+      .getRebaseCommits(input.worktreePath, input.onto, input.upstream)
       .catch((error: unknown) => {
         this.service.setError({
           code: 'REBASE_GET_COMMITS_FAILED',

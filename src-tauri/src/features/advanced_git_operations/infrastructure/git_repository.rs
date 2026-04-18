@@ -83,7 +83,13 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
     // --- Rebase ---
 
     async fn rebase(&self, options: &RebaseOptions) -> AppResult<RebaseResult> {
-        match git_raw_with_stderr(&options.worktree_path, &["rebase", &options.onto]).await {
+        // upstream 指定時は `git rebase --onto <onto> <upstream>` で分岐元の付け替えに対応。
+        // 未指定時は `git rebase <onto>`（upstream = onto と等価）。
+        let args: Vec<&str> = match options.upstream.as_deref() {
+            Some(upstream) => vec!["rebase", "--onto", &options.onto, upstream],
+            None => vec!["rebase", &options.onto],
+        };
+        match git_raw_with_stderr(&options.worktree_path, &args).await {
             Ok(_) => Ok(RebaseResult {
                 status: RebaseResultStatus::Success,
                 conflict_files: None,
@@ -127,8 +133,13 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
             .map_err(AppError::Io)?;
 
         let editor_script = format!("cp \"{}\"", todo_file.display());
+        // upstream 指定時は `git rebase -i --onto <onto> <upstream>`。未指定時は従来通り。
+        let rebase_args: Vec<&str> = match options.upstream.as_deref() {
+            Some(upstream) => vec!["rebase", "-i", "--onto", &options.onto, upstream],
+            None => vec!["rebase", "-i", &options.onto],
+        };
         let result = Command::new("git")
-            .args(["rebase", "-i", &options.onto])
+            .args(&rebase_args)
             .current_dir(&options.worktree_path)
             .env("GIT_SEQUENCE_EDITOR", &editor_script)
             .output()
@@ -196,8 +207,16 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
         }
     }
 
-    async fn rebase_get_commits(&self, worktree_path: &str, onto: &str) -> AppResult<Vec<RebaseStep>> {
-        let range = format!("{onto}..HEAD");
+    async fn rebase_get_commits(
+        &self,
+        worktree_path: &str,
+        onto: &str,
+        upstream: Option<&str>,
+    ) -> AppResult<Vec<RebaseStep>> {
+        // upstream が指定されていれば `upstream..HEAD`、未指定なら `onto..HEAD`。
+        // これは `git rebase [--onto <onto>] <upstream>` で再適用されるコミット集合と一致する。
+        let base = upstream.unwrap_or(onto);
+        let range = format!("{base}..HEAD");
         let output = raw(worktree_path, &["log", "--format=%H%n%s", "--reverse", &range]).await?;
         Ok(parse_rebase_commits(&output))
     }

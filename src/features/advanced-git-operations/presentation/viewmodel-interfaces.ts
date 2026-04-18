@@ -38,7 +38,7 @@ export interface RebaseViewModel {
   rebaseInteractive(options: InteractiveRebaseOptions): void
   rebaseAbort(worktreePath: string): void
   rebaseContinue(worktreePath: string): void
-  getRebaseCommits(worktreePath: string, onto: string): void
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): void
   fetchBranches(worktreePath: string): void
   clearState(): void
 }

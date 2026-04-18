@@ -52,6 +52,7 @@ RepositoryDetailPanel の既存タブ構成（Info, Status, Commits, Branches, F
 | FR-010 | ブランチ操作ヘッダーのボタンをアイコンのみ + Tooltip に変更                     | 任意  | FR_710         |
 | FR-011 | コミット右クリックから指定コミットまでリセット（soft/mixed/hard サブメニュー）を実行できる。hard リセットは不可逆操作のため視覚的警告を表示する（B-002 準拠） | 推奨  | FR_711         |
 | FR-012 | リベース実行時に onto 対象をブランチ/コミット一覧から選択形式で指定できる（検索・フィルタリング付き） | 推奨  | FR_712         |
+| FR-013 | リベースの詳細モード（Switch）で upstream を別途指定し `git rebase --onto <onto> <upstream>` による分岐元付け替えを実行できる | 推奨  | FR_402_06      |
 
 # 4. API
 

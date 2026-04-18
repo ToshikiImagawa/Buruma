@@ -9,8 +9,10 @@ import { BranchCombobox } from '@/components/branch-combobox'
 import { ConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
+import { Switch } from '@/components/ui/switch'
 import { useRebaseViewModel } from '../use-rebase-viewmodel'
 
 interface RebaseEditorProps {
@@ -91,8 +93,15 @@ export function RebaseEditor({
 
   const [step, setStep] = useState<RebaseEditorStep>(initialOnto ? 'edit-commits' : 'select-onto')
   const [selectedOnto, setSelectedOnto] = useState(initialOnto ?? '')
+  // 詳細モード: onto とは別に upstream（再適用するコミット範囲の起点）を指定する。
+  // 有効時は `git rebase --onto <onto> <upstream>` となり、分岐元の付け替えが可能。
+  const [advancedMode, setAdvancedMode] = useState(false)
+  const [selectedUpstream, setSelectedUpstream] = useState('')
   const [editedSteps, setEditedSteps] = useState<RebaseStep[]>([])
   const [confirmOpen, setConfirmOpen] = useState(false)
+
+  // 詳細モード OFF 時は upstream を使わない
+  const effectiveUpstream = advancedMode && selectedUpstream ? selectedUpstream : undefined
 
   // 前回処理済みの rebaseResult を追跡し、同じ結果への二重反応を防ぐ
   const handledResultRef = useRef<typeof rebaseResult>(null)
@@ -110,6 +119,8 @@ export function RebaseEditor({
       setStep('select-onto')
       setSelectedOnto('')
     }
+    setAdvancedMode(false)
+    setSelectedUpstream('')
     setEditedSteps([])
     setConfirmOpen(false)
     handledResultRef.current = null
@@ -132,10 +143,12 @@ export function RebaseEditor({
 
   const handleNextStep = useCallback(() => {
     if (!selectedOnto) return
+    // 詳細モード有効 かつ upstream 未選択ならブロック（明示的な起点指定が必要）
+    if (advancedMode && !selectedUpstream) return
     setStep('edit-commits')
     setEditedSteps([])
-    getRebaseCommits(worktreePath, selectedOnto)
-  }, [worktreePath, selectedOnto, getRebaseCommits])
+    getRebaseCommits(worktreePath, selectedOnto, effectiveUpstream)
+  }, [worktreePath, selectedOnto, advancedMode, selectedUpstream, effectiveUpstream, getRebaseCommits])
 
   const handleBackStep = useCallback(() => {
     setStep('select-onto')
@@ -201,8 +214,8 @@ export function RebaseEditor({
   const handleConfirmExecute = useCallback(() => {
     setConfirmOpen(false)
     if (!selectedOnto || currentSteps.length === 0) return
-    rebaseInteractive({ worktreePath, onto: selectedOnto, steps: currentSteps })
-  }, [worktreePath, selectedOnto, currentSteps, rebaseInteractive])
+    rebaseInteractive({ worktreePath, onto: selectedOnto, upstream: effectiveUpstream, steps: currentSteps })
+  }, [worktreePath, selectedOnto, effectiveUpstream, currentSteps, rebaseInteractive])
 
   const hasDropOrEdit = useMemo(
     () => currentSteps.some((s) => s.action === 'drop' || s.action === 'squash' || s.action === 'fixup'),
@@ -239,7 +252,11 @@ export function RebaseEditor({
       <DialogContent className="w-fit min-w-96 max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle className="text-sm">
-            {step === 'select-onto' ? 'リベース先ブランチを選択' : `インタラクティブリベース (onto: ${selectedOnto})`}
+            {step === 'select-onto'
+              ? 'リベース先ブランチを選択'
+              : effectiveUpstream
+                ? `インタラクティブリベース (onto: ${selectedOnto}, upstream: ${effectiveUpstream})`
+                : `インタラクティブリベース (onto: ${selectedOnto})`}
           </DialogTitle>
           <DialogDescription className="text-xs">
             {step === 'select-onto'
@@ -250,15 +267,54 @@ export function RebaseEditor({
 
         {step === 'select-onto' ? (
           <div className="flex flex-col gap-4">
-            <BranchCombobox
-              localBranches={localBranches}
-              remoteBranches={remoteBranches}
-              value={selectedOnto}
-              onValueChange={setSelectedOnto}
-              placeholder="リベース先ブランチ..."
-            />
+            <div className="flex flex-col gap-1">
+              <Label className="text-xs text-muted-foreground">リベース先（onto / newbase）</Label>
+              <BranchCombobox
+                localBranches={localBranches}
+                remoteBranches={remoteBranches}
+                value={selectedOnto}
+                onValueChange={setSelectedOnto}
+                placeholder="リベース先ブランチ..."
+              />
+            </div>
+
+            <div className="flex items-center justify-between rounded border px-2 py-1.5">
+              <div className="flex flex-col">
+                <Label className="text-xs">詳細モード（--onto）</Label>
+                <span className="text-[11px] text-muted-foreground">
+                  起点ブランチ（upstream）を別途指定し、分岐元を付け替える
+                </span>
+              </div>
+              <Switch
+                checked={advancedMode}
+                onCheckedChange={(v) => {
+                  setAdvancedMode(v)
+                  if (!v) setSelectedUpstream('')
+                }}
+              />
+            </div>
+
+            {advancedMode && (
+              <div className="flex flex-col gap-1">
+                <Label className="text-xs text-muted-foreground">
+                  起点（upstream） — <code>upstream..HEAD</code> のコミットが再適用されます
+                </Label>
+                <BranchCombobox
+                  localBranches={localBranches}
+                  remoteBranches={remoteBranches}
+                  value={selectedUpstream}
+                  onValueChange={setSelectedUpstream}
+                  placeholder="起点ブランチ..."
+                />
+              </div>
+            )}
+
             <div className="flex justify-end">
-              <Button size="sm" onClick={handleNextStep} disabled={!selectedOnto || loading}>
+              <Button
+                size="sm"
+                onClick={handleNextStep}
+                disabled={!selectedOnto || (advancedMode && !selectedUpstream) || loading}
+              >
                 次へ
               </Button>
             </div>
@@ -360,7 +416,9 @@ export function RebaseEditor({
       <ConfirmationDialog
         open={confirmOpen}
         title="リベースを実行しますか？"
-        description={`onto: ${selectedOnto}  /  対象 ${currentSteps.length} コミット${
+        description={`onto: ${selectedOnto}${
+          effectiveUpstream ? `  /  upstream: ${effectiveUpstream}` : ''
+        }  /  対象 ${currentSteps.length} コミット${
           hasDropOrEdit ? '（drop / squash / fixup を含みます）' : ''
         }。\nリベースはコミット履歴を書き換える不可逆操作です。問題が発生した場合は Abort で中断できます。`}
         confirmLabel="リベース実行"
