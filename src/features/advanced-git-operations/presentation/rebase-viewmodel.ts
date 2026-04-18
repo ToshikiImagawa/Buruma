@@ -94,4 +94,9 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
         this._branches$.next(null)
       })
   }
+
+  clearState(): void {
+    this._rebaseResult$.next(null)
+    this._rebaseCommits$.next([])
+  }
 }

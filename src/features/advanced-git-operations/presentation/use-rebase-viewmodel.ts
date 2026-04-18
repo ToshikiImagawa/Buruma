@@ -25,5 +25,6 @@ export function useRebaseViewModel() {
       [vm],
     ),
     fetchBranches: useCallback((worktreePath: string) => vm.fetchBranches(worktreePath), [vm]),
+    clearState: useCallback(() => vm.clearState(), [vm]),
   }
 }

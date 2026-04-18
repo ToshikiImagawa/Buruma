@@ -6,6 +6,7 @@ import { SortableContext, arrayMove, useSortable, verticalListSortingStrategy } 
 import { CSS } from '@dnd-kit/utilities'
 import { ArrowLeft } from 'lucide-react'
 import { BranchCombobox } from '@/components/branch-combobox'
+import { ConfirmationDialog } from '@/components/confirmation-dialog'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
@@ -85,17 +86,21 @@ export function RebaseEditor({
     rebaseAbort,
     getRebaseCommits,
     fetchBranches,
+    clearState,
   } = useRebaseViewModel()
 
   const [step, setStep] = useState<RebaseEditorStep>(initialOnto ? 'edit-commits' : 'select-onto')
   const [selectedOnto, setSelectedOnto] = useState(initialOnto ?? '')
   const [editedSteps, setEditedSteps] = useState<RebaseStep[]>([])
+  const [confirmOpen, setConfirmOpen] = useState(false)
 
   // 前回処理済みの rebaseResult を追跡し、同じ結果への二重反応を防ぐ
   const handledResultRef = useRef<typeof rebaseResult>(null)
 
   useEffect(() => {
     if (!open) return
+    // ダイアログ再オープン時に前回のリベース結果が再配信されて誤発火するのを防ぐ
+    clearState()
     fetchBranches(worktreePath)
     if (initialOnto) {
       setSelectedOnto(initialOnto)
@@ -106,15 +111,17 @@ export function RebaseEditor({
       setSelectedOnto('')
     }
     setEditedSteps([])
+    setConfirmOpen(false)
     handledResultRef.current = null
-  }, [open, worktreePath, initialOnto, fetchBranches, getRebaseCommits])
+  }, [open, worktreePath, initialOnto, fetchBranches, getRebaseCommits, clearState])
 
+  // onto 変更等で rebaseCommits が更新されたら editedSteps を必ず同期する（空配列への更新も反映）
   useEffect(() => {
-    if (rebaseCommits.length > 0) {
-      setEditedSteps([...rebaseCommits])
-    }
+    setEditedSteps([...rebaseCommits])
   }, [rebaseCommits])
 
+  // 同期 useEffect が走る前の 1 フレームで空表示にならないよう、
+  // editedSteps が空の場合は rebaseCommits にフォールバックする
   const currentSteps = useMemo(
     () => (editedSteps.length > 0 ? editedSteps : rebaseCommits),
     [editedSteps, rebaseCommits],
@@ -186,10 +193,21 @@ export function RebaseEditor({
     [getStepsOrFallback],
   )
 
-  const handleExecute = useCallback(() => {
+  const handleRequestExecute = useCallback(() => {
+    if (!selectedOnto || currentSteps.length === 0) return
+    setConfirmOpen(true)
+  }, [selectedOnto, currentSteps])
+
+  const handleConfirmExecute = useCallback(() => {
+    setConfirmOpen(false)
     if (!selectedOnto || currentSteps.length === 0) return
     rebaseInteractive({ worktreePath, onto: selectedOnto, steps: currentSteps })
   }, [worktreePath, selectedOnto, currentSteps, rebaseInteractive])
+
+  const hasDropOrEdit = useMemo(
+    () => currentSteps.some((s) => s.action === 'drop' || s.action === 'squash' || s.action === 'fixup'),
+    [currentSteps],
+  )
 
   const handleAbort = useCallback(() => {
     rebaseAbort(worktreePath)
@@ -326,7 +344,7 @@ export function RebaseEditor({
                   <Button variant="destructive" size="sm" className="text-xs" onClick={handleAbort} disabled={loading}>
                     Abort
                   </Button>
-                  <Button size="sm" className="text-xs" onClick={handleExecute} disabled={loading}>
+                  <Button size="sm" className="text-xs" onClick={handleRequestExecute} disabled={loading}>
                     {loading ? 'リベース中...' : 'Execute Rebase'}
                   </Button>
                 </div>
@@ -339,6 +357,17 @@ export function RebaseEditor({
           </div>
         )}
       </DialogContent>
+      <ConfirmationDialog
+        open={confirmOpen}
+        title="リベースを実行しますか？"
+        description={`onto: ${selectedOnto}  /  対象 ${currentSteps.length} コミット${
+          hasDropOrEdit ? '（drop / squash / fixup を含みます）' : ''
+        }。\nリベースはコミット履歴を書き換える不可逆操作です。問題が発生した場合は Abort で中断できます。`}
+        confirmLabel="リベース実行"
+        variant="destructive"
+        onConfirm={handleConfirmExecute}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </Dialog>
   )
 }

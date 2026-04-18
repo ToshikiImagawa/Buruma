@@ -40,6 +40,7 @@ export interface RebaseViewModel {
   rebaseContinue(worktreePath: string): void
   getRebaseCommits(worktreePath: string, onto: string): void
   fetchBranches(worktreePath: string): void
+  clearState(): void
 }
 
 export interface StashViewModel {
