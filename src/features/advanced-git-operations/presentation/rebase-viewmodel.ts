@@ -97,6 +97,6 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
 
   clearState(): void {
     this._rebaseResult$.next(null)
-    this._rebaseCommits$.next([])
+    if (this._rebaseCommits$.getValue().length > 0) this._rebaseCommits$.next([])
   }
 }

@@ -217,7 +217,7 @@ export function RebaseEditor({
     rebaseInteractive({ worktreePath, onto: selectedOnto, upstream: effectiveUpstream, steps: currentSteps })
   }, [worktreePath, selectedOnto, effectiveUpstream, currentSteps, rebaseInteractive])
 
-  const hasDropOrEdit = useMemo(
+  const hasDestructiveAction = useMemo(
     () => currentSteps.some((s) => s.action === 'drop' || s.action === 'squash' || s.action === 'fixup'),
     [currentSteps],
   )
@@ -419,7 +419,7 @@ export function RebaseEditor({
         description={`onto: ${selectedOnto}${
           effectiveUpstream ? `  /  upstream: ${effectiveUpstream}` : ''
         }  /  対象 ${currentSteps.length} コミット${
-          hasDropOrEdit ? '（drop / squash / fixup を含みます）' : ''
+          hasDestructiveAction ? '（drop / squash / fixup を含みます）' : ''
         }。\nリベースはコミット履歴を書き換える不可逆操作です。問題が発生した場合は Abort で中断できます。`}
         confirmLabel="リベース実行"
         variant="destructive"
