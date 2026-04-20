@@ -63,8 +63,8 @@ export class AdvancedOperationsDefaultRepository implements AdvancedOperationsRe
     return result.data
   }
 
-  async getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]> {
-    const result = await invokeCommand('git_rebase_get_commits', { args: { worktreePath, onto } })
+  async getRebaseCommits(worktreePath: string, onto: string, upstream?: string): Promise<RebaseStep[]> {
+    const result = await invokeCommand('git_rebase_get_commits', { args: { worktreePath, onto, upstream } })
     if (result.success === false) throw new AdvancedOperationsError(result.error)
     return result.data
   }

@@ -62,7 +62,12 @@ pub struct MergeStatus {
 #[serde(rename_all = "camelCase")]
 pub struct RebaseOptions {
     pub worktree_path: String,
+    /// 乗せ替え先（newbase）。`git rebase --onto <onto>` の onto。
     pub onto: String,
+    /// 再適用コミット範囲の起点。指定時は `git rebase --onto <onto> <upstream>`。
+    /// 未指定時は `git rebase <onto>`（upstream = onto と同等）。
+    #[serde(default)]
+    pub upstream: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -70,6 +75,8 @@ pub struct RebaseOptions {
 pub struct InteractiveRebaseOptions {
     pub worktree_path: String,
     pub onto: String,
+    #[serde(default)]
+    pub upstream: Option<String>,
     pub steps: Vec<RebaseStep>,
 }
 
@@ -131,6 +138,8 @@ pub enum RebaseResultStatus {
 pub struct RebaseGetCommitsArgs {
     pub worktree_path: String,
     pub onto: String,
+    #[serde(default)]
+    pub upstream: Option<String>,
 }
 
 // --- Stash ---

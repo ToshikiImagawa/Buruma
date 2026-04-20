@@ -59,7 +59,13 @@ pub async fn git_rebase_get_commits(
     args: RebaseGetCommitsArgs,
     state: State<'_, AppState>,
 ) -> Result<Vec<RebaseStep>, AppError> {
-    usecases::rebase_get_commits(state.git_advanced_repo.as_ref(), &args.worktree_path, &args.onto).await
+    usecases::rebase_get_commits(
+        state.git_advanced_repo.as_ref(),
+        &args.worktree_path,
+        &args.onto,
+        args.upstream.as_deref(),
+    )
+    .await
 }
 
 // --- Stash ---

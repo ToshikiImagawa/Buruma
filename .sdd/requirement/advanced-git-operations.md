@@ -320,11 +320,12 @@ requirementDiagram
 
 **含まれる機能:**
 
-- FR_402_01: リベース対象ブランチの選択
+- FR_402_01: リベース先ブランチ（onto / newbase）の選択
 - FR_402_02: インタラクティブリベースのコミット一覧表示
 - FR_402_03: コミットの並べ替え・squash・edit・drop 操作
 - FR_402_04: リベースの実行と進行状況表示
 - FR_402_05: リベースの中止（`git rebase --abort`）
+- FR_402_06: 詳細モードで upstream を別途指定し `git rebase --onto <onto> <upstream>` による分岐元付け替えを実行できる
 
 **検証方法:** テストによる検証
 

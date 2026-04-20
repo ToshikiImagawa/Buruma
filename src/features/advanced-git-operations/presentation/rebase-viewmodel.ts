@@ -73,9 +73,9 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
       })
   }
 
-  getRebaseCommits(worktreePath: string, onto: string): void {
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): void {
     this.getRebaseCommitsUseCase
-      .invoke({ worktreePath, onto })
+      .invoke({ worktreePath, onto, upstream })
       .then((commits) => {
         this._rebaseCommits$.next(commits)
       })
@@ -93,5 +93,10 @@ export class RebaseDefaultViewModel implements RebaseViewModel {
       .catch(() => {
         this._branches$.next(null)
       })
+  }
+
+  clearState(): void {
+    this._rebaseResult$.next(null)
+    if (this._rebaseCommits$.getValue().length > 0) this._rebaseCommits$.next([])
   }
 }

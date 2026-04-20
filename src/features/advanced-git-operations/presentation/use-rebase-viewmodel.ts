@@ -21,9 +21,10 @@ export function useRebaseViewModel() {
     rebaseAbort: useCallback((worktreePath: string) => vm.rebaseAbort(worktreePath), [vm]),
     rebaseContinue: useCallback((worktreePath: string) => vm.rebaseContinue(worktreePath), [vm]),
     getRebaseCommits: useCallback(
-      (worktreePath: string, onto: string) => vm.getRebaseCommits(worktreePath, onto),
+      (worktreePath: string, onto: string, upstream?: string) => vm.getRebaseCommits(worktreePath, onto, upstream),
       [vm],
     ),
     fetchBranches: useCallback((worktreePath: string) => vm.fetchBranches(worktreePath), [vm]),
+    clearState: useCallback(() => vm.clearState(), [vm]),
   }
 }

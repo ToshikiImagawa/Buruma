@@ -173,6 +173,41 @@ const RebaseEditor = ({ worktreePath, initialOnto, open, onOpenChange, onConflic
 - `initialOnto` が指定されている場合（コンテキストメニュー経由）: `step` を `'edit-commits'` で初期化し、Step 1 をスキップ
 - `initialOnto` が未指定の場合（リベースボタン経由）: `step` を `'select-onto'` で初期化し、Step 1 から開始
 
+### 4.4.4. 詳細モード（`--onto <newbase> <upstream>` 対応 / FR-010b）
+
+Step 1（`select-onto`）に `Switch` による「詳細モード」トグルを追加する。
+
+- **OFF（デフォルト）**: 従来通り onto を 1 つ選択 → `git rebase <onto>`（= `upstream = onto`）
+- **ON**: onto に加え `upstream`（再適用コミット範囲の起点）を別途選択 → `git rebase --onto <onto> <upstream>`
+
+```tsx
+const [advancedMode, setAdvancedMode] = useState(false)
+const [selectedUpstream, setSelectedUpstream] = useState('')
+const effectiveUpstream = advancedMode && selectedUpstream ? selectedUpstream : undefined
+
+// Step 1 UI:
+//   - BranchCombobox（onto / newbase）
+//   - Switch: 詳細モード（--onto）
+//   - advancedMode が ON の時のみ: BranchCombobox（upstream）
+//   - 「次へ」ボタン（advancedMode ON 時は upstream 必須）
+//
+// コミット一覧取得:
+//   getRebaseCommits(worktreePath, selectedOnto, effectiveUpstream)
+//   → Rust 側: git log <upstream|onto>..HEAD
+//
+// 実行:
+//   rebaseInteractive({ worktreePath, onto: selectedOnto, upstream: effectiveUpstream, steps })
+//   → Rust 側: git rebase -i [--onto <onto>] <upstream|onto>
+```
+
+**ユースケース例（分岐元付け替え）**:
+- `main`: A-B-C
+- `feature-a`: A-B-C-D-E
+- `feature-b`: A-B-C-D-E-F-G（feature-a から分岐）
+- 目的: `feature-b` の F-G のみを `main` に乗せ替える
+- 操作: `feature-b` をチェックアウト → リベース → 詳細モード ON → onto: `main`, upstream: `feature-a`
+- 実行: `git rebase --onto main feature-a`  → `feature-b`: A-B-C-F-G
+
 ### 4.4.3. BranchOperations との連携
 
 コンテキストメニュー（FR-009）の「このブランチへリベース」から遷移する場合:

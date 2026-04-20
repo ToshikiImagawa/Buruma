@@ -406,16 +406,25 @@ export interface MergeStatus {
   conflictFiles?: string[]
 }
 
-/** リベースオプション */
+/** リベースオプション
+ *
+ * Git の `git rebase` 引数に対応:
+ * - `onto`: 乗せ替え先（newbase）。リベース後のベースとなるブランチ/コミット。
+ * - `upstream`: 再適用するコミット範囲の起点（`upstream..HEAD` が対象）。
+ *   未指定時は `onto` を兼用し `git rebase <onto>` と等価。
+ *   指定時は `git rebase --onto <onto> <upstream>` と等価で、分岐元の付け替えが可能。
+ */
 export interface RebaseOptions {
   worktreePath: string
   onto: string
+  upstream?: string
 }
 
 /** インタラクティブリベースオプション */
 export interface InteractiveRebaseOptions {
   worktreePath: string
   onto: string
+  upstream?: string
   steps: RebaseStep[]
 }
 

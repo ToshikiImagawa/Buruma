@@ -141,7 +141,10 @@ export interface IPCCommandMap {
   git_rebase_interactive: { args: { args: InteractiveRebaseOptions }; result: RebaseResult }
   git_rebase_abort: { args: { args: { worktreePath: string } }; result: void }
   git_rebase_continue: { args: { args: { worktreePath: string } }; result: RebaseResult }
-  git_rebase_get_commits: { args: { args: { worktreePath: string; onto: string } }; result: RebaseStep[] }
+  git_rebase_get_commits: {
+    args: { args: { worktreePath: string; onto: string; upstream?: string } }
+    result: RebaseStep[]
+  }
   git_stash_save: { args: { args: StashSaveOptions }; result: void }
   git_stash_list: { args: { args: { worktreePath: string } }; result: StashEntry[] }
   git_stash_pop: { args: { args: { worktreePath: string; index: number } }; result: void }

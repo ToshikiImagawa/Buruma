@@ -27,7 +27,7 @@ export interface AdvancedOperationsRepository {
   rebaseInteractive(options: InteractiveRebaseOptions): Promise<RebaseResult>
   rebaseAbort(worktreePath: string): Promise<void>
   rebaseContinue(worktreePath: string): Promise<RebaseResult>
-  getRebaseCommits(worktreePath: string, onto: string): Promise<RebaseStep[]>
+  getRebaseCommits(worktreePath: string, onto: string, upstream?: string): Promise<RebaseStep[]>
   stashSave(options: StashSaveOptions): Promise<void>
   stashList(worktreePath: string): Promise<StashEntry[]>
   stashPop(worktreePath: string, index: number): Promise<void>

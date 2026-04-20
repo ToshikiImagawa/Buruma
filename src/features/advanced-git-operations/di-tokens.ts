@@ -54,7 +54,7 @@ export type RebaseInteractiveRendererUseCase = FunctionUseCase<InteractiveRebase
 export type RebaseAbortRendererUseCase = ConsumerUseCase<string>
 export type RebaseContinueRendererUseCase = FunctionUseCase<string, Promise<RebaseResult>>
 export type GetRebaseCommitsRendererUseCase = FunctionUseCase<
-  { worktreePath: string; onto: string },
+  { worktreePath: string; onto: string; upstream?: string },
   Promise<RebaseStep[]>
 >
 export type GetTrackedBranchesRendererUseCase = FunctionUseCase<string, Promise<BranchList>>

@@ -34,8 +34,13 @@ pub async fn rebase_abort(repo: &dyn GitAdvancedRepository, p: &str) -> AppResul
 pub async fn rebase_continue(repo: &dyn GitAdvancedRepository, p: &str) -> AppResult<RebaseResult> {
     repo.rebase_continue(p).await
 }
-pub async fn rebase_get_commits(repo: &dyn GitAdvancedRepository, p: &str, onto: &str) -> AppResult<Vec<RebaseStep>> {
-    repo.rebase_get_commits(p, onto).await
+pub async fn rebase_get_commits(
+    repo: &dyn GitAdvancedRepository,
+    p: &str,
+    onto: &str,
+    upstream: Option<&str>,
+) -> AppResult<Vec<RebaseStep>> {
+    repo.rebase_get_commits(p, onto, upstream).await
 }
 // Stash
 pub async fn stash_save(repo: &dyn GitAdvancedRepository, o: &StashSaveOptions) -> AppResult<()> {
