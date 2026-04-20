@@ -1,6 +1,6 @@
 [package]
 name = "buruma"
-version = "0.1.0"
+version = "0.2.0"
 description = "Buruma - Branch-United Real-time Understanding & Multi-worktree Analyzer"
 authors = ["Toshiki Imagawa"]
 license = "MIT"
