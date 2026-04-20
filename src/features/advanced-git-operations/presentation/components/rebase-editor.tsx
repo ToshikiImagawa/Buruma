@@ -213,14 +213,10 @@ export function RebaseEditor({
 
   const handleConfirmExecute = useCallback(() => {
     setConfirmOpen(false)
-    if (!selectedOnto || currentSteps.length === 0) return
     rebaseInteractive({ worktreePath, onto: selectedOnto, upstream: effectiveUpstream, steps: currentSteps })
   }, [worktreePath, selectedOnto, effectiveUpstream, currentSteps, rebaseInteractive])
 
-  const hasDestructiveAction = useMemo(
-    () => currentSteps.some((s) => s.action === 'drop' || s.action === 'squash' || s.action === 'fixup'),
-    [currentSteps],
-  )
+  const hasNonPickAction = useMemo(() => currentSteps.some((s) => s.action !== 'pick'), [currentSteps])
 
   const handleAbort = useCallback(() => {
     rebaseAbort(worktreePath)
@@ -419,7 +415,7 @@ export function RebaseEditor({
         description={`onto: ${selectedOnto}${
           effectiveUpstream ? `  /  upstream: ${effectiveUpstream}` : ''
         }  /  対象 ${currentSteps.length} コミット${
-          hasDestructiveAction ? '（drop / squash / fixup を含みます）' : ''
+          hasNonPickAction ? '（pick 以外のアクションを含みます）' : ''
         }。\nリベースはコミット履歴を書き換える不可逆操作です。問題が発生した場合は Abort で中断できます。`}
         confirmLabel="リベース実行"
         variant="destructive"
