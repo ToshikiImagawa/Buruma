@@ -97,6 +97,7 @@ export const applicationFoundationConfig: VContainerConfig = {
       .registerSingleton(UpdateSettingsUseCaseToken, UpdateSettingsDefaultUseCase, [
         SettingsRepositoryToken,
         SettingsServiceToken,
+        ErrorNotificationServiceToken,
       ])
       .registerSingleton(GetErrorNotificationsUseCaseToken, GetErrorNotificationsDefaultUseCase, [
         ErrorNotificationServiceToken,

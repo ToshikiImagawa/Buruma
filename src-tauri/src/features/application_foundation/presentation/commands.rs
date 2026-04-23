@@ -1,4 +1,4 @@
-//! `#[tauri::command]` 関数群 — 11 commands for application-foundation feature.
+//! `#[tauri::command]` 関数群 — 12 commands for application-foundation feature.
 //!
 //! 各 command は AppState から Repository を取得し、UseCase を呼び出す。
 //! 戻り値は `Result<T, AppError>` で、Tauri が自動的に JSON シリアライズする。

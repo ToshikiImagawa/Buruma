@@ -61,6 +61,8 @@ export function WorktreeListItem({ worktree, selected, onSelect, onDelete }: Wor
           )}
         </div>
       </ContextMenuTrigger>
+      {/* FileContextMenu は汎用ファイル向け（デフォルトアプリ＋エディタ）だが、
+          ワークツリーは削除等の固有アクションがあるため独自メニューを使用 */}
       <ContextMenuContent>
         <ContextMenuItem onClick={() => openInEditor.invoke(worktree.path)}>
           <Code className="mr-2 h-4 w-4" />

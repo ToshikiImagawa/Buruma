@@ -44,6 +44,8 @@ impl DialogRepository for TauriDialogRepository {
             builder = builder.add_filter("Executable", &["exe"]);
         }
 
+        // Linux: フィルタなし（実行ファイルの拡張子が統一されていないため）
+
         let result = builder.blocking_pick_file();
         Ok(result.map(|p| p.to_string()))
     }

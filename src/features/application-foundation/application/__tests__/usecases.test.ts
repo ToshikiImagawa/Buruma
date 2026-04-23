@@ -185,12 +185,26 @@ describe('UpdateSettingsUseCase', () => {
   it('repo.update → service に反映', async () => {
     const repo = createMockSettingsRepo()
     const service = createMockSettingsService()
-    const useCase = new UpdateSettingsDefaultUseCase(repo, service)
+    const errorService = createMockErrorService()
+    const useCase = new UpdateSettingsDefaultUseCase(repo, service, errorService)
 
     useCase.invoke({ theme: 'dark' })
     await vi.waitFor(() => {
       expect(repo.update).toHaveBeenCalledWith({ theme: 'dark' })
       expect(service.updateSettings).toHaveBeenCalledWith({ theme: 'dark' })
+    })
+  })
+
+  it('repo.update 失敗時: errorService に通知される', async () => {
+    const repo = createMockSettingsRepo()
+    repo.update = vi.fn().mockRejectedValue(new Error('save failed'))
+    const service = createMockSettingsService()
+    const errorService = createMockErrorService()
+    const useCase = new UpdateSettingsDefaultUseCase(repo, service, errorService)
+
+    useCase.invoke({ theme: 'dark' })
+    await vi.waitFor(() => {
+      expect(errorService.notifyError).toHaveBeenCalledWith('設定の保存に失敗しました', expect.any(Error))
     })
   })
 })

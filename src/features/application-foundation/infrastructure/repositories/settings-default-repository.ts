@@ -11,7 +11,8 @@ export class SettingsDefaultRepository implements SettingsRepository {
 
   async update(settings: Partial<AppSettings>): Promise<void> {
     // Rust の settings_set は完全な AppSettings を期待するため、
-    // 現在の設定を取得してマージしてから保存する
+    // 現在の設定を取得してマージしてから保存する。
+    // 注意: 並行呼び出し時は last-write-wins になる（設定変更は低頻度のため許容）。
     const current = await this.get()
     const merged = { ...current, ...settings }
     const result = await invokeCommand('settings_set', { settings: merged })

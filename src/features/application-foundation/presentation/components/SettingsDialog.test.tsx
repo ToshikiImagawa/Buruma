@@ -159,4 +159,19 @@ describe('SettingsDialog', () => {
 
     expect(mockUpdateSettings).toHaveBeenCalledWith({ externalEditor: null })
   })
+
+  it('「選択...」ボタンを押すと selectEditorApp が呼ばれる', () => {
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
+      settings: defaultSettings,
+      updateSettings: mockUpdateSettings,
+      setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
+    })
+
+    render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+    fireEvent.click(screen.getByText('選択...'))
+
+    expect(mockSelectEditorApp).toHaveBeenCalled()
+  })
 })

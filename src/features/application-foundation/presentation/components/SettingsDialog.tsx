@@ -37,10 +37,6 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
     updateSettings({ commitMessageRules: e.target.value || null })
   }
 
-  const handleSelectEditorApp = () => {
-    selectEditorApp()
-  }
-
   const handleClearEditorApp = () => {
     updateSettings({ externalEditor: null })
   }
@@ -123,7 +119,7 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
                     <span className="text-muted-foreground">未設定</span>
                   )}
                 </div>
-                <Button variant="outline" size="sm" onClick={handleSelectEditorApp}>
+                <Button variant="outline" size="sm" onClick={() => selectEditorApp()}>
                   選択...
                 </Button>
                 {settings.externalEditor && (
@@ -202,6 +198,6 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
 
 /** パスからアプリ名を抽出する (例: "/Applications/Visual Studio Code.app" → "Visual Studio Code") */
 function extractAppName(appPath: string): string {
-  const name = appPath.split('/').pop() ?? appPath
-  return name.replace(/\.app$/i, '') || name
+  const name = appPath.split(/[/\\]/).pop() ?? appPath
+  return name.replace(/\.(app|exe)$/i, '') || name
 }
