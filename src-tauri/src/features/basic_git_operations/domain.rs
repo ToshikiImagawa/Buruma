@@ -34,6 +34,8 @@ pub struct PushArgs {
     pub remote: Option<String>,
     pub branch: Option<String>,
     pub set_upstream: Option<bool>,
+    #[serde(default)]
+    pub force: bool,
 }
 
 #[derive(Debug, Clone, Deserialize)]

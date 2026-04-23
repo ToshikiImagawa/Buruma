@@ -310,6 +310,7 @@ export interface PushArgs {
   remote?: string
   branch?: string
   setUpstream?: boolean
+  force?: boolean
 }
 
 /** プッシュ結果 */

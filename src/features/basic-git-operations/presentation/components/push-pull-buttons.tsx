@@ -3,6 +3,7 @@ import type { BranchInfo, GitProgressEvent } from '@domain'
 import { listenEventSync } from '@lib/invoke/events'
 import { ArrowDown, ArrowUp, ChevronDown, ChevronRight, Loader2, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Input } from '@/components/ui/input'
 import { useRemoteOpsViewModel } from '../use-remote-ops-viewmodel'
 
@@ -17,6 +18,7 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
   const [showAdvanced, setShowAdvanced] = useState(false)
   const [customRemote, setCustomRemote] = useState('')
   const [customBranch, setCustomBranch] = useState('')
+  const [forcePush, setForcePush] = useState(false)
   const [progress, setProgress] = useState<GitProgressEvent | null>(null)
 
   useEffect(() => {
@@ -35,9 +37,9 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
 
   const handlePush = () => {
     if (!currentBranch?.upstream && !customRemote) {
-      push(worktreePath, targetRemote, targetBranch, true)
+      push(worktreePath, targetRemote, targetBranch, true, forcePush)
     } else {
-      push(worktreePath, targetRemote, targetBranch)
+      push(worktreePath, targetRemote, targetBranch, undefined, forcePush)
     }
     onRefresh()
   }
@@ -89,22 +91,33 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
         リモート設定
       </button>
       {showAdvanced && (
-        <div className="flex items-center gap-1">
-          <Input
-            className="h-6 flex-1 text-xs"
-            placeholder={upstreamRemote ?? 'origin'}
-            value={customRemote}
-            onChange={(e) => setCustomRemote(e.target.value)}
-            disabled={loading}
-          />
-          <span className="text-xs text-muted-foreground">/</span>
-          <Input
-            className="h-6 flex-1 text-xs"
-            placeholder={currentBranch?.name ?? 'branch'}
-            value={customBranch}
-            onChange={(e) => setCustomBranch(e.target.value)}
-            disabled={loading}
-          />
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-1">
+            <Input
+              className="h-6 flex-1 text-xs"
+              placeholder={upstreamRemote ?? 'origin'}
+              value={customRemote}
+              onChange={(e) => setCustomRemote(e.target.value)}
+              disabled={loading}
+            />
+            <span className="text-xs text-muted-foreground">/</span>
+            <Input
+              className="h-6 flex-1 text-xs"
+              placeholder={currentBranch?.name ?? 'branch'}
+              value={customBranch}
+              onChange={(e) => setCustomBranch(e.target.value)}
+              disabled={loading}
+            />
+          </div>
+          <label className="flex items-center gap-1.5">
+            <Checkbox
+              checked={forcePush}
+              onCheckedChange={(checked) => setForcePush(checked === true)}
+              disabled={loading}
+              className="h-3.5 w-3.5"
+            />
+            <span className="text-xs text-muted-foreground">Force push (--force-with-lease)</span>
+          </label>
         </div>
       )}
       {loading && progress && (

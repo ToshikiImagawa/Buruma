@@ -36,9 +36,10 @@ export class RemoteOpsDefaultViewModel implements RemoteOpsViewModel {
     remote?: string,
     branch?: string,
     setUpstream?: boolean,
+    force?: boolean,
   ): Promise<PushResult | null> {
     try {
-      const result = await this.pushUseCase.invoke({ worktreePath, remote, branch, setUpstream })
+      const result = await this.pushUseCase.invoke({ worktreePath, remote, branch, setUpstream, force })
       this._lastPushResult$.next(result)
       return result
     } catch {

@@ -16,8 +16,8 @@ export function useRemoteOpsViewModel() {
     lastPushResult,
     lastPullResult,
     push: useCallback(
-      (worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean) =>
-        vm.push(worktreePath, remote, branch, setUpstream),
+      (worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean, force?: boolean) =>
+        vm.push(worktreePath, remote, branch, setUpstream, force),
       [vm],
     ),
     pull: useCallback(

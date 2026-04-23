@@ -66,6 +66,9 @@ impl GitWriteRepository for DefaultGitWriteRepository {
         let set_upstream = args.set_upstream.unwrap_or(false);
 
         let mut cmd_args: Vec<String> = vec!["push".to_string()];
+        if args.force {
+            cmd_args.push("--force-with-lease".to_string());
+        }
         if set_upstream {
             cmd_args.push("-u".to_string());
         }

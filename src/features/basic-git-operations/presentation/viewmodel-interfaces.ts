@@ -24,7 +24,13 @@ export interface RemoteOpsViewModel {
   readonly lastError$: Observable<IPCError | null>
   readonly lastPushResult$: Observable<PushResult | null>
   readonly lastPullResult$: Observable<PullResult | null>
-  push(worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean): Promise<PushResult | null>
+  push(
+    worktreePath: string,
+    remote?: string,
+    branch?: string,
+    setUpstream?: boolean,
+    force?: boolean,
+  ): Promise<PushResult | null>
   pull(worktreePath: string, remote?: string, branch?: string): void
   fetch(worktreePath: string, remote?: string): void
 }
