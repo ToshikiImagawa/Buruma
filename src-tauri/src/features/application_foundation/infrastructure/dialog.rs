@@ -30,6 +30,7 @@ impl DialogRepository for TauriDialogRepository {
     }
 
     async fn show_select_application_dialog(&self) -> AppResult<Option<String>> {
+        #[allow(unused_mut)] // macOS/Windows の cfg ブロックで再代入するため mut が必要
         let mut builder = self.app_handle.dialog().file().set_title("エディタアプリを選択");
 
         #[cfg(target_os = "macos")]
