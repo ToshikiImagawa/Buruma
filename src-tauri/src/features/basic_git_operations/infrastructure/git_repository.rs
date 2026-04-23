@@ -206,7 +206,11 @@ impl GitWriteRepository for DefaultGitWriteRepository {
 
 /// git コマンドを実行し、成功時は (stdout, stderr)、失敗時は stderr を返す。
 /// push/pull 等は stderr にも有用な情報を出力するため、raw() とは別に用意。
+/// worktree 単位のロックでシリアライズされる。
 async fn git_raw_with_stderr(cwd: &str, args: &[&str]) -> Result<(String, String), String> {
+    let lock = crate::git::command::get_worktree_lock(cwd);
+    let _guard = lock.lock().await;
+
     let output = Command::new("git")
         .args(args)
         .current_dir(cwd)

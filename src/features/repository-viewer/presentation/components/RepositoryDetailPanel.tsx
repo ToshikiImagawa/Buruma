@@ -248,7 +248,7 @@ export function RepositoryDetailPanel() {
       <div className="flex-1 overflow-hidden">
         <TabsContent value="status" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={10}>
+            <ResizablePanel defaultSize="33%" minSize="10%">
               <div className="h-full overflow-auto">
                 <StagingArea
                   worktreePath={selectedWorktree.path}
@@ -276,7 +276,7 @@ export function RepositoryDetailPanel() {
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67} minSize={10}>
+            <ResizablePanel defaultSize="67%" minSize="10%">
               <div className="flex h-full flex-col overflow-hidden">
                 <TooltipProvider delayDuration={300}>
                   <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">
@@ -409,10 +409,10 @@ export function RepositoryDetailPanel() {
               {/* メインコンテンツ */}
               <ResizablePanelGroup direction="horizontal" className="flex-1">
                 <ResizablePanel
-                  defaultSize={20}
-                  minSize={10}
+                  defaultSize="20%"
+                  minSize="10%"
                   collapsible={true}
-                  collapsedSize={0}
+                  collapsedSize="0%"
                   panelRef={branchPanelRef}
                   onResize={(size) => setBranchPanelCollapsed(size.asPercentage === 0)}
                 >
@@ -430,7 +430,7 @@ export function RepositoryDetailPanel() {
                   </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={30} minSize={10}>
+                <ResizablePanel defaultSize="30%" minSize="10%">
                   <div className="flex h-full flex-col">
                     <div className="flex items-center border-b px-2 py-1">
                       <span className="text-xs font-semibold text-muted-foreground">コミット履歴</span>
@@ -461,7 +461,7 @@ export function RepositoryDetailPanel() {
                   </div>
                 </ResizablePanel>
                 <ResizableHandle withHandle />
-                <ResizablePanel defaultSize={50} minSize={10}>
+                <ResizablePanel defaultSize="50%" minSize="10%">
                   <div className="flex h-full flex-col overflow-hidden">
                     {selectedCommitHash ? (
                       <>
@@ -500,7 +500,7 @@ export function RepositoryDetailPanel() {
                         </div>
                         <div className="min-h-0 flex-1">
                           <ResizablePanelGroup direction="vertical">
-                            <ResizablePanel defaultSize={40} minSize={10}>
+                            <ResizablePanel defaultSize="40%" minSize="10%">
                               <div className="h-full overflow-auto">
                                 <CommitDetailView
                                   worktreePath={selectedWorktree.path}
@@ -510,7 +510,7 @@ export function RepositoryDetailPanel() {
                               </div>
                             </ResizablePanel>
                             <ResizableHandle withHandle />
-                            <ResizablePanel defaultSize={60} minSize={10}>
+                            <ResizablePanel defaultSize="60%" minSize="10%">
                               {commitViewMode === 'hunk' ? (
                                 <MultiFileDiffPanel
                                   worktreePath={selectedWorktree.path}
@@ -554,13 +554,13 @@ export function RepositoryDetailPanel() {
 
         <TabsContent value="files" className="mt-0 h-full">
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={10}>
+            <ResizablePanel defaultSize="33%" minSize="10%">
               <div className="h-full overflow-auto">
                 <FileTree worktreePath={selectedWorktree.path} onFileSelect={handleTreeFileSelect} />
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67} minSize={10}>
+            <ResizablePanel defaultSize="67%" minSize="10%">
               <div className="h-full overflow-hidden">
                 {treeFilePath ? (
                   <DiffView worktreePath={selectedWorktree.path} filePath={treeFilePath} />
@@ -637,7 +637,7 @@ function RefsTab({
       <div className="min-h-0 flex-1">
         {view === 'stash' ? (
           <ResizablePanelGroup direction="horizontal" className="h-full">
-            <ResizablePanel defaultSize={33} minSize={10}>
+            <ResizablePanel defaultSize="33%" minSize="10%">
               <div className="h-full overflow-auto">
                 <StashManager
                   worktreePath={worktreePath}
@@ -648,7 +648,7 @@ function RefsTab({
               </div>
             </ResizablePanel>
             <ResizableHandle withHandle />
-            <ResizablePanel defaultSize={67} minSize={10}>
+            <ResizablePanel defaultSize="67%" minSize="10%">
               <div className="flex h-full flex-col overflow-hidden">
                 <TooltipProvider delayDuration={300}>
                   <div className="flex shrink-0 items-center gap-1 border-b px-2 py-1">

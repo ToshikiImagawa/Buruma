@@ -106,13 +106,13 @@ export function AiDiffPanel({
       </div>
       <div className="min-h-0 flex-1">
         <ResizablePanelGroup direction="vertical">
-          <ResizablePanel id="main-content" defaultSize={aiPanelMode ? 70 : 100} minSize={20}>
+          <ResizablePanel id="main-content" defaultSize={aiPanelMode ? '70%' : '100%'} minSize="20%">
             {children}
           </ResizablePanel>
           {aiPanelMode && (
             <>
               <ResizableHandle withHandle />
-              <ResizablePanel id="ai-panel" defaultSize={30} minSize={10}>
+              <ResizablePanel id="ai-panel" defaultSize="30%" minSize="10%">
                 <div className="flex h-full flex-col border-t">
                   <div className="flex shrink-0 items-center gap-2 px-3 py-1.5">
                     <span className="flex-1 text-xs font-medium">

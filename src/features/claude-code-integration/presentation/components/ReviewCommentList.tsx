@@ -21,7 +21,9 @@ export function ReviewCommentList({ comments, summary, onCommentClick }: ReviewC
 
   return (
     <div className="flex flex-col gap-2">
-      {summary && <div className="rounded-md border border-border bg-muted/50 p-3 text-sm">{summary}</div>}
+      {summary && (
+        <div className="whitespace-pre-wrap rounded-md border border-border bg-muted/50 p-3 text-sm">{summary}</div>
+      )}
       {comments.length > 0 && (
         <div className="flex flex-col gap-1.5">
           {comments.map((comment) => {
@@ -49,7 +51,7 @@ export function ReviewCommentList({ comments, summary, onCommentClick }: ReviewC
                       {comment.lineEnd !== comment.lineStart && `-${comment.lineEnd}`}
                     </span>
                   </div>
-                  <p className="mt-0.5">{comment.message}</p>
+                  <p className="mt-0.5 whitespace-pre-wrap">{comment.message}</p>
                   {comment.suggestion && (
                     <pre className="mt-1.5 overflow-x-auto rounded bg-background/80 p-1.5 font-mono text-xs">
                       {comment.suggestion}

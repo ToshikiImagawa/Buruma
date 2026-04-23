@@ -1,9 +1,11 @@
 import type {
+  ChatMessage,
   ClaudeAuthStatus,
   ClaudeCommand,
   ClaudeOutput,
   ClaudeSession,
   ConflictResolveAIRequest,
+  ConversationSummary,
   ReviewComment,
   SessionStatus,
 } from '@domain'
@@ -46,6 +48,10 @@ export type GenerateCommitMessageRendererUseCase = FunctionUseCase<
   Promise<string>
 >
 export type ResolveConflictRendererUseCase = FunctionUseCase<ConflictResolveAIRequest, Promise<void>>
+export type GetChatMessagesRendererUseCase = ObservableStoreUseCase<ChatMessage[]>
+export type GetIsCommandRunningRendererUseCase = ObservableStoreUseCase<boolean>
+export type GetConversationsRendererUseCase = ObservableStoreUseCase<ConversationSummary[]>
+export type GetCurrentConversationIdRendererUseCase = ObservableStoreUseCase<string | null>
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
@@ -90,6 +96,19 @@ export const GenerateCommitMessageRendererUseCaseToken = createToken<GenerateCom
 
 export const ResolveConflictRendererUseCaseToken = createToken<ResolveConflictRendererUseCase>(
   'ResolveConflictRendererUseCase',
+)
+
+export const GetChatMessagesRendererUseCaseToken = createToken<GetChatMessagesRendererUseCase>(
+  'GetChatMessagesRendererUseCase',
+)
+export const GetIsCommandRunningRendererUseCaseToken = createToken<GetIsCommandRunningRendererUseCase>(
+  'GetIsCommandRunningRendererUseCase',
+)
+export const GetConversationsRendererUseCaseToken = createToken<GetConversationsRendererUseCase>(
+  'GetConversationsRendererUseCase',
+)
+export const GetCurrentConversationIdRendererUseCaseToken = createToken<GetCurrentConversationIdRendererUseCase>(
+  'GetCurrentConversationIdRendererUseCase',
 )
 
 export const ClaudeSessionViewModelToken = createToken<ClaudeSessionViewModel>('ClaudeSessionViewModel')

@@ -147,6 +147,8 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
 
     async fn delete_branch(&self, repo_path: &str, branch: &str, force: bool) -> AppResult<BranchDeleteResult> {
         let flag = if force { "-D" } else { "-d" };
+        let lock = crate::git::command::get_worktree_lock(repo_path);
+        let _guard = lock.lock().await;
         let output = Command::new("git")
             .args(["-C", repo_path, "branch", flag, branch])
             .output()
@@ -191,6 +193,9 @@ impl WorktreeGitRepository for DefaultWorktreeGitRepository {
 // --- git CLI ヘルパー ---
 
 async fn git_raw(cwd: &str, args: &[&str]) -> AppResult<String> {
+    let lock = crate::git::command::get_worktree_lock(cwd);
+    let _guard = lock.lock().await;
+
     let output = Command::new("git")
         .args(args)
         .current_dir(cwd)

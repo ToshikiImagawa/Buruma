@@ -43,7 +43,12 @@ impl ClaudeRepository for DefaultClaudeRepository {
 
     async fn send_command(&self, command: &ClaudeCommand, app_handle: tauri::AppHandle) -> AppResult<()> {
         self.manager
-            .send_command(&command.worktree_path, &command.input, app_handle)
+            .send_command(
+                &command.worktree_path,
+                &command.input,
+                command.model.as_deref(),
+                app_handle,
+            )
             .await
     }
 

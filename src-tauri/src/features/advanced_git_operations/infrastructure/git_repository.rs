@@ -138,13 +138,17 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
             Some(upstream) => vec!["rebase", "-i", "--onto", &options.onto, upstream],
             None => vec!["rebase", "-i", &options.onto],
         };
-        let result = Command::new("git")
-            .args(&rebase_args)
-            .current_dir(&options.worktree_path)
-            .env("GIT_SEQUENCE_EDITOR", &editor_script)
-            .output()
-            .await
-            .map_err(|e| AppError::GitError(format!("git rebase -i failed: {e}")))?;
+        let result = {
+            let lock = crate::git::command::get_worktree_lock(&options.worktree_path);
+            let _guard = lock.lock().await;
+            Command::new("git")
+                .args(&rebase_args)
+                .current_dir(&options.worktree_path)
+                .env("GIT_SEQUENCE_EDITOR", &editor_script)
+                .output()
+                .await
+                .map_err(|e| AppError::GitError(format!("git rebase -i failed: {e}")))?
+        };
 
         // クリーンアップ
         let _ = tokio::fs::remove_file(&todo_file).await;
@@ -159,6 +163,7 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
         } else {
             let stderr = String::from_utf8_lossy(&result.stderr).to_string();
             if stderr.contains("CONFLICT") || stderr.contains("could not apply") {
+                // ロック解放後に raw() 経由で git status を呼ぶためデッドロックしない
                 let conflicts = get_conflicted_files(&options.worktree_path).await;
                 Ok(RebaseResult {
                     status: RebaseResultStatus::Conflict,
@@ -474,6 +479,9 @@ impl GitAdvancedRepository for DefaultGitAdvancedRepository {
 // --- ヘルパー ---
 
 async fn git_raw_with_stderr(cwd: &str, args: &[&str]) -> Result<(String, String), String> {
+    let lock = crate::git::command::get_worktree_lock(cwd);
+    let _guard = lock.lock().await;
+
     let output = Command::new("git")
         .args(args)
         .current_dir(cwd)

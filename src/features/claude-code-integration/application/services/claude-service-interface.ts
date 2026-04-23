@@ -1,9 +1,11 @@
 import type {
+  ChatMessage,
   ClaudeAuthStatus,
   ClaudeOutput,
   ClaudeSession,
   ConflictResolveResult,
   ConflictResolvingProgress,
+  ConversationSummary,
   ExplainResult,
   ReviewComment,
   ReviewResult,
@@ -27,6 +29,22 @@ export interface ClaudeService extends BaseService {
   readonly isResolvingConflict$: Observable<boolean>
   readonly conflictResult$: Observable<ConflictResolveResult | null>
   readonly resolvingProgress$: Observable<ConflictResolvingProgress | null>
+  readonly chatMessages$: Observable<ChatMessage[]>
+  readonly isCommandRunning$: Observable<boolean>
+  readonly conversations$: Observable<ConversationSummary[]>
+  readonly currentConversationId$: Observable<string | null>
+  readonly selectedModel$: Observable<string>
+  getSelectedModel(): string
+  setSelectedModel(model: string): void
+  addChatMessage(message: ChatMessage): void
+  appendToLastAssistantMessage(content: string): void
+  finalizeLastAssistantMessage(): void
+  clearChatMessages(): void
+  setCommandRunning(running: boolean): void
+  createConversation(): string
+  switchConversation(id: string): void
+  deleteConversation(id: string): void
+  startNewConversation(): void
   updateSession(session: ClaudeSession | null): void
   appendOutput(output: ClaudeOutput): void
   clearOutputs(): void

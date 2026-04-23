@@ -592,9 +592,24 @@ export interface ClaudeCommand {
   worktreePath: string
   type: ClaudeCommandType
   input: string
+  model?: string
 }
 
 export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
+
+/** サポートされるモデル */
+export interface ClaudeModelInfo {
+  id: string
+  label: string
+}
+
+export const SUPPORTED_MODELS: readonly ClaudeModelInfo[] = [
+  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
+  { id: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
+  { id: 'claude-haiku-4-20250506', label: 'Claude Haiku 4' },
+] as const
+
+export const DEFAULT_MODEL = SUPPORTED_MODELS[0].id
 
 /** コミットメッセージ生成リクエスト */
 export interface GenerateCommitMessageArgs {
@@ -641,6 +656,34 @@ export interface ReviewResult {
 export interface ExplainResult {
   worktreePath: string
   explanation: string
+}
+
+/** チャットメッセージ */
+export type ChatMessageRole = 'user' | 'assistant'
+
+export interface ChatMessage {
+  id: string
+  role: ChatMessageRole
+  content: string
+  timestamp: string // ISO 8601
+}
+
+/** 会話 */
+export interface Conversation {
+  id: string
+  title: string
+  messages: ChatMessage[]
+  createdAt: string // ISO 8601
+  updatedAt: string // ISO 8601
+}
+
+/** 会話サマリー（一覧表示用） */
+export interface ConversationSummary {
+  id: string
+  title: string
+  lastMessagePreview: string
+  messageCount: number
+  updatedAt: string // ISO 8601
 }
 
 /** Git 書き込み操作の種類（UI 自動更新トリガーで利用） */

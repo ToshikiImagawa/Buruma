@@ -1,7 +1,9 @@
 import type {
+  ChatMessage,
   ClaudeOutput,
   ConflictResolveResult,
   ConflictResolvingProgress,
+  ConversationSummary,
   DiffTarget,
   ReviewComment,
   SessionStatus,
@@ -12,10 +14,19 @@ import type { Observable } from 'rxjs'
 export interface ClaudeSessionViewModel {
   readonly status$: Observable<SessionStatus>
   readonly outputs$: Observable<ClaudeOutput[]>
+  readonly chatMessages$: Observable<ChatMessage[]>
   readonly isSessionActive$: Observable<boolean>
+  readonly isCommandRunning$: Observable<boolean>
+  readonly conversations$: Observable<ConversationSummary[]>
+  readonly currentConversationId$: Observable<string | null>
+  readonly selectedModel$: Observable<string>
+  setSelectedModel(model: string): void
   startSession(worktreePath: string): void
   stopSession(worktreePath: string): void
   sendCommand(worktreePath: string, input: string): void
+  switchConversation(id: string): void
+  deleteConversation(id: string): void
+  startNewConversation(): void
 }
 
 export interface ClaudeReviewViewModel {

@@ -44,6 +44,8 @@ pub struct ClaudeCommand {
     #[serde(rename = "type")]
     pub command_type: ClaudeCommandType,
     pub input: String,
+    #[serde(default)]
+    pub model: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

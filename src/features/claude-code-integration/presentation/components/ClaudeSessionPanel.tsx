@@ -1,17 +1,35 @@
-import { useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { listenEventSync } from '@lib/invoke/events'
-import { FileSearch, GitBranch, GitCommit, Loader2, LogIn } from 'lucide-react'
+import {
+  FileSearch,
+  GitBranch,
+  GitCommit,
+  Loader2,
+  LogIn,
+  MessageSquare,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Terminal,
+} from 'lucide-react'
+import { usePanelRef } from 'react-resizable-panels'
 import { Button } from '@/components/ui/button'
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from '@/components/ui/resizable'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useClaudeAuth } from '../use-claude-auth'
 import { useClaudeSessionViewModel } from '../use-claude-session-viewmodel'
+import { ChatMessageList } from './ChatMessageList'
 import { ClaudeOutputView } from './ClaudeOutputView'
 import { CommandInput } from './CommandInput'
+import { ConversationSidebar } from './ConversationSidebar'
+import { ModelSelector } from './ModelSelector'
 import { SessionStatusIndicator } from './SessionStatusIndicator'
 
 interface ClaudeSessionPanelProps {
   worktreePath: string
   onCommandCompleted?: () => void
 }
+
+type ViewMode = 'chat' | 'terminal'
 
 const QUICK_ACTIONS = [
   {
@@ -32,12 +50,40 @@ const QUICK_ACTIONS = [
 ]
 
 export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeSessionPanelProps) {
-  const { status, outputs, isSessionActive, startSession, stopSession, sendCommand } = useClaudeSessionViewModel()
+  const {
+    status,
+    outputs,
+    chatMessages,
+    isSessionActive,
+    isCommandRunning,
+    conversations,
+    currentConversationId,
+    selectedModel,
+    startSession,
+    stopSession,
+    sendCommand,
+    switchConversation,
+    deleteConversation,
+    startNewConversation,
+    setSelectedModel,
+  } = useClaudeSessionViewModel()
   const { authStatus, isAuthChecking, isLoggingIn, login } = useClaudeAuth()
+  const [viewMode, setViewMode] = useState<ViewMode>('chat')
+  const [sidebarOpen, setSidebarOpen] = useState(true)
+  const sidebarRef = usePanelRef()
+
+  const toggleSidebar = useCallback(() => {
+    const panel = sidebarRef.current
+    if (!panel) return
+    if (panel.isCollapsed()) {
+      panel.expand()
+    } else {
+      panel.collapse()
+    }
+  }, [sidebarRef])
 
   const isRunning = status === 'running'
 
-  // コマンド完了時にステータスをリフレッシュ
   useEffect(() => {
     if (!onCommandCompleted) return
     return listenEventSync<{ worktreePath: string }>('claude-command-completed', (data) => {
@@ -47,7 +93,6 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
     })
   }, [worktreePath, onCommandCompleted])
 
-  // 認証チェック中
   if (isAuthChecking && authStatus === null) {
     return (
       <div className="flex h-full items-center justify-center">
@@ -56,7 +101,6 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
     )
   }
 
-  // 未認証
   if (authStatus?.authenticated === false) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
@@ -87,43 +131,118 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <SessionStatusIndicator status={status} />
-        <Button
-          size="sm"
-          variant={isSessionActive ? 'destructive' : 'default'}
-          className="h-7 text-xs"
-          onClick={() => (isSessionActive ? stopSession(worktreePath) : startSession(worktreePath))}
+    <TooltipProvider delayDuration={300}>
+      <ResizablePanelGroup direction="horizontal" className="h-full">
+        <ResizablePanel
+          panelRef={sidebarRef}
+          defaultSize="25%"
+          minSize="15%"
+          maxSize="60%"
+          collapsible
+          collapsedSize="0%"
+          onResize={(size) => setSidebarOpen(size.asPercentage > 0)}
         >
-          {isSessionActive ? 'セッション停止' : 'セッション開始'}
-        </Button>
-      </div>
+          <ConversationSidebar
+            conversations={conversations}
+            currentConversationId={currentConversationId}
+            onSelect={switchConversation}
+            onDelete={deleteConversation}
+            onNew={startNewConversation}
+          />
+        </ResizablePanel>
+        <ResizableHandle withHandle />
+        <ResizablePanel defaultSize="75%">
+          <div className="flex h-full flex-col">
+            <div className="flex items-center justify-between border-b px-3 py-2">
+              <div className="flex items-center gap-1">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="h-7 w-7" onClick={toggleSidebar}>
+                      {sidebarOpen ? (
+                        <PanelLeftClose className="h-3.5 w-3.5" />
+                      ) : (
+                        <PanelLeftOpen className="h-3.5 w-3.5" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>{sidebarOpen ? '履歴を隠す' : '履歴を表示'}</TooltipContent>
+                </Tooltip>
+                <SessionStatusIndicator status={status} />
+              </div>
+              <div className="flex items-center gap-1">
+                <ModelSelector value={selectedModel} onChange={setSelectedModel} disabled={isCommandRunning} />
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${viewMode === 'chat' ? 'bg-accent' : ''}`}
+                      onClick={() => setViewMode('chat')}
+                    >
+                      <MessageSquare className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>チャット表示</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`h-7 w-7 ${viewMode === 'terminal' ? 'bg-accent' : ''}`}
+                      onClick={() => setViewMode('terminal')}
+                    >
+                      <Terminal className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>ターミナル表示</TooltipContent>
+                </Tooltip>
+                <Button
+                  size="sm"
+                  variant={isSessionActive ? 'destructive' : 'default'}
+                  className="ml-2 h-7 text-xs"
+                  onClick={() => (isSessionActive ? stopSession(worktreePath) : startSession(worktreePath))}
+                >
+                  {isSessionActive ? 'セッション停止' : 'セッション開始'}
+                </Button>
+              </div>
+            </div>
 
-      {/* クイックアクション */}
-      {isRunning && (
-        <div className="flex flex-wrap gap-1 border-b px-3 py-1.5">
-          {QUICK_ACTIONS.map((action) => (
-            <Button
-              key={action.label}
-              variant="outline"
-              size="sm"
-              className="h-6 gap-1 text-xs"
-              onClick={() => sendCommand(worktreePath, action.prompt)}
-            >
-              <action.icon className="h-3 w-3" />
-              {action.label}
-            </Button>
-          ))}
-        </div>
-      )}
+            {/* クイックアクション */}
+            {isRunning && (
+              <div className="flex flex-wrap gap-1 border-b px-3 py-1.5">
+                {QUICK_ACTIONS.map((action) => (
+                  <Button
+                    key={action.label}
+                    variant="outline"
+                    size="sm"
+                    className="h-6 gap-1 text-xs"
+                    onClick={() => sendCommand(worktreePath, action.prompt)}
+                    disabled={isCommandRunning}
+                  >
+                    <action.icon className="h-3 w-3" />
+                    {action.label}
+                  </Button>
+                ))}
+              </div>
+            )}
 
-      <div className="flex-1 overflow-hidden">
-        <ClaudeOutputView outputs={outputs} />
-      </div>
-      <div className="border-t p-2">
-        <CommandInput onSubmit={(input) => sendCommand(worktreePath, input)} disabled={!isRunning} />
-      </div>
-    </div>
+            <div className="flex-1 overflow-hidden">
+              {viewMode === 'chat' ? (
+                <ChatMessageList messages={chatMessages} isCommandRunning={isCommandRunning} />
+              ) : (
+                <ClaudeOutputView outputs={outputs} />
+              )}
+            </div>
+            <CommandInput
+              onSubmit={(input) => sendCommand(worktreePath, input)}
+              onCancel={() => stopSession(worktreePath)}
+              disabled={!isRunning}
+              isCommandRunning={isCommandRunning}
+            />
+          </div>
+        </ResizablePanel>
+      </ResizablePanelGroup>
+    </TooltipProvider>
   )
 }

@@ -3,8 +3,12 @@ import { ClaudeDefaultService } from './application/services/claude-service'
 import { CheckAuthUseCase } from './application/usecases/check-auth-usecase'
 import { ExplainDiffUseCase } from './application/usecases/explain-diff-usecase'
 import { GenerateCommitMessageUseCase } from './application/usecases/generate-commit-message-usecase'
+import { GetChatMessagesUseCase } from './application/usecases/get-chat-messages-usecase'
+import { GetConversationsUseCase } from './application/usecases/get-conversations-usecase'
+import { GetCurrentConversationIdUseCase } from './application/usecases/get-current-conversation-id-usecase'
 import { GetCurrentSessionUseCase } from './application/usecases/get-current-session-usecase'
 import { GetExplanationUseCase } from './application/usecases/get-explanation-usecase'
+import { GetIsCommandRunningUseCase } from './application/usecases/get-is-command-running-usecase'
 import { GetIsExplainingUseCase } from './application/usecases/get-is-explaining-usecase'
 import { GetIsReviewingUseCase } from './application/usecases/get-is-reviewing-usecase'
 import { GetOutputsUseCase } from './application/usecases/get-outputs-usecase'
@@ -28,8 +32,12 @@ import {
   ClaudeSessionViewModelToken,
   ExplainDiffRendererUseCaseToken,
   GenerateCommitMessageRendererUseCaseToken,
+  GetChatMessagesRendererUseCaseToken,
+  GetConversationsRendererUseCaseToken,
+  GetCurrentConversationIdRendererUseCaseToken,
   GetCurrentSessionRendererUseCaseToken,
   GetExplanationRendererUseCaseToken,
+  GetIsCommandRunningRendererUseCaseToken,
   GetIsExplainingRendererUseCaseToken,
   GetIsReviewingRendererUseCaseToken,
   GetOutputsRendererUseCaseToken,
@@ -63,10 +71,19 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         ClaudeRepositoryToken,
         ClaudeServiceToken,
       ])
-      .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [ClaudeRepositoryToken])
+      .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [
+        ClaudeRepositoryToken,
+        ClaudeServiceToken,
+      ])
       .registerSingleton(GetSessionStatusRendererUseCaseToken, GetSessionStatusUseCase, [ClaudeServiceToken])
       .registerSingleton(GetCurrentSessionRendererUseCaseToken, GetCurrentSessionUseCase, [ClaudeServiceToken])
       .registerSingleton(GetOutputsRendererUseCaseToken, GetOutputsUseCase, [ClaudeServiceToken])
+      .registerSingleton(GetChatMessagesRendererUseCaseToken, GetChatMessagesUseCase, [ClaudeServiceToken])
+      .registerSingleton(GetIsCommandRunningRendererUseCaseToken, GetIsCommandRunningUseCase, [ClaudeServiceToken])
+      .registerSingleton(GetConversationsRendererUseCaseToken, GetConversationsUseCase, [ClaudeServiceToken])
+      .registerSingleton(GetCurrentConversationIdRendererUseCaseToken, GetCurrentConversationIdUseCase, [
+        ClaudeServiceToken,
+      ])
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LoginRendererUseCaseToken, LoginUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LogoutRendererUseCaseToken, LogoutUseCase, [ClaudeRepositoryToken])
@@ -105,6 +122,11 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         SendCommandRendererUseCaseToken,
         GetSessionStatusRendererUseCaseToken,
         GetOutputsRendererUseCaseToken,
+        GetChatMessagesRendererUseCaseToken,
+        GetIsCommandRunningRendererUseCaseToken,
+        GetConversationsRendererUseCaseToken,
+        GetCurrentConversationIdRendererUseCaseToken,
+        ClaudeServiceToken,
       ])
   },
 
@@ -125,10 +147,18 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
 
     const unsubOutput = repo.onOutput((output) => {
       service.appendOutput(output)
+      if (output.stream === 'stdout') {
+        service.appendToLastAssistantMessage(output.content + '\n')
+      }
     })
 
     const unsubSessionChanged = repo.onSessionChanged((session) => {
       service.updateSession(session)
+    })
+
+    const unsubCommandCompleted = repo.onCommandCompleted(() => {
+      service.finalizeLastAssistantMessage()
+      service.setCommandRunning(false)
     })
 
     const unsubReviewResult = repo.onReviewResult((result) => {
@@ -148,6 +178,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
     return () => {
       unsubOutput()
       unsubSessionChanged()
+      unsubCommandCompleted()
       unsubReviewResult()
       unsubExplainResult()
       unsubConflictResolved()
