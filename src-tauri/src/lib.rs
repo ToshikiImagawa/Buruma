@@ -12,29 +12,11 @@ use tauri::Manager;
 
 use state::AppState;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
-/// macOS .app バンドル起動時にシェルプロファイルから PATH を復元する。
-/// Finder/Dock から起動すると .zshrc 等が読み込まれず、CLI ツール（claude, git 等）が
-/// PATH に存在しないため、ログインシェルを経由して正しい PATH を取得・設定する。
-#[cfg(target_os = "macos")]
-fn fix_path_env() {
-    let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/zsh".to_string());
-    if let Ok(output) = std::process::Command::new(&shell)
-        .args(["-l", "-c", "printf '%s' \"$PATH\""])
-        .output()
-    {
-        if output.status.success() {
-            let path = String::from_utf8_lossy(&output.stdout);
-            if !path.is_empty() {
-                unsafe { std::env::set_var("PATH", path.as_ref()) };
-            }
-        }
-    }
-}
-
 pub fn run() {
-    #[cfg(target_os = "macos")]
-    fix_path_env();
+    // macOS .app バンドル起動時にシェルプロファイルから PATH を復元する。
+    // Finder/Dock から起動すると .zshrc 等が読み込まれず、CLI ツール（git, npx, claude 等）が
+    // PATH に存在しないため、ログインシェル経由で正しい環境変数を取得・設定する。
+    let _ = fix_path_env::fix();
 
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
