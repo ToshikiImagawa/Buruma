@@ -3,6 +3,7 @@
  */
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@domain'
 import type { ConsumerUseCase, ObservableStoreUseCase, ReactivePropertyUseCase, RunnableUseCase } from '@lib/usecase'
+import type { ExternalAppRepository } from './application/repositories/external-app-repository'
 import type { RepositoryRepository } from './application/repositories/repository-repository'
 import type { SettingsRepository } from './application/repositories/settings-repository'
 import type { ErrorNotificationService } from './application/services/error-notification-service-interface'
@@ -16,6 +17,7 @@ import type {
 import { createToken } from '@lib/di'
 
 // re-export for convenience
+export type { ExternalAppRepository } from './application/repositories/external-app-repository'
 export type { RepositoryRepository } from './application/repositories/repository-repository'
 export type { SettingsRepository } from './application/repositories/settings-repository'
 export type { RepositoryService } from './application/services/repository-service-interface'
@@ -39,6 +41,7 @@ export type GetErrorNotificationsUseCase = ObservableStoreUseCase<ErrorNotificat
 export type DismissErrorUseCase = ConsumerUseCase<string>
 export type RetryErrorUseCase = ConsumerUseCase<string>
 export type GetCurrentRepositoryUseCase = ObservableStoreUseCase<RepositoryInfo | null>
+export type OpenFileInDefaultAppUseCase = ConsumerUseCase<string>
 
 // --- DI Tokens ---
 
@@ -48,6 +51,7 @@ export const SettingsServiceToken = createToken<SettingsService>('SettingsServic
 export const ErrorNotificationServiceToken = createToken<ErrorNotificationService>('ErrorNotificationService')
 
 // Repositories
+export const ExternalAppRepositoryToken = createToken<ExternalAppRepository>('ExternalAppRepository')
 export const RepositoryRepositoryToken = createToken<RepositoryRepository>('RepositoryRepository')
 export const SettingsRepositoryToken = createToken<SettingsRepository>('SettingsRepository')
 
@@ -67,6 +71,7 @@ export const GetErrorNotificationsUseCaseToken =
 export const DismissErrorUseCaseToken = createToken<DismissErrorUseCase>('DismissErrorUseCase')
 export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryErrorUseCase')
 export const GetCurrentRepositoryUseCaseToken = createToken<GetCurrentRepositoryUseCase>('GetCurrentRepositoryUseCase')
+export const OpenFileInDefaultAppUseCaseToken = createToken<OpenFileInDefaultAppUseCase>('OpenFileInDefaultAppUseCase')
 
 // ViewModels
 export const RepositorySelectorViewModelToken = createToken<RepositorySelectorViewModel>('RepositorySelectorViewModel')

@@ -8,6 +8,7 @@ import { GetCurrentRepositoryDefaultUseCase } from './application/usecases/get-c
 import { GetErrorNotificationsDefaultUseCase } from './application/usecases/get-error-notifications-usecase'
 import { GetRecentRepositoriesDefaultUseCase } from './application/usecases/get-recent-repositories-usecase'
 import { GetSettingsDefaultUseCase } from './application/usecases/get-settings-usecase'
+import { OpenFileInDefaultAppDefaultUseCase } from './application/usecases/open-file-in-default-app-usecase'
 import { OpenRepositoryByPathDefaultUseCase } from './application/usecases/open-repository-by-path-usecase'
 // UseCases
 import { OpenRepositoryDefaultUseCase } from './application/usecases/open-repository-usecase'
@@ -19,16 +20,18 @@ import {
   DismissErrorUseCaseToken,
   ErrorNotificationServiceToken,
   ErrorNotificationViewModelToken,
+  // Repository tokens
+  ExternalAppRepositoryToken,
   GetCurrentRepositoryUseCaseToken,
   GetErrorNotificationsUseCaseToken,
   GetRecentRepositoriesUseCaseToken,
   GetSettingsUseCaseToken,
-  OpenRepositoryByPathUseCaseToken,
   // UseCase tokens
+  OpenFileInDefaultAppUseCaseToken,
+  OpenRepositoryByPathUseCaseToken,
   OpenRepositoryUseCaseToken,
   PinRepositoryUseCaseToken,
   RemoveRecentRepositoryUseCaseToken,
-  // Repository tokens
   RepositoryRepositoryToken,
   // ViewModel tokens
   RepositorySelectorViewModelToken,
@@ -41,6 +44,7 @@ import {
   UpdateSettingsUseCaseToken,
 } from './di-tokens'
 // Infrastructure (renderer-side)
+import { ExternalAppDefaultRepository } from './infrastructure/repositories/external-app-default-repository'
 import { RepositoryDefaultRepository } from './infrastructure/repositories/repository-default-repository'
 import { SettingsDefaultRepository } from './infrastructure/repositories/settings-default-repository'
 import { ErrorNotificationDefaultViewModel } from './presentation/error-notification-viewmodel'
@@ -52,6 +56,7 @@ export const applicationFoundationConfig: VContainerConfig = {
   register: (container) => {
     // Repositories (singleton)
     container
+      .registerSingleton(ExternalAppRepositoryToken, ExternalAppDefaultRepository)
       .registerSingleton(RepositoryRepositoryToken, RepositoryDefaultRepository)
       .registerSingleton(SettingsRepositoryToken, SettingsDefaultRepository)
 
@@ -95,6 +100,10 @@ export const applicationFoundationConfig: VContainerConfig = {
       .registerSingleton(DismissErrorUseCaseToken, DismissErrorDefaultUseCase, [ErrorNotificationServiceToken])
       .registerSingleton(RetryErrorUseCaseToken, RetryErrorDefaultUseCase, [ErrorNotificationServiceToken])
       .registerSingleton(GetCurrentRepositoryUseCaseToken, GetCurrentRepositoryDefaultUseCase, [RepositoryServiceToken])
+      .registerSingleton(OpenFileInDefaultAppUseCaseToken, OpenFileInDefaultAppDefaultUseCase, [
+        ExternalAppRepositoryToken,
+        ErrorNotificationServiceToken,
+      ])
 
     // ViewModels (transient, useClass + deps)
     container
