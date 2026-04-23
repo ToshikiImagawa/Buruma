@@ -77,8 +77,5 @@ pub fn open_in_editor(path: String, state: State<'_, AppState>) -> Result<(), Ap
 
 #[tauri::command]
 pub async fn select_external_editor_app(state: State<'_, AppState>) -> Result<Option<String>, AppError> {
-    eprintln!("[select_external_editor_app] command invoked");
-    let result = usecases::select_external_editor_app(state.store_repo.as_ref(), state.dialog_repo.as_ref()).await;
-    eprintln!("[select_external_editor_app] result: {:?}", result);
-    result
+    usecases::select_external_editor_app(state.store_repo.as_ref(), state.dialog_repo.as_ref()).await
 }

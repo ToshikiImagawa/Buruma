@@ -60,6 +60,7 @@ function createMockSettingsRepo(): SettingsRepository {
     update: vi.fn().mockResolvedValue(undefined),
     getTheme: vi.fn().mockResolvedValue('system'),
     setTheme: vi.fn().mockResolvedValue(undefined),
+    selectEditorApp: vi.fn().mockResolvedValue(null),
   }
 }
 
@@ -68,6 +69,7 @@ function createMockErrorService(): ErrorNotificationService {
   return {
     notifications$: notifications$.asObservable(),
     addNotification: vi.fn((n) => notifications$.next([...notifications$.getValue(), n])),
+    notifyError: vi.fn(),
     removeNotification: vi.fn((id) => notifications$.next(notifications$.getValue().filter((n) => n.id !== id))),
     clear: vi.fn(() => notifications$.next([])),
   }
@@ -115,7 +117,7 @@ describe('OpenRepositoryUseCase', () => {
 
     useCase.invoke()
     await vi.waitFor(() => {
-      expect(errorService.addNotification).toHaveBeenCalled()
+      expect(errorService.notifyError).toHaveBeenCalled()
     })
   })
 })

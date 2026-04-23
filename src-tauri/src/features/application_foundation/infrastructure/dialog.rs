@@ -44,14 +44,7 @@ impl DialogRepository for TauriDialogRepository {
             builder = builder.add_filter("Executable", &["exe"]);
         }
 
-        eprintln!("[dialog] calling blocking_pick_file...");
         let result = builder.blocking_pick_file();
-        let mapped = result.map(|p| {
-            let s = p.to_string();
-            eprintln!("[dialog] selected file: {}", s);
-            s
-        });
-        eprintln!("[dialog] pick_file result is_some: {}", mapped.is_some());
-        Ok(mapped)
+        Ok(result.map(|p| p.to_string()))
     }
 }

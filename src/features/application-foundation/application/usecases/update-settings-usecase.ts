@@ -10,8 +10,9 @@ export class UpdateSettingsDefaultUseCase implements ConsumerUseCase<Partial<App
   ) {}
 
   invoke(settings: Partial<AppSettings>): void {
-    this.repo.update(settings).then(() => {
-      this.service.updateSettings(settings)
+    this.service.updateSettings(settings)
+    this.repo.update(settings).catch((e) => {
+      console.error('[UpdateSettingsUseCase] repo.update failed:', e)
     })
   }
 }

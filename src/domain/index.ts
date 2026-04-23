@@ -23,7 +23,7 @@ export interface AppSettings {
   gitPath: string | null // null = システムデフォルト
   defaultWorkDir: string | null
   commitMessageRules: string | null // null = デフォルトルール使用
-  externalEditor: string | null // null = 未設定（例: "code", "cursor", "idea"）
+  externalEditor: string | null // null = 未設定（アプリの絶対パス）
 }
 
 /** テーマ */

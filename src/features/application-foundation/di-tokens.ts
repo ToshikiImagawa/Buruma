@@ -2,7 +2,13 @@
  * application-foundation の DI トークン定義
  */
 import type { AppSettings, ErrorNotification, RecentRepository, RepositoryInfo } from '@domain'
-import type { ConsumerUseCase, ObservableStoreUseCase, ReactivePropertyUseCase, RunnableUseCase } from '@lib/usecase'
+import type {
+  ConsumerUseCase,
+  ObservableStoreUseCase,
+  ReactivePropertyUseCase,
+  RunnableUseCase,
+  SupplierUseCase,
+} from '@lib/usecase'
 import type { ExternalAppRepository } from './application/repositories/external-app-repository'
 import type { RepositoryRepository } from './application/repositories/repository-repository'
 import type { SettingsRepository } from './application/repositories/settings-repository'
@@ -43,6 +49,7 @@ export type RetryErrorUseCase = ConsumerUseCase<string>
 export type GetCurrentRepositoryUseCase = ObservableStoreUseCase<RepositoryInfo | null>
 export type OpenFileInDefaultAppUseCase = ConsumerUseCase<string>
 export type OpenInEditorUseCase = ConsumerUseCase<string>
+export type SelectExternalEditorAppUseCase = SupplierUseCase<Promise<string | null>>
 
 // --- DI Tokens ---
 
@@ -74,6 +81,9 @@ export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryError
 export const GetCurrentRepositoryUseCaseToken = createToken<GetCurrentRepositoryUseCase>('GetCurrentRepositoryUseCase')
 export const OpenFileInDefaultAppUseCaseToken = createToken<OpenFileInDefaultAppUseCase>('OpenFileInDefaultAppUseCase')
 export const OpenInEditorUseCaseToken = createToken<OpenInEditorUseCase>('OpenInEditorUseCase')
+export const SelectExternalEditorAppUseCaseToken = createToken<SelectExternalEditorAppUseCase>(
+  'SelectExternalEditorAppUseCase',
+)
 
 // ViewModels
 export const RepositorySelectorViewModelToken = createToken<RepositorySelectorViewModel>('RepositorySelectorViewModel')

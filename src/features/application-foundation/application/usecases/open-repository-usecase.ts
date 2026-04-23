@@ -22,15 +22,9 @@ export class OpenRepositoryDefaultUseCase implements RunnableUseCase {
         }
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error)
-        this.errorService.addNotification({
-          id: crypto.randomUUID(),
-          severity: 'error',
-          title: 'リポジトリを開けませんでした',
-          message,
+        this.errorService.notifyError('リポジトリを開けませんでした', error, {
           retryable: true,
           retryAction: 'repository:open',
-          timestamp: new Date().toISOString(),
         })
       })
   }

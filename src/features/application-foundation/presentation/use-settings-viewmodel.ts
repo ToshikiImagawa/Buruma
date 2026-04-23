@@ -13,5 +13,6 @@ export function useSettingsViewModel() {
     settings,
     updateSettings: useCallback((s: Partial<AppSettings>) => vm.updateSettings(s), [vm]),
     setTheme: useCallback((theme: Theme) => vm.setTheme(theme), [vm]),
+    selectEditorApp: useCallback(() => vm.selectEditorApp(), [vm]),
   }
 }

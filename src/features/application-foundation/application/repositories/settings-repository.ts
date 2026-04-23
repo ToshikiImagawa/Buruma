@@ -5,4 +5,5 @@ export interface SettingsRepository {
   update(settings: Partial<AppSettings>): Promise<void>
   getTheme(): Promise<Theme>
   setTheme(theme: Theme): Promise<void>
+  selectEditorApp(): Promise<string | null>
 }

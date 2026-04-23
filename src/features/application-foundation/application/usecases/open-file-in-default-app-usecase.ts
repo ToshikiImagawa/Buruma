@@ -10,15 +10,7 @@ export class OpenFileInDefaultAppDefaultUseCase implements ConsumerUseCase<strin
 
   invoke(path: string): void {
     this.externalAppRepo.openPath(path).catch((error: unknown) => {
-      const message = error instanceof Error ? error.message : String(error)
-      this.errorService.addNotification({
-        id: crypto.randomUUID(),
-        severity: 'error',
-        title: 'ファイルを開けませんでした',
-        message,
-        retryable: false,
-        timestamp: new Date().toISOString(),
-      })
+      this.errorService.notifyError('ファイルを開けませんでした', error)
     })
   }
 }

@@ -16,6 +16,7 @@ import { OpenRepositoryDefaultUseCase } from './application/usecases/open-reposi
 import { PinRepositoryDefaultUseCase } from './application/usecases/pin-repository-usecase'
 import { RemoveRecentRepositoryDefaultUseCase } from './application/usecases/remove-recent-repository-usecase'
 import { RetryErrorDefaultUseCase } from './application/usecases/retry-error-usecase'
+import { SelectExternalEditorAppDefaultUseCase } from './application/usecases/select-external-editor-app-usecase'
 import { UpdateSettingsDefaultUseCase } from './application/usecases/update-settings-usecase'
 import {
   DismissErrorUseCaseToken,
@@ -40,6 +41,7 @@ import {
   // Service tokens
   RepositoryServiceToken,
   RetryErrorUseCaseToken,
+  SelectExternalEditorAppUseCaseToken,
   SettingsRepositoryToken,
   SettingsServiceToken,
   SettingsViewModelToken,
@@ -106,7 +108,14 @@ export const applicationFoundationConfig: VContainerConfig = {
         ExternalAppRepositoryToken,
         ErrorNotificationServiceToken,
       ])
-      .registerSingleton(OpenInEditorUseCaseToken, OpenInEditorDefaultUseCase, [ErrorNotificationServiceToken])
+      .registerSingleton(OpenInEditorUseCaseToken, OpenInEditorDefaultUseCase, [
+        ExternalAppRepositoryToken,
+        ErrorNotificationServiceToken,
+      ])
+      .registerSingleton(SelectExternalEditorAppUseCaseToken, SelectExternalEditorAppDefaultUseCase, [
+        SettingsRepositoryToken,
+        SettingsServiceToken,
+      ])
 
     // ViewModels (transient, useClass + deps)
     container
@@ -121,6 +130,7 @@ export const applicationFoundationConfig: VContainerConfig = {
       .registerTransient(SettingsViewModelToken, SettingsDefaultViewModel, [
         GetSettingsUseCaseToken,
         UpdateSettingsUseCaseToken,
+        SelectExternalEditorAppUseCaseToken,
       ])
       .registerTransient(ErrorNotificationViewModelToken, ErrorNotificationDefaultViewModel, [
         GetErrorNotificationsUseCaseToken,

@@ -1,12 +1,13 @@
 import type { AppSettings, Theme } from '@domain'
 import type { Observable } from 'rxjs'
-import type { GetSettingsUseCase, UpdateSettingsUseCase } from '../di-tokens'
+import type { GetSettingsUseCase, SelectExternalEditorAppUseCase, UpdateSettingsUseCase } from '../di-tokens'
 import type { SettingsViewModel } from './viewmodel-interfaces'
 
 export class SettingsDefaultViewModel implements SettingsViewModel {
   constructor(
     private readonly getSettingsUseCase: GetSettingsUseCase,
     private readonly updateSettingsUseCase: UpdateSettingsUseCase,
+    private readonly selectExternalEditorAppUseCase: SelectExternalEditorAppUseCase,
   ) {}
 
   get settings$(): Observable<AppSettings> {
@@ -19,5 +20,9 @@ export class SettingsDefaultViewModel implements SettingsViewModel {
 
   setTheme(theme: Theme): void {
     this.updateSettingsUseCase.invoke({ theme })
+  }
+
+  selectEditorApp(): Promise<string | null> {
+    return this.selectExternalEditorAppUseCase.invoke()
   }
 }

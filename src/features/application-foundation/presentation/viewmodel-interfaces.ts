@@ -14,6 +14,7 @@ export interface SettingsViewModel {
   readonly settings$: Observable<AppSettings>
   updateSettings(settings: Partial<AppSettings>): void
   setTheme(theme: Theme): void
+  selectEditorApp(): Promise<string | null>
 }
 
 export interface ErrorNotificationViewModel {

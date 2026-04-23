@@ -22,15 +22,7 @@ export class OpenRepositoryByPathDefaultUseCase implements ConsumerUseCase<strin
         }
       })
       .catch((error: unknown) => {
-        const message = error instanceof Error ? error.message : String(error)
-        this.errorService.addNotification({
-          id: crypto.randomUUID(),
-          severity: 'error',
-          title: 'リポジトリを開けませんでした',
-          message,
-          retryable: false,
-          timestamp: new Date().toISOString(),
-        })
+        this.errorService.notifyError('リポジトリを開けませんでした', error)
       })
   }
 }

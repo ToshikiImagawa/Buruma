@@ -13,9 +13,6 @@ vi.mock('@/features/claude-code-integration/presentation/use-claude-auth', () =>
     login: vi.fn(),
   }),
 }))
-vi.mock('@lib/invoke/commands', () => ({
-  invokeCommand: vi.fn(),
-}))
 
 describe('SettingsDialog', () => {
   afterEach(() => {
@@ -24,6 +21,7 @@ describe('SettingsDialog', () => {
 
   const mockUpdateSettings = vi.fn()
   const mockSetTheme = vi.fn()
+  const mockSelectEditorApp = vi.fn().mockResolvedValue(null)
   const mockOnOpenChange = vi.fn()
 
   const defaultSettings = {
@@ -39,6 +37,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -52,6 +51,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -64,6 +64,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -76,6 +77,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -88,6 +90,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -103,6 +106,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -118,6 +122,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -131,6 +136,7 @@ describe('SettingsDialog', () => {
       settings: { ...defaultSettings, externalEditor: '/Applications/Visual Studio Code.app' },
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -144,6 +150,7 @@ describe('SettingsDialog', () => {
       settings: { ...defaultSettings, externalEditor: '/Applications/Cursor.app' },
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)

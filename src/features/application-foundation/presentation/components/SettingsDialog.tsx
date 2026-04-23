@@ -1,6 +1,5 @@
 import type { Theme } from '@domain'
 import { DEFAULT_COMMIT_MESSAGE_RULES } from '@domain'
-import { invokeCommand } from '@lib/invoke/commands'
 import { CheckCircle2, Loader2, LogIn, LogOut, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
@@ -19,7 +18,7 @@ interface SettingsDialogProps {
 }
 
 export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogProps) {
-  const { settings, updateSettings, setTheme } = useSettingsViewModel()
+  const { settings, updateSettings, setTheme, selectEditorApp } = useSettingsViewModel()
   const { authStatus, isAuthChecking, isLoggingIn, login, logout } = useClaudeAuth()
 
   const handleThemeChange = (value: string) => {
@@ -38,16 +37,8 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
     updateSettings({ commitMessageRules: e.target.value || null })
   }
 
-  const handleSelectEditorApp = async () => {
-    console.log('[SettingsDialog] select_external_editor_app called')
-    const result = await invokeCommand('select_external_editor_app', {})
-    console.log('[SettingsDialog] select_external_editor_app result:', JSON.stringify(result))
-    if (result.success && result.data) {
-      console.log('[SettingsDialog] updateSettings with externalEditor:', result.data)
-      updateSettings({ externalEditor: result.data })
-    } else {
-      console.log('[SettingsDialog] skipped updateSettings — result:', JSON.stringify(result))
-    }
+  const handleSelectEditorApp = () => {
+    selectEditorApp()
   }
 
   const handleClearEditorApp = () => {
