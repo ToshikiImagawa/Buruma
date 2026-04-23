@@ -1,6 +1,7 @@
 import type { Theme } from '@domain'
 import { DEFAULT_COMMIT_MESSAGE_RULES } from '@domain'
-import { CheckCircle2, Loader2, LogIn, LogOut } from 'lucide-react'
+import { invokeCommand } from '@lib/invoke/commands'
+import { CheckCircle2, Loader2, LogIn, LogOut, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,22 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
 
   const handleCommitMessageRulesChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     updateSettings({ commitMessageRules: e.target.value || null })
+  }
+
+  const handleSelectEditorApp = async () => {
+    console.log('[SettingsDialog] select_external_editor_app called')
+    const result = await invokeCommand('select_external_editor_app', {})
+    console.log('[SettingsDialog] select_external_editor_app result:', JSON.stringify(result))
+    if (result.success && result.data) {
+      console.log('[SettingsDialog] updateSettings with externalEditor:', result.data)
+      updateSettings({ externalEditor: result.data })
+    } else {
+      console.log('[SettingsDialog] skipped updateSettings — result:', JSON.stringify(result))
+    }
+  }
+
+  const handleClearEditorApp = () => {
+    updateSettings({ externalEditor: null })
   }
 
   return (
@@ -104,6 +121,38 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
             </div>
             <Separator />
             <div>
+              <Label>外部エディタ</Label>
+              <div className="mt-2 flex items-center gap-2">
+                <div className="flex min-w-0 flex-1 items-center rounded-md border bg-background px-3 py-2 text-sm">
+                  {settings.externalEditor ? (
+                    <span className="truncate" title={settings.externalEditor}>
+                      {extractAppName(settings.externalEditor)}
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">未設定</span>
+                  )}
+                </div>
+                <Button variant="outline" size="sm" onClick={handleSelectEditorApp}>
+                  選択...
+                </Button>
+                {settings.externalEditor && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 shrink-0"
+                    onClick={handleClearEditorApp}
+                    aria-label="エディタ設定をクリア"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-1">
+                ワークツリーやファイルを開く際に使用するエディタアプリを選択します
+              </p>
+            </div>
+            <Separator />
+            <div>
               <Label>Claude Code 認証</Label>
               <div className="mt-2 flex items-center gap-2">
                 {isAuthChecking ? (
@@ -158,4 +207,10 @@ export function SettingsDialog({ open, onOpenChange, children }: SettingsDialogP
       </DialogContent>
     </Dialog>
   )
+}
+
+/** パスからアプリ名を抽出する (例: "/Applications/Visual Studio Code.app" → "Visual Studio Code") */
+function extractAppName(appPath: string): string {
+  const name = appPath.split('/').pop() ?? appPath
+  return name.replace(/\.app$/i, '') || name
 }

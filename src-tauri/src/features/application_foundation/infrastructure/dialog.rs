@@ -1,4 +1,4 @@
-//! tauri-plugin-dialog を使ったフォルダ選択ダイアログ実装。
+//! tauri-plugin-dialog を使ったダイアログ実装。
 
 use async_trait::async_trait;
 use tauri::AppHandle;
@@ -27,5 +27,31 @@ impl DialogRepository for TauriDialogRepository {
             .set_title("リポジトリを選択")
             .blocking_pick_folder();
         Ok(result.map(|p| p.to_string()))
+    }
+
+    async fn show_select_application_dialog(&self) -> AppResult<Option<String>> {
+        let mut builder = self.app_handle.dialog().file().set_title("エディタアプリを選択");
+
+        #[cfg(target_os = "macos")]
+        {
+            builder = builder
+                .set_directory("/Applications")
+                .add_filter("Application", &["app"]);
+        }
+
+        #[cfg(target_os = "windows")]
+        {
+            builder = builder.add_filter("Executable", &["exe"]);
+        }
+
+        eprintln!("[dialog] calling blocking_pick_file...");
+        let result = builder.blocking_pick_file();
+        let mapped = result.map(|p| {
+            let s = p.to_string();
+            eprintln!("[dialog] selected file: {}", s);
+            s
+        });
+        eprintln!("[dialog] pick_file result is_some: {}", mapped.is_some());
+        Ok(mapped)
     }
 }

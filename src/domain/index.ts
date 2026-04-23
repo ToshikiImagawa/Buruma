@@ -23,6 +23,7 @@ export interface AppSettings {
   gitPath: string | null // null = システムデフォルト
   defaultWorkDir: string | null
   commitMessageRules: string | null // null = デフォルトルール使用
+  externalEditor: string | null // null = 未設定（例: "code", "cursor", "idea"）
 }
 
 /** テーマ */
@@ -57,6 +58,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   gitPath: null,
   defaultWorkDir: null,
   commitMessageRules: null,
+  externalEditor: null,
 }
 
 /** コミットメッセージ生成のデフォルトルール */

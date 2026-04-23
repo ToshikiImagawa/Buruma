@@ -42,6 +42,7 @@ export type DismissErrorUseCase = ConsumerUseCase<string>
 export type RetryErrorUseCase = ConsumerUseCase<string>
 export type GetCurrentRepositoryUseCase = ObservableStoreUseCase<RepositoryInfo | null>
 export type OpenFileInDefaultAppUseCase = ConsumerUseCase<string>
+export type OpenInEditorUseCase = ConsumerUseCase<string>
 
 // --- DI Tokens ---
 
@@ -72,6 +73,7 @@ export const DismissErrorUseCaseToken = createToken<DismissErrorUseCase>('Dismis
 export const RetryErrorUseCaseToken = createToken<RetryErrorUseCase>('RetryErrorUseCase')
 export const GetCurrentRepositoryUseCaseToken = createToken<GetCurrentRepositoryUseCase>('GetCurrentRepositoryUseCase')
 export const OpenFileInDefaultAppUseCaseToken = createToken<OpenFileInDefaultAppUseCase>('OpenFileInDefaultAppUseCase')
+export const OpenInEditorUseCaseToken = createToken<OpenInEditorUseCase>('OpenInEditorUseCase')
 
 // ViewModels
 export const RepositorySelectorViewModelToken = createToken<RepositorySelectorViewModel>('RepositorySelectorViewModel')

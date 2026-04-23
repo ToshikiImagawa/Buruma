@@ -98,6 +98,10 @@ export interface IPCCommandMap {
   settings_get_theme: { args: void; result: Theme }
   settings_set_theme: { args: { theme: Theme }; result: void }
 
+  // --- application-foundation: external editor ---
+  open_in_editor: { args: { path: string }; result: void }
+  select_external_editor_app: { args: Record<string, never>; result: string | null }
+
   // --- repository-viewer ---
   git_status: { args: { args: { worktreePath: string } }; result: GitStatus }
   git_log: { args: { query: GitLogQuery }; result: GitLogResult }

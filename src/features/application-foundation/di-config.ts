@@ -9,6 +9,7 @@ import { GetErrorNotificationsDefaultUseCase } from './application/usecases/get-
 import { GetRecentRepositoriesDefaultUseCase } from './application/usecases/get-recent-repositories-usecase'
 import { GetSettingsDefaultUseCase } from './application/usecases/get-settings-usecase'
 import { OpenFileInDefaultAppDefaultUseCase } from './application/usecases/open-file-in-default-app-usecase'
+import { OpenInEditorDefaultUseCase } from './application/usecases/open-in-editor-usecase'
 import { OpenRepositoryByPathDefaultUseCase } from './application/usecases/open-repository-by-path-usecase'
 // UseCases
 import { OpenRepositoryDefaultUseCase } from './application/usecases/open-repository-usecase'
@@ -28,6 +29,7 @@ import {
   GetSettingsUseCaseToken,
   // UseCase tokens
   OpenFileInDefaultAppUseCaseToken,
+  OpenInEditorUseCaseToken,
   OpenRepositoryByPathUseCaseToken,
   OpenRepositoryUseCaseToken,
   PinRepositoryUseCaseToken,
@@ -104,6 +106,7 @@ export const applicationFoundationConfig: VContainerConfig = {
         ExternalAppRepositoryToken,
         ErrorNotificationServiceToken,
       ])
+      .registerSingleton(OpenInEditorUseCaseToken, OpenInEditorDefaultUseCase, [ErrorNotificationServiceToken])
 
     // ViewModels (transient, useClass + deps)
     container

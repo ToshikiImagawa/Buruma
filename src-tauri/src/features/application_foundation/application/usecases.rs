@@ -121,6 +121,45 @@ pub fn set_theme(store: &dyn StoreRepository, theme: Theme) -> AppResult<()> {
     store.set_settings(&settings)
 }
 
+/// 設定されたエディタアプリでディレクトリやファイルを開く。
+pub fn open_in_editor(store: &dyn StoreRepository, path: &str) -> AppResult<()> {
+    let settings = store.get_settings()?;
+    let editor = settings.external_editor.ok_or_else(|| {
+        AppError::Internal("外部エディタが設定されていません。設定画面でエディタを選択してください。".to_string())
+    })?;
+
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .arg("-a")
+        .arg(&editor)
+        .arg(path)
+        .spawn();
+
+    #[cfg(not(target_os = "macos"))]
+    let result = std::process::Command::new(&editor).arg(path).spawn();
+
+    result.map_err(|e| AppError::GitError(format!("エディタ '{}' の起動に失敗しました: {}", editor, e)))?;
+
+    Ok(())
+}
+
+/// ダイアログでエディタアプリを選択し、設定に保存する。
+pub async fn select_external_editor_app(
+    store: &dyn StoreRepository,
+    dialog: &dyn DialogRepository,
+) -> AppResult<Option<String>> {
+    eprintln!("[select_external_editor_app] opening dialog...");
+    let selected = dialog.show_select_application_dialog().await?;
+    eprintln!("[select_external_editor_app] dialog returned: {:?}", selected);
+    if let Some(ref app_path) = selected {
+        let mut settings = store.get_settings()?;
+        settings.external_editor = Some(app_path.clone());
+        store.set_settings(&settings)?;
+        eprintln!("[select_external_editor_app] saved to settings: {}", app_path);
+    }
+    Ok(selected)
+}
+
 // --- ヘルパー ---
 
 /// RepositoryInfo を最近のリポジトリ一覧に追加する。

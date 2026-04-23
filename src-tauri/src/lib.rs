@@ -38,6 +38,8 @@ pub fn run() {
             features::application_foundation::presentation::commands::settings_set,
             features::application_foundation::presentation::commands::settings_get_theme,
             features::application_foundation::presentation::commands::settings_set_theme,
+            features::application_foundation::presentation::commands::open_in_editor,
+            features::application_foundation::presentation::commands::select_external_editor_app,
             // repository-viewer (10)
             features::repository_viewer::presentation::commands::git_status,
             features::repository_viewer::presentation::commands::git_log,
