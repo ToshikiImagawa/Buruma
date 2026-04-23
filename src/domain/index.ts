@@ -597,19 +597,20 @@ export interface ClaudeCommand {
 
 export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
 
-/** サポートされるモデル */
+/** モデル情報 */
 export interface ClaudeModelInfo {
   id: string
   label: string
 }
 
-export const SUPPORTED_MODELS: readonly ClaudeModelInfo[] = [
-  { id: 'claude-sonnet-4-20250514', label: 'Claude Sonnet 4' },
-  { id: 'claude-opus-4-20250514', label: 'Claude Opus 4' },
-  { id: 'claude-haiku-4-20250506', label: 'Claude Haiku 4' },
+/** プリセットモデル（安定エイリアス） */
+export const PRESET_MODELS: readonly ClaudeModelInfo[] = [
+  { id: 'sonnet', label: 'Claude Sonnet' },
+  { id: 'opus', label: 'Claude Opus' },
+  { id: 'haiku', label: 'Claude Haiku' },
 ] as const
 
-export const DEFAULT_MODEL = SUPPORTED_MODELS[0].id
+export const DEFAULT_MODEL = PRESET_MODELS[0].id
 
 /** コミットメッセージ生成リクエスト */
 export interface GenerateCommitMessageArgs {

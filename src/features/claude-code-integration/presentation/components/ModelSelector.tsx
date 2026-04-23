@@ -1,4 +1,4 @@
-import { SUPPORTED_MODELS } from '@domain'
+import { PRESET_MODELS } from '@domain'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 
 interface ModelSelectorProps {
@@ -10,11 +10,11 @@ interface ModelSelectorProps {
 export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps) {
   return (
     <Select value={value} onValueChange={onChange} disabled={disabled}>
-      <SelectTrigger className="h-7 w-[180px] text-xs">
+      <SelectTrigger className="h-7 w-45 text-xs">
         <SelectValue />
       </SelectTrigger>
       <SelectContent>
-        {SUPPORTED_MODELS.map((model) => (
+        {PRESET_MODELS.map((model) => (
           <SelectItem key={model.id} value={model.id} className="text-xs">
             {model.label}
           </SelectItem>
