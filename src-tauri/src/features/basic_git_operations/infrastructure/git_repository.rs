@@ -146,9 +146,9 @@ impl GitWriteRepository for DefaultGitWriteRepository {
     async fn fetch(&self, args: &FetchArgs) -> AppResult<FetchResult> {
         let remote = args.remote.as_deref().unwrap_or("--all");
         if args.remote.is_some() {
-            raw(&args.worktree_path, &["fetch", remote]).await?;
+            raw(&args.worktree_path, &["fetch", "--prune", remote]).await?;
         } else {
-            raw(&args.worktree_path, &["fetch", "--all"]).await?;
+            raw(&args.worktree_path, &["fetch", "--all", "--prune"]).await?;
         }
         Ok(FetchResult {
             remote: remote.to_string(),
