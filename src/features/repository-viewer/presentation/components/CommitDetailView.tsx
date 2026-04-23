@@ -37,7 +37,7 @@ export function CommitDetailView({ worktreePath, commitHash, onFileSelect, onSel
   return (
     <div className="flex flex-col gap-3 p-3">
       <div>
-        <p className="text-sm font-medium">{selectedCommit.message}</p>
+        <p className="whitespace-pre-wrap text-sm font-medium">{selectedCommit.message}</p>
         <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
           <span className="font-mono">{selectedCommit.hashShort}</span>
           <span>{selectedCommit.author}</span>

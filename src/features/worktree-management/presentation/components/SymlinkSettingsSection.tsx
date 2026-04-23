@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ interface SymlinkSettingsSectionProps {
 export function SymlinkSettingsSection({ repoPath }: SymlinkSettingsSectionProps) {
   const { config, addPattern, removePattern } = useSymlinkSettingsViewModel(repoPath)
   const [newPattern, setNewPattern] = useState('')
+  const composingRef = useRef(false)
 
   const handleAdd = () => {
     if (!newPattern.trim()) return
@@ -41,7 +42,15 @@ export function SymlinkSettingsSection({ repoPath }: SymlinkSettingsSectionProps
             placeholder="例: node_modules"
             value={newPattern}
             onChange={(e) => setNewPattern(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleAdd()}
+            onKeyDown={(e) => e.key === 'Enter' && !composingRef.current && handleAdd()}
+            onCompositionStart={() => {
+              composingRef.current = true
+            }}
+            onCompositionEnd={() =>
+              requestAnimationFrame(() => {
+                composingRef.current = false
+              })
+            }
             className="flex-1"
           />
           <Button size="sm" onClick={handleAdd} disabled={!newPattern.trim()}>

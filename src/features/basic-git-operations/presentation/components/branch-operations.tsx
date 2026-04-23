@@ -47,6 +47,7 @@ export function BranchOperations({
   const [startPoint, setStartPoint] = useState<string>('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
+  const composingRef = useRef(false)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
   const pendingDeleteRef = useRef<string | null>(null)
   const [mergeOpen, setMergeOpen] = useState(false)
@@ -133,7 +134,15 @@ export function BranchOperations({
               placeholder="ブランチ名"
               value={newBranchName}
               onChange={(e) => setNewBranchName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleCreate()}
+              onKeyDown={(e) => e.key === 'Enter' && !composingRef.current && handleCreate()}
+              onCompositionStart={() => {
+                composingRef.current = true
+              }}
+              onCompositionEnd={() =>
+                requestAnimationFrame(() => {
+                  composingRef.current = false
+                })
+              }
               disabled={loading}
             />
             <div className="flex items-center gap-1">

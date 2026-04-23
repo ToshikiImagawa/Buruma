@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
 import type { BranchInfo } from '@domain'
 import type { KeyboardEvent, WheelEvent } from 'react'
 import { cn } from '@lib/utils'
@@ -30,6 +30,7 @@ export function BranchCombobox({
 }: BranchComboboxProps) {
   const [open, setOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
+  const composingRef = useRef(false)
 
   const allBranches = [...localBranches, ...remoteBranches]
   const hasExactMatch = allBranches.some((b) => b.name === inputValue)
@@ -45,7 +46,7 @@ export function BranchCombobox({
 
   const handleKeyDown = (e: KeyboardEvent) => {
     if (!allowFreeInput || !inputValue || hasExactMatch) return
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && !composingRef.current) {
       e.preventDefault()
       e.stopPropagation()
       onValueChange(inputValue)
@@ -53,6 +54,16 @@ export function BranchCombobox({
       setInputValue('')
     }
   }
+
+  const handleCompositionStart = useCallback(() => {
+    composingRef.current = true
+  }, [])
+
+  const handleCompositionEnd = useCallback(() => {
+    requestAnimationFrame(() => {
+      composingRef.current = false
+    })
+  }, [])
 
   // Dialog の react-remove-scroll が Popover Portal 内の wheel イベントをバブリングでブロックするため手動処理
   const handleWheel = useCallback((e: WheelEvent<HTMLDivElement>) => {
@@ -86,6 +97,8 @@ export function BranchCombobox({
             value={inputValue}
             onValueChange={setInputValue}
             onKeyDown={handleKeyDown}
+            onCompositionStart={handleCompositionStart}
+            onCompositionEnd={handleCompositionEnd}
           />
           <CommandList className="overscroll-contain" onWheel={handleWheel}>
             <CommandEmpty>ブランチが見つかりません</CommandEmpty>
