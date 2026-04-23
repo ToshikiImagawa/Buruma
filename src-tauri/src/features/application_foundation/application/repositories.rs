@@ -23,8 +23,9 @@ pub trait GitValidationRepository: Send + Sync {
     async fn is_git_repository(&self, dir_path: &str) -> AppResult<bool>;
 }
 
-/// フォルダ選択ダイアログインターフェース。
+/// ダイアログインターフェース。
 #[async_trait]
 pub trait DialogRepository: Send + Sync {
     async fn show_open_directory_dialog(&self) -> AppResult<Option<String>>;
+    async fn show_select_application_dialog(&self) -> AppResult<Option<String>>;
 }

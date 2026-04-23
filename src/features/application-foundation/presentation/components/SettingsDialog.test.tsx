@@ -1,5 +1,5 @@
-import { fireEvent, render, screen } from '@testing-library/react'
-import { describe, expect, it, vi } from 'vitest'
+import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import * as useSettingsViewModelModule from '../use-settings-viewmodel'
 import { SettingsDialog } from './SettingsDialog'
 
@@ -15,8 +15,13 @@ vi.mock('@/features/claude-code-integration/presentation/use-claude-auth', () =>
 }))
 
 describe('SettingsDialog', () => {
+  afterEach(() => {
+    cleanup()
+  })
+
   const mockUpdateSettings = vi.fn()
   const mockSetTheme = vi.fn()
+  const mockSelectEditorApp = vi.fn().mockResolvedValue(null)
   const mockOnOpenChange = vi.fn()
 
   const defaultSettings = {
@@ -24,6 +29,7 @@ describe('SettingsDialog', () => {
     gitPath: null as string | null,
     defaultWorkDir: null as string | null,
     commitMessageRules: null as string | null,
+    externalEditor: null as string | null,
   }
 
   it('ダイアログが開いているとき、タイトルと説明が表示される', () => {
@@ -31,6 +37,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -44,6 +51,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -56,6 +64,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -68,6 +77,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -80,6 +90,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -95,6 +106,7 @@ describe('SettingsDialog', () => {
       settings: defaultSettings,
       updateSettings: mockUpdateSettings,
       setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
     })
 
     render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
@@ -103,5 +115,63 @@ describe('SettingsDialog', () => {
     fireEvent.change(input, { target: { value: '/home/user/projects' } })
 
     expect(mockUpdateSettings).toHaveBeenCalled()
+  })
+
+  it('外部エディタ未設定時は「選択...」ボタンが表示され、クリアボタンは表示されない', () => {
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
+      settings: defaultSettings,
+      updateSettings: mockUpdateSettings,
+      setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
+    })
+
+    render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+    expect(screen.getByText('選択...')).toBeInTheDocument()
+    expect(screen.queryByLabelText('エディタ設定をクリア')).not.toBeInTheDocument()
+  })
+
+  it('外部エディタ設定時はアプリ名とクリアボタンが表示される', () => {
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
+      settings: { ...defaultSettings, externalEditor: '/Applications/Visual Studio Code.app' },
+      updateSettings: mockUpdateSettings,
+      setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
+    })
+
+    render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+    expect(screen.getByText('Visual Studio Code')).toBeInTheDocument()
+    expect(screen.getByLabelText('エディタ設定をクリア')).toBeInTheDocument()
+  })
+
+  it('クリアボタンを押すと externalEditor が null で updateSettings が呼ばれる', () => {
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
+      settings: { ...defaultSettings, externalEditor: '/Applications/Cursor.app' },
+      updateSettings: mockUpdateSettings,
+      setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
+    })
+
+    render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+    fireEvent.click(screen.getByLabelText('エディタ設定をクリア'))
+
+    expect(mockUpdateSettings).toHaveBeenCalledWith({ externalEditor: null })
+  })
+
+  it('「選択...」ボタンを押すと selectEditorApp が呼ばれる', () => {
+    vi.spyOn(useSettingsViewModelModule, 'useSettingsViewModel').mockReturnValue({
+      settings: defaultSettings,
+      updateSettings: mockUpdateSettings,
+      setTheme: mockSetTheme,
+      selectEditorApp: mockSelectEditorApp,
+    })
+
+    render(<SettingsDialog open={true} onOpenChange={mockOnOpenChange} />)
+
+    fireEvent.click(screen.getByText('選択...'))
+
+    expect(mockSelectEditorApp).toHaveBeenCalled()
   })
 })

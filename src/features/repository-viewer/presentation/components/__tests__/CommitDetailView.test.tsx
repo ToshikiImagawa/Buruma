@@ -5,6 +5,13 @@ import * as useCommitLogViewModelModule from '../../use-commit-log-viewmodel'
 import { CommitDetailView } from '../CommitDetailView'
 
 vi.mock('../../use-commit-log-viewmodel')
+vi.mock('@lib/di', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@lib/di')>()
+  return {
+    ...actual,
+    useResolve: vi.fn(() => ({ invoke: vi.fn() })),
+  }
+})
 
 describe('CommitDetailView', () => {
   const mockSelectCommit = vi.fn()

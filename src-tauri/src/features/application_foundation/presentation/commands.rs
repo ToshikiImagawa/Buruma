@@ -1,4 +1,4 @@
-//! `#[tauri::command]` 関数群 — 10 commands for application-foundation feature.
+//! `#[tauri::command]` 関数群 — 12 commands for application-foundation feature.
 //!
 //! 各 command は AppState から Repository を取得し、UseCase を呼び出す。
 //! 戻り値は `Result<T, AppError>` で、Tauri が自動的に JSON シリアライズする。
@@ -68,4 +68,14 @@ pub fn settings_get_theme(state: State<'_, AppState>) -> Result<Theme, AppError>
 #[tauri::command]
 pub fn settings_set_theme(theme: Theme, state: State<'_, AppState>) -> Result<(), AppError> {
     usecases::set_theme(state.store_repo.as_ref(), theme)
+}
+
+#[tauri::command]
+pub fn open_in_editor(path: String, state: State<'_, AppState>) -> Result<(), AppError> {
+    usecases::open_in_editor(state.store_repo.as_ref(), &path)
+}
+
+#[tauri::command]
+pub async fn select_external_editor_app(state: State<'_, AppState>) -> Result<Option<String>, AppError> {
+    usecases::select_external_editor_app(state.store_repo.as_ref(), state.dialog_repo.as_ref()).await
 }

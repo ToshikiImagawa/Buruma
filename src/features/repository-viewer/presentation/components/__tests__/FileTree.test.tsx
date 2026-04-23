@@ -5,6 +5,13 @@ import * as useFileTreeViewModelModule from '../../use-file-tree-viewmodel'
 import { FileTree } from '../FileTree'
 
 vi.mock('../../use-file-tree-viewmodel')
+vi.mock('@lib/di', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@lib/di')>()
+  return {
+    ...actual,
+    useResolve: vi.fn(() => ({ invoke: vi.fn() })),
+  }
+})
 
 describe('FileTree', () => {
   const mockLoadTree = vi.fn()

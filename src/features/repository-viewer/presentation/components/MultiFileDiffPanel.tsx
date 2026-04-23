@@ -70,6 +70,7 @@ export function MultiFileDiffPanel({
           const diff = diffs[index]
           return (
             <FileDiffSection
+              worktreePath={worktreePath}
               diff={diff}
               collapsed={collapsedFiles.has(diff.filePath)}
               selected={selectedFiles?.has(diff.filePath) ?? false}

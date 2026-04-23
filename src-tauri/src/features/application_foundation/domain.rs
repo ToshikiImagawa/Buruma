@@ -37,6 +37,7 @@ pub struct AppSettings {
     pub git_path: Option<String>,
     pub default_work_dir: Option<String>,
     pub commit_message_rules: Option<String>,
+    pub external_editor: Option<String>,
 }
 
 impl Default for AppSettings {
@@ -46,6 +47,7 @@ impl Default for AppSettings {
             git_path: None,
             default_work_dir: None,
             commit_message_rules: None,
+            external_editor: None,
         }
     }
 }

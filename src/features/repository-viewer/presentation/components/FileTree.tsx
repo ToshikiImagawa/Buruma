@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { FileTreeNode } from '@domain'
 import { ChevronDown, ChevronRight, File, Folder } from 'lucide-react'
+import { FileContextMenu } from '@/components/FileContextMenu'
 import { useFileTreeViewModel } from '../use-file-tree-viewmodel'
 
 interface FileTreeProps {
@@ -11,12 +12,14 @@ interface FileTreeProps {
 function TreeNode({
   node,
   depth,
+  worktreePath,
   onFileSelect,
   expandedPaths,
   toggleExpand,
 }: {
   node: FileTreeNode
   depth: number
+  worktreePath: string
   onFileSelect: (path: string) => void
   expandedPaths: Set<string>
   toggleExpand: (path: string) => void
@@ -27,25 +30,28 @@ function TreeNode({
   if (node.type === 'directory') {
     return (
       <>
-        <button
-          className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-sm hover:bg-accent"
-          style={{ paddingLeft }}
-          onClick={() => toggleExpand(node.path)}
-        >
-          {isExpanded ? (
-            <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          ) : (
-            <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          )}
-          <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-          <span className="truncate">{node.name}</span>
-        </button>
+        <FileContextMenu filePath={`${worktreePath}/${node.path}`}>
+          <button
+            className="flex w-full items-center gap-1 rounded px-1 py-0.5 text-sm hover:bg-accent"
+            style={{ paddingLeft }}
+            onClick={() => toggleExpand(node.path)}
+          >
+            {isExpanded ? (
+              <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            )}
+            <Folder className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+            <span className="truncate">{node.name}</span>
+          </button>
+        </FileContextMenu>
         {isExpanded &&
           node.children?.map((child) => (
             <TreeNode
               key={child.path}
               node={child}
               depth={depth + 1}
+              worktreePath={worktreePath}
               onFileSelect={onFileSelect}
               expandedPaths={expandedPaths}
               toggleExpand={toggleExpand}
@@ -61,14 +67,16 @@ function TreeNode({
   else if (node.changeStatus === 'deleted') statusClass = 'text-red-500'
 
   return (
-    <button
-      className={`flex w-full items-center gap-1 rounded px-1 py-0.5 text-sm hover:bg-accent ${statusClass}`}
-      style={{ paddingLeft: `${depth * 16 + 20}px` }}
-      onClick={() => onFileSelect(node.path)}
-    >
-      <File className="h-3.5 w-3.5 shrink-0" />
-      <span className="truncate">{node.name}</span>
-    </button>
+    <FileContextMenu filePath={`${worktreePath}/${node.path}`}>
+      <button
+        className={`flex w-full items-center gap-1 rounded px-1 py-0.5 text-sm hover:bg-accent ${statusClass}`}
+        style={{ paddingLeft: `${depth * 16 + 20}px` }}
+        onClick={() => onFileSelect(node.path)}
+      >
+        <File className="h-3.5 w-3.5 shrink-0" />
+        <span className="truncate">{node.name}</span>
+      </button>
+    </FileContextMenu>
   )
 }
 
@@ -107,6 +115,7 @@ export function FileTree({ worktreePath, onFileSelect }: FileTreeProps) {
           key={child.path}
           node={child}
           depth={0}
+          worktreePath={worktreePath}
           onFileSelect={onFileSelect}
           expandedPaths={expandedPaths}
           toggleExpand={toggleExpand}

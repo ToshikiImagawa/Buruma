@@ -5,7 +5,7 @@
   "identifier": "com.toshikiimagawa.buruma",
   "build": {
     "frontendDist": "../dist",
-    "devUrl": "http://localhost:1420",
+    "devUrl": "http://localhost:1532",
     "beforeDevCommand": "npm run dev",
     "beforeBuildCommand": "npm run build"
   },
@@ -23,6 +23,11 @@
     ],
     "security": {
       "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; worker-src blob: 'self'; connect-src 'self' ipc: http://ipc.localhost; img-src 'self' asset: https://asset.localhost data:; style-src 'self' 'unsafe-inline'; font-src 'self' data:"
+    }
+  },
+  "plugins": {
+    "opener": {
+      "requireLiteralLeadingDot": false
     }
   },
   "bundle": {

@@ -10,8 +10,7 @@ export default defineConfig({
   clearScreen: false,
 
   server: {
-    // Tauri 推奨ポート。他ツール (default Vite の 5173 など) と衝突しにくい
-    port: 1420,
+    port: 1532,
     strictPort: true,
     host: false,
     // src-tauri/ 内の変更は Rust 側でウォッチするので Vite の HMR から除外

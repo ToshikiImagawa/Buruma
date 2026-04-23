@@ -121,6 +121,52 @@ pub fn set_theme(store: &dyn StoreRepository, theme: Theme) -> AppResult<()> {
     store.set_settings(&settings)
 }
 
+/// 設定されたエディタアプリでディレクトリやファイルを開く。
+pub fn open_in_editor(store: &dyn StoreRepository, path: &str) -> AppResult<()> {
+    let settings = store.get_settings()?;
+    let editor = settings.external_editor.ok_or_else(|| {
+        AppError::Internal("外部エディタが設定されていません。設定画面でエディタを選択してください。".to_string())
+    })?;
+
+    #[cfg(target_os = "macos")]
+    let result = std::process::Command::new("open")
+        .arg("-a")
+        .arg(&editor)
+        .arg(path)
+        .spawn();
+
+    #[cfg(target_os = "linux")]
+    let result = std::process::Command::new("xdg-open").arg(path).spawn();
+
+    #[cfg(target_os = "windows")]
+    let result = std::process::Command::new(&editor).arg(path).spawn();
+
+    let child = result.map_err(|e| AppError::Internal(format!("エディタ '{}' の起動に失敗しました: {}", editor, e)))?;
+
+    // Child をドロップするとゾンビプロセスになるため、別スレッドで wait して回収する。
+    // エディタは長時間起動し続けるが、終了時にリソースが適切に解放される。
+    std::thread::spawn(move || {
+        let mut child = child;
+        let _ = child.wait();
+    });
+
+    Ok(())
+}
+
+/// ダイアログでエディタアプリを選択し、設定に保存する。
+pub async fn select_external_editor_app(
+    store: &dyn StoreRepository,
+    dialog: &dyn DialogRepository,
+) -> AppResult<Option<String>> {
+    let selected = dialog.show_select_application_dialog().await?;
+    if let Some(ref app_path) = selected {
+        let mut settings = store.get_settings()?;
+        settings.external_editor = Some(app_path.clone());
+        store.set_settings(&settings)?;
+    }
+    Ok(selected)
+}
+
 // --- ヘルパー ---
 
 /// RepositoryInfo を最近のリポジトリ一覧に追加する。
@@ -150,4 +196,76 @@ fn extract_dir_name(path: &str) -> String {
         .find(|s| !s.is_empty())
         .unwrap_or(path)
         .to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::AppError;
+    use crate::features::application_foundation::domain::{AppSettings, RecentRepository};
+
+    /// テスト用モック StoreRepository
+    struct MockStoreRepo {
+        settings: AppSettings,
+    }
+
+    impl MockStoreRepo {
+        fn with_editor(editor: Option<String>) -> Self {
+            Self {
+                settings: AppSettings {
+                    external_editor: editor,
+                    ..Default::default()
+                },
+            }
+        }
+    }
+
+    impl StoreRepository for MockStoreRepo {
+        fn get_recent_repositories(&self) -> AppResult<Vec<RecentRepository>> {
+            Ok(vec![])
+        }
+        fn set_recent_repositories(&self, _repos: &[RecentRepository]) -> AppResult<()> {
+            Ok(())
+        }
+        fn get_settings(&self) -> AppResult<AppSettings> {
+            Ok(self.settings.clone())
+        }
+        fn set_settings(&self, _settings: &AppSettings) -> AppResult<()> {
+            Ok(())
+        }
+    }
+
+    #[test]
+    fn test_open_in_editor_no_editor_configured() {
+        let store = MockStoreRepo::with_editor(None);
+        let result = open_in_editor(&store, "/test/path");
+        assert!(result.is_err());
+        let err = result.unwrap_err();
+        match err {
+            AppError::Internal(msg) => {
+                assert!(msg.contains("外部エディタが設定されていません"));
+            }
+            _ => panic!("expected AppError::Internal, got {:?}", err),
+        }
+    }
+
+    #[test]
+    fn test_extract_dir_name_unix() {
+        assert_eq!(extract_dir_name("/home/user/project"), "project");
+    }
+
+    #[test]
+    fn test_extract_dir_name_windows() {
+        assert_eq!(extract_dir_name("C:\\Users\\user\\project"), "project");
+    }
+
+    #[test]
+    fn test_extract_dir_name_trailing_slash() {
+        assert_eq!(extract_dir_name("/home/user/project/"), "project");
+    }
+
+    #[test]
+    fn test_extract_dir_name_single() {
+        assert_eq!(extract_dir_name("project"), "project");
+    }
 }

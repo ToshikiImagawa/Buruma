@@ -60,6 +60,7 @@ function createMockSettingsRepo(): SettingsRepository {
     update: vi.fn().mockResolvedValue(undefined),
     getTheme: vi.fn().mockResolvedValue('system'),
     setTheme: vi.fn().mockResolvedValue(undefined),
+    selectEditorApp: vi.fn().mockResolvedValue(null),
   }
 }
 
@@ -68,6 +69,7 @@ function createMockErrorService(): ErrorNotificationService {
   return {
     notifications$: notifications$.asObservable(),
     addNotification: vi.fn((n) => notifications$.next([...notifications$.getValue(), n])),
+    notifyError: vi.fn(),
     removeNotification: vi.fn((id) => notifications$.next(notifications$.getValue().filter((n) => n.id !== id))),
     clear: vi.fn(() => notifications$.next([])),
   }
@@ -115,7 +117,7 @@ describe('OpenRepositoryUseCase', () => {
 
     useCase.invoke()
     await vi.waitFor(() => {
-      expect(errorService.addNotification).toHaveBeenCalled()
+      expect(errorService.notifyError).toHaveBeenCalled()
     })
   })
 })
@@ -183,12 +185,26 @@ describe('UpdateSettingsUseCase', () => {
   it('repo.update → service に反映', async () => {
     const repo = createMockSettingsRepo()
     const service = createMockSettingsService()
-    const useCase = new UpdateSettingsDefaultUseCase(repo, service)
+    const errorService = createMockErrorService()
+    const useCase = new UpdateSettingsDefaultUseCase(repo, service, errorService)
 
     useCase.invoke({ theme: 'dark' })
     await vi.waitFor(() => {
       expect(repo.update).toHaveBeenCalledWith({ theme: 'dark' })
       expect(service.updateSettings).toHaveBeenCalledWith({ theme: 'dark' })
+    })
+  })
+
+  it('repo.update 失敗時: errorService に通知される', async () => {
+    const repo = createMockSettingsRepo()
+    repo.update = vi.fn().mockRejectedValue(new Error('save failed'))
+    const service = createMockSettingsService()
+    const errorService = createMockErrorService()
+    const useCase = new UpdateSettingsDefaultUseCase(repo, service, errorService)
+
+    useCase.invoke({ theme: 'dark' })
+    await vi.waitFor(() => {
+      expect(errorService.notifyError).toHaveBeenCalledWith('設定の保存に失敗しました', expect.any(Error))
     })
   })
 })
