@@ -62,7 +62,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
   register(container) {
     container
       .registerSingleton(ClaudeRepositoryToken, ClaudeDefaultRepository)
-      .registerSingleton(ClaudeServiceToken, ClaudeDefaultService)
+      .registerSingleton(ClaudeServiceToken, ClaudeDefaultService, [ClaudeRepositoryToken])
       .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [
         ClaudeRepositoryToken,
         ClaudeServiceToken,
@@ -148,7 +148,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
     const unsubOutput = repo.onOutput((output) => {
       service.appendOutput(output)
       if (output.stream === 'stdout') {
-        service.appendToLastAssistantMessage(output.content + '\n')
+        service.appendToLastAssistantMessage(output.content + '\n', output.sessionId)
       }
     })
 
@@ -156,8 +156,8 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       service.updateSession(session)
     })
 
-    const unsubCommandCompleted = repo.onCommandCompleted(() => {
-      service.finalizeLastAssistantMessage()
+    const unsubCommandCompleted = repo.onCommandCompleted((data) => {
+      service.finalizeLastAssistantMessage(data.sessionId)
       service.setCommandRunning(false)
     })
 

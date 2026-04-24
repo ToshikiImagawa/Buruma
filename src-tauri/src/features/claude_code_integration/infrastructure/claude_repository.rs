@@ -29,12 +29,12 @@ impl ClaudeRepository for DefaultClaudeRepository {
         self.manager.start_session(worktree_path, app_handle).await
     }
 
-    async fn stop_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<()> {
-        self.manager.stop_session(worktree_path, app_handle).await
+    async fn stop_session(&self, session_id: &str, app_handle: tauri::AppHandle) -> AppResult<()> {
+        self.manager.stop_session(session_id, app_handle).await
     }
 
-    async fn get_session(&self, worktree_path: &str) -> AppResult<Option<ClaudeSession>> {
-        Ok(self.manager.get_session(worktree_path))
+    async fn get_session(&self, session_id: &str) -> AppResult<Option<ClaudeSession>> {
+        Ok(self.manager.get_session(session_id))
     }
 
     async fn get_all_sessions(&self) -> AppResult<Vec<ClaudeSession>> {
@@ -42,18 +42,17 @@ impl ClaudeRepository for DefaultClaudeRepository {
     }
 
     async fn send_command(&self, command: &ClaudeCommand, app_handle: tauri::AppHandle) -> AppResult<()> {
+        let session_id = command
+            .session_id
+            .as_deref()
+            .ok_or_else(|| AppError::Claude("session_id is required for send_command".to_string()))?;
         self.manager
-            .send_command(
-                &command.worktree_path,
-                &command.input,
-                command.model.as_deref(),
-                app_handle,
-            )
+            .send_command(session_id, &command.input, command.model.as_deref(), app_handle)
             .await
     }
 
-    async fn get_output(&self, worktree_path: &str) -> AppResult<Vec<ClaudeOutput>> {
-        Ok(self.manager.get_output(worktree_path))
+    async fn get_output(&self, session_id: &str) -> AppResult<Vec<ClaudeOutput>> {
+        Ok(self.manager.get_output(session_id))
     }
 
     async fn check_auth(&self) -> AppResult<ClaudeAuthStatus> {

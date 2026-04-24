@@ -13,7 +13,6 @@ interface CommandInputProps {
 export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }: CommandInputProps) {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const composingRef = useRef(false)
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
@@ -26,24 +25,11 @@ export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }:
     textareaRef.current?.focus()
   }, [value, onSubmit])
 
-  const handleCompositionStart = useCallback(() => {
-    composingRef.current = true
-  }, [])
-
-  const handleCompositionEnd = useCallback(() => {
-    // 一部の WebView では compositionend が keydown より先に発火するため、
-    // フレーム遅延でフラグをリセットし、確定直後の Enter をブロックする
-    requestAnimationFrame(() => {
-      composingRef.current = false
-    })
-  }, [])
-
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === 'Enter' && !e.shiftKey && !composingRef.current && !e.nativeEvent.isComposing) {
-        e.preventDefault()
-        handleSubmit()
-      }
+      if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.keyCode === 229) return
+      e.preventDefault()
+      handleSubmit()
     },
     [handleSubmit],
   )
@@ -66,8 +52,6 @@ export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }:
           value={value}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
-          onCompositionStart={handleCompositionStart}
-          onCompositionEnd={handleCompositionEnd}
           disabled={disabled || isCommandRunning}
         />
         {isCommandRunning ? (

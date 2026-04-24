@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::features::claude_code_integration::application::usecases;
 use crate::features::claude_code_integration::domain::{
     ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
-    GenerateCommitMessageArgs, WorktreePathArgs,
+    GenerateCommitMessageArgs, SessionIdArgs, WorktreePathArgs,
 };
 use crate::state::AppState;
 
@@ -23,19 +23,19 @@ pub async fn claude_start_session(
 
 #[tauri::command]
 pub async fn claude_stop_session(
-    args: WorktreePathArgs,
+    args: SessionIdArgs,
     state: State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
-    usecases::stop_session(state.claude_repo.as_ref(), &args.worktree_path, app).await
+    usecases::stop_session(state.claude_repo.as_ref(), &args.session_id, app).await
 }
 
 #[tauri::command]
 pub async fn claude_get_session(
-    args: WorktreePathArgs,
+    args: SessionIdArgs,
     state: State<'_, AppState>,
 ) -> Result<Option<ClaudeSession>, AppError> {
-    usecases::get_session(state.claude_repo.as_ref(), &args.worktree_path).await
+    usecases::get_session(state.claude_repo.as_ref(), &args.session_id).await
 }
 
 #[tauri::command]
@@ -55,11 +55,8 @@ pub async fn claude_send_command(
 }
 
 #[tauri::command]
-pub async fn claude_get_output(
-    args: WorktreePathArgs,
-    state: State<'_, AppState>,
-) -> Result<Vec<ClaudeOutput>, AppError> {
-    usecases::get_output(state.claude_repo.as_ref(), &args.worktree_path).await
+pub async fn claude_get_output(args: SessionIdArgs, state: State<'_, AppState>) -> Result<Vec<ClaudeOutput>, AppError> {
+    usecases::get_output(state.claude_repo.as_ref(), &args.session_id).await
 }
 
 // --- Auth ---

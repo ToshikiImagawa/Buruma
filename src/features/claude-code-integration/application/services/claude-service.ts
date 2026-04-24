@@ -13,6 +13,7 @@ import type {
   SessionStatus,
 } from '@domain'
 import type { Observable } from 'rxjs'
+import type { ClaudeRepository } from '../repositories/claude-repository'
 import type { ClaudeService } from './claude-service-interface'
 import { DEFAULT_MODEL } from '@domain'
 import { BehaviorSubject } from 'rxjs'
@@ -41,7 +42,7 @@ export class ClaudeDefaultService implements ClaudeService {
   private readonly _currentConversationId$ = new BehaviorSubject<string | null>(null)
   private readonly _selectedModel$ = new BehaviorSubject<string>(DEFAULT_MODEL)
   private readonly conversationStore = new Map<string, Conversation>()
-  private pendingContent = ''
+  private readonly pendingContentMap = new Map<string, string>()
   private flushScheduled = false
 
   readonly currentSession$: Observable<ClaudeSession | null>
@@ -64,7 +65,7 @@ export class ClaudeDefaultService implements ClaudeService {
   readonly currentConversationId$: Observable<string | null>
   readonly selectedModel$: Observable<string>
 
-  constructor() {
+  constructor(private readonly repository: ClaudeRepository) {
     this.currentSession$ = this._currentSession$.asObservable()
     this.outputs$ = this._outputs$.asObservable()
     this.status$ = this._currentSession$.pipe(map((s) => s?.status ?? 'idle'))
@@ -171,10 +172,10 @@ export class ClaudeDefaultService implements ClaudeService {
     this._resolvingProgress$.next(progress)
   }
 
-  addChatMessage(message: ChatMessage): void {
+  async addChatMessage(message: ChatMessage, worktreePath: string): Promise<string> {
     let conversationId = this._currentConversationId$.getValue()
     if (!conversationId) {
-      conversationId = this.createConversation()
+      conversationId = await this.createConversation(worktreePath)
     }
 
     const current = this._chatMessages$.getValue()
@@ -189,10 +190,14 @@ export class ClaudeDefaultService implements ClaudeService {
       }
       this.refreshConversationSummaries()
     }
+    return conversationId
   }
 
-  appendToLastAssistantMessage(content: string): void {
-    this.pendingContent += content
+  appendToLastAssistantMessage(content: string, sessionId?: string): void {
+    const targetId = sessionId ?? this._currentConversationId$.getValue()
+    if (!targetId) return
+    const existing = this.pendingContentMap.get(targetId) ?? ''
+    this.pendingContentMap.set(targetId, existing + content)
     if (!this.flushScheduled) {
       this.flushScheduled = true
       requestAnimationFrame(() => this.flushPendingContent())
@@ -201,13 +206,26 @@ export class ClaudeDefaultService implements ClaudeService {
 
   private flushPendingContent(): void {
     this.flushScheduled = false
-    const chunk = this.pendingContent
-    this.pendingContent = ''
-    if (!chunk) return
+    const entries = new Map(this.pendingContentMap)
+    this.pendingContentMap.clear()
 
-    const current = this._chatMessages$.getValue()
-    const lastAssistantIndex = current.findLastIndex((m) => m.role === 'assistant')
-    const lastUserIndex = current.findLastIndex((m) => m.role === 'user')
+    for (const [convId, chunk] of entries) {
+      if (!chunk) continue
+      this.flushContentToConversation(convId, chunk)
+    }
+  }
+
+  private flushContentToConversation(conversationId: string, chunk: string): void {
+    const conversation = this.conversationStore.get(conversationId)
+    if (!conversation) return
+
+    const isCurrentConversation = this._currentConversationId$.getValue() === conversationId
+    const messages = isCurrentConversation ? this._chatMessages$.getValue() : conversation.messages
+
+    const lastAssistantIndex = messages.findLastIndex((m) => m.role === 'assistant')
+    const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
+
+    let updated: ChatMessage[]
     // assistant メッセージがないか、最後の user メッセージより前にある場合は新規作成
     if (lastAssistantIndex === -1 || lastUserIndex > lastAssistantIndex) {
       const newMessage: ChatMessage = {
@@ -216,22 +234,31 @@ export class ClaudeDefaultService implements ClaudeService {
         content: chunk,
         timestamp: new Date().toISOString(),
       }
-      const updated = [...current, newMessage]
+      updated = [...messages, newMessage]
+    } else {
+      updated = [...messages]
+      updated[lastAssistantIndex] = {
+        ...updated[lastAssistantIndex],
+        content: updated[lastAssistantIndex].content + chunk,
+      }
+    }
+
+    if (isCurrentConversation) {
       this._chatMessages$.next(updated)
-      this.syncMessagesToConversation(updated)
-      return
     }
-    const updated = [...current]
-    updated[lastAssistantIndex] = {
-      ...updated[lastAssistantIndex],
-      content: updated[lastAssistantIndex].content + chunk,
-    }
-    this._chatMessages$.next(updated)
-    this.syncMessagesToConversation(updated)
+    conversation.messages = updated
+    conversation.updatedAt = new Date().toISOString()
   }
 
-  finalizeLastAssistantMessage(): void {
-    this.flushPendingContent()
+  finalizeLastAssistantMessage(sessionId?: string): void {
+    const targetId = sessionId ?? this._currentConversationId$.getValue()
+    if (targetId) {
+      const pending = this.pendingContentMap.get(targetId)
+      if (pending) {
+        this.pendingContentMap.delete(targetId)
+        this.flushContentToConversation(targetId, pending)
+      }
+    }
     this.syncConversationSummaries()
   }
 
@@ -251,11 +278,13 @@ export class ClaudeDefaultService implements ClaudeService {
     this._selectedModel$.next(model)
   }
 
-  createConversation(): string {
-    const id = crypto.randomUUID()
+  async createConversation(worktreePath: string): Promise<string> {
+    const session = await this.repository.startSession(worktreePath)
+    const id = session.id
     const now = new Date().toISOString()
     const conversation: Conversation = {
       id,
+      worktreePath,
       title: DEFAULT_CONVERSATION_TITLE,
       messages: [],
       createdAt: now,
@@ -278,12 +307,20 @@ export class ClaudeDefaultService implements ClaudeService {
   }
 
   deleteConversation(id: string): void {
+    this.repository.stopSession(id).catch(() => {
+      // エラーは IPC イベント経由で通知される
+    })
     this.conversationStore.delete(id)
     if (this._currentConversationId$.getValue() === id) {
       this._currentConversationId$.next(null)
       this._chatMessages$.next([])
     }
     this.refreshConversationSummaries()
+  }
+
+  getConversationWorktreePath(conversationId: string): string | null {
+    const conversation = this.conversationStore.get(conversationId)
+    return conversation?.worktreePath ?? null
   }
 
   startNewConversation(): void {
@@ -298,15 +335,6 @@ export class ClaudeDefaultService implements ClaudeService {
     const conversation = this.conversationStore.get(currentId)
     if (!conversation) return
     conversation.messages = this._chatMessages$.getValue()
-    conversation.updatedAt = new Date().toISOString()
-  }
-
-  private syncMessagesToConversation(messages: ChatMessage[]): void {
-    const currentId = this._currentConversationId$.getValue()
-    if (!currentId) return
-    const conversation = this.conversationStore.get(currentId)
-    if (!conversation) return
-    conversation.messages = messages
     conversation.updatedAt = new Date().toISOString()
   }
 

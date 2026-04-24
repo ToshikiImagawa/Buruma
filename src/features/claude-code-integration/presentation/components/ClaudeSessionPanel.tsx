@@ -201,7 +201,11 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
                   size="sm"
                   variant={isSessionActive ? 'destructive' : 'default'}
                   className="ml-2 h-7 text-xs"
-                  onClick={() => (isSessionActive ? stopSession(worktreePath) : startSession(worktreePath))}
+                  onClick={() =>
+                    isSessionActive && currentConversationId
+                      ? stopSession(currentConversationId)
+                      : startSession(worktreePath)
+                  }
                 >
                   {isSessionActive ? 'セッション停止' : 'セッション開始'}
                 </Button>
@@ -236,7 +240,7 @@ export function ClaudeSessionPanel({ worktreePath, onCommandCompleted }: ClaudeS
             </div>
             <CommandInput
               onSubmit={(input) => sendCommand(worktreePath, input)}
-              onCancel={() => stopSession(worktreePath)}
+              onCancel={() => currentConversationId && stopSession(currentConversationId)}
               disabled={!isRunning}
               isCommandRunning={isCommandRunning}
             />

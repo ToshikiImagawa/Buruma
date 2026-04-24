@@ -26,7 +26,7 @@ export function StashManager({ worktreePath, status, selectedFile, onFileSelect 
   const [message, setMessage] = useState('')
   const [showClearConfirm, setShowClearConfirm] = useState(false)
   const [dropTarget, setDropTarget] = useState<number | null>(null)
-  const composingRef = useRef(false)
+  const compositionEndTimeRef = useRef(0)
 
   // マウント時にスタッシュ一覧を取得
   useEffect(() => {
@@ -69,21 +69,15 @@ export function StashManager({ worktreePath, status, selectedFile, onFileSelect 
     stashList(worktreePath)
   }, [worktreePath, stashClear, stashList])
 
-  const handleCompositionStart = useCallback(() => {
-    composingRef.current = true
-  }, [])
-
   const handleCompositionEnd = useCallback(() => {
-    requestAnimationFrame(() => {
-      composingRef.current = false
-    })
+    compositionEndTimeRef.current = Date.now()
   }, [])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter' && !composingRef.current) {
-        handleSave()
-      }
+      if (e.key !== 'Enter') return
+      if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
+      handleSave()
     },
     [handleSave],
   )
@@ -100,7 +94,6 @@ export function StashManager({ worktreePath, status, selectedFile, onFileSelect 
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            onCompositionStart={handleCompositionStart}
             onCompositionEnd={handleCompositionEnd}
             disabled={loading}
           />

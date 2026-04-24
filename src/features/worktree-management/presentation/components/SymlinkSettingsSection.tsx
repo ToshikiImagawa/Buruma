@@ -12,7 +12,7 @@ interface SymlinkSettingsSectionProps {
 export function SymlinkSettingsSection({ repoPath }: SymlinkSettingsSectionProps) {
   const { config, addPattern, removePattern } = useSymlinkSettingsViewModel(repoPath)
   const [newPattern, setNewPattern] = useState('')
-  const composingRef = useRef(false)
+  const compositionEndTimeRef = useRef(0)
 
   const handleAdd = () => {
     if (!newPattern.trim()) return
@@ -42,15 +42,14 @@ export function SymlinkSettingsSection({ repoPath }: SymlinkSettingsSectionProps
             placeholder="例: node_modules"
             value={newPattern}
             onChange={(e) => setNewPattern(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && !composingRef.current && handleAdd()}
-            onCompositionStart={() => {
-              composingRef.current = true
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return
+              if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
+              handleAdd()
             }}
-            onCompositionEnd={() =>
-              requestAnimationFrame(() => {
-                composingRef.current = false
-              })
-            }
+            onCompositionEnd={() => {
+              compositionEndTimeRef.current = Date.now()
+            }}
             className="flex-1"
           />
           <Button size="sm" onClick={handleAdd} disabled={!newPattern.trim()}>

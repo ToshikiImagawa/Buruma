@@ -574,11 +574,13 @@ export type SessionStatus = 'idle' | 'starting' | 'running' | 'stopping' | 'erro
 
 /** Claude Code セッション情報 */
 export interface ClaudeSession {
+  id: string
   worktreePath: string
   status: SessionStatus
   pid: number | null
   startedAt: string | null // ISO 8601
   error: string | null
+  claudeSessionId?: string
 }
 
 /** Claude Code 認証ステータス */
@@ -593,6 +595,7 @@ export interface ClaudeCommand {
   type: ClaudeCommandType
   input: string
   model?: string
+  sessionId?: string
 }
 
 export type ClaudeCommandType = 'general' | 'git-delegation' | 'review' | 'explain'
@@ -624,6 +627,7 @@ export interface ClaudeOutput {
   stream: 'stdout' | 'stderr'
   content: string
   timestamp: string // ISO 8601
+  sessionId?: string
 }
 
 /** 差分ターゲット（レビュー・解説対象の指定） */
@@ -669,9 +673,10 @@ export interface ChatMessage {
   timestamp: string // ISO 8601
 }
 
-/** 会話 */
+/** 会話（ClaudeSession と 1:1 対応、id は ClaudeSession.id と同一） */
 export interface Conversation {
   id: string
+  worktreePath: string
   title: string
   messages: ChatMessage[]
   createdAt: string // ISO 8601

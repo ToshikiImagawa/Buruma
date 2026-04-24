@@ -20,13 +20,13 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return result.data
   }
 
-  async stopSession(worktreePath: string): Promise<void> {
-    const result = await invokeCommand('claude_stop_session', { args: { worktreePath } })
+  async stopSession(sessionId: string): Promise<void> {
+    const result = await invokeCommand('claude_stop_session', { args: { sessionId } })
     if (result.success === false) throw new Error(result.error.message)
   }
 
-  async getSession(worktreePath: string): Promise<ClaudeSession | null> {
-    const result = await invokeCommand('claude_get_session', { args: { worktreePath } })
+  async getSession(sessionId: string): Promise<ClaudeSession | null> {
+    const result = await invokeCommand('claude_get_session', { args: { sessionId } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
@@ -42,8 +42,8 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     if (result.success === false) throw new Error(result.error.message)
   }
 
-  async getOutput(worktreePath: string): Promise<ClaudeOutput[]> {
-    const result = await invokeCommand('claude_get_output', { args: { worktreePath } })
+  async getOutput(sessionId: string): Promise<ClaudeOutput[]> {
+    const result = await invokeCommand('claude_get_output', { args: { sessionId } })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }

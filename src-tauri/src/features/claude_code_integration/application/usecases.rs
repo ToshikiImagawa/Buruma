@@ -15,12 +15,12 @@ pub async fn start_session(
     repo.start_session(worktree_path, app).await
 }
 
-pub async fn stop_session(repo: &dyn ClaudeRepository, worktree_path: &str, app: tauri::AppHandle) -> AppResult<()> {
-    repo.stop_session(worktree_path, app).await
+pub async fn stop_session(repo: &dyn ClaudeRepository, session_id: &str, app: tauri::AppHandle) -> AppResult<()> {
+    repo.stop_session(session_id, app).await
 }
 
-pub async fn get_session(repo: &dyn ClaudeRepository, worktree_path: &str) -> AppResult<Option<ClaudeSession>> {
-    repo.get_session(worktree_path).await
+pub async fn get_session(repo: &dyn ClaudeRepository, session_id: &str) -> AppResult<Option<ClaudeSession>> {
+    repo.get_session(session_id).await
 }
 
 pub async fn get_all_sessions(repo: &dyn ClaudeRepository) -> AppResult<Vec<ClaudeSession>> {
@@ -35,8 +35,8 @@ pub async fn send_command(
     repo.send_command(command, app).await
 }
 
-pub async fn get_output(repo: &dyn ClaudeRepository, worktree_path: &str) -> AppResult<Vec<ClaudeOutput>> {
-    repo.get_output(worktree_path).await
+pub async fn get_output(repo: &dyn ClaudeRepository, session_id: &str) -> AppResult<Vec<ClaudeOutput>> {
+    repo.get_output(session_id).await
 }
 
 pub async fn check_auth(repo: &dyn ClaudeRepository) -> AppResult<ClaudeAuthStatus> {

@@ -20,7 +20,7 @@ export function CommitForm({ worktreePath, hasStagedFiles, currentBranch, onComm
   const { loading: remoteLoading, push } = useRemoteOpsViewModel()
   const [message, setMessage] = useState('')
   const [amend, setAmend] = useState(false)
-  const composingRef = useRef(false)
+  const compositionEndTimeRef = useRef(0)
   const [showAmendConfirm, setShowAmendConfirm] = useState(false)
   const [pushing, setPushing] = useState(false)
 
@@ -73,21 +73,15 @@ export function CommitForm({ worktreePath, hasStagedFiles, currentBranch, onComm
     setShowAmendConfirm(false)
   }, [])
 
-  const handleCompositionStart = useCallback(() => {
-    composingRef.current = true
-  }, [])
-
   const handleCompositionEnd = useCallback(() => {
-    requestAnimationFrame(() => {
-      composingRef.current = false
-    })
+    compositionEndTimeRef.current = Date.now()
   }, [])
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && !composingRef.current) {
-        handleCommit()
-      }
+      if (!(e.metaKey || e.ctrlKey) || e.key !== 'Enter') return
+      if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
+      handleCommit()
     },
     [handleCommit],
   )
@@ -100,7 +94,6 @@ export function CommitForm({ worktreePath, hasStagedFiles, currentBranch, onComm
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         onKeyDown={handleKeyDown}
-        onCompositionStart={handleCompositionStart}
         onCompositionEnd={handleCompositionEnd}
         disabled={busy || generating}
       />

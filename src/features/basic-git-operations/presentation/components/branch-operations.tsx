@@ -47,7 +47,7 @@ export function BranchOperations({
   const [startPoint, setStartPoint] = useState<string>('')
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null)
   const [remoteDeleteTarget, setRemoteDeleteTarget] = useState<string | null>(null)
-  const composingRef = useRef(false)
+  const compositionEndTimeRef = useRef(0)
   const [showNotMergedWarning, setShowNotMergedWarning] = useState<string | null>(null)
   const pendingDeleteRef = useRef<string | null>(null)
   const [mergeOpen, setMergeOpen] = useState(false)
@@ -134,15 +134,14 @@ export function BranchOperations({
               placeholder="ブランチ名"
               value={newBranchName}
               onChange={(e) => setNewBranchName(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && !composingRef.current && handleCreate()}
-              onCompositionStart={() => {
-                composingRef.current = true
+              onKeyDown={(e) => {
+                if (e.key !== 'Enter') return
+                if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
+                handleCreate()
               }}
-              onCompositionEnd={() =>
-                requestAnimationFrame(() => {
-                  composingRef.current = false
-                })
-              }
+              onCompositionEnd={() => {
+                compositionEndTimeRef.current = Date.now()
+              }}
               disabled={loading}
             />
             <div className="flex items-center gap-1">

@@ -8,11 +8,14 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ClaudeSession {
+    pub id: String,
     pub worktree_path: String,
     pub status: SessionStatus,
     pub pid: Option<u32>,
     pub started_at: Option<String>,
     pub error: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -46,6 +49,8 @@ pub struct ClaudeCommand {
     pub input: String,
     #[serde(default)]
     pub model: Option<String>,
+    #[serde(default)]
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -64,6 +69,8 @@ pub struct ClaudeOutput {
     pub stream: ClaudeOutputStream,
     pub content: String,
     pub timestamp: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -133,6 +140,12 @@ pub struct WorktreePathArgs {
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
+pub struct SessionIdArgs {
+    pub session_id: String,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct GenerateCommitMessageArgs {
     pub worktree_path: String,
     pub diff_text: String,
@@ -195,4 +208,6 @@ pub enum ConflictResolveResult {
 #[serde(rename_all = "camelCase")]
 pub struct CommandCompletedEvent {
     pub worktree_path: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub session_id: Option<String>,
 }

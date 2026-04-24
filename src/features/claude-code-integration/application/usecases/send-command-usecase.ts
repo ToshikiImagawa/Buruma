@@ -9,14 +9,17 @@ export class SendCommandUseCase implements ConsumerUseCase<ClaudeCommand> {
     private readonly service: ClaudeService,
   ) {}
 
-  invoke(command: ClaudeCommand): void {
+  async invoke(command: ClaudeCommand): Promise<void> {
     const now = new Date().toISOString()
-    this.service.addChatMessage({
-      id: crypto.randomUUID(),
-      role: 'user',
-      content: command.input,
-      timestamp: now,
-    })
+    const sessionId = await this.service.addChatMessage(
+      {
+        id: crypto.randomUUID(),
+        role: 'user',
+        content: command.input,
+        timestamp: now,
+      },
+      command.worktreePath,
+    )
     // ターミナル表示用にユーザー入力を ClaudeOutput として追加
     this.service.appendOutput({
       worktreePath: command.worktreePath,
@@ -26,10 +29,11 @@ export class SendCommandUseCase implements ConsumerUseCase<ClaudeCommand> {
     })
     this.service.setCommandRunning(true)
     // model が未指定の場合、Service の selectedModel を使用
-    const commandWithModel: ClaudeCommand = command.model
-      ? command
-      : { ...command, model: this.service.getSelectedModel() }
-    this.repository.sendCommand(commandWithModel).catch(() => {
+    const commandToSend: ClaudeCommand = {
+      ...(command.model ? command : { ...command, model: this.service.getSelectedModel() }),
+      sessionId,
+    }
+    this.repository.sendCommand(commandToSend).catch(() => {
       this.service.setCommandRunning(false)
     })
   }

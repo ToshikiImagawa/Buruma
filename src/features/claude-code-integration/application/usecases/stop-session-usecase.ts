@@ -8,9 +8,9 @@ export class StopSessionUseCase implements ConsumerUseCase<string> {
     private readonly service: ClaudeService,
   ) {}
 
-  invoke(worktreePath: string): void {
+  invoke(sessionId: string): void {
     this.repository
-      .stopSession(worktreePath)
+      .stopSession(sessionId)
       .then(() => this.service.updateSession(null))
       .catch(() => {
         // エラーは IPC イベント経由で session-changed として通知される

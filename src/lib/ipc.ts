@@ -182,11 +182,11 @@ export interface IPCCommandMap {
 
   // --- claude-code-integration ---
   claude_start_session: { args: { args: { worktreePath: string } }; result: ClaudeSession }
-  claude_stop_session: { args: { args: { worktreePath: string } }; result: void }
-  claude_get_session: { args: { args: { worktreePath: string } }; result: ClaudeSession | null }
+  claude_stop_session: { args: { args: { sessionId: string } }; result: void }
+  claude_get_session: { args: { args: { sessionId: string } }; result: ClaudeSession | null }
   claude_get_all_sessions: { args: void; result: ClaudeSession[] }
   claude_send_command: { args: { command: ClaudeCommand }; result: void }
-  claude_get_output: { args: { args: { worktreePath: string } }; result: ClaudeOutput[] }
+  claude_get_output: { args: { args: { sessionId: string } }; result: ClaudeOutput[] }
   claude_review_diff: {
     args: { args: { worktreePath: string; diffTarget: DiffTarget; diffText: string } }
     result: void
@@ -215,7 +215,7 @@ export interface IPCEventMap {
   'git-progress': GitProgressEvent
   'claude-output': ClaudeOutput
   'claude-session-changed': ClaudeSession
-  'claude-command-completed': { worktreePath: string }
+  'claude-command-completed': { worktreePath: string; sessionId?: string }
   'claude-review-result': ReviewResult
   'claude-explain-result': ExplainResult
   'claude-conflict-resolved': ConflictResolveResult

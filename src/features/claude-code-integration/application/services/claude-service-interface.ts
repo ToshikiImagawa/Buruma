@@ -36,15 +36,16 @@ export interface ClaudeService extends BaseService {
   readonly selectedModel$: Observable<string>
   getSelectedModel(): string
   setSelectedModel(model: string): void
-  addChatMessage(message: ChatMessage): void
-  appendToLastAssistantMessage(content: string): void
-  finalizeLastAssistantMessage(): void
+  addChatMessage(message: ChatMessage, worktreePath: string): Promise<string>
+  appendToLastAssistantMessage(content: string, sessionId?: string): void
+  finalizeLastAssistantMessage(sessionId?: string): void
   clearChatMessages(): void
   setCommandRunning(running: boolean): void
-  createConversation(): string
+  createConversation(worktreePath: string): Promise<string>
   switchConversation(id: string): void
   deleteConversation(id: string): void
   startNewConversation(): void
+  getConversationWorktreePath(conversationId: string): string | null
   updateSession(session: ClaudeSession | null): void
   appendOutput(output: ClaudeOutput): void
   clearOutputs(): void
