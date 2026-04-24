@@ -42,6 +42,8 @@ export class ClaudeDefaultService implements ClaudeService {
   private readonly _currentConversationId$ = new BehaviorSubject<string | null>(null)
   private readonly _selectedModel$ = new BehaviorSubject<string>(DEFAULT_MODEL)
   private readonly conversationStore = new Map<string, Conversation>()
+  private readonly sessionStore = new Map<string, ClaudeSession>()
+  private readonly commandRunningMap = new Map<string, boolean>()
   private readonly pendingContentMap = new Map<string, string>()
   private flushScheduled = false
 
@@ -113,10 +115,23 @@ export class ClaudeDefaultService implements ClaudeService {
   }
 
   updateSession(session: ClaudeSession | null): void {
-    this._currentSession$.next(session)
-    if (!session || session.status === 'idle') {
-      this._outputs$.next([])
-      this.clearChatMessages()
+    if (session) {
+      this.sessionStore.set(session.id, session)
+      const isCurrentConversation = this._currentConversationId$.getValue() === session.id
+      if (isCurrentConversation) {
+        this._currentSession$.next(session)
+        if (session.status === 'idle') {
+          this.commandRunningMap.set(session.id, false)
+          this._isCommandRunning$.next(false)
+        }
+      }
+    } else {
+      const currentId = this._currentConversationId$.getValue()
+      if (currentId) {
+        this.sessionStore.delete(currentId)
+        this.commandRunningMap.delete(currentId)
+      }
+      this._currentSession$.next(null)
       this._isCommandRunning$.next(false)
     }
   }
@@ -266,8 +281,14 @@ export class ClaudeDefaultService implements ClaudeService {
     this._chatMessages$.next([])
   }
 
-  setCommandRunning(running: boolean): void {
-    this._isCommandRunning$.next(running)
+  setCommandRunning(running: boolean, sessionId?: string): void {
+    const targetId = sessionId ?? this._currentConversationId$.getValue()
+    if (targetId) {
+      this.commandRunningMap.set(targetId, running)
+    }
+    if (!targetId || targetId === this._currentConversationId$.getValue()) {
+      this._isCommandRunning$.next(running)
+    }
   }
 
   getSelectedModel(): string {
@@ -291,7 +312,10 @@ export class ClaudeDefaultService implements ClaudeService {
       updatedAt: now,
     }
     this.conversationStore.set(id, conversation)
+    this.sessionStore.set(id, session)
     this._currentConversationId$.next(id)
+    this._currentSession$.next(session)
+    this._isCommandRunning$.next(false)
     this._chatMessages$.next([])
     this.refreshConversationSummaries()
     return id
@@ -304,6 +328,8 @@ export class ClaudeDefaultService implements ClaudeService {
     if (!conversation) return
     this._currentConversationId$.next(id)
     this._chatMessages$.next([...conversation.messages])
+    this._currentSession$.next(this.sessionStore.get(id) ?? null)
+    this._isCommandRunning$.next(this.commandRunningMap.get(id) ?? false)
   }
 
   deleteConversation(id: string): void {
@@ -311,9 +337,13 @@ export class ClaudeDefaultService implements ClaudeService {
       // エラーは IPC イベント経由で通知される
     })
     this.conversationStore.delete(id)
+    this.sessionStore.delete(id)
+    this.commandRunningMap.delete(id)
     if (this._currentConversationId$.getValue() === id) {
       this._currentConversationId$.next(null)
       this._chatMessages$.next([])
+      this._currentSession$.next(null)
+      this._isCommandRunning$.next(false)
     }
     this.refreshConversationSummaries()
   }
@@ -327,6 +357,8 @@ export class ClaudeDefaultService implements ClaudeService {
     this.saveCurrentConversationMessages()
     this._currentConversationId$.next(null)
     this._chatMessages$.next([])
+    this._currentSession$.next(null)
+    this._isCommandRunning$.next(false)
   }
 
   private saveCurrentConversationMessages(): void {

@@ -27,14 +27,14 @@ export class SendCommandUseCase implements ConsumerUseCase<ClaudeCommand> {
       content: `> ${command.input}`,
       timestamp: now,
     })
-    this.service.setCommandRunning(true)
+    this.service.setCommandRunning(true, sessionId)
     // model が未指定の場合、Service の selectedModel を使用
     const commandToSend: ClaudeCommand = {
       ...(command.model ? command : { ...command, model: this.service.getSelectedModel() }),
       sessionId,
     }
     this.repository.sendCommand(commandToSend).catch(() => {
-      this.service.setCommandRunning(false)
+      this.service.setCommandRunning(false, sessionId)
     })
   }
 }

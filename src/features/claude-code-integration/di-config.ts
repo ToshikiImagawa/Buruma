@@ -67,10 +67,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         ClaudeRepositoryToken,
         ClaudeServiceToken,
       ])
-      .registerSingleton(StopSessionRendererUseCaseToken, StopSessionUseCase, [
-        ClaudeRepositoryToken,
-        ClaudeServiceToken,
-      ])
+      .registerSingleton(StopSessionRendererUseCaseToken, StopSessionUseCase, [ClaudeRepositoryToken])
       .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [
         ClaudeRepositoryToken,
         ClaudeServiceToken,
@@ -158,7 +155,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
 
     const unsubCommandCompleted = repo.onCommandCompleted((data) => {
       service.finalizeLastAssistantMessage(data.sessionId)
-      service.setCommandRunning(false)
+      service.setCommandRunning(false, data.sessionId)
     })
 
     const unsubReviewResult = repo.onReviewResult((result) => {

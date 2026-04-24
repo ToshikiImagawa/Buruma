@@ -40,7 +40,7 @@ export interface ClaudeService extends BaseService {
   appendToLastAssistantMessage(content: string, sessionId?: string): void
   finalizeLastAssistantMessage(sessionId?: string): void
   clearChatMessages(): void
-  setCommandRunning(running: boolean): void
+  setCommandRunning(running: boolean, sessionId?: string): void
   createConversation(worktreePath: string): Promise<string>
   switchConversation(id: string): void
   deleteConversation(id: string): void
