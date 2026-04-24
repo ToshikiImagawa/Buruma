@@ -61,5 +61,4 @@ export interface ClaudeService extends BaseService {
   setConflictResult(result: ConflictResolveResult | null): void
   setResolvingProgress(progress: ConflictResolvingProgress | null): void
   loadConversations(): Promise<void>
-  persistConversations(): Promise<void>
 }

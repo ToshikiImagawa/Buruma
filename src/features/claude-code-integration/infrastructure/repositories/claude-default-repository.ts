@@ -69,7 +69,7 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
     return listenEventSync('claude-session-changed', callback)
   }
 
-  onCommandCompleted(callback: (data: { worktreePath: string }) => void): () => void {
+  onCommandCompleted(callback: (data: { worktreePath: string; sessionId?: string }) => void): () => void {
     return listenEventSync('claude-command-completed', callback)
   }
 

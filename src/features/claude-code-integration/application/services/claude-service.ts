@@ -92,7 +92,7 @@ export class ClaudeDefaultService implements ClaudeService {
   }
 
   setUp(): void {
-    // Initial state already set by BehaviorSubject defaults
+    // BaseService インターフェースの契約を満たすため
   }
 
   tearDown(): void {
@@ -410,7 +410,6 @@ export class ClaudeDefaultService implements ClaudeService {
         updatedAt: conv.updatedAt,
       })
     }
-    // 最新の会話を先頭にソート
     summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     this._conversations$.next(summaries)
   }

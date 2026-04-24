@@ -52,6 +52,7 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
   }
 
   resumeSession(conversationId: string): void {
+    // エラーは IPC イベント経由で session-changed として通知される
     this.service.resumeConversation(conversationId).catch(() => {})
   }
 

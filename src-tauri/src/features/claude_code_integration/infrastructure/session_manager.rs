@@ -293,36 +293,32 @@ impl ClaudeSessionManager {
             let mut lines = buf.lines();
             while let Ok(Some(line)) = lines.next_line().await {
                 if let Ok(json) = serde_json::from_str::<Value>(&line) {
-                    // session_id をキャプチャ
                     if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
                         let mut csid = captured_csid.lock().unwrap();
                         *csid = Some(sid.to_string());
                     }
 
-                    // テキストコンテンツを抽出
                     if let Some(text) = extract_text_content(&json) {
                         if !text.is_empty() {
-                            let out = ClaudeOutput {
-                                worktree_path: worktree_path.clone(),
-                                stream: ClaudeOutputStream::Stdout,
-                                content: text,
-                                timestamp: chrono::Utc::now().to_rfc3339(),
-                                session_id: session_id.clone(),
-                            };
-                            let _ = app_handle.emit("claude-output", &out);
+                            emit_claude_output(
+                                &app_handle,
+                                &worktree_path,
+                                ClaudeOutputStream::Stdout,
+                                text,
+                                &session_id,
+                            );
                         }
                     }
                 } else if !line.is_empty() {
                     // JSON パース失敗時はそのまま出力（フォールバック）
                     eprintln!("[claude-stream-json] JSON parse failed: {}", &line);
-                    let out = ClaudeOutput {
-                        worktree_path: worktree_path.clone(),
-                        stream: ClaudeOutputStream::Stdout,
-                        content: line,
-                        timestamp: chrono::Utc::now().to_rfc3339(),
-                        session_id: session_id.clone(),
-                    };
-                    let _ = app_handle.emit("claude-output", &out);
+                    emit_claude_output(
+                        &app_handle,
+                        &worktree_path,
+                        ClaudeOutputStream::Stdout,
+                        line,
+                        &session_id,
+                    );
                 }
             }
         })
@@ -339,14 +335,7 @@ impl ClaudeSessionManager {
             let buf = BufReader::new(reader);
             let mut lines = buf.lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                let out = ClaudeOutput {
-                    worktree_path: worktree_path.clone(),
-                    stream: stream_type.clone(),
-                    content: line,
-                    timestamp: chrono::Utc::now().to_rfc3339(),
-                    session_id: session_id.clone(),
-                };
-                let _ = app_handle.emit("claude-output", &out);
+                emit_claude_output(&app_handle, &worktree_path, stream_type.clone(), line, &session_id);
             }
         })
     }
@@ -356,6 +345,23 @@ impl Default for ClaudeSessionManager {
     fn default() -> Self {
         Self::new()
     }
+}
+
+fn emit_claude_output(
+    app_handle: &tauri::AppHandle,
+    worktree_path: &str,
+    stream: ClaudeOutputStream,
+    content: String,
+    session_id: &Option<String>,
+) {
+    let out = ClaudeOutput {
+        worktree_path: worktree_path.to_string(),
+        stream,
+        content,
+        timestamp: chrono::Utc::now().to_rfc3339(),
+        session_id: session_id.clone(),
+    };
+    let _ = app_handle.emit("claude-output", &out);
 }
 
 /// stream-json の JSON Lines からテキストコンテンツを抽出。
