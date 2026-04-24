@@ -681,6 +681,7 @@ export interface Conversation {
   messages: ChatMessage[]
   createdAt: string // ISO 8601
   updatedAt: string // ISO 8601
+  claudeSessionId?: string // CLI --resume 用
 }
 
 /** 会話サマリー（一覧表示用） */

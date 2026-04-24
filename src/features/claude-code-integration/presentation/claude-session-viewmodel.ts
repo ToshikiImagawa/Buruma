@@ -51,6 +51,10 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
     this.startSessionUseCase.invoke(worktreePath)
   }
 
+  resumeSession(conversationId: string): void {
+    this.service.resumeConversation(conversationId).catch(() => {})
+  }
+
   stopSession(sessionId: string): void {
     this.stopSessionUseCase.invoke(sessionId)
   }

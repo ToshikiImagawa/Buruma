@@ -5,13 +5,19 @@ use async_trait::async_trait;
 use crate::error::AppResult;
 use crate::features::claude_code_integration::domain::{
     ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
-    GenerateCommitMessageArgs,
+    GenerateCommitMessageArgs, PersistedConversation,
 };
 
 #[async_trait]
 pub trait ClaudeRepository: Send + Sync {
     // Session
-    async fn start_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<ClaudeSession>;
+    async fn start_session(
+        &self,
+        worktree_path: &str,
+        session_id: Option<&str>,
+        claude_session_id: Option<&str>,
+        app_handle: tauri::AppHandle,
+    ) -> AppResult<ClaudeSession>;
     async fn stop_session(&self, session_id: &str, app_handle: tauri::AppHandle) -> AppResult<()>;
     async fn get_session(&self, session_id: &str) -> AppResult<Option<ClaudeSession>>;
     async fn get_all_sessions(&self) -> AppResult<Vec<ClaudeSession>>;
@@ -28,4 +34,10 @@ pub trait ClaudeRepository: Send + Sync {
     async fn explain_diff(&self, args: &DiffReviewArgs, app_handle: tauri::AppHandle) -> AppResult<()>;
     // AI Conflict Resolution
     async fn resolve_conflict(&self, args: &ConflictResolveRequest, app_handle: tauri::AppHandle) -> AppResult<()>;
+}
+
+/// 会話永続化ストア。
+pub trait ConversationStoreRepository: Send + Sync {
+    fn get_conversations(&self) -> AppResult<Vec<PersistedConversation>>;
+    fn set_conversations(&self, conversations: &[PersistedConversation]) -> AppResult<()>;
 }

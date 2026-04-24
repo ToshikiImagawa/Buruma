@@ -63,10 +63,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
     container
       .registerSingleton(ClaudeRepositoryToken, ClaudeDefaultRepository)
       .registerSingleton(ClaudeServiceToken, ClaudeDefaultService, [ClaudeRepositoryToken])
-      .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [
-        ClaudeRepositoryToken,
-        ClaudeServiceToken,
-      ])
+      .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [ClaudeServiceToken])
       .registerSingleton(StopSessionRendererUseCaseToken, StopSessionUseCase, [ClaudeRepositoryToken])
       .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [
         ClaudeRepositoryToken,
@@ -132,6 +129,7 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
     const repo = container.resolve(ClaudeRepositoryToken)
 
     service.setUp()
+    await service.loadConversations()
 
     // 初回認証チェック
     const checkAuthUseCase = container.resolve(CheckAuthRendererUseCaseToken)

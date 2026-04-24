@@ -20,6 +20,8 @@ import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'
 
 const MAX_OUTPUT_BUFFER = 1000
+const MAX_CONVERSATIONS = 100
+const MAX_MESSAGES_PER_CONVERSATION = 500
 const DEFAULT_CONVERSATION_TITLE = '新しい会話'
 
 export class ClaudeDefaultService implements ClaudeService {
@@ -117,6 +119,13 @@ export class ClaudeDefaultService implements ClaudeService {
   updateSession(session: ClaudeSession | null): void {
     if (session) {
       this.sessionStore.set(session.id, session)
+      // claudeSessionId を会話データにも反映（永続化時に含めるため）
+      if (session.claudeSessionId) {
+        const conv = this.conversationStore.get(session.id)
+        if (conv) {
+          conv.claudeSessionId = session.claudeSessionId
+        }
+      }
       const isCurrentConversation = this._currentConversationId$.getValue() === session.id
       if (isCurrentConversation) {
         this._currentSession$.next(session)
@@ -191,14 +200,17 @@ export class ClaudeDefaultService implements ClaudeService {
     let conversationId = this._currentConversationId$.getValue()
     if (!conversationId) {
       conversationId = await this.createConversation(worktreePath)
+    } else {
+      await this.ensureSession(conversationId)
     }
 
     const current = this._chatMessages$.getValue()
-    this._chatMessages$.next([...current, message])
+    const updated = [...current, message].slice(-MAX_MESSAGES_PER_CONVERSATION)
+    this._chatMessages$.next(updated)
 
     const conversation = this.conversationStore.get(conversationId)
     if (conversation) {
-      conversation.messages = [...current, message]
+      conversation.messages = updated
       conversation.updatedAt = new Date().toISOString()
       if (message.role === 'user' && conversation.title === DEFAULT_CONVERSATION_TITLE) {
         conversation.title = message.content.slice(0, 50) + (message.content.length > 50 ? '...' : '')
@@ -275,6 +287,7 @@ export class ClaudeDefaultService implements ClaudeService {
       }
     }
     this.syncConversationSummaries()
+    this.persistConversations().catch(() => {})
   }
 
   clearChatMessages(): void {
@@ -300,6 +313,15 @@ export class ClaudeDefaultService implements ClaudeService {
   }
 
   async createConversation(worktreePath: string): Promise<string> {
+    // 上限チェック: 最古の会話を自動削除
+    if (this.conversationStore.size >= MAX_CONVERSATIONS) {
+      const oldest = this.findOldestConversation()
+      if (oldest) {
+        this.conversationStore.delete(oldest.id)
+        this.sessionStore.delete(oldest.id)
+        this.commandRunningMap.delete(oldest.id)
+      }
+    }
     const session = await this.repository.startSession(worktreePath)
     const id = session.id
     const now = new Date().toISOString()
@@ -318,7 +340,14 @@ export class ClaudeDefaultService implements ClaudeService {
     this._isCommandRunning$.next(false)
     this._chatMessages$.next([])
     this.refreshConversationSummaries()
+    this.persistConversations().catch(() => {})
     return id
+  }
+
+  async resumeConversation(conversationId: string): Promise<void> {
+    const conversation = this.conversationStore.get(conversationId)
+    if (!conversation) return
+    await this.ensureSession(conversationId)
   }
 
   switchConversation(id: string): void {
@@ -346,6 +375,7 @@ export class ClaudeDefaultService implements ClaudeService {
       this._isCommandRunning$.next(false)
     }
     this.refreshConversationSummaries()
+    this.persistConversations().catch(() => {})
   }
 
   getConversationWorktreePath(conversationId: string): string | null {
@@ -389,5 +419,48 @@ export class ClaudeDefaultService implements ClaudeService {
     // 最新の会話を先頭にソート
     summaries.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     this._conversations$.next(summaries)
+  }
+
+  async loadConversations(): Promise<void> {
+    const persisted = await this.repository.getPersistedConversations()
+    for (const conv of persisted) {
+      this.conversationStore.set(conv.id, conv)
+    }
+    this.refreshConversationSummaries()
+  }
+
+  async persistConversations(): Promise<void> {
+    const conversations: Conversation[] = []
+    for (const conv of this.conversationStore.values()) {
+      const session = this.sessionStore.get(conv.id)
+      conversations.push({
+        ...conv,
+        claudeSessionId: session?.claudeSessionId ?? conv.claudeSessionId,
+      })
+    }
+    await this.repository.savePersistedConversations(conversations)
+  }
+
+  private async ensureSession(conversationId: string): Promise<void> {
+    if (this.sessionStore.has(conversationId)) return
+    const conversation = this.conversationStore.get(conversationId)
+    if (!conversation) return
+    const session = await this.repository.startSession(
+      conversation.worktreePath,
+      conversationId,
+      conversation.claudeSessionId,
+    )
+    this.sessionStore.set(conversationId, session)
+    this._currentSession$.next(session)
+  }
+
+  private findOldestConversation(): Conversation | undefined {
+    let oldest: Conversation | undefined
+    for (const conv of this.conversationStore.values()) {
+      if (!oldest || conv.updatedAt < oldest.updatedAt) {
+        oldest = conv
+      }
+    }
+    return oldest
   }
 }

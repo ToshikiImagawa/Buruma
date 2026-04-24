@@ -22,6 +22,7 @@ export interface ClaudeSessionViewModel {
   readonly selectedModel$: Observable<string>
   setSelectedModel(model: string): void
   startSession(worktreePath: string): void
+  resumeSession(conversationId: string): void
   stopSession(sessionId: string): void
   sendCommand(worktreePath: string, input: string): void
   switchConversation(id: string): void

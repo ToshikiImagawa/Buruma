@@ -25,6 +25,7 @@ export function useClaudeSessionViewModel() {
     currentConversationId,
     selectedModel,
     startSession: useCallback((worktreePath: string) => vm.startSession(worktreePath), [vm]),
+    resumeSession: useCallback((id: string) => vm.resumeSession(id), [vm]),
     stopSession: useCallback((sessionId: string) => vm.stopSession(sessionId), [vm]),
     sendCommand: useCallback((worktreePath: string, input: string) => vm.sendCommand(worktreePath, input), [vm]),
     switchConversation: useCallback((id: string) => vm.switchConversation(id), [vm]),

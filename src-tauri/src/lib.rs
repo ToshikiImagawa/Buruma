@@ -65,6 +65,8 @@ pub fn run() {
             features::claude_code_integration::presentation::commands::claude_review_diff,
             features::claude_code_integration::presentation::commands::claude_explain_diff,
             features::claude_code_integration::presentation::commands::claude_resolve_conflict,
+            features::claude_code_integration::presentation::commands::claude_get_conversations,
+            features::claude_code_integration::presentation::commands::claude_save_conversations,
             // advanced-git-operations (24)
             features::advanced_git_operations::presentation::commands::git_merge,
             features::advanced_git_operations::presentation::commands::git_merge_abort,

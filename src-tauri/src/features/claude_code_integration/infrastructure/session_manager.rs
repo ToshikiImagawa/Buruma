@@ -5,8 +5,9 @@
 //! stdout/stderr はストリーミングで行ごとにイベント発信する。
 
 use std::collections::HashMap;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 
+use serde_json::Value;
 use tauri::Emitter;
 use tokio::io::{AsyncBufReadExt, BufReader};
 use tokio::process::Command;
@@ -37,7 +38,14 @@ impl ClaudeSessionManager {
 
     /// セッション開始。`claude` CLI の存在確認を行い、新しいセッションを作成。
     /// 各セッションは UUID で識別され、同一 worktree で複数作成可能。
-    pub async fn start_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<ClaudeSession> {
+    /// `session_id` / `claude_session_id` を指定すると復元用にその値を使用する。
+    pub async fn start_session(
+        &self,
+        worktree_path: &str,
+        session_id: Option<&str>,
+        claude_session_id: Option<&str>,
+        app_handle: tauri::AppHandle,
+    ) -> AppResult<ClaudeSession> {
         // claude CLI の存在確認
         let check = Command::new("claude").arg("--version").output().await;
 
@@ -47,7 +55,9 @@ impl ClaudeSessionManager {
             ));
         }
 
-        let session_id = uuid::Uuid::new_v4().to_string();
+        let session_id = session_id
+            .map(|s| s.to_string())
+            .unwrap_or_else(|| uuid::Uuid::new_v4().to_string());
         let now = chrono::Utc::now().to_rfc3339();
         let session = ClaudeSession {
             id: session_id.clone(),
@@ -56,7 +66,7 @@ impl ClaudeSessionManager {
             pid: None,
             started_at: Some(now),
             error: None,
-            claude_session_id: None,
+            claude_session_id: claude_session_id.map(|s| s.to_string()),
         };
 
         {
@@ -150,12 +160,26 @@ impl ClaudeSessionManager {
         // タスクの完了を待つ（abort された場合はエラー）
         match task.await {
             Ok(result) => {
-                // abort handle をクリア
-                let mut sessions = self.sessions.lock().unwrap();
-                if let Some(s) = sessions.get_mut(session_id) {
-                    s.abort_handle = None;
+                // 1. claude_session_id を更新し session-changed を先に発信
+                {
+                    let mut sessions = self.sessions.lock().unwrap();
+                    if let Some(s) = sessions.get_mut(session_id) {
+                        s.abort_handle = None;
+                        if let Ok(Some(ref csid)) = result {
+                            s.info.claude_session_id = Some(csid.clone());
+                            let _ = app_handle.emit("claude-session-changed", &s.info);
+                        }
+                    }
                 }
-                result
+                // 2. command-completed を後に発信（フロントの永続化で claudeSessionId を含めるため）
+                let _ = app_handle.emit(
+                    "claude-command-completed",
+                    CommandCompletedEvent {
+                        worktree_path,
+                        session_id: Some(session_id.to_string()),
+                    },
+                );
+                result.map(|_| ())
             }
             Err(e) if e.is_cancelled() => {
                 // タスクが abort された（stop_session による中断）
@@ -172,7 +196,9 @@ impl ClaudeSessionManager {
         }
     }
 
-    /// 実際のストリーミングコマンド実行
+    /// 実際のストリーミングコマンド実行。
+    /// `--output-format stream-json` で JSON Lines を受け取り、テキストを抽出して出力。
+    /// CLI の session_id をキャプチャして返す（`--resume` 用）。
     async fn run_command_streaming(
         session_id: &str,
         worktree_path: &str,
@@ -180,8 +206,11 @@ impl ClaudeSessionManager {
         model: Option<&str>,
         claude_session_id: Option<&str>,
         app_handle: &tauri::AppHandle,
-    ) -> AppResult<()> {
+    ) -> AppResult<Option<String>> {
         let mut args = vec!["-p".to_string(), input.to_string()];
+        args.push("--output-format".to_string());
+        args.push("stream-json".to_string());
+        args.push("--verbose".to_string());
         if let Some(m) = model {
             args.push("--model".to_string());
             args.push(m.to_string());
@@ -204,13 +233,17 @@ impl ClaudeSessionManager {
         let stderr = child.stderr.take().unwrap();
 
         let sid = Some(session_id.to_string());
-        let stdout_handle = Self::spawn_line_reader(
+        let captured_csid = Arc::new(Mutex::new(None::<String>));
+
+        // stdout: JSON Lines パーサー（テキスト抽出 + session_id キャプチャ）
+        let stdout_handle = Self::spawn_json_line_reader(
             stdout,
             worktree_path.to_string(),
-            ClaudeOutputStream::Stdout,
             sid.clone(),
+            captured_csid.clone(),
             app_handle.clone(),
         );
+        // stderr: プレーンテキスト（エラー出力）
         let stderr_handle = Self::spawn_line_reader(
             stderr,
             worktree_path.to_string(),
@@ -227,25 +260,67 @@ impl ClaudeSessionManager {
         let _ = stdout_handle.await;
         let _ = stderr_handle.await;
 
-        // command-completed イベント
-        let _ = app_handle.emit(
-            "claude-command-completed",
-            CommandCompletedEvent {
-                worktree_path: worktree_path.to_string(),
-                session_id: sid,
-            },
-        );
+        let result_csid = captured_csid.lock().unwrap().clone();
 
         if !status.success() {
             return Err(AppError::Claude("Claude command failed".to_string()));
         }
 
-        Ok(())
+        Ok(result_csid)
     }
 
     pub fn get_output(&self, session_id: &str) -> Vec<ClaudeOutput> {
         let sessions = self.sessions.lock().unwrap();
         sessions.get(session_id).map(|s| s.outputs.clone()).unwrap_or_default()
+    }
+
+    /// stdout の JSON Lines をパースし、テキストコンテンツを抽出して出力。
+    /// CLI の session_id をキャプチャして `captured_csid` に保存。
+    fn spawn_json_line_reader<R: tokio::io::AsyncRead + Unpin + Send + 'static>(
+        reader: R,
+        worktree_path: String,
+        session_id: Option<String>,
+        captured_csid: Arc<Mutex<Option<String>>>,
+        app_handle: tauri::AppHandle,
+    ) -> tokio::task::JoinHandle<()> {
+        tokio::spawn(async move {
+            let buf = BufReader::new(reader);
+            let mut lines = buf.lines();
+            while let Ok(Some(line)) = lines.next_line().await {
+                if let Ok(json) = serde_json::from_str::<Value>(&line) {
+                    // session_id をキャプチャ
+                    if let Some(sid) = json.get("session_id").and_then(|v| v.as_str()) {
+                        let mut csid = captured_csid.lock().unwrap();
+                        *csid = Some(sid.to_string());
+                    }
+
+                    // テキストコンテンツを抽出
+                    if let Some(text) = extract_text_content(&json) {
+                        if !text.is_empty() {
+                            let out = ClaudeOutput {
+                                worktree_path: worktree_path.clone(),
+                                stream: ClaudeOutputStream::Stdout,
+                                content: text,
+                                timestamp: chrono::Utc::now().to_rfc3339(),
+                                session_id: session_id.clone(),
+                            };
+                            let _ = app_handle.emit("claude-output", &out);
+                        }
+                    }
+                } else if !line.is_empty() {
+                    // JSON パース失敗時はそのまま出力（フォールバック）
+                    eprintln!("[claude-stream-json] JSON parse failed: {}", &line);
+                    let out = ClaudeOutput {
+                        worktree_path: worktree_path.clone(),
+                        stream: ClaudeOutputStream::Stdout,
+                        content: line,
+                        timestamp: chrono::Utc::now().to_rfc3339(),
+                        session_id: session_id.clone(),
+                    };
+                    let _ = app_handle.emit("claude-output", &out);
+                }
+            }
+        })
     }
 
     fn spawn_line_reader<R: tokio::io::AsyncRead + Unpin + Send + 'static>(
@@ -275,5 +350,35 @@ impl ClaudeSessionManager {
 impl Default for ClaudeSessionManager {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// stream-json の JSON Lines からテキストコンテンツを抽出。
+/// `assistant` メッセージの `message.content` 配列内の `text` ブロックを結合して返す。
+fn extract_text_content(json: &Value) -> Option<String> {
+    let msg_type = json.get("type")?.as_str()?;
+    match msg_type {
+        "assistant" => {
+            let content = json.get("message")?.get("content")?.as_array()?;
+            let mut text_parts = Vec::new();
+            for block in content {
+                if block.get("type").and_then(|v| v.as_str()) == Some("text") {
+                    if let Some(text) = block.get("text").and_then(|v| v.as_str()) {
+                        text_parts.push(text.to_string());
+                    }
+                }
+            }
+            if text_parts.is_empty() {
+                None
+            } else {
+                Some(text_parts.join("\n"))
+            }
+        }
+        "content_block_delta" => json
+            .get("delta")?
+            .get("text")
+            .and_then(|v| v.as_str())
+            .map(|s| s.to_string()),
+        _ => None,
     }
 }

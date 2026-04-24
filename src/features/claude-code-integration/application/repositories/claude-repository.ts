@@ -5,13 +5,14 @@ import type {
   ClaudeSession,
   ConflictResolveAIRequest,
   ConflictResolveResult,
+  Conversation,
   DiffTarget,
   ExplainResult,
   ReviewResult,
 } from '@domain'
 
 export interface ClaudeRepository {
-  startSession(worktreePath: string): Promise<ClaudeSession>
+  startSession(worktreePath: string, sessionId?: string, claudeSessionId?: string): Promise<ClaudeSession>
   stopSession(sessionId: string): Promise<void>
   getSession(sessionId: string): Promise<ClaudeSession | null>
   getAllSessions(): Promise<ClaudeSession[]>
@@ -30,4 +31,6 @@ export interface ClaudeRepository {
   checkAuth(): Promise<ClaudeAuthStatus>
   login(): Promise<void>
   logout(): Promise<void>
+  getPersistedConversations(): Promise<Conversation[]>
+  savePersistedConversations(conversations: Conversation[]): Promise<void>
 }

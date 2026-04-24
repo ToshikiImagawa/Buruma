@@ -25,8 +25,16 @@ impl DefaultClaudeRepository {
 
 #[async_trait]
 impl ClaudeRepository for DefaultClaudeRepository {
-    async fn start_session(&self, worktree_path: &str, app_handle: tauri::AppHandle) -> AppResult<ClaudeSession> {
-        self.manager.start_session(worktree_path, app_handle).await
+    async fn start_session(
+        &self,
+        worktree_path: &str,
+        session_id: Option<&str>,
+        claude_session_id: Option<&str>,
+        app_handle: tauri::AppHandle,
+    ) -> AppResult<ClaudeSession> {
+        self.manager
+            .start_session(worktree_path, session_id, claude_session_id, app_handle)
+            .await
     }
 
     async fn stop_session(&self, session_id: &str, app_handle: tauri::AppHandle) -> AppResult<()> {

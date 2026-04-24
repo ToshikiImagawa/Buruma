@@ -6,7 +6,7 @@ use crate::error::AppError;
 use crate::features::claude_code_integration::application::usecases;
 use crate::features::claude_code_integration::domain::{
     ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
-    GenerateCommitMessageArgs, SessionIdArgs, WorktreePathArgs,
+    GenerateCommitMessageArgs, PersistedConversation, SessionIdArgs, StartSessionArgs,
 };
 use crate::state::AppState;
 
@@ -14,11 +14,18 @@ use crate::state::AppState;
 
 #[tauri::command]
 pub async fn claude_start_session(
-    args: WorktreePathArgs,
+    args: StartSessionArgs,
     state: State<'_, AppState>,
     app: tauri::AppHandle,
 ) -> Result<ClaudeSession, AppError> {
-    usecases::start_session(state.claude_repo.as_ref(), &args.worktree_path, app).await
+    usecases::start_session(
+        state.claude_repo.as_ref(),
+        &args.worktree_path,
+        args.session_id.as_deref(),
+        args.claude_session_id.as_deref(),
+        app,
+    )
+    .await
 }
 
 #[tauri::command]
@@ -102,6 +109,21 @@ pub async fn claude_explain_diff(
     app: tauri::AppHandle,
 ) -> Result<(), AppError> {
     usecases::explain_diff(state.claude_repo.as_ref(), &args, app).await
+}
+
+// --- 会話永続化 ---
+
+#[tauri::command]
+pub fn claude_get_conversations(state: State<'_, AppState>) -> Result<Vec<PersistedConversation>, AppError> {
+    usecases::get_conversations(state.conversation_store_repo.as_ref())
+}
+
+#[tauri::command]
+pub fn claude_save_conversations(
+    conversations: Vec<PersistedConversation>,
+    state: State<'_, AppState>,
+) -> Result<(), AppError> {
+    usecases::save_conversations(state.conversation_store_repo.as_ref(), &conversations)
 }
 
 // --- AI Conflict Resolution ---

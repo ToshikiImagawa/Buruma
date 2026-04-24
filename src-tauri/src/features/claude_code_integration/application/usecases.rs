@@ -1,18 +1,23 @@
-//! claude-code-integration UseCase 関数（13 個）。
+//! claude-code-integration UseCase 関数。
 
 use crate::error::AppResult;
-use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
+use crate::features::claude_code_integration::application::repositories::{
+    ClaudeRepository, ConversationStoreRepository,
+};
 use crate::features::claude_code_integration::domain::{
     ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
-    GenerateCommitMessageArgs,
+    GenerateCommitMessageArgs, PersistedConversation,
 };
 
 pub async fn start_session(
     repo: &dyn ClaudeRepository,
     worktree_path: &str,
+    session_id: Option<&str>,
+    claude_session_id: Option<&str>,
     app: tauri::AppHandle,
 ) -> AppResult<ClaudeSession> {
-    repo.start_session(worktree_path, app).await
+    repo.start_session(worktree_path, session_id, claude_session_id, app)
+        .await
 }
 
 pub async fn stop_session(repo: &dyn ClaudeRepository, session_id: &str, app: tauri::AppHandle) -> AppResult<()> {
@@ -72,4 +77,17 @@ pub async fn resolve_conflict(
     app: tauri::AppHandle,
 ) -> AppResult<()> {
     repo.resolve_conflict(args, app).await
+}
+
+// --- 会話永続化 ---
+
+pub fn get_conversations(store: &dyn ConversationStoreRepository) -> AppResult<Vec<PersistedConversation>> {
+    store.get_conversations()
+}
+
+pub fn save_conversations(
+    store: &dyn ConversationStoreRepository,
+    conversations: &[PersistedConversation],
+) -> AppResult<()> {
+    store.set_conversations(conversations)
 }

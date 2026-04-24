@@ -12,8 +12,11 @@ use crate::features::application_foundation::infrastructure::git_validation::Def
 use crate::features::application_foundation::infrastructure::store::TauriStoreRepository;
 use crate::features::basic_git_operations::application::repositories::GitWriteRepository;
 use crate::features::basic_git_operations::infrastructure::git_repository::DefaultGitWriteRepository;
-use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
+use crate::features::claude_code_integration::application::repositories::{
+    ClaudeRepository, ConversationStoreRepository,
+};
 use crate::features::claude_code_integration::infrastructure::claude_repository::DefaultClaudeRepository;
+use crate::features::claude_code_integration::infrastructure::conversation_store::TauriConversationStoreRepository;
 use crate::features::repository_viewer::application::repositories::GitReadRepository;
 use crate::features::repository_viewer::infrastructure::git_repository::DefaultGitReadRepository;
 use crate::features::worktree_management::application::repositories::WorktreeGitRepository;
@@ -34,6 +37,7 @@ pub struct AppState {
     pub git_advanced_repo: Arc<dyn GitAdvancedRepository>,
     // claude-code-integration
     pub claude_repo: Arc<dyn ClaudeRepository>,
+    pub conversation_store_repo: Arc<dyn ConversationStoreRepository>,
     // basic-git-operations
     pub git_write_repo: Arc<dyn GitWriteRepository>,
     // repository-viewer
@@ -54,6 +58,7 @@ impl AppState {
             dialog_repo: Arc::new(TauriDialogRepository::new(app_handle.clone())),
             git_advanced_repo: Arc::new(DefaultGitAdvancedRepository),
             claude_repo: Arc::new(DefaultClaudeRepository::new()),
+            conversation_store_repo: Arc::new(TauriConversationStoreRepository::new(app_handle.clone())),
             git_write_repo: Arc::new(DefaultGitWriteRepository),
             git_read_repo: Arc::new(DefaultGitReadRepository),
             worktree_repo: Arc::new(DefaultWorktreeGitRepository),

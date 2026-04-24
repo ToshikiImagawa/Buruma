@@ -5,6 +5,7 @@ import type {
   ClaudeSession,
   ConflictResolveAIRequest,
   ConflictResolveResult,
+  Conversation,
   DiffTarget,
   ExplainResult,
   ReviewResult,
@@ -14,8 +15,10 @@ import { invokeCommand } from '@lib/invoke/commands'
 import { listenEventSync } from '@lib/invoke/events'
 
 export class ClaudeDefaultRepository implements ClaudeRepository {
-  async startSession(worktreePath: string): Promise<ClaudeSession> {
-    const result = await invokeCommand('claude_start_session', { args: { worktreePath } })
+  async startSession(worktreePath: string, sessionId?: string, claudeSessionId?: string): Promise<ClaudeSession> {
+    const result = await invokeCommand('claude_start_session', {
+      args: { worktreePath, sessionId, claudeSessionId },
+    })
     if (result.success === false) throw new Error(result.error.message)
     return result.data
   }
@@ -108,6 +111,17 @@ export class ClaudeDefaultRepository implements ClaudeRepository {
 
   async logout(): Promise<void> {
     const result = await invokeCommand('claude_logout')
+    if (result.success === false) throw new Error(result.error.message)
+  }
+
+  async getPersistedConversations(): Promise<Conversation[]> {
+    const result = await invokeCommand('claude_get_conversations')
+    if (result.success === false) throw new Error(result.error.message)
+    return result.data
+  }
+
+  async savePersistedConversations(conversations: Conversation[]): Promise<void> {
+    const result = await invokeCommand('claude_save_conversations', { conversations })
     if (result.success === false) throw new Error(result.error.message)
   }
 }

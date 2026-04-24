@@ -84,12 +84,19 @@ function ConversationItem({
   }, [])
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       className={`group/conv flex w-full items-start gap-2 px-3 py-2 text-left transition-colors hover:bg-accent/50 ${
         isActive ? 'bg-accent' : ''
       }`}
       onClick={() => onSelect(conversation.id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          onSelect(conversation.id)
+        }
+      }}
     >
       <div className="min-w-0 flex-1">
         <div className="truncate text-xs font-medium">{conversation.title}</div>
@@ -114,6 +121,6 @@ function ConversationItem({
         </TooltipTrigger>
         <TooltipContent>{confirmDelete ? 'もう一度クリックで削除' : '削除'}</TooltipContent>
       </Tooltip>
-    </button>
+    </div>
   )
 }

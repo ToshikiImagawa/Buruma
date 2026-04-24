@@ -130,7 +130,48 @@ pub struct ExplainResult {
     pub explanation: String,
 }
 
+// --- 永続化用会話データ ---
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedConversation {
+    pub id: String,
+    pub worktree_path: String,
+    pub title: String,
+    pub messages: Vec<PersistedChatMessage>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub claude_session_id: Option<String>,
+    pub created_at: String,
+    pub updated_at: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PersistedChatMessage {
+    pub id: String,
+    pub role: ChatMessageRole,
+    pub content: String,
+    pub timestamp: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ChatMessageRole {
+    User,
+    Assistant,
+}
+
 // --- コマンド引数型 ---
+
+#[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct StartSessionArgs {
+    pub worktree_path: String,
+    #[serde(default)]
+    pub session_id: Option<String>,
+    #[serde(default)]
+    pub claude_session_id: Option<String>,
+}
 
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]

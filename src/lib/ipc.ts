@@ -26,6 +26,7 @@ import type {
   ConflictResolveAllOptions,
   ConflictResolveOptions,
   ConflictResolveResult,
+  Conversation,
   DiffTarget,
   ErrorNotification,
   ExplainResult,
@@ -181,7 +182,10 @@ export interface IPCCommandMap {
   worktree_symlink_config_set: { args: { repoPath: string; config: SymlinkConfig }; result: void }
 
   // --- claude-code-integration ---
-  claude_start_session: { args: { args: { worktreePath: string } }; result: ClaudeSession }
+  claude_start_session: {
+    args: { args: { worktreePath: string; sessionId?: string; claudeSessionId?: string } }
+    result: ClaudeSession
+  }
   claude_stop_session: { args: { args: { sessionId: string } }; result: void }
   claude_get_session: { args: { args: { sessionId: string } }; result: ClaudeSession | null }
   claude_get_all_sessions: { args: void; result: ClaudeSession[] }
@@ -206,6 +210,8 @@ export interface IPCCommandMap {
   claude_check_auth: { args: void; result: ClaudeAuthStatus }
   claude_login: { args: void; result: void }
   claude_logout: { args: void; result: void }
+  claude_get_conversations: { args: void; result: Conversation[] }
+  claude_save_conversations: { args: { conversations: Conversation[] }; result: void }
 }
 
 /** Tauri event 名 → ペイロード型のマッピング */

@@ -42,6 +42,7 @@ export interface ClaudeService extends BaseService {
   clearChatMessages(): void
   setCommandRunning(running: boolean, sessionId?: string): void
   createConversation(worktreePath: string): Promise<string>
+  resumeConversation(conversationId: string): Promise<void>
   switchConversation(id: string): void
   deleteConversation(id: string): void
   startNewConversation(): void
@@ -59,4 +60,6 @@ export interface ClaudeService extends BaseService {
   setResolvingConflict(resolving: boolean): void
   setConflictResult(result: ConflictResolveResult | null): void
   setResolvingProgress(progress: ConflictResolvingProgress | null): void
+  loadConversations(): Promise<void>
+  persistConversations(): Promise<void>
 }
