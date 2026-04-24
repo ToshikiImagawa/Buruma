@@ -286,8 +286,8 @@ export class ClaudeDefaultService implements ClaudeService {
         this.flushContentToConversation(targetId, pending)
       }
     }
-    this.syncConversationSummaries()
-    this.persistConversations().catch(() => {})
+    this.refreshConversationSummaries()
+    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
   }
 
   clearChatMessages(): void {
@@ -340,13 +340,11 @@ export class ClaudeDefaultService implements ClaudeService {
     this._isCommandRunning$.next(false)
     this._chatMessages$.next([])
     this.refreshConversationSummaries()
-    this.persistConversations().catch(() => {})
+    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
     return id
   }
 
   async resumeConversation(conversationId: string): Promise<void> {
-    const conversation = this.conversationStore.get(conversationId)
-    if (!conversation) return
     await this.ensureSession(conversationId)
   }
 
@@ -375,7 +373,7 @@ export class ClaudeDefaultService implements ClaudeService {
       this._isCommandRunning$.next(false)
     }
     this.refreshConversationSummaries()
-    this.persistConversations().catch(() => {})
+    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
   }
 
   getConversationWorktreePath(conversationId: string): string | null {
@@ -398,10 +396,6 @@ export class ClaudeDefaultService implements ClaudeService {
     if (!conversation) return
     conversation.messages = this._chatMessages$.getValue()
     conversation.updatedAt = new Date().toISOString()
-  }
-
-  private syncConversationSummaries(): void {
-    this.refreshConversationSummaries()
   }
 
   private refreshConversationSummaries(): void {

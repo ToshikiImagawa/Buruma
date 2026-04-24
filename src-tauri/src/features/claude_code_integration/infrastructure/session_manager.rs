@@ -161,15 +161,20 @@ impl ClaudeSessionManager {
         match task.await {
             Ok(result) => {
                 // 1. claude_session_id を更新し session-changed を先に発信
-                {
+                let changed_session = {
                     let mut sessions = self.sessions.lock().unwrap();
-                    if let Some(s) = sessions.get_mut(session_id) {
+                    sessions.get_mut(session_id).and_then(|s| {
                         s.abort_handle = None;
                         if let Ok(Some(ref csid)) = result {
                             s.info.claude_session_id = Some(csid.clone());
-                            let _ = app_handle.emit("claude-session-changed", &s.info);
+                            Some(s.info.clone())
+                        } else {
+                            None
                         }
-                    }
+                    })
+                };
+                if let Some(info) = changed_session {
+                    let _ = app_handle.emit("claude-session-changed", &info);
                 }
                 // 2. command-completed を後に発信（フロントの永続化で claudeSessionId を含めるため）
                 let _ = app_handle.emit(
