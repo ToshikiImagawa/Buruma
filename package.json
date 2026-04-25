@@ -1,7 +1,7 @@
 {
   "name": "buruma",
   "productName": "Buruma",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Branch-United Real-time Understanding & Multi-worktree Analyzer",
   "private": true,
   "type": "module",
