@@ -36,11 +36,8 @@ export function PushPullButtons({ worktreePath, currentBranch, onRefresh }: Push
   const targetBranch = customBranch || undefined
 
   const handlePush = () => {
-    if (!currentBranch?.upstream && !customRemote) {
-      push(worktreePath, targetRemote, targetBranch, true, forcePush)
-    } else {
-      push(worktreePath, targetRemote, targetBranch, undefined, forcePush)
-    }
+    const setUpstream = !currentBranch?.upstream && !customRemote ? true : undefined
+    push({ worktreePath, remote: targetRemote, branch: targetBranch, setUpstream, force: forcePush })
     onRefresh()
   }
 

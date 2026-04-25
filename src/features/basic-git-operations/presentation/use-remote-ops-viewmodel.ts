@@ -1,4 +1,5 @@
 import { useCallback } from 'react'
+import type { PushArgs } from '@domain'
 import { useResolve } from '@lib/di/v-container-provider'
 import { useObservable } from '@lib/hooks/use-observable'
 import { RemoteOpsViewModelToken } from '../di-tokens'
@@ -15,11 +16,7 @@ export function useRemoteOpsViewModel() {
     lastError,
     lastPushResult,
     lastPullResult,
-    push: useCallback(
-      (worktreePath: string, remote?: string, branch?: string, setUpstream?: boolean, force?: boolean) =>
-        vm.push(worktreePath, remote, branch, setUpstream, force),
-      [vm],
-    ),
+    push: useCallback((args: PushArgs) => vm.push(args), [vm]),
     pull: useCallback(
       (worktreePath: string, remote?: string, branch?: string) => vm.pull(worktreePath, remote, branch),
       [vm],

@@ -366,6 +366,7 @@ export class ClaudeDefaultService implements ClaudeService {
     this.conversationStore.delete(id)
     this.sessionStore.delete(id)
     this.commandRunningMap.delete(id)
+    this.pendingContentMap.delete(id)
     if (this._currentConversationId$.getValue() === id) {
       this._currentConversationId$.next(null)
       this._chatMessages$.next([])

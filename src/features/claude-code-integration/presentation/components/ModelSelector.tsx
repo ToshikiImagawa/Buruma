@@ -28,15 +28,21 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
     [onChange],
   )
 
+  const compositionEndTimeRef = useRef(0)
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<HTMLInputElement>) => {
-      if (e.key === 'Enter' && inputValue.trim()) {
-        e.preventDefault()
-        handleSelect(inputValue.trim())
-      }
+      if (e.key !== 'Enter' || !inputValue.trim()) return
+      if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
+      e.preventDefault()
+      handleSelect(inputValue.trim())
     },
     [inputValue, handleSelect],
   )
+
+  const handleCompositionEnd = useCallback(() => {
+    compositionEndTimeRef.current = Date.now()
+  }, [])
 
   return (
     <Popover
@@ -70,6 +76,7 @@ export function ModelSelector({ value, onChange, disabled }: ModelSelectorProps)
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={handleKeyDown}
+            onCompositionEnd={handleCompositionEnd}
             className="h-7 text-xs"
           />
         </div>

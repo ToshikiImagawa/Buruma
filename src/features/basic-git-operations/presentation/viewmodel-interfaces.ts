@@ -1,4 +1,4 @@
-import type { CommitResult, PullResult, PushResult } from '@domain'
+import type { CommitResult, PullResult, PushArgs, PushResult } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { Observable } from 'rxjs'
 
@@ -24,13 +24,7 @@ export interface RemoteOpsViewModel {
   readonly lastError$: Observable<IPCError | null>
   readonly lastPushResult$: Observable<PushResult | null>
   readonly lastPullResult$: Observable<PullResult | null>
-  push(
-    worktreePath: string,
-    remote?: string,
-    branch?: string,
-    setUpstream?: boolean,
-    force?: boolean,
-  ): Promise<PushResult | null>
+  push(args: PushArgs): Promise<PushResult | null>
   pull(worktreePath: string, remote?: string, branch?: string): void
   fetch(worktreePath: string, remote?: string): void
 }

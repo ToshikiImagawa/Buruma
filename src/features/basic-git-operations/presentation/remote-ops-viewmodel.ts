@@ -1,4 +1,4 @@
-import type { PullResult, PushResult } from '@domain'
+import type { PullResult, PushArgs, PushResult } from '@domain'
 import type { IPCError } from '@lib/ipc'
 import type { Observable } from 'rxjs'
 import type {
@@ -31,15 +31,9 @@ export class RemoteOpsDefaultViewModel implements RemoteOpsViewModel {
     this.lastError$ = getLastErrorUseCase.store
   }
 
-  async push(
-    worktreePath: string,
-    remote?: string,
-    branch?: string,
-    setUpstream?: boolean,
-    force?: boolean,
-  ): Promise<PushResult | null> {
+  async push(args: PushArgs): Promise<PushResult | null> {
     try {
-      const result = await this.pushUseCase.invoke({ worktreePath, remote, branch, setUpstream, force })
+      const result = await this.pushUseCase.invoke(args)
       this._lastPushResult$.next(result)
       return result
     } catch {

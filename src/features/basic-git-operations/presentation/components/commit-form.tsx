@@ -55,7 +55,7 @@ export function CommitForm({ worktreePath, hasStagedFiles, currentBranch, onComm
     setPushing(true)
     try {
       const setUpstream = !currentBranch?.upstream
-      await push(worktreePath, undefined, undefined, setUpstream)
+      await push({ worktreePath, setUpstream })
     } finally {
       setPushing(false)
       onCommitted()

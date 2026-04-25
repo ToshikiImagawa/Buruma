@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react'
+import type { KeyboardEvent } from 'react'
 import { Send, Square } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -13,6 +14,7 @@ interface CommandInputProps {
 export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }: CommandInputProps) {
   const [value, setValue] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const compositionEndTimeRef = useRef(0)
 
   const handleSubmit = useCallback(() => {
     const trimmed = value.trim()
@@ -26,13 +28,18 @@ export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }:
   }, [value, onSubmit])
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key !== 'Enter' || e.shiftKey || e.nativeEvent.keyCode === 229) return
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
+      if (e.key !== 'Enter' || e.shiftKey) return
+      if (e.nativeEvent.isComposing || Date.now() - compositionEndTimeRef.current < 300) return
       e.preventDefault()
       handleSubmit()
     },
     [handleSubmit],
   )
+
+  const handleCompositionEnd = useCallback(() => {
+    compositionEndTimeRef.current = Date.now()
+  }, [])
 
   const handleInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setValue(e.target.value)
@@ -52,6 +59,7 @@ export function CommandInput({ onSubmit, onCancel, disabled, isCommandRunning }:
           value={value}
           onChange={handleInput}
           onKeyDown={handleKeyDown}
+          onCompositionEnd={handleCompositionEnd}
           disabled={disabled || isCommandRunning}
         />
         {isCommandRunning ? (
