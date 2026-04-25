@@ -305,7 +305,7 @@ impl ClaudeSessionManager {
                                 &worktree_path,
                                 ClaudeOutputStream::Stdout,
                                 text,
-                                &session_id,
+                                session_id.as_deref(),
                             );
                         }
                     }
@@ -317,7 +317,7 @@ impl ClaudeSessionManager {
                         &worktree_path,
                         ClaudeOutputStream::Stdout,
                         line,
-                        &session_id,
+                        session_id.as_deref(),
                     );
                 }
             }
@@ -335,7 +335,13 @@ impl ClaudeSessionManager {
             let buf = BufReader::new(reader);
             let mut lines = buf.lines();
             while let Ok(Some(line)) = lines.next_line().await {
-                emit_claude_output(&app_handle, &worktree_path, stream_type.clone(), line, &session_id);
+                emit_claude_output(
+                    &app_handle,
+                    &worktree_path,
+                    stream_type.clone(),
+                    line,
+                    session_id.as_deref(),
+                );
             }
         })
     }
@@ -352,14 +358,14 @@ fn emit_claude_output(
     worktree_path: &str,
     stream: ClaudeOutputStream,
     content: String,
-    session_id: &Option<String>,
+    session_id: Option<&str>,
 ) {
     let out = ClaudeOutput {
         worktree_path: worktree_path.to_string(),
         stream,
         content,
         timestamp: chrono::Utc::now().to_rfc3339(),
-        session_id: session_id.clone(),
+        session_id: session_id.map(|s| s.to_string()),
     };
     let _ = app_handle.emit("claude-output", &out);
 }
