@@ -6,8 +6,13 @@ use tauri::Emitter;
 use crate::error::{AppError, AppResult};
 use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, ConflictResolveResult,
-    DiffReviewArgs, ExplainResult, GenerateCommitMessageArgs, ReviewComment, ReviewResult, ReviewSeverity,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
+    GenerateCommitMessageArgs,
+};
+use crate::features::claude_code_integration::infrastructure::output_parser;
+use crate::features::claude_code_integration::infrastructure::prompts::{
+    commit_message::build_commit_message_prompt, conflict_resolve::build_conflict_resolve_prompt,
+    explain::build_explain_diff_prompt, review::build_review_diff_prompt,
 };
 use crate::features::claude_code_integration::infrastructure::session_manager::ClaudeSessionManager;
 
@@ -70,32 +75,8 @@ impl ClaudeRepository for DefaultClaudeRepository {
             .await
             .map_err(|e| AppError::Claude(format!("Failed to run claude auth status: {e}")))?;
 
-        let stdout = String::from_utf8_lossy(&output.stdout).to_string();
-
-        // `claude auth status` は JSON を出力: { "loggedIn": true, "email": "...", ... }
-        if output.status.success() {
-            if let Ok(json) = serde_json::from_str::<serde_json::Value>(&stdout) {
-                let logged_in = json.get("loggedIn").and_then(|v| v.as_bool()).unwrap_or(false);
-                let email = json.get("email").and_then(|v| v.as_str()).map(|s| s.to_string());
-                Ok(ClaudeAuthStatus {
-                    authenticated: logged_in,
-                    account_email: email,
-                })
-            } else {
-                // JSON パース失敗時はテキストフォールバック
-                Ok(ClaudeAuthStatus {
-                    authenticated: stdout.contains("loggedIn")
-                        || stdout.contains("Logged in")
-                        || stdout.contains("authenticated"),
-                    account_email: None,
-                })
-            }
-        } else {
-            Ok(ClaudeAuthStatus {
-                authenticated: false,
-                account_email: None,
-            })
-        }
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        Ok(output_parser::parse_auth_status(output.status.success(), &stdout))
     }
 
     async fn login(&self) -> AppResult<()> {
@@ -156,7 +137,9 @@ impl ClaudeRepository for DefaultClaudeRepository {
             .map_err(|e| AppError::Claude(format!("Failed to run claude for commit message: {e}")))?;
 
         if output.status.success() {
-            Ok(String::from_utf8_lossy(&output.stdout).trim().to_string())
+            Ok(output_parser::parse_commit_message(&String::from_utf8_lossy(
+                &output.stdout,
+            )))
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(AppError::Claude(format!(
@@ -171,13 +154,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         let diff_text = args.diff_text.clone();
 
         tokio::spawn(async move {
-            let prompt = format!(
-                "Review the following code diff. For each issue found, provide:\n\
-                 - file path\n- line numbers\n- severity (info/warning/error)\n\
-                 - description\n- suggestion (if applicable)\n\n\
-                 Also provide a brief summary.\n\n{}",
-                diff_text
-            );
+            let prompt = build_review_diff_prompt(&diff_text);
 
             let output = tokio::process::Command::new("claude")
                 .args(["-p", &prompt])
@@ -186,27 +163,11 @@ impl ClaudeRepository for DefaultClaudeRepository {
                 .await;
 
             let result = match output {
-                Ok(out) if out.status.success() => {
-                    let text = String::from_utf8_lossy(&out.stdout).to_string();
-                    ReviewResult {
-                        worktree_path: worktree_path.clone(),
-                        comments: vec![ReviewComment {
-                            id: uuid::Uuid::new_v4().to_string(),
-                            file_path: String::new(),
-                            line_start: 0,
-                            line_end: 0,
-                            severity: ReviewSeverity::Info,
-                            message: text.clone(),
-                            suggestion: None,
-                        }],
-                        summary: text,
-                    }
+                Ok(out) => {
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    output_parser::build_review_result(&worktree_path, out.status.success(), &stdout)
                 }
-                _ => ReviewResult {
-                    worktree_path: worktree_path.clone(),
-                    comments: Vec::new(),
-                    summary: "Review failed".to_string(),
-                },
+                Err(_) => output_parser::build_review_result(&worktree_path, false, ""),
             };
 
             let _ = app_handle.emit("claude-review-result", &result);
@@ -220,11 +181,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         let diff_text = args.diff_text.clone();
 
         tokio::spawn(async move {
-            let prompt = format!(
-                "Explain the following code diff in detail. \
-                 Describe what changes were made and why they might have been made:\n\n{}",
-                diff_text
-            );
+            let prompt = build_explain_diff_prompt(&diff_text);
 
             let output = tokio::process::Command::new("claude")
                 .args(["-p", &prompt])
@@ -233,14 +190,11 @@ impl ClaudeRepository for DefaultClaudeRepository {
                 .await;
 
             let result = match output {
-                Ok(out) if out.status.success() => ExplainResult {
-                    worktree_path: worktree_path.clone(),
-                    explanation: String::from_utf8_lossy(&out.stdout).trim().to_string(),
-                },
-                _ => ExplainResult {
-                    worktree_path: worktree_path.clone(),
-                    explanation: "Explanation failed".to_string(),
-                },
+                Ok(out) => {
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    output_parser::build_explain_result(&worktree_path, out.status.success(), &stdout)
+                }
+                Err(_) => output_parser::build_explain_result(&worktree_path, false, ""),
             };
 
             let _ = app_handle.emit("claude-explain-result", &result);
@@ -255,21 +209,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
         let three_way = args.three_way_content.clone();
 
         tokio::spawn(async move {
-            let prompt = format!(
-                "You are resolving a git merge conflict for the file: {file_path}\n\n\
-                 Below are the three versions of the file.\n\n\
-                 === BASE (common ancestor) ===\n{base}\n\n\
-                 === OURS (current branch) ===\n{ours}\n\n\
-                 === THEIRS (incoming branch) ===\n{theirs}\n\n\
-                 Merge these three versions into a single resolved file that preserves \
-                 the intent of both OURS and THEIRS changes relative to BASE.\n\n\
-                 IMPORTANT: Reply with ONLY the merged file content. \
-                 Do NOT include any explanation, markdown fences, or extra text.",
-                file_path = file_path,
-                base = three_way.base,
-                ours = three_way.ours,
-                theirs = three_way.theirs,
-            );
+            let prompt = build_conflict_resolve_prompt(&file_path, &three_way);
 
             let output = tokio::process::Command::new("claude")
                 .args(["-p", &prompt])
@@ -278,24 +218,18 @@ impl ClaudeRepository for DefaultClaudeRepository {
                 .await;
 
             let result = match output {
-                Ok(out) if out.status.success() => ConflictResolveResult::Resolved {
-                    worktree_path: worktree_path.clone(),
-                    file_path: file_path.clone(),
-                    merged_content: String::from_utf8_lossy(&out.stdout).trim().to_string(),
-                },
                 Ok(out) => {
-                    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_string();
-                    ConflictResolveResult::Failed {
-                        worktree_path: worktree_path.clone(),
-                        file_path: file_path.clone(),
-                        error: if stderr.is_empty() {
-                            "Conflict resolution failed".to_string()
-                        } else {
-                            stderr
-                        },
-                    }
+                    let stdout = String::from_utf8_lossy(&out.stdout);
+                    let stderr = String::from_utf8_lossy(&out.stderr);
+                    output_parser::build_conflict_resolve_result(
+                        &worktree_path,
+                        &file_path,
+                        out.status.success(),
+                        &stdout,
+                        &stderr,
+                    )
                 }
-                Err(e) => ConflictResolveResult::Failed {
+                Err(e) => crate::features::claude_code_integration::domain::ConflictResolveResult::Failed {
                     worktree_path: worktree_path.clone(),
                     file_path: file_path.clone(),
                     error: format!("Failed to run claude: {e}"),
@@ -312,70 +246,5 @@ impl ClaudeRepository for DefaultClaudeRepository {
 impl Default for DefaultClaudeRepository {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-/// コミットメッセージ生成プロンプトを構築する。
-/// `AppSettings.commitMessageRules` が指定されている場合はデフォルト指示に追記する。
-fn build_commit_message_prompt(args: &GenerateCommitMessageArgs) -> String {
-    let mut prompt = String::from(
-        "Generate a concise git commit message for the following diff. \
-         Reply with ONLY the commit message, no explanation.",
-    );
-
-    if let Some(rules) = args.rules.as_deref() {
-        let trimmed = rules.trim();
-        if !trimmed.is_empty() {
-            prompt.push_str("\n\nAdditional rules (provided by the user — follow them strictly):\n");
-            prompt.push_str(trimmed);
-        }
-    }
-
-    prompt.push_str("\n\nDiff:\n");
-    prompt.push_str(&args.diff_text);
-    prompt
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn make_args(rules: Option<&str>) -> GenerateCommitMessageArgs {
-        GenerateCommitMessageArgs {
-            worktree_path: "/tmp/repo".to_string(),
-            diff_text: "--- a/x.rs\n+++ b/x.rs\n@@\n-1\n+2\n".to_string(),
-            rules: rules.map(|s| s.to_string()),
-        }
-    }
-
-    #[test]
-    fn build_prompt_without_rules_uses_default_only() {
-        let prompt = build_commit_message_prompt(&make_args(None));
-
-        assert!(prompt.contains("Generate a concise git commit message"));
-        assert!(prompt.contains("Reply with ONLY the commit message"));
-        assert!(!prompt.contains("Additional rules"));
-        assert!(prompt.contains("Diff:\n--- a/x.rs"));
-    }
-
-    #[test]
-    fn build_prompt_with_rules_appends_user_rules_before_diff() {
-        let prompt = build_commit_message_prompt(&make_args(Some("- Use Conventional Commits\n- Write in Japanese")));
-
-        assert!(prompt.contains("Additional rules"));
-        assert!(prompt.contains("- Use Conventional Commits"));
-        assert!(prompt.contains("- Write in Japanese"));
-
-        // ルール → Diff の順である（ルールが diff に混ざらないことを保証）。
-        let rules_idx = prompt.find("Conventional Commits").expect("rules present");
-        let diff_idx = prompt.find("Diff:").expect("diff marker present");
-        assert!(rules_idx < diff_idx);
-    }
-
-    #[test]
-    fn build_prompt_with_blank_rules_is_treated_as_none() {
-        let prompt = build_commit_message_prompt(&make_args(Some("   \n  ")));
-
-        assert!(!prompt.contains("Additional rules"));
     }
 }
