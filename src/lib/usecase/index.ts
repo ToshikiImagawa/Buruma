@@ -9,3 +9,5 @@ export type {
   RunnableUseCase,
   SupplierUseCase,
 } from './types'
+
+export { ObservableQueryUseCase } from './observable-query-usecase'
