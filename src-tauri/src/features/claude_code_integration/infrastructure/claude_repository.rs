@@ -6,8 +6,8 @@ use tauri::Emitter;
 use crate::error::{AppError, AppResult};
 use crate::features::claude_code_integration::application::repositories::ClaudeRepository;
 use crate::features::claude_code_integration::domain::{
-    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, DiffReviewArgs,
-    GenerateCommitMessageArgs,
+    ClaudeAuthStatus, ClaudeCommand, ClaudeOutput, ClaudeSession, ConflictResolveRequest, ConflictResolveResult,
+    DiffReviewArgs, GenerateCommitMessageArgs,
 };
 use crate::features::claude_code_integration::infrastructure::output_parser;
 use crate::features::claude_code_integration::infrastructure::prompts::{
@@ -229,7 +229,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
                         &stderr,
                     )
                 }
-                Err(e) => crate::features::claude_code_integration::domain::ConflictResolveResult::Failed {
+                Err(e) => ConflictResolveResult::Failed {
                     worktree_path: worktree_path.clone(),
                     file_path: file_path.clone(),
                     error: format!("Failed to run claude: {e}"),

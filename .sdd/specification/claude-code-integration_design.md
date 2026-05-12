@@ -716,6 +716,8 @@ container.registerSingleton(GetChatMessagesUseCaseToken, {
 
 ファクトリー利用は CLAUDE.md の「DI Token 以外の引数が必要な場合のみファクトリー関数」ルールに合致する（コンストラクタ引数が `Observable<T>` のため）。
 
+**対象外**: `selectedModel$` は ViewModel から `setSelectedModel()` setter を呼ぶ必要があり、`ClaudeService` を ViewModel に直接 inject 済みのため、追加 UseCase を作らず Service から直接参照する。`ObservableQueryUseCase` 化のメリット（コピペ解消）が薄く、R-02 で `ClaudeStateService` に分離した後に再評価する。
+
 ### R-02: ClaudeService の責務分割
 
 | 項目 | 内容 |
