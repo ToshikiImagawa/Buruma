@@ -1,4 +1,7 @@
-import type { VContainerConfig } from '@lib/di'
+import type { InjectionToken, VContainerConfig } from '@lib/di'
+import type { ObservableStoreUseCase } from '@lib/usecase'
+import type { Observable } from 'rxjs'
+import type { ClaudeService } from './application/services/claude-service-interface'
 import { ObservableQueryUseCase } from '@lib/usecase'
 import { ClaudeDefaultService } from './application/services/claude-service'
 import { CheckAuthUseCase } from './application/usecases/check-auth-usecase'
@@ -71,56 +74,32 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         ClaudeServiceToken,
       ])
       .registerSingleton(ResolveConflictRendererUseCaseToken, ResolveConflictUseCase, [ClaudeRepositoryToken])
-      // 状態取得 UseCase: Service の Observable を ObservableQueryUseCase で包んで公開
-      // ファクトリーパターンで service.xxx$ を都度解決する
-      .registerSingleton(
-        GetSessionStatusRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).status$),
+
+    // 状態取得 UseCase: Service の Observable を ObservableQueryUseCase で包み、
+    // 各 Token を遅延解決ファクトリーで登録する。
+    const registerQuery = <T>(
+      token: InjectionToken<ObservableStoreUseCase<T>>,
+      selector: (service: ClaudeService) => Observable<T>,
+    ): void => {
+      container.registerSingleton(
+        token,
+        () => new ObservableQueryUseCase(selector(container.resolve(ClaudeServiceToken))),
       )
-      .registerSingleton(
-        GetCurrentSessionRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).currentSession$),
-      )
-      .registerSingleton(
-        GetOutputsRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).outputs$),
-      )
-      .registerSingleton(
-        GetChatMessagesRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).chatMessages$),
-      )
-      .registerSingleton(
-        GetIsCommandRunningRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).isCommandRunning$),
-      )
-      .registerSingleton(
-        GetConversationsRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).conversations$),
-      )
-      .registerSingleton(
-        GetCurrentConversationIdRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).currentConversationId$),
-      )
-      .registerSingleton(
-        GetReviewCommentsRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).reviewComments$),
-      )
-      .registerSingleton(
-        GetReviewSummaryRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).reviewSummary$),
-      )
-      .registerSingleton(
-        GetIsReviewingRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).isReviewing$),
-      )
-      .registerSingleton(
-        GetExplanationRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).explanation$),
-      )
-      .registerSingleton(
-        GetIsExplainingRendererUseCaseToken,
-        () => new ObservableQueryUseCase(container.resolve(ClaudeServiceToken).isExplaining$),
-      )
+    }
+    registerQuery(GetSessionStatusRendererUseCaseToken, (s) => s.status$)
+    registerQuery(GetCurrentSessionRendererUseCaseToken, (s) => s.currentSession$)
+    registerQuery(GetOutputsRendererUseCaseToken, (s) => s.outputs$)
+    registerQuery(GetChatMessagesRendererUseCaseToken, (s) => s.chatMessages$)
+    registerQuery(GetIsCommandRunningRendererUseCaseToken, (s) => s.isCommandRunning$)
+    registerQuery(GetConversationsRendererUseCaseToken, (s) => s.conversations$)
+    registerQuery(GetCurrentConversationIdRendererUseCaseToken, (s) => s.currentConversationId$)
+    registerQuery(GetReviewCommentsRendererUseCaseToken, (s) => s.reviewComments$)
+    registerQuery(GetReviewSummaryRendererUseCaseToken, (s) => s.reviewSummary$)
+    registerQuery(GetIsReviewingRendererUseCaseToken, (s) => s.isReviewing$)
+    registerQuery(GetExplanationRendererUseCaseToken, (s) => s.explanation$)
+    registerQuery(GetIsExplainingRendererUseCaseToken, (s) => s.isExplaining$)
+
+    container
       // ViewModel
       .registerTransient(ClaudeConflictViewModelToken, ClaudeConflictDefaultViewModel, [
         ResolveConflictRendererUseCaseToken,
