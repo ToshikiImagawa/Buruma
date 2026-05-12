@@ -1,20 +1,12 @@
-import type { VContainerConfig } from '@lib/di'
+import type { InjectionToken, VContainerConfig } from '@lib/di'
+import type { ObservableStoreUseCase } from '@lib/usecase'
+import type { Observable } from 'rxjs'
+import type { ClaudeService } from './application/services/claude-service-interface'
+import { ObservableQueryUseCase } from '@lib/usecase'
 import { ClaudeDefaultService } from './application/services/claude-service'
 import { CheckAuthUseCase } from './application/usecases/check-auth-usecase'
 import { ExplainDiffUseCase } from './application/usecases/explain-diff-usecase'
 import { GenerateCommitMessageUseCase } from './application/usecases/generate-commit-message-usecase'
-import { GetChatMessagesUseCase } from './application/usecases/get-chat-messages-usecase'
-import { GetConversationsUseCase } from './application/usecases/get-conversations-usecase'
-import { GetCurrentConversationIdUseCase } from './application/usecases/get-current-conversation-id-usecase'
-import { GetCurrentSessionUseCase } from './application/usecases/get-current-session-usecase'
-import { GetExplanationUseCase } from './application/usecases/get-explanation-usecase'
-import { GetIsCommandRunningUseCase } from './application/usecases/get-is-command-running-usecase'
-import { GetIsExplainingUseCase } from './application/usecases/get-is-explaining-usecase'
-import { GetIsReviewingUseCase } from './application/usecases/get-is-reviewing-usecase'
-import { GetOutputsUseCase } from './application/usecases/get-outputs-usecase'
-import { GetReviewCommentsUseCase } from './application/usecases/get-review-comments-usecase'
-import { GetReviewSummaryUseCase } from './application/usecases/get-review-summary-usecase'
-import { GetSessionStatusUseCase } from './application/usecases/get-session-status-usecase'
 import { LoginUseCase } from './application/usecases/login-usecase'
 import { LogoutUseCase } from './application/usecases/logout-usecase'
 import { ResolveConflictUseCase } from './application/usecases/resolve-conflict-usecase'
@@ -63,19 +55,11 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
     container
       .registerSingleton(ClaudeRepositoryToken, ClaudeDefaultRepository)
       .registerSingleton(ClaudeServiceToken, ClaudeDefaultService, [ClaudeRepositoryToken])
+      // 操作系 UseCase
       .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [ClaudeServiceToken])
       .registerSingleton(StopSessionRendererUseCaseToken, StopSessionUseCase, [ClaudeRepositoryToken])
       .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [
         ClaudeRepositoryToken,
-        ClaudeServiceToken,
-      ])
-      .registerSingleton(GetSessionStatusRendererUseCaseToken, GetSessionStatusUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetCurrentSessionRendererUseCaseToken, GetCurrentSessionUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetOutputsRendererUseCaseToken, GetOutputsUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetChatMessagesRendererUseCaseToken, GetChatMessagesUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetIsCommandRunningRendererUseCaseToken, GetIsCommandRunningUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetConversationsRendererUseCaseToken, GetConversationsUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetCurrentConversationIdRendererUseCaseToken, GetCurrentConversationIdUseCase, [
         ClaudeServiceToken,
       ])
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
@@ -89,12 +73,34 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         ClaudeRepositoryToken,
         ClaudeServiceToken,
       ])
-      .registerSingleton(GetReviewCommentsRendererUseCaseToken, GetReviewCommentsUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetReviewSummaryRendererUseCaseToken, GetReviewSummaryUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetIsReviewingRendererUseCaseToken, GetIsReviewingUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetExplanationRendererUseCaseToken, GetExplanationUseCase, [ClaudeServiceToken])
-      .registerSingleton(GetIsExplainingRendererUseCaseToken, GetIsExplainingUseCase, [ClaudeServiceToken])
       .registerSingleton(ResolveConflictRendererUseCaseToken, ResolveConflictUseCase, [ClaudeRepositoryToken])
+
+    // 状態取得 UseCase: Service の Observable を ObservableQueryUseCase で包み、
+    // 各 Token を遅延解決ファクトリーで登録する。
+    const registerQuery = <T>(
+      token: InjectionToken<ObservableStoreUseCase<T>>,
+      selector: (service: ClaudeService) => Observable<T>,
+    ): void => {
+      container.registerSingleton(
+        token,
+        () => new ObservableQueryUseCase(selector(container.resolve(ClaudeServiceToken))),
+      )
+    }
+    registerQuery(GetSessionStatusRendererUseCaseToken, (s) => s.status$)
+    registerQuery(GetCurrentSessionRendererUseCaseToken, (s) => s.currentSession$)
+    registerQuery(GetOutputsRendererUseCaseToken, (s) => s.outputs$)
+    registerQuery(GetChatMessagesRendererUseCaseToken, (s) => s.chatMessages$)
+    registerQuery(GetIsCommandRunningRendererUseCaseToken, (s) => s.isCommandRunning$)
+    registerQuery(GetConversationsRendererUseCaseToken, (s) => s.conversations$)
+    registerQuery(GetCurrentConversationIdRendererUseCaseToken, (s) => s.currentConversationId$)
+    registerQuery(GetReviewCommentsRendererUseCaseToken, (s) => s.reviewComments$)
+    registerQuery(GetReviewSummaryRendererUseCaseToken, (s) => s.reviewSummary$)
+    registerQuery(GetIsReviewingRendererUseCaseToken, (s) => s.isReviewing$)
+    registerQuery(GetExplanationRendererUseCaseToken, (s) => s.explanation$)
+    registerQuery(GetIsExplainingRendererUseCaseToken, (s) => s.isExplaining$)
+
+    container
+      // ViewModel
       .registerTransient(ClaudeConflictViewModelToken, ClaudeConflictDefaultViewModel, [
         ResolveConflictRendererUseCaseToken,
         ClaudeServiceToken,

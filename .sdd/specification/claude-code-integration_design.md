@@ -6,7 +6,7 @@ status: "approved"
 sdd-phase: "plan"
 impl-status: "implemented"
 created: "2026-03-25"
-updated: "2026-04-15"
+updated: "2026-05-11"
 depends-on: ["spec-claude-code-integration"]
 tags: ["claude-code", "ai", "cli", "session", "child-process"]
 category: "ai-integration"
@@ -27,29 +27,44 @@ risk: "high"
 
 ## 1.1. 実装進捗
 
+### 1.1.1. Rust 側（src-tauri/src/features/claude_code_integration/）
+
 | モジュール/機能 | ステータス | 備考 |
 |--------------|----------|------|
-| ClaudeProcessManager | 🟢 | コマンドごとに claude -p を spawn する方式で実装。ワンショット generateText、認証管理（checkAuth/login）も提供 |
-| SessionStore | 🟢 | インメモリセッション管理（max 1000 出力バッファ） |
-| GenerateCommitMessageMainUseCase | 🟢 | ステージング差分テキスト → プロンプト構築 → Claude CLI 実行 |
-| build_commit_message_prompt (Rust) | 🟢 | コミットメッセージ生成用プロンプトビルダー。`GenerateCommitMessageArgs.rules` を反映してカスタムルール対応（AppSettings.commitMessageRules） |
-| CheckAuthMainUseCase / LoginMainUseCase | 🟢 | `claude auth status` / `claude auth login` による認証管理 |
-| OutputParser (ClaudeDefaultOutputParser) | 🟢 | CLI 出力の JSON 解析・構造化。フォールバック付き |
-| IPC ハンドラー（claude:*） | 🟢 | 10 チャネル + 4 イベント登録済み（FR_506 追加分含む） |
-| Tauri invoke/listen API（claude） | 🟢 | 型安全な API 公開済み（11 メソッド + 4 イベント） |
-| ClaudeSessionPanel | 🟢 | セッション操作 UI + 未認証時ログインボタン表示 |
-| ClaudeOutputView | 🟢 | ストリーミング出力表示 UI（ANSI strip 付き） |
-| コミットメッセージ生成ボタン | 🟢 | basic-git-operations の CommitForm に Sparkles アイコンボタンで統合 |
+| `domain.rs` | 🟢 | ClaudeSession, ClaudeCommand, ClaudeOutput, ReviewResult, ExplainResult, ConflictResolveRequest/Result, PersistedConversation 等の型定義 |
+| `application/repositories.rs` | 🟢 | `ClaudeRepository` trait（13 メソッド） |
+| `application/usecases.rs` | 🟢 | UseCase 関数群（start_session / stop_session / send_command / review_diff / explain_diff / generate_commit_message / resolve_conflict / check_auth / login / logout） |
+| `infrastructure/session_manager.rs` | 🟢 | `ClaudeSessionManager`: SessionStore + ProcessManager を統合（design 4.2 表の元設計から実装で集約）。`tokio::process::Command` で `claude --version` 確認後セッション開始、stdin/stdout/stderr 制御、`claude-output` emit |
+| `infrastructure/claude_repository.rs` | 🟢 | `DefaultClaudeRepository`: ClaudeRepository 実装。セッション操作は session_manager に委譲。ワンショット系（generateCommitMessage / reviewDiff / explainDiff / resolveConflict）はインラインで CLI 起動 + プロンプト構築 + 出力解析を実施 |
+| `infrastructure/conversation_store.rs` | 🟢 | `ConversationStoreRepository`: 会話履歴を JSON 永続化（PersistedConversation） |
+| Prompt Builder | 🟢 | `infrastructure/prompts/`（commit_message / review / explain / conflict_resolve）に分離（11. リファクタリング計画 R-04 で対応済み） |
+| OutputParser | 🟢 | `infrastructure/output_parser.rs` に独立モジュール化（11. リファクタリング計画 R-03 で対応済み） |
+| `presentation/commands.rs` | 🟢 | 15 個の `#[tauri::command]`（claude_start_session / claude_stop_session / claude_get_session / claude_get_all_sessions / claude_send_command / claude_get_output / claude_check_auth / claude_login / claude_logout / claude_generate_commit_message / claude_review_diff / claude_explain_diff / claude_resolve_conflict / claude_get_conversations / claude_save_conversations） |
+
+### 1.1.2. Webview 側（src/features/claude-code-integration/）
+
+| モジュール/機能 | ステータス | 備考 |
+|--------------|----------|------|
+| `application/repositories/claude-repository.ts` | 🟢 | `ClaudeRepository` IF（IPC API ラッパー契約） |
+| `infrastructure/repositories/claude-default-repository.ts` | 🟢 | Tauri IPC アダプター（`invokeCommand` 経由） |
+| `application/services/claude-service-interface.ts` | 🟢 | `ClaudeService` IF（21 個の Observable プロパティ + setter 群） |
+| `application/services/claude-service.ts` | 🟡 | `ClaudeDefaultService`（460 行）。出力・セッション・チャット・会話・レビュー・解説の状態を集約管理。責務過剰のため 11. リファクタリング計画 R-02 で分割予定 |
+| 操作系 UseCase（10 個） | 🟢 | StartSession / StopSession / SendCommand / CheckAuth / Login / Logout / ReviewDiff / ExplainDiff / GenerateCommitMessage / ResolveConflict |
+| 状態取得 UseCase Token（12 個） | 🟢 | GetSessionStatus / GetCurrentSession / GetOutputs / GetChatMessages / GetIsCommandRunning / GetConversations / GetCurrentConversationId / GetReviewComments / GetReviewSummary / GetIsReviewing / GetExplanation / GetIsExplaining。`ObservableQueryUseCase<T>`（`src/lib/usecase/observable-query-usecase.ts`）に集約し、DI ファクトリーで Service の Observable を注入する方式に変更（11. リファクタリング計画 R-01 で対応済み） |
+| ViewModel（4 種） | 🟢 | ClaudeSessionDefaultViewModel / ClaudeReviewDefaultViewModel / ClaudeExplainDefaultViewModel / ClaudeConflictDefaultViewModel |
+| Hook ラッパー（5 種） | 🟢 | useClaudeSessionViewModel / useClaudeReviewViewModel / useClaudeExplainViewModel / useClaudeConflictViewModel / useClaudeAuth |
+| React Components（9 種） | 🟢 | ClaudeSessionPanel / ClaudeOutputView / CommandInput / ChatMessageList / ConversationSidebar / ModelSelector / ReviewCommentList / DiffExplanationView / SessionStatusIndicator |
 | Settings UI (commitMessageRules) | 🟢 | SettingsDialog に textarea でカスタムルール編集 |
-| ReviewCommentList | 🟢 | レビューコメント一覧 UI。severity 別アイコン + suggestion 表示 |
-| DiffExplanationView | 🟢 | 差分解説表示 UI。コピーボタン付き |
-| ReviewDiffMainUseCase / ExplainDiffMainUseCase | 🟢 | レビュー/解説 UseCase + プロンプトビルダー |
-| ClaudeReviewViewModel / ClaudeExplainViewModel | 🟢 | Webview 側 ViewModel + Hook ラッパー |
-| ResolveConflictMainUseCase | 🟢 | FR_506: コンフリクト解決 UseCase（ワンショット実行）。Rust 側 resolve_conflict + プロンプト構築実装済み |
-| IPC ハンドラー（claude_resolve_conflict） | 🟢 | FR_506: コンフリクト解決 IPC + claude-conflict-resolved イベント |
-| ClaudeConflictViewModel | 🟢 | FR_506: Webview 側 ViewModel（resolveConflict/resolveAll + 3並列制御 + 進捗 Observable） |
-| useClaudeConflictViewModel | 🟢 | FR_506: Hook ラッパー |
-| ConflictResolver AI ボタン統合 | 🟢 | FR_506: ConflictResolver への Props 注入（RepositoryDetailPanel 経由）。AI Resolve / AI Resolve All ボタン + 進捗バー |
+| ConflictResolver AI ボタン統合 | 🟢 | FR_506: Props 経由で AI Resolve / AI Resolve All ボタン + 進捗バーを統合 |
+
+### 1.1.3. 仕様との差分（既知の未実装）
+
+| spec | 内容 | 状況 |
+|------|------|------|
+| FR-008 | 実行予定の Git コマンド表示と確認ダイアログ | 🔴 未実装（別 ticket で対応） |
+| FR-019 | 解説のエクスポート機能 | 🟡 コピーのみ（エクスポート未実装） |
+| FR-023 | 出力テキストの検索機能 | 🔴 未実装 |
+| FR-014 | レビューコメントの差分上へのインライン表示 | 🔴 未実装（一覧表示のみ） |
 
 ---
 
@@ -158,26 +173,39 @@ graph TD
 
 ## 4.2. モジュール分割
 
-| モジュール名 | プロセス | 責務 | 配置場所 |
-|------------|---------|------|---------|
-| ClaudeProcessManager | main (infrastructure) | Claude Code CLI 子プロセスの spawn/kill、stdin 書き込み、stdout/stderr 監視 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-process-manager.ts` |
-| SessionStore | main (application/services) | ワークツリー → セッション情報のマッピング管理（インメモリ） | `src-tauri/src/features/claude-code-integration/application/services/claude-session-store.ts` |
-| OutputParser | main (infrastructure) | CLI の出力テキストを解析し、レビューコメントや解説テキストを構造化データに変換 | `src-tauri/src/features/claude-code-integration/infrastructure/claude-output-parser.ts` |
+> **方針**: Rust (Tauri Core) と TypeScript (Webview) の両側で feature 単位の Clean Architecture 4 層構成を取る。以下は実装の現状を反映する。リファクタリング予定箇所は 🟡 で示し、詳細は 11. リファクタリング計画を参照。
 
-> **注記**: 実装では `ClaudeProcessManager` と `SessionStore` は `ClaudeSessionManager` (`session_manager.rs`) に統合され、`OutputParser` は `DefaultClaudeRepository` (`claude_repository.rs`) 内にインライン実装されている。
-| Claude IPC Handler | main (presentation) | `claude:*` IPC チャネルの登録・ルーティング | `src-tauri/src/features/claude-code-integration/presentation/ipc-handlers.ts` |
-| Claude 型定義 | domain | ClaudeSession, ClaudeCommand, ClaudeOutput 等の型定義 | `src/domain/index.ts`（既存ファイルに追加） |
-| Preload Claude API | preload | 型安全な IPC で claude.* API を公開 | （preload 層は Tauri では不要）（既存ファイルに追加） |
-| ClaudeSessionPanel | renderer (presentation) | セッション操作 UI（起動/停止/入力/状態） | `src/features/claude-code-integration/presentation/components/ClaudeSessionPanel.tsx` |
-| ClaudeOutputView | renderer (presentation) | ストリーミング出力表示 | `src/features/claude-code-integration/presentation/components/ClaudeOutputView.tsx` |
-| ReviewCommentList | renderer (presentation) | レビューコメント一覧 | `src/features/claude-code-integration/presentation/components/ReviewCommentList.tsx` |
-| DiffExplanationView | renderer (presentation) | 差分解説マークダウン表示 | `src/features/claude-code-integration/presentation/components/DiffExplanationView.tsx` |
-| SessionStatusIndicator | renderer (presentation) | セッション状態インジケーター | `src/features/claude-code-integration/presentation/components/SessionStatusIndicator.tsx` |
-| CommandInput | renderer (presentation) | 自然言語入力フィールド | `src/features/claude-code-integration/presentation/components/CommandInput.tsx` |
-| ResolveConflictMainUseCase | main (application) | FR_506: コンフリクト解決 UseCase。ClaudeProcessManager でワンショット実行し OutputParser で merged 結果を抽出 | `src-tauri/src/features/claude_code_integration/application/usecases.rs` に追加（既存 UseCase と同一ファイルに集約） |
-| conflict-resolve-prompt | main (infrastructure) | FR_506: コンフリクト解決プロンプトビルダー。ThreeWayContent を構造化プロンプトに変換 | `src-tauri/src/features/claude_code_integration/infrastructure/conflict_resolve_prompt.rs` |
-| ClaudeConflictViewModel | renderer (presentation) | FR_506: コンフリクト解決 ViewModel。resolveConflict/resolveAll + 進捗・結果 Observable | `src/features/claude-code-integration/presentation/claude-conflict-viewmodel.ts` |
-| useClaudeConflictViewModel | renderer (presentation) | FR_506: Hook ラッパー | `src/features/claude-code-integration/presentation/use-claude-conflict-viewmodel.ts` |
+### 4.2.1. Rust 側（src-tauri/src/features/claude_code_integration/）
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|------------|-----|------|---------|
+| `ClaudeSession` 等 domain 型 | domain | ClaudeSession / ClaudeCommand / ClaudeOutput / ReviewResult / ExplainResult / ConflictResolveRequest / ConflictResolveResult / PersistedConversation | `domain.rs` |
+| `ClaudeRepository` trait | application | リポジトリ IF（13 メソッド） | `application/repositories.rs` |
+| UseCase 関数群 | application | start_session / stop_session / send_command / review_diff / explain_diff / generate_commit_message / resolve_conflict / check_auth / login / logout | `application/usecases.rs` |
+| `ClaudeSessionManager` | infrastructure | セッション spawn/kill、stdin 書き込み、stdout/stderr 監視、`claude-output` イベント emit。SessionStore（インメモリ Map）も統合 | `infrastructure/session_manager.rs` |
+| `DefaultClaudeRepository` | infrastructure | `ClaudeRepository` 実装。セッション操作は `ClaudeSessionManager` に委譲。ワンショット系（review/explain/generate/resolve）は `claude -p` を起動し出力を解析 | `infrastructure/claude_repository.rs` |
+| `ConversationStoreRepository` | infrastructure | 会話履歴（PersistedConversation）の JSON 永続化 | `infrastructure/conversation_store.rs` |
+| Prompt Builder | infrastructure | 各種プロンプト構築（commit-message / review / explain / conflict-resolve）。R-04 で `infrastructure/prompts/` 配下に分離済み | `infrastructure/prompts/{commit_message,review,explain,conflict_resolve}.rs` |
+| OutputParser | infrastructure | CLI 出力の JSON 解析・結果構造化・フォールバック。R-03 で独立モジュール化済み | `infrastructure/output_parser.rs` |
+| `#[tauri::command]` ハンドラー | presentation | 15 コマンドの登録（claude_*） | `presentation/commands.rs` |
+
+### 4.2.2. Webview 側（src/features/claude-code-integration/）
+
+| モジュール名 | 層 | 責務 | 配置場所 |
+|------------|-----|------|---------|
+| 共有 domain 型 | domain | フロントエンド側の型定義（Rust 側と整合） | `src/domain/` |
+| `ClaudeRepository` IF | application/repositories | IPC API ラッパーの契約 | `application/repositories/claude-repository.ts` |
+| `ClaudeService` IF | application/services | ステートフルな状態管理 IF（21 個の Observable + setter） | `application/services/claude-service-interface.ts` |
+| 🟡 `ClaudeDefaultService` | application/services | 出力・セッション・チャット・会話・レビュー・解説の状態を一括管理（460 行） → R-02 で `ChatHistoryService` と `ClaudeStateService` に分割予定 | `application/services/claude-service.ts` |
+| 操作系 UseCase（10 個） | application/usecases | StartSession / StopSession / SendCommand / CheckAuth / Login / Logout / ReviewDiff / ExplainDiff / GenerateCommitMessage / ResolveConflict | `application/usecases/*.ts` |
+| 状態取得 UseCase（12 Token） | application/usecases | Service の Observable を `ObservableQueryUseCase<T>` で公開（R-01 で集約済み）。各 Token は DI ファクトリーから生成 | `src/lib/usecase/observable-query-usecase.ts` + `di-config.ts` のファクトリー登録 |
+| `ClaudeDefaultRepository` | infrastructure | Tauri IPC アダプター | `infrastructure/repositories/claude-default-repository.ts` |
+| ViewModel（4 種） | presentation | ClaudeSessionDefaultViewModel / ClaudeReviewDefaultViewModel / ClaudeExplainDefaultViewModel / ClaudeConflictDefaultViewModel | `presentation/claude-*-viewmodel.ts` |
+| Hook ラッパー（5 種） | presentation | useClaudeSessionViewModel / useClaudeReviewViewModel / useClaudeExplainViewModel / useClaudeConflictViewModel / useClaudeAuth | `presentation/use-claude-*.ts` |
+| React Components（9 種） | presentation | ClaudeSessionPanel / ClaudeOutputView / CommandInput / ChatMessageList / ConversationSidebar / ModelSelector / ReviewCommentList / DiffExplanationView / SessionStatusIndicator | `presentation/components/*.tsx` |
+| DI 設定 | composition root | DI Token 定義（di-tokens.ts）と DI 登録設定（di-config.ts） | `di-tokens.ts`, `di-config.ts` |
+
+> **依存方向**: 両側とも `domain ← application ← infrastructure / presentation` の一方向のみ。Webview 側の DI 登録は `di-config.ts` に集約し、`src/di/configs.ts` から参照される（A-001 / A-004 準拠）。
 
 ---
 
@@ -230,6 +258,14 @@ type ConflictResolveResult =
 ---
 
 # 6. インターフェース定義
+
+> **実装上の対応関係**: 以下の 6.1〜6.3 は設計初期に定義した抽象 IF である。実装では以下のとおり集約されている。
+>
+> | 設計 IF | 実装上の対応 |
+> |---------|------------|
+> | 6.1 `ClaudeProcessManager` | `ClaudeSessionManager`（`session_manager.rs`） |
+> | 6.2 `SessionStore` | `ClaudeSessionManager` に統合（インメモリ `HashMap<String, SessionState>` として保持） |
+> | 6.3 `OutputParser` | 現在は `DefaultClaudeRepository` 内インライン → R-03 で独立モジュール化予定 |
 
 ## 6.1. ClaudeProcessManager
 
@@ -623,4 +659,136 @@ claude: {
 - コンフリクトファイルの内容（base/ours/theirs）は Claude Code CLI にプロンプトとして送信される。ソースコードが外部 AI サービスに送信されることをユーザーに認識させる
 - `ConflictResolveRequest.filePath` に対してパストラバーサル攻撃の検証を行う（10.2 の入力バリデーションと同様）
 - AI が生成した merged コンテンツは必ずプレビュー表示し、ユーザーの承認を経てから適用する（B-002 準拠）
+
+---
+
+# 11. リファクタリング計画
+
+## 11.1. 背景と目的
+
+実装完了後の調査（2026-05-11）で、以下の改善余地が判明した:
+
+- Webview 側の状態取得 UseCase 12 個が同一パターンのコピペ実装（各 9〜12 行）
+- `ClaudeDefaultService` が 460 行・20+ BehaviorSubject を保持し責務過剰
+- Rust 側 `DefaultClaudeRepository` 内にプロンプト構築・出力解析がインライン化（design 6.3 の本来設計から後退）
+
+公開 API（IPC コマンド / React Props / 型定義）は変更せず、内部実装の整理に閉じる **内部リファクタリング** として扱う。spec.md の変更は行わない。
+
+## 11.2. リファクタリング項目
+
+| ID | 内容 | 目的 | 影響範囲 |
+|----|------|------|---------|
+| R-01 | 状態取得 UseCase 12 個を `ObservableQueryUseCase<T>` で集約 | コピペ重複の解消。UseCase 経由の依存方向は維持 | Webview のみ |
+| R-02 | `ClaudeDefaultService` を `ChatHistoryService` + `ClaudeStateService` に分割 | 単一責務化。テスト容易性向上 | Webview のみ |
+| R-03 | Rust 側 `OutputParser` を独立モジュール化 | design 6.3 の本来設計に回帰。CLI 出力フォーマット変更への耐性向上 | Rust のみ |
+| R-04 | Rust 側 Prompt Builder を `infrastructure/prompts/` に分離 | プロンプト変更の中央集約・テスト容易化 | Rust のみ |
+
+## 11.3. 決定事項
+
+### R-01: 状態取得 UseCase の汎用化
+
+| 項目 | 内容 |
+|------|------|
+| 選択肢 | A) 12 個の UseCase を `ObservableQueryUseCase<T>` 汎用クラスに集約 / B) ViewModel から Service の Observable を直接参照（**規約違反**: presentation → application/services の越境） / C) 現状維持 |
+| 決定 | A) `ObservableQueryUseCase<T>` |
+| 理由 | UseCase 経由を必須とする依存方向（CLAUDE.md「ViewModel + Hook パターン」）を厳守しつつ、12 ファイル分のコピペを 1 ファイル汎用クラスに集約。Token と DI 登録は維持し、ViewModel 側のコードは無変更 |
+
+**設計**:
+
+```typescript
+// src/lib/usecase/observable-query-usecase.ts
+import type { Observable } from 'rxjs'
+import type { ObservableStoreUseCase } from '@/lib/usecase/types'
+
+export class ObservableQueryUseCase<T> implements ObservableStoreUseCase<T> {
+  constructor(public readonly store: Observable<T>) {}
+}
+```
+
+DI 登録時はファクトリーで Observable を解決:
+
+```typescript
+// di-config.ts（抜粋）
+container.registerSingleton(GetChatMessagesUseCaseToken, {
+  useFactory: (c) => new ObservableQueryUseCase(c.resolve(ClaudeServiceToken).chatMessages$),
+})
+```
+
+ファクトリー利用は CLAUDE.md の「DI Token 以外の引数が必要な場合のみファクトリー関数」ルールに合致する（コンストラクタ引数が `Observable<T>` のため）。
+
+**対象外**: `selectedModel$` は ViewModel から `setSelectedModel()` setter を呼ぶ必要があり、`ClaudeService` を ViewModel に直接 inject 済みのため、追加 UseCase を作らず Service から直接参照する。`ObservableQueryUseCase` 化のメリット（コピペ解消）が薄く、R-02 で `ClaudeStateService` に分離した後に再評価する。
+
+### R-02: ClaudeService の責務分割
+
+| 項目 | 内容 |
+|------|------|
+| 選択肢 | A) 全状態を 1 Service / B) チャット系と他状態系で 2 Service / C) 細粒度（4〜5 Service） |
+| 決定 | B) `ChatHistoryService` + `ClaudeStateService` |
+| 理由 | 責務の凝集度が高く、テスト粒度として適切。会話永続化・ストリーミングバッチ処理（pendingContentMap / requestAnimationFrame）は ChatHistory 系に閉じ込められる |
+
+**Service 分割案**:
+
+| 新 Service | 旧 ClaudeService から移管する Observable・メソッド |
+|-----------|------------------------------------------------|
+| `ChatHistoryService` | `chatMessages$` / `conversations$` / `currentConversationId$`, `addChatMessage()` / `appendToLastAssistantMessage()` / `flushPendingContent()` / `createConversation()` / `resumeConversation()` / `switchConversation()` / `deleteConversation()` / `persistConversations()` |
+| `ClaudeStateService` | `currentSession$` / `status$` / `outputs$` / `isCommandRunning$` / `selectedModel$` / `isReviewing$` / `reviewComments$` / `reviewSummary$` / `isExplaining$` / `explanation$` / `conflictResults$` 等の状態管理 |
+
+UseCase 側は依存する Service を 1 つに絞れるよう、移管時に各 UseCase の constructor 引数を見直す。
+
+### R-03: OutputParser の独立モジュール化
+
+| 項目 | 内容 |
+|------|------|
+| 選択肢 | A) `claude_repository.rs` 内インライン維持 / B) `infrastructure/output_parser.rs` に分離 |
+| 決定 | B) 独立モジュール化（design 6.3 の本来設計に回帰） |
+| 理由 | CLI 出力フォーマット変更への耐性向上。`#[cfg(test)]` で単体テストを書きやすくなる |
+
+**新モジュール構成**:
+
+```rust
+// src-tauri/src/features/claude_code_integration/infrastructure/output_parser.rs
+pub struct OutputParser;
+
+impl OutputParser {
+    pub fn parse_review_result(stdout: &str) -> ReviewResult;
+    pub fn parse_explain_result(stdout: &str) -> ExplainResult;
+    pub fn parse_commit_message(stdout: &str) -> String;
+    pub fn parse_merged_content(stdout: &str) -> Option<String>;
+    pub fn strip_ansi(text: &str) -> String;
+}
+```
+
+### R-04: Prompt Builder の分離
+
+| 項目 | 内容 |
+|------|------|
+| 選択肢 | A) Repository 内に維持 / B) `infrastructure/prompts/` 配下にユースケース別モジュール |
+| 決定 | B) ユースケース別モジュール化 |
+| 理由 | プロンプト改善が頻繁に発生する想定で、各プロンプトの差分が見やすくなる。プロンプトのスナップショットテスト導入も容易 |
+
+**新モジュール構成**:
+
+```
+src-tauri/src/features/claude_code_integration/infrastructure/prompts/
+├── mod.rs
+├── commit_message.rs    # build_commit_message_prompt
+├── review.rs            # build_review_diff_prompt
+├── explain.rs           # build_explain_diff_prompt
+└── conflict_resolve.rs  # build_conflict_resolve_prompt
+```
+
+各モジュールは `pub fn build_*_prompt(...) -> String` を公開する純粋関数とする。
+
+## 11.4. 実施順序とリスク
+
+| 順序 | 項目 | リスク | 検証方法 | 本セッションの実施状況 |
+|------|------|-------|---------|----------------------|
+| 1 | R-01 | 低（DI 登録方法のみ変更） | typecheck / 既存テスト pass | 🟢 実施済み |
+| 2 | R-03 | 低（Rust 内部、IPC API 不変） | `cargo test` / `cargo clippy` | 🟢 実施済み |
+| 3 | R-04 | 低（Rust 内部、IPC API 不変） | `cargo test` / `cargo clippy` | 🟢 実施済み |
+| 4 | R-02 | 中（Service 利用箇所が広範。UseCase 22 個と ViewModel 4 種の依存変更） | typecheck / 既存テスト pass / 手動 smoke test | ⏸ 別セッション持ち越し（`.sdd/task/REFACTOR_AI_TOOLS/tasks.md` の Phase 4 を参照） |
+
+## 11.5. ロールバック方針
+
+各項目は独立コミット（または小 PR）に分割し、問題発生時に該当項目のみ revert できるようにする。task ログ `.sdd/task/REFACTOR_AI_TOOLS/` で進捗を管理する。
 
