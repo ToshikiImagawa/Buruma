@@ -122,7 +122,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
             Ok(())
         } else {
             let stderr = String::from_utf8_lossy(&output.stderr);
-            Err(AppError::Claude(stderr.trim().to_string()))
+            Err(AppError::Claude(output_parser::truncate_error_message(&stderr)))
         }
     }
 
@@ -144,7 +144,7 @@ impl ClaudeRepository for DefaultClaudeRepository {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(AppError::Claude(format!(
                 "Commit message generation failed: {}",
-                stderr.trim()
+                output_parser::truncate_error_message(&stderr)
             )))
         }
     }

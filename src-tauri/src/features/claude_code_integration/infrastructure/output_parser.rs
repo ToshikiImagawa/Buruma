@@ -7,11 +7,20 @@ use crate::features::claude_code_integration::domain::{
     ClaudeAuthStatus, ConflictResolveResult, ExplainResult, ReviewComment, ReviewResult, ReviewSeverity,
 };
 
+/// `parse_auth_status` が受け入れる stdout の最大サイズ（バイト）。
+/// 不正・巨大な出力による JSON パーサーのメモリ消費を防ぐためのハードキャップ。
+const MAX_AUTH_STATUS_OUTPUT_SIZE: usize = 64 * 1024;
+
+/// `AppError` のエラーメッセージとして外部 CLI の stderr を埋め込む際の最大サイズ（バイト）。
+/// CLI が暴走した場合に巨大文字列が UI/ログへ伝播するのを防ぐ。
+const MAX_ERROR_MESSAGE_SIZE: usize = 2 * 1024;
+
 /// `claude auth status` の JSON 出力（成功時）またはテキスト出力（失敗時）から認証状態を組み立てる。
 ///
 /// `success` は `Command` の `ExitStatus::success()`、`stdout` は標準出力テキスト。
+/// `stdout` が `MAX_AUTH_STATUS_OUTPUT_SIZE` を超える場合は未認証として扱う（DoS 対策）。
 pub fn parse_auth_status(success: bool, stdout: &str) -> ClaudeAuthStatus {
-    if !success {
+    if !success || stdout.len() > MAX_AUTH_STATUS_OUTPUT_SIZE {
         return ClaudeAuthStatus {
             authenticated: false,
             account_email: None,
@@ -38,6 +47,21 @@ pub fn parse_auth_status(success: bool, stdout: &str) -> ClaudeAuthStatus {
 /// コミットメッセージ生成結果の整形（前後空白除去のみ）。
 pub fn parse_commit_message(stdout: &str) -> String {
     stdout.trim().to_string()
+}
+
+/// 外部 CLI の stderr などをエラーメッセージとして埋め込む前に前後空白を除去し、
+/// `MAX_ERROR_MESSAGE_SIZE` を超える分を切り詰める。
+/// UTF-8 マルチバイト境界を尊重する。
+pub fn truncate_error_message(text: &str) -> String {
+    let trimmed = text.trim();
+    if trimmed.len() <= MAX_ERROR_MESSAGE_SIZE {
+        return trimmed.to_string();
+    }
+    let mut idx = MAX_ERROR_MESSAGE_SIZE;
+    while idx > 0 && !trimmed.is_char_boundary(idx) {
+        idx -= 1;
+    }
+    format!("{}... (truncated)", &trimmed[..idx])
 }
 
 /// レビュー結果の組み立て。
@@ -147,8 +171,40 @@ mod tests {
     }
 
     #[test]
+    fn parse_auth_status_returns_unauthenticated_when_stdout_exceeds_size_cap() {
+        let oversized = "a".repeat(MAX_AUTH_STATUS_OUTPUT_SIZE + 1);
+        let status = parse_auth_status(true, &oversized);
+        assert!(!status.authenticated);
+        assert!(status.account_email.is_none());
+    }
+
+    #[test]
     fn parse_commit_message_trims_whitespace() {
         assert_eq!(parse_commit_message("  feat: x\n\n"), "feat: x");
+    }
+
+    #[test]
+    fn truncate_error_message_within_limit_returns_trimmed_text() {
+        assert_eq!(truncate_error_message("  oops  "), "oops");
+    }
+
+    #[test]
+    fn truncate_error_message_above_limit_appends_marker() {
+        let oversized = "x".repeat(MAX_ERROR_MESSAGE_SIZE + 100);
+        let result = truncate_error_message(&oversized);
+        assert!(result.ends_with("... (truncated)"));
+        assert!(result.len() <= MAX_ERROR_MESSAGE_SIZE + "... (truncated)".len());
+    }
+
+    #[test]
+    fn truncate_error_message_respects_utf8_char_boundary() {
+        // 3-byte 文字を MAX 直前に配置し、境界で切断されないことを確認する。
+        let mut input = "a".repeat(MAX_ERROR_MESSAGE_SIZE - 1);
+        input.push('あ'); // 3-byte char
+        input.push_str(&"b".repeat(100));
+        let result = truncate_error_message(&input);
+        // truncated 部分が valid UTF-8 であること（panic しないこと）。
+        assert!(result.ends_with("... (truncated)"));
     }
 
     #[test]
