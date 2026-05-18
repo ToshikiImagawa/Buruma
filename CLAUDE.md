@@ -263,14 +263,18 @@ When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.m
 
 ### Mandatory Status Updates on Implementation
 
-When merging a feature, bug fix, or refactor that affects implementation status, **the same PR must update** the following design document sections (full rules and rationale in `.sdd/AI-SDD-PRINCIPLES.md` § "Mandatory Updates on Implementation Completion"):
+実装ステータスに影響する feature 追加・バグ修正・リファクタを取り込む PR は、**同一 PR 内で**以下のドキュメントセクションを更新すること。怠ると spec ↔ design ↔ implementation の整合性が崩れ、AI エージェントが古い前提で作業して Vibe Coding が再発する。
 
-- `*_design.md` §1.1 実装進捗テーブル — マーカー（🟢 / 🟡 / 🔴）を実態に合わせる
-- `*_design.md` §1.1.x 仕様との差分 — 🟢 となった行は削除
-- `*_design.md` §9.x 未解決の課題 — 解決済みは「**解決済み**」+ ファイル参照に変更
-- `*_spec.md` トレーサビリティ表 — `FR-xxx | 対応済み / 部分対応 / 未対応` を design と一致させる
+| セクション | 更新ルール |
+|:---|:---|
+| `*_design.md` §1.1 実装進捗テーブル | マーカー（🟢 / 🟡 / 🔴）を merge 後の実態に合わせる |
+| `*_design.md` §1.1.x 仕様との差分（既知の未実装等） | 🟢 になった行は削除、部分実装は記述を更新 |
+| `*_design.md` §9.x 未解決の課題 | 解決済みは「**解決済み**」+ ファイルパス＋行番号参照に変更 |
+| `*_spec.md` トレーサビリティ表 | `FR-xxx | 対応済み / 部分対応 / 未対応` を design と一致させる |
 
-このルールを怠ると spec ↔ design ↔ implementation の整合性が崩れ、AI エージェントが古い前提で作業して Vibe Coding が再発する。
+**検証**: `src/`、`src-tauri/`、`.sdd/specification/` を変更する PR では `spec-reviewer` エージェントを実行し、spec ↔ design ↔ implementation のステータス乖離を検知する。
+
+このルールは本 CLAUDE.md が一次情報。AI-SDD ワークフローテンプレート（`.sdd/AI-SDD-PRINCIPLES.md`）はテンプレート更新時に上書きされるため、プロジェクト固有ルールはここに記述する。
 
 ### Directory Structure
 
