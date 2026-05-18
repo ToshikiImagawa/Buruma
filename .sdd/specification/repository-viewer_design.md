@@ -360,5 +360,5 @@ interface GraphLayout {
 | Monaco Editor の Vite 6 + Tauri での統合方法 | 高 | **解決済み**: `@monaco-editor/react` を使用し CDN 経由で worker を自動ロード |
 | 大規模ファイル（10000行超）の差分表示パフォーマンス | 中 | Monaco Editor の minimap 無効化、scrollBeyondLastLine 無効化で対応。超大規模ファイルは今後の課題 |
 | ブランチグラフの描画ライブラリ | 低 | **解決済み**: `CommitSummary.parents` からレーン計算 + Canvas API 描画（`BranchGraphCanvas`） |
-| git CLI (tokio::process::Command) の同時実行制御 | 中 | 未対応。現時点で問題は報告されていないが、同一リポジトリへの並行操作でロック競合の可能性あり |
+| git CLI (tokio::process::Command) の同時実行制御 | 中 | **解決済み**: `src-tauri/src/git/command.rs:14-22` で worktree 単位の `tokio::sync::Mutex` を `OnceLock<Mutex<HashMap<String, Arc<tokio::sync::Mutex<()>>>>>` として保持し、`index.lock` 競合を防止 |
 
