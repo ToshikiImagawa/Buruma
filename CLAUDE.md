@@ -261,6 +261,17 @@ When operating files under `.sdd/` directory, refer to `.sdd/AI-SDD-PRINCIPLES.m
 - Creating new specifications, design docs, or requirement docs
 - Implementing features that reference `.sdd/` documents
 
+### Mandatory Status Updates on Implementation
+
+When merging a feature, bug fix, or refactor that affects implementation status, **the same PR must update** the following design document sections (full rules and rationale in `.sdd/AI-SDD-PRINCIPLES.md` § "Mandatory Updates on Implementation Completion"):
+
+- `*_design.md` §1.1 実装進捗テーブル — マーカー（🟢 / 🟡 / 🔴）を実態に合わせる
+- `*_design.md` §1.1.x 仕様との差分 — 🟢 となった行は削除
+- `*_design.md` §9.x 未解決の課題 — 解決済みは「**解決済み**」+ ファイル参照に変更
+- `*_spec.md` トレーサビリティ表 — `FR-xxx | 対応済み / 部分対応 / 未対応` を design と一致させる
+
+このルールを怠ると spec ↔ design ↔ implementation の整合性が崩れ、AI エージェントが古い前提で作業して Vibe Coding が再発する。
+
 ### Directory Structure
 
 Supports both flat and hierarchical structures.
