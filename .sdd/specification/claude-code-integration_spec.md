@@ -148,7 +148,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 
 | Command 名 | 概要 | 引数 | 戻り値 |
 |-----------|------|------|--------|
-| `claude_execute_approved_git_command` | ユーザーが確認ダイアログで承認した Git コマンド提案を Buruma 内蔵の Git 実行経路で実行する | `{ worktreePath: string; proposal: GitCommandProposal; userConfirmed: true }` | `GitCommandExecutionResult` |
+| `claude_execute_approved_git_command` | ユーザーが確認ダイアログで承認した Git コマンド提案を Buruma 内蔵の Git 実行経路で実行する | `{ proposal: GitCommandProposal; userConfirmed: true }`（cwd は `proposal.worktreePath`） | `GitCommandExecutionResult` |
 
 > `ClaudeCommand.type='git-delegation'` で `claude_send_command` を呼び出した場合、Rust 側はシステムプロンプトに「Git コマンドは実行せず提案のみ返答」の指示を付与し、Claude Code CLI を `--deny-tool Bash` 相当の制約付きで起動する。返答の出力からは Buruma 側の検出器が Git コマンドを抽出し、`claude-git-command-proposed` イベントで Webview に通知する。
 
@@ -162,7 +162,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude-review-result` | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
 | `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
 | `claude-conflict-resolved` | AI コンフリクト解決結果が返された | `ConflictResolveResult` |
-| `claude-git-command-proposed` | Git 委譲モードで Claude が Git コマンドを提案した（実行前確認の起点、FR-008） | `GitCommandProposal` |
+| `claude-git-command-proposed` | Git 委譲モードで Claude が Git コマンドを提案した（実行前確認の起点、FR-008）。1 回の応答に複数の提案が含まれる場合は配列でまとめて 1 イベントとして emit する | `GitCommandProposal[]`（少なくとも 1 件以上、出現順） |
 
 > **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEventSync<T>` を使用する。
 

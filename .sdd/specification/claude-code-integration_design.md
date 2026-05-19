@@ -578,8 +578,8 @@ claude: {
   // FR_506: AI コンフリクト解決
   resolveConflict: (args: ConflictResolveRequest): Promise<IPCResult<void>> =>
     invoke<T>('claude_resolve_conflict', args),
-  // FR-008: 承認済み Git コマンド提案の実行
-  executeApprovedGitCommand: (args: { worktreePath: string; proposal: GitCommandProposal; userConfirmed: true }): Promise<IPCResult<GitCommandExecutionResult>> =>
+  // FR-008: 承認済み Git コマンド提案の実行（cwd は proposal.worktreePath を使用）
+  executeApprovedGitCommand: (args: { proposal: GitCommandProposal; userConfirmed: true }): Promise<IPCResult<GitCommandExecutionResult>> =>
     invoke<T>('claude_execute_approved_git_command', args),
 
   // イベント購読（listenEventSync / listenEvent ラッパー経由）
@@ -602,9 +602,9 @@ claude: {
   onConflictResolved: (callback: (result: ConflictResolveResult) => void): (() => void) => {
     return listenEventSync<ConflictResolveResult>('claude-conflict-resolved', callback)
   },
-  // FR-008: Claude が git-delegation モードで提案した Git コマンドの通知
-  onGitCommandProposed: (callback: (proposal: GitCommandProposal) => void): (() => void) => {
-    return listenEventSync<GitCommandProposal>('claude-git-command-proposed', callback)
+  // FR-008: Claude が git-delegation モードで提案した Git コマンドの通知（配列、1 件以上）
+  onGitCommandProposed: (callback: (proposals: GitCommandProposal[]) => void): (() => void) => {
+    return listenEventSync<GitCommandProposal[]>('claude-git-command-proposed', callback)
   },
 },
 ```
@@ -660,7 +660,7 @@ impl GitCommandRiskClassifier {
 // （src-tauri/src/git/command.rs）経由で実行する。
 //
 // 重要な制約:
-//   - user_confirmed: true 以外は受け付けない（型レベルで強制）
+//   - args.user_confirmed != true の場合はエラーで拒否（Rust 側 defense-in-depth ガード）
 //   - 実行前に再度 GitCommandRiskClassifier で argv を再分類し、proposal.risk_level と一致しない
 //     場合はエラー（中間者改ざん検知。例: medium 提案を high コマンドに置き換える攻撃）
 //   - cwd は proposal.worktree_path に固定（パストラバーサル検証）
@@ -670,7 +670,6 @@ pub struct ApprovedGitCommandExecutor { /* deps */ }
 impl ApprovedGitCommandExecutor {
     pub async fn execute(
         &self,
-        worktree_path: &str,
         proposal: &GitCommandProposal,
     ) -> Result<GitCommandExecutionResult, AppError>;
 }
@@ -683,9 +682,9 @@ impl ApprovedGitCommandExecutor {
 // 既存の src/components/confirmation-dialog.tsx を内部利用しつつ、リスクレベル別 UX を提供する。
 
 interface GitDelegationConfirmDialogProps {
-  proposal: GitCommandProposal | null;       // null の間は閉状態
-  onApprove: (proposal: GitCommandProposal) => Promise<void>;
-  onReject: () => void;
+  proposals: GitCommandProposal[];           // 空配列の間は閉状態。先頭から順に 1 件ずつ確認
+  onApprove: (proposal: GitCommandProposal) => Promise<void>; // 1 件承認するたびに先頭を pop
+  onReject: () => void;                      // 全提案を破棄してダイアログを閉じる
 }
 
 // リスクレベル別の追加 UI:
@@ -786,7 +785,7 @@ interface GitDelegationConfirmDialogProps {
 
 ## 10.5. Git 委譲モードの実行確認（FR-008、B-002）
 
-- `claude_execute_approved_git_command` は型シグネチャで `userConfirmed: true` を強制し、ユーザー確認を経ない経路からの実行を不可とする
+- `claude_execute_approved_git_command` は型シグネチャで `userConfirmed: true` を強制する（Webview 経由のアプリ内コード向け）。型レベル強制は IPC を直接叩く経路には効かないため、Rust 側ハンドラは `args.user_confirmed != true` の場合エラーで拒否する **defense-in-depth ガードを必須** とする
 - `ApprovedGitCommandExecutor` は実行直前に `GitCommandRiskClassifier` で `proposal.argv` を再分類し、`proposal.riskLevel` との不一致を検知したらエラーで拒否（Webview → Rust 経路における改ざん検知。例: medium 提案を `--force` 付きに置換する攻撃を阻止）
 - 実行 cwd は `proposal.worktreePath` に固定し、10.2 と同様のパストラバーサル検証を適用
 - 引数 argv は shell インジェクションを避けるため文字列連結せず `Command::new("git").args(argv)` で渡す
