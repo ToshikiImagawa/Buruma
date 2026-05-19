@@ -1,9 +1,11 @@
 import type { InjectionToken, VContainerConfig } from '@lib/di'
 import type { ObservableStoreUseCase } from '@lib/usecase'
 import type { Observable } from 'rxjs'
-import type { ClaudeService } from './application/services/claude-service-interface'
+import type { ChatHistoryService } from './application/services/chat-history-service-interface'
+import type { ClaudeStateService } from './application/services/claude-state-service-interface'
 import { ObservableQueryUseCase } from '@lib/usecase'
-import { ClaudeDefaultService } from './application/services/claude-service'
+import { ChatHistoryDefaultService } from './application/services/chat-history-service'
+import { ClaudeStateDefaultService } from './application/services/claude-state-service'
 import { CheckAuthUseCase } from './application/usecases/check-auth-usecase'
 import { ExplainDiffUseCase } from './application/usecases/explain-diff-usecase'
 import { GenerateCommitMessageUseCase } from './application/usecases/generate-commit-message-usecase'
@@ -15,13 +17,14 @@ import { SendCommandUseCase } from './application/usecases/send-command-usecase'
 import { StartSessionUseCase } from './application/usecases/start-session-usecase'
 import { StopSessionUseCase } from './application/usecases/stop-session-usecase'
 import {
+  ChatHistoryServiceToken,
   CheckAuthRendererUseCaseToken,
   ClaudeConflictViewModelToken,
   ClaudeExplainViewModelToken,
   ClaudeRepositoryToken,
   ClaudeReviewViewModelToken,
-  ClaudeServiceToken,
   ClaudeSessionViewModelToken,
+  ClaudeStateServiceToken,
   ExplainDiffRendererUseCaseToken,
   GenerateCommitMessageRendererUseCaseToken,
   GetChatMessagesRendererUseCaseToken,
@@ -54,13 +57,18 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
   register(container) {
     container
       .registerSingleton(ClaudeRepositoryToken, ClaudeDefaultRepository)
-      .registerSingleton(ClaudeServiceToken, ClaudeDefaultService, [ClaudeRepositoryToken])
+      .registerSingleton(ClaudeStateServiceToken, ClaudeStateDefaultService)
+      .registerSingleton(ChatHistoryServiceToken, ChatHistoryDefaultService, [
+        ClaudeRepositoryToken,
+        ClaudeStateServiceToken,
+      ])
       // 操作系 UseCase
-      .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [ClaudeServiceToken])
+      .registerSingleton(StartSessionRendererUseCaseToken, StartSessionUseCase, [ChatHistoryServiceToken])
       .registerSingleton(StopSessionRendererUseCaseToken, StopSessionUseCase, [ClaudeRepositoryToken])
       .registerSingleton(SendCommandRendererUseCaseToken, SendCommandUseCase, [
         ClaudeRepositoryToken,
-        ClaudeServiceToken,
+        ChatHistoryServiceToken,
+        ClaudeStateServiceToken,
       ])
       .registerSingleton(CheckAuthRendererUseCaseToken, CheckAuthUseCase, [ClaudeRepositoryToken])
       .registerSingleton(LoginRendererUseCaseToken, LoginUseCase, [ClaudeRepositoryToken])
@@ -68,42 +76,53 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       .registerSingleton(GenerateCommitMessageRendererUseCaseToken, GenerateCommitMessageUseCase, [
         ClaudeRepositoryToken,
       ])
-      .registerSingleton(ReviewDiffRendererUseCaseToken, ReviewDiffUseCase, [ClaudeRepositoryToken, ClaudeServiceToken])
+      .registerSingleton(ReviewDiffRendererUseCaseToken, ReviewDiffUseCase, [
+        ClaudeRepositoryToken,
+        ClaudeStateServiceToken,
+      ])
       .registerSingleton(ExplainDiffRendererUseCaseToken, ExplainDiffUseCase, [
         ClaudeRepositoryToken,
-        ClaudeServiceToken,
+        ClaudeStateServiceToken,
       ])
       .registerSingleton(ResolveConflictRendererUseCaseToken, ResolveConflictUseCase, [ClaudeRepositoryToken])
 
-    // 状態取得 UseCase: Service の Observable を ObservableQueryUseCase で包み、
-    // 各 Token を遅延解決ファクトリーで登録する。
-    const registerQuery = <T>(
+    // 状態取得 UseCase: 各 Service の Observable を ObservableQueryUseCase で包む。
+    const registerStateQuery = <T>(
       token: InjectionToken<ObservableStoreUseCase<T>>,
-      selector: (service: ClaudeService) => Observable<T>,
+      selector: (service: ClaudeStateService) => Observable<T>,
     ): void => {
       container.registerSingleton(
         token,
-        () => new ObservableQueryUseCase(selector(container.resolve(ClaudeServiceToken))),
+        () => new ObservableQueryUseCase(selector(container.resolve(ClaudeStateServiceToken))),
       )
     }
-    registerQuery(GetSessionStatusRendererUseCaseToken, (s) => s.status$)
-    registerQuery(GetCurrentSessionRendererUseCaseToken, (s) => s.currentSession$)
-    registerQuery(GetOutputsRendererUseCaseToken, (s) => s.outputs$)
-    registerQuery(GetChatMessagesRendererUseCaseToken, (s) => s.chatMessages$)
-    registerQuery(GetIsCommandRunningRendererUseCaseToken, (s) => s.isCommandRunning$)
-    registerQuery(GetConversationsRendererUseCaseToken, (s) => s.conversations$)
-    registerQuery(GetCurrentConversationIdRendererUseCaseToken, (s) => s.currentConversationId$)
-    registerQuery(GetReviewCommentsRendererUseCaseToken, (s) => s.reviewComments$)
-    registerQuery(GetReviewSummaryRendererUseCaseToken, (s) => s.reviewSummary$)
-    registerQuery(GetIsReviewingRendererUseCaseToken, (s) => s.isReviewing$)
-    registerQuery(GetExplanationRendererUseCaseToken, (s) => s.explanation$)
-    registerQuery(GetIsExplainingRendererUseCaseToken, (s) => s.isExplaining$)
+    const registerChatQuery = <T>(
+      token: InjectionToken<ObservableStoreUseCase<T>>,
+      selector: (service: ChatHistoryService) => Observable<T>,
+    ): void => {
+      container.registerSingleton(
+        token,
+        () => new ObservableQueryUseCase(selector(container.resolve(ChatHistoryServiceToken))),
+      )
+    }
+    registerStateQuery(GetSessionStatusRendererUseCaseToken, (s) => s.status$)
+    registerStateQuery(GetCurrentSessionRendererUseCaseToken, (s) => s.currentSession$)
+    registerStateQuery(GetOutputsRendererUseCaseToken, (s) => s.outputs$)
+    registerStateQuery(GetIsCommandRunningRendererUseCaseToken, (s) => s.isCommandRunning$)
+    registerStateQuery(GetReviewCommentsRendererUseCaseToken, (s) => s.reviewComments$)
+    registerStateQuery(GetReviewSummaryRendererUseCaseToken, (s) => s.reviewSummary$)
+    registerStateQuery(GetIsReviewingRendererUseCaseToken, (s) => s.isReviewing$)
+    registerStateQuery(GetExplanationRendererUseCaseToken, (s) => s.explanation$)
+    registerStateQuery(GetIsExplainingRendererUseCaseToken, (s) => s.isExplaining$)
+    registerChatQuery(GetChatMessagesRendererUseCaseToken, (s) => s.chatMessages$)
+    registerChatQuery(GetConversationsRendererUseCaseToken, (s) => s.conversations$)
+    registerChatQuery(GetCurrentConversationIdRendererUseCaseToken, (s) => s.currentConversationId$)
 
     container
       // ViewModel
       .registerTransient(ClaudeConflictViewModelToken, ClaudeConflictDefaultViewModel, [
         ResolveConflictRendererUseCaseToken,
-        ClaudeServiceToken,
+        ClaudeStateServiceToken,
       ])
       .registerTransient(ClaudeReviewViewModelToken, ClaudeReviewDefaultViewModel, [
         ReviewDiffRendererUseCaseToken,
@@ -126,54 +145,60 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
         GetIsCommandRunningRendererUseCaseToken,
         GetConversationsRendererUseCaseToken,
         GetCurrentConversationIdRendererUseCaseToken,
-        ClaudeServiceToken,
+        ChatHistoryServiceToken,
+        ClaudeStateServiceToken,
       ])
   },
 
   setUp: async (container) => {
-    const service = container.resolve(ClaudeServiceToken)
+    const stateService = container.resolve(ClaudeStateServiceToken)
+    const chatHistoryService = container.resolve(ChatHistoryServiceToken)
     const repo = container.resolve(ClaudeRepositoryToken)
 
-    service.setUp()
-    await service.loadConversations()
+    stateService.setUp()
+    chatHistoryService.setUp()
+    await chatHistoryService.loadConversations()
 
     // 初回認証チェック
     const checkAuthUseCase = container.resolve(CheckAuthRendererUseCaseToken)
-    service.setAuthChecking(true)
+    stateService.setAuthChecking(true)
     checkAuthUseCase
       .invoke()
-      .then((status) => service.setAuthStatus(status))
-      .catch(() => service.setAuthStatus({ authenticated: false }))
-      .finally(() => service.setAuthChecking(false))
+      .then((status) => stateService.setAuthStatus(status))
+      .catch(() => stateService.setAuthStatus({ authenticated: false }))
+      .finally(() => stateService.setAuthChecking(false))
 
     const unsubOutput = repo.onOutput((output) => {
-      service.appendOutput(output)
+      stateService.appendOutput(output)
       if (output.stream === 'stdout') {
-        service.appendToLastAssistantMessage(output.content + '\n', output.sessionId)
+        chatHistoryService.appendToLastAssistantMessage(output.content + '\n', output.sessionId)
       }
     })
 
     const unsubSessionChanged = repo.onSessionChanged((session) => {
-      service.updateSession(session)
+      if (session?.claudeSessionId) {
+        chatHistoryService.syncClaudeSessionId(session.id, session.claudeSessionId)
+      }
+      stateService.handleSessionEvent(session, chatHistoryService.getCurrentConversationId())
     })
 
     const unsubCommandCompleted = repo.onCommandCompleted((data) => {
-      service.finalizeLastAssistantMessage(data.sessionId)
-      service.setCommandRunning(false, data.sessionId)
+      chatHistoryService.finalizeLastAssistantMessage(data.sessionId)
+      stateService.setCommandRunning(false, data.sessionId, chatHistoryService.getCurrentConversationId())
     })
 
     const unsubReviewResult = repo.onReviewResult((result) => {
-      service.setReviewResult(result)
-      service.setReviewing(false)
+      stateService.setReviewResult(result)
+      stateService.setReviewing(false)
     })
 
     const unsubExplainResult = repo.onExplainResult((result) => {
-      service.setExplainResult(result)
-      service.setExplaining(false)
+      stateService.setExplainResult(result)
+      stateService.setExplaining(false)
     })
 
     const unsubConflictResolved = repo.onConflictResolved((result) => {
-      service.setConflictResult(result)
+      stateService.setConflictResult(result)
     })
 
     return () => {
@@ -183,7 +208,8 @@ export const claudeCodeIntegrationConfig: VContainerConfig = {
       unsubReviewResult()
       unsubExplainResult()
       unsubConflictResolved()
-      service.tearDown()
+      chatHistoryService.tearDown()
+      stateService.tearDown()
     }
   },
 }

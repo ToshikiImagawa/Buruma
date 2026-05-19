@@ -1,17 +1,19 @@
 import type { ClaudeCommand } from '@domain'
 import type { ConsumerUseCase } from '@lib/usecase/types'
 import type { ClaudeRepository } from '../repositories/claude-repository'
-import type { ClaudeService } from '../services/claude-service-interface'
+import type { ChatHistoryService } from '../services/chat-history-service-interface'
+import type { ClaudeStateService } from '../services/claude-state-service-interface'
 
 export class SendCommandUseCase implements ConsumerUseCase<ClaudeCommand> {
   constructor(
     private readonly repository: ClaudeRepository,
-    private readonly service: ClaudeService,
+    private readonly chatHistory: ChatHistoryService,
+    private readonly state: ClaudeStateService,
   ) {}
 
   async invoke(command: ClaudeCommand): Promise<void> {
     const now = new Date().toISOString()
-    const sessionId = await this.service.addChatMessage(
+    const sessionId = await this.chatHistory.addChatMessage(
       {
         id: crypto.randomUUID(),
         role: 'user',
@@ -20,21 +22,19 @@ export class SendCommandUseCase implements ConsumerUseCase<ClaudeCommand> {
       },
       command.worktreePath,
     )
-    // ターミナル表示用にユーザー入力を ClaudeOutput として追加
-    this.service.appendOutput({
+    this.state.appendOutput({
       worktreePath: command.worktreePath,
       stream: 'stdout',
       content: `> ${command.input}`,
       timestamp: now,
     })
-    this.service.setCommandRunning(true, sessionId)
-    // model が未指定の場合、Service の selectedModel を使用
+    this.state.setCommandRunning(true, sessionId)
     const commandToSend: ClaudeCommand = {
-      ...(command.model ? command : { ...command, model: this.service.getSelectedModel() }),
+      ...(command.model ? command : { ...command, model: this.state.getSelectedModel() }),
       sessionId,
     }
     this.repository.sendCommand(commandToSend).catch(() => {
-      this.service.setCommandRunning(false, sessionId)
+      this.state.setCommandRunning(false, sessionId)
     })
   }
 }

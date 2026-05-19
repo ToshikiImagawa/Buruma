@@ -1,11 +1,11 @@
 import type { ConsumerUseCase } from '@lib/usecase/types'
-import type { ClaudeService } from '../services/claude-service-interface'
+import type { ChatHistoryService } from '../services/chat-history-service-interface'
 
 export class StartSessionUseCase implements ConsumerUseCase<string> {
-  constructor(private readonly service: ClaudeService) {}
+  constructor(private readonly chatHistory: ChatHistoryService) {}
 
   invoke(worktreePath: string): void {
-    this.service.createConversation(worktreePath).catch(() => {
+    this.chatHistory.createConversation(worktreePath).catch(() => {
       // エラーは IPC イベント経由で通知される
     })
   }

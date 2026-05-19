@@ -3,13 +3,13 @@ import { useResolve } from '@lib/di/v-container-provider'
 import { useObservable } from '@lib/hooks/use-observable'
 import {
   CheckAuthRendererUseCaseToken,
-  ClaudeServiceToken,
+  ClaudeStateServiceToken,
   LoginRendererUseCaseToken,
   LogoutRendererUseCaseToken,
 } from '../di-tokens'
 
 export function useClaudeAuth() {
-  const service = useResolve(ClaudeServiceToken)
+  const service = useResolve(ClaudeStateServiceToken)
   const checkAuthUseCase = useResolve(CheckAuthRendererUseCaseToken)
   const loginUseCase = useResolve(LoginRendererUseCaseToken)
   const logoutUseCase = useResolve(LogoutRendererUseCaseToken)

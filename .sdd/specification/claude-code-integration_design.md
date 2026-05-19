@@ -51,8 +51,8 @@ risk: "high"
 |--------------|----------|------|
 | `application/repositories/claude-repository.ts` | 🟢 | `ClaudeRepository` IF（IPC API ラッパー契約） |
 | `infrastructure/repositories/claude-default-repository.ts` | 🟢 | Tauri IPC アダプター（`invokeCommand` 経由） |
-| `application/services/claude-service-interface.ts` | 🟢 | `ClaudeService` IF（21 個の Observable プロパティ + setter 群） |
-| `application/services/claude-service.ts` | 🟡 | `ClaudeDefaultService`（460 行）。出力・セッション・チャット・会話・レビュー・解説の状態を集約管理。責務過剰のため 11. リファクタリング計画 R-02 で分割予定 |
+| `application/services/claude-state-service-interface.ts` / `claude-state-service.ts` | 🟢 | `ClaudeStateService` IF + 実装。セッション・出力・認証・レビュー・解説・コンフリクト解決・コマンド実行・選択モデルの状態（16 Observable）を集約管理。依存なし。R-02 で `ClaudeDefaultService` から分離 |
+| `application/services/chat-history-service-interface.ts` / `chat-history-service.ts` | 🟢 | `ChatHistoryService` IF + 実装。チャット履歴・会話 CRUD・ストリーミング batch flush（requestAnimationFrame）・永続化を担当（3 Observable）。`ClaudeStateService` と `ClaudeRepository` に依存し、conversation 操作時に session 状態と連動。R-02 で `ClaudeDefaultService` から分離 |
 | 操作系 UseCase（10 個） | 🟢 | StartSession / StopSession / SendCommand / CheckAuth / Login / Logout / ReviewDiff / ExplainDiff / GenerateCommitMessage / ResolveConflict |
 | 状態取得 UseCase Token（12 個） | 🟢 | GetSessionStatus / GetCurrentSession / GetOutputs / GetChatMessages / GetIsCommandRunning / GetConversations / GetCurrentConversationId / GetReviewComments / GetReviewSummary / GetIsReviewing / GetExplanation / GetIsExplaining。`ObservableQueryUseCase<T>`（`src/lib/usecase/observable-query-usecase.ts`）に集約し、DI ファクトリーで Service の Observable を注入する方式に変更（11. リファクタリング計画 R-01 で対応済み） |
 | ViewModel（4 種） | 🟢 | ClaudeSessionDefaultViewModel / ClaudeReviewDefaultViewModel / ClaudeExplainDefaultViewModel / ClaudeConflictDefaultViewModel |
@@ -201,8 +201,8 @@ graph TD
 |------------|-----|------|---------|
 | 共有 domain 型 | domain | フロントエンド側の型定義（Rust 側と整合） | `src/domain/` |
 | `ClaudeRepository` IF | application/repositories | IPC API ラッパーの契約 | `application/repositories/claude-repository.ts` |
-| `ClaudeService` IF | application/services | ステートフルな状態管理 IF（21 個の Observable + setter） | `application/services/claude-service-interface.ts` |
-| 🟡 `ClaudeDefaultService` | application/services | 出力・セッション・チャット・会話・レビュー・解説の状態を一括管理（460 行） → R-02 で `ChatHistoryService` と `ClaudeStateService` に分割予定 | `application/services/claude-service.ts` |
+| `ClaudeStateService` IF / `ClaudeStateDefaultService` | application/services | セッション・出力・認証・レビュー・解説・コンフリクト解決・コマンド実行・選択モデルの状態（16 Observable）。依存なし | `application/services/claude-state-service-interface.ts` / `claude-state-service.ts` |
+| `ChatHistoryService` IF / `ChatHistoryDefaultService` | application/services | チャット履歴・会話 CRUD・ストリーミング batch flush・永続化（3 Observable）。`ClaudeStateService` + `ClaudeRepository` に依存 | `application/services/chat-history-service-interface.ts` / `chat-history-service.ts` |
 | 操作系 UseCase（10 個） | application/usecases | StartSession / StopSession / SendCommand / CheckAuth / Login / Logout / ReviewDiff / ExplainDiff / GenerateCommitMessage / ResolveConflict | `application/usecases/*.ts` |
 | 状態取得 UseCase（12 Token） | application/usecases | Service の Observable を `ObservableQueryUseCase<T>` で公開（R-01 で集約済み）。各 Token は DI ファクトリーから生成 | `src/lib/usecase/observable-query-usecase.ts` + `di-config.ts` のファクトリー登録 |
 | `ClaudeDefaultRepository` | infrastructure | Tauri IPC アダプター | `infrastructure/repositories/claude-default-repository.ts` |
@@ -848,7 +848,7 @@ container.registerSingleton(GetChatMessagesUseCaseToken, {
 
 ファクトリー利用は CLAUDE.md の「DI Token 以外の引数が必要な場合のみファクトリー関数」ルールに合致する（コンストラクタ引数が `Observable<T>` のため）。
 
-**対象外**: `selectedModel$` は ViewModel から `setSelectedModel()` setter を呼ぶ必要があり、`ClaudeService` を ViewModel に直接 inject 済みのため、追加 UseCase を作らず Service から直接参照する。`ObservableQueryUseCase` 化のメリット（コピペ解消）が薄く、R-02 で `ClaudeStateService` に分離した後に再評価する。
+**対象外**: `selectedModel$` は ViewModel から `setSelectedModel()` setter を呼ぶ必要があり、Service を ViewModel に直接 inject 済みのため、追加 UseCase を作らず Service から直接参照する。`ObservableQueryUseCase` 化のメリット（コピペ解消）が薄く、R-02 で `ClaudeStateService` に分離した後に再評価する → R-02 完了後も `selectedModel$` は `ClaudeStateService` に集約され同じ判断を継続。
 
 ### R-02: ClaudeService の責務分割
 
@@ -858,12 +858,16 @@ container.registerSingleton(GetChatMessagesUseCaseToken, {
 | 決定 | B) `ChatHistoryService` + `ClaudeStateService` |
 | 理由 | 責務の凝集度が高く、テスト粒度として適切。会話永続化・ストリーミングバッチ処理（pendingContentMap / requestAnimationFrame）は ChatHistory 系に閉じ込められる |
 
-**Service 分割案**:
+**Service 分割（実施済み）**:
 
-| 新 Service | 旧 ClaudeService から移管する Observable・メソッド |
-|-----------|------------------------------------------------|
-| `ChatHistoryService` | `chatMessages$` / `conversations$` / `currentConversationId$`, `addChatMessage()` / `appendToLastAssistantMessage()` / `flushPendingContent()` / `createConversation()` / `resumeConversation()` / `switchConversation()` / `deleteConversation()` / `persistConversations()` |
-| `ClaudeStateService` | `currentSession$` / `status$` / `outputs$` / `isCommandRunning$` / `selectedModel$` / `isReviewing$` / `reviewComments$` / `reviewSummary$` / `isExplaining$` / `explanation$` / `conflictResults$` 等の状態管理 |
+| 新 Service | Observable・主要メソッド | 依存 |
+|-----------|------------------------|------|
+| `ChatHistoryService` | `chatMessages$` / `conversations$` / `currentConversationId$`, `addChatMessage()` / `appendToLastAssistantMessage()` / `finalizeLastAssistantMessage()` / `createConversation()` / `resumeConversation()` / `switchConversation()` / `deleteConversation()` / `startNewConversation()` / `syncClaudeSessionId()` / `loadConversations()` / `getCurrentConversationId()` | `ClaudeRepository`, `ClaudeStateService` |
+| `ClaudeStateService` | `currentSession$` / `status$` / `outputs$` / `authStatus$` / `isAuthChecking$` / `isLoggingIn$` / `reviewComments$` / `reviewSummary$` / `isReviewing$` / `explanation$` / `isExplaining$` / `isResolvingConflict$` / `conflictResult$` / `resolvingProgress$` / `isCommandRunning$` / `selectedModel$`, `registerSession()` / `switchActiveConversation()` / `clearActiveConversation()` / `removeSession()` / `handleSessionEvent()` / `appendOutput()` / `setCommandRunning(running, sessionId?, activeConversationId?)` + 各種 setter | なし |
+
+**依存方向**: `ChatHistoryService → ClaudeStateService`（逆方向禁止）。`sessionStore` / `commandRunningMap` は `ClaudeStateService` 内に保持し、ChatHistoryService からは `registerSession` / `switchActiveConversation` / `removeSession` / `clearActiveConversation` 経由で操作する。
+
+**EventListener オーケストレーション**: `di-config.ts` の `setUp` で IPC イベントを受けて両 Service を順に呼ぶ（`onSessionChanged` → `chatHistoryService.syncClaudeSessionId()` + `stateService.handleSessionEvent()`、`onCommandCompleted` → `chatHistoryService.finalizeLastAssistantMessage()` + `stateService.setCommandRunning(false, sessionId, activeConversationId)`）。active conversation の id は `chatHistoryService.getCurrentConversationId()` で同期取得する。
 
 UseCase 側は依存する Service を 1 つに絞れるよう、移管時に各 UseCase の constructor 引数を見直す。
 
@@ -918,7 +922,7 @@ src-tauri/src/features/claude_code_integration/infrastructure/prompts/
 | 1 | R-01 | 低（DI 登録方法のみ変更） | typecheck / 既存テスト pass | 🟢 実施済み |
 | 2 | R-03 | 低（Rust 内部、IPC API 不変） | `cargo test` / `cargo clippy` | 🟢 実施済み |
 | 3 | R-04 | 低（Rust 内部、IPC API 不変） | `cargo test` / `cargo clippy` | 🟢 実施済み |
-| 4 | R-02 | 中（Service 利用箇所が広範。UseCase 22 個と ViewModel 4 種の依存変更） | typecheck / 既存テスト pass / 手動 smoke test | ⏸ 別セッション持ち越し（`.sdd/task/REFACTOR_AI_TOOLS/tasks.md` の Phase 4 を参照） |
+| 4 | R-02 | 中（Service 利用箇所が広範。UseCase 22 個と ViewModel 4 種の依存変更） | typecheck / 既存テスト pass / 手動 smoke test | 🟢 実施済み |
 
 ## 11.5. ロールバック方針
 

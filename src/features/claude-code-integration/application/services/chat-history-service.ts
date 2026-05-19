@@ -1,199 +1,43 @@
-import type {
-  ChatMessage,
-  ClaudeAuthStatus,
-  ClaudeOutput,
-  ClaudeSession,
-  ConflictResolveResult,
-  ConflictResolvingProgress,
-  Conversation,
-  ConversationSummary,
-  ExplainResult,
-  ReviewComment,
-  ReviewResult,
-  SessionStatus,
-} from '@domain'
+import type { ChatMessage, Conversation, ConversationSummary } from '@domain'
 import type { Observable } from 'rxjs'
 import type { ClaudeRepository } from '../repositories/claude-repository'
-import type { ClaudeService } from './claude-service-interface'
-import { DEFAULT_MODEL } from '@domain'
+import type { ChatHistoryService } from './chat-history-service-interface'
+import type { ClaudeStateService } from './claude-state-service-interface'
 import { BehaviorSubject } from 'rxjs'
-import { map } from 'rxjs/operators'
 
-const MAX_OUTPUT_BUFFER = 1000
 const MAX_CONVERSATIONS = 100
 const MAX_MESSAGES_PER_CONVERSATION = 500
 const DEFAULT_CONVERSATION_TITLE = '新しい会話'
 
-export class ClaudeDefaultService implements ClaudeService {
-  private readonly _currentSession$ = new BehaviorSubject<ClaudeSession | null>(null)
-  private readonly _outputs$ = new BehaviorSubject<ClaudeOutput[]>([])
-  private readonly _authStatus$ = new BehaviorSubject<ClaudeAuthStatus | null>(null)
-  private readonly _isAuthChecking$ = new BehaviorSubject<boolean>(false)
-  private readonly _isLoggingIn$ = new BehaviorSubject<boolean>(false)
-  private readonly _reviewComments$ = new BehaviorSubject<ReviewComment[]>([])
-  private readonly _reviewSummary$ = new BehaviorSubject<string>('')
-  private readonly _isReviewing$ = new BehaviorSubject<boolean>(false)
-  private readonly _explanation$ = new BehaviorSubject<string>('')
-  private readonly _isExplaining$ = new BehaviorSubject<boolean>(false)
-  private readonly _isResolvingConflict$ = new BehaviorSubject<boolean>(false)
-  private readonly _conflictResult$ = new BehaviorSubject<ConflictResolveResult | null>(null)
-  private readonly _resolvingProgress$ = new BehaviorSubject<ConflictResolvingProgress | null>(null)
+export class ChatHistoryDefaultService implements ChatHistoryService {
   private readonly _chatMessages$ = new BehaviorSubject<ChatMessage[]>([])
-  private readonly _isCommandRunning$ = new BehaviorSubject<boolean>(false)
   private readonly _conversations$ = new BehaviorSubject<ConversationSummary[]>([])
   private readonly _currentConversationId$ = new BehaviorSubject<string | null>(null)
-  private readonly _selectedModel$ = new BehaviorSubject<string>(DEFAULT_MODEL)
   private readonly conversationStore = new Map<string, Conversation>()
-  private readonly sessionStore = new Map<string, ClaudeSession>()
-  private readonly commandRunningMap = new Map<string, boolean>()
   private readonly pendingContentMap = new Map<string, string>()
   private flushScheduled = false
 
-  readonly currentSession$: Observable<ClaudeSession | null>
-  readonly outputs$: Observable<ClaudeOutput[]>
-  readonly status$: Observable<SessionStatus>
-  readonly authStatus$: Observable<ClaudeAuthStatus | null>
-  readonly isAuthChecking$: Observable<boolean>
-  readonly isLoggingIn$: Observable<boolean>
-  readonly reviewComments$: Observable<ReviewComment[]>
-  readonly reviewSummary$: Observable<string>
-  readonly isReviewing$: Observable<boolean>
-  readonly explanation$: Observable<string>
-  readonly isExplaining$: Observable<boolean>
-  readonly isResolvingConflict$: Observable<boolean>
-  readonly conflictResult$: Observable<ConflictResolveResult | null>
-  readonly resolvingProgress$: Observable<ConflictResolvingProgress | null>
   readonly chatMessages$: Observable<ChatMessage[]>
-  readonly isCommandRunning$: Observable<boolean>
   readonly conversations$: Observable<ConversationSummary[]>
   readonly currentConversationId$: Observable<string | null>
-  readonly selectedModel$: Observable<string>
 
-  constructor(private readonly repository: ClaudeRepository) {
-    this.currentSession$ = this._currentSession$.asObservable()
-    this.outputs$ = this._outputs$.asObservable()
-    this.status$ = this._currentSession$.pipe(map((s) => s?.status ?? 'idle'))
-    this.authStatus$ = this._authStatus$.asObservable()
-    this.isAuthChecking$ = this._isAuthChecking$.asObservable()
-    this.isLoggingIn$ = this._isLoggingIn$.asObservable()
-    this.reviewComments$ = this._reviewComments$.asObservable()
-    this.reviewSummary$ = this._reviewSummary$.asObservable()
-    this.isReviewing$ = this._isReviewing$.asObservable()
-    this.explanation$ = this._explanation$.asObservable()
-    this.isExplaining$ = this._isExplaining$.asObservable()
-    this.isResolvingConflict$ = this._isResolvingConflict$.asObservable()
-    this.conflictResult$ = this._conflictResult$.asObservable()
-    this.resolvingProgress$ = this._resolvingProgress$.asObservable()
+  constructor(
+    private readonly repository: ClaudeRepository,
+    private readonly stateService: ClaudeStateService,
+  ) {
     this.chatMessages$ = this._chatMessages$.asObservable()
-    this.isCommandRunning$ = this._isCommandRunning$.asObservable()
     this.conversations$ = this._conversations$.asObservable()
     this.currentConversationId$ = this._currentConversationId$.asObservable()
-    this.selectedModel$ = this._selectedModel$.asObservable()
   }
 
   setUp(): void {
-    // BaseService インターフェースの契約を満たすため
+    // BaseService 契約のため
   }
 
   tearDown(): void {
-    this._currentSession$.complete()
-    this._outputs$.complete()
-    this._authStatus$.complete()
-    this._isAuthChecking$.complete()
-    this._isLoggingIn$.complete()
-    this._reviewComments$.complete()
-    this._reviewSummary$.complete()
-    this._isReviewing$.complete()
-    this._explanation$.complete()
-    this._isExplaining$.complete()
-    this._isResolvingConflict$.complete()
-    this._conflictResult$.complete()
-    this._resolvingProgress$.complete()
     this._chatMessages$.complete()
-    this._isCommandRunning$.complete()
     this._conversations$.complete()
     this._currentConversationId$.complete()
-    this._selectedModel$.complete()
-  }
-
-  updateSession(session: ClaudeSession | null): void {
-    if (session) {
-      this.sessionStore.set(session.id, session)
-      // claudeSessionId を会話データにも反映（永続化時に含めるため）
-      if (session.claudeSessionId) {
-        const conv = this.conversationStore.get(session.id)
-        if (conv) {
-          conv.claudeSessionId = session.claudeSessionId
-        }
-      }
-      const isCurrentConversation = this._currentConversationId$.getValue() === session.id
-      if (isCurrentConversation) {
-        this._currentSession$.next(session)
-        if (session.status === 'idle') {
-          this.commandRunningMap.set(session.id, false)
-          this._isCommandRunning$.next(false)
-        }
-      }
-    } else {
-      const currentId = this._currentConversationId$.getValue()
-      if (currentId) {
-        this.sessionStore.delete(currentId)
-        this.commandRunningMap.delete(currentId)
-      }
-      this._currentSession$.next(null)
-      this._isCommandRunning$.next(false)
-    }
-  }
-
-  appendOutput(output: ClaudeOutput): void {
-    const current = this._outputs$.getValue()
-    const updated = [...current, output].slice(-MAX_OUTPUT_BUFFER)
-    this._outputs$.next(updated)
-  }
-
-  clearOutputs(): void {
-    this._outputs$.next([])
-  }
-
-  setAuthStatus(status: ClaudeAuthStatus | null): void {
-    this._authStatus$.next(status)
-  }
-
-  setAuthChecking(checking: boolean): void {
-    this._isAuthChecking$.next(checking)
-  }
-
-  setLoggingIn(loggingIn: boolean): void {
-    this._isLoggingIn$.next(loggingIn)
-  }
-
-  setReviewResult(result: ReviewResult): void {
-    this._reviewComments$.next(result.comments)
-    this._reviewSummary$.next(result.summary)
-  }
-
-  setReviewing(reviewing: boolean): void {
-    this._isReviewing$.next(reviewing)
-  }
-
-  setExplainResult(result: ExplainResult): void {
-    this._explanation$.next(result.explanation)
-  }
-
-  setExplaining(explaining: boolean): void {
-    this._isExplaining$.next(explaining)
-  }
-
-  setResolvingConflict(resolving: boolean): void {
-    this._isResolvingConflict$.next(resolving)
-  }
-
-  setConflictResult(result: ConflictResolveResult | null): void {
-    this._conflictResult$.next(result)
-  }
-
-  setResolvingProgress(progress: ConflictResolvingProgress | null): void {
-    this._resolvingProgress$.next(progress)
   }
 
   async addChatMessage(message: ChatMessage, worktreePath: string): Promise<string> {
@@ -253,7 +97,6 @@ export class ClaudeDefaultService implements ClaudeService {
     const lastUserIndex = messages.findLastIndex((m) => m.role === 'user')
 
     let updated: ChatMessage[]
-    // assistant メッセージがないか、最後の user メッセージより前にある場合は新規作成
     if (lastAssistantIndex === -1 || lastUserIndex > lastAssistantIndex) {
       const newMessage: ChatMessage = {
         id: crypto.randomUUID(),
@@ -287,39 +130,19 @@ export class ClaudeDefaultService implements ClaudeService {
       }
     }
     this.refreshConversationSummaries()
-    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
+    this.persistConversations().catch((e) => console.error('[ChatHistoryService] persist failed:', e))
   }
 
   clearChatMessages(): void {
     this._chatMessages$.next([])
   }
 
-  setCommandRunning(running: boolean, sessionId?: string): void {
-    const targetId = sessionId ?? this._currentConversationId$.getValue()
-    if (targetId) {
-      this.commandRunningMap.set(targetId, running)
-    }
-    if (!targetId || targetId === this._currentConversationId$.getValue()) {
-      this._isCommandRunning$.next(running)
-    }
-  }
-
-  getSelectedModel(): string {
-    return this._selectedModel$.getValue()
-  }
-
-  setSelectedModel(model: string): void {
-    this._selectedModel$.next(model)
-  }
-
   async createConversation(worktreePath: string): Promise<string> {
-    // 上限チェック: 最古の会話を自動削除
     if (this.conversationStore.size >= MAX_CONVERSATIONS) {
       const oldest = this.findOldestConversation()
       if (oldest) {
         this.conversationStore.delete(oldest.id)
-        this.sessionStore.delete(oldest.id)
-        this.commandRunningMap.delete(oldest.id)
+        this.stateService.removeSession(oldest.id)
       }
     }
     const session = await this.repository.startSession(worktreePath)
@@ -334,13 +157,11 @@ export class ClaudeDefaultService implements ClaudeService {
       updatedAt: now,
     }
     this.conversationStore.set(id, conversation)
-    this.sessionStore.set(id, session)
     this._currentConversationId$.next(id)
-    this._currentSession$.next(session)
-    this._isCommandRunning$.next(false)
     this._chatMessages$.next([])
+    this.stateService.registerSession(id, session)
     this.refreshConversationSummaries()
-    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
+    this.persistConversations().catch((e) => console.error('[ChatHistoryService] persist failed:', e))
     return id
   }
 
@@ -355,8 +176,7 @@ export class ClaudeDefaultService implements ClaudeService {
     if (!conversation) return
     this._currentConversationId$.next(id)
     this._chatMessages$.next([...conversation.messages])
-    this._currentSession$.next(this.sessionStore.get(id) ?? null)
-    this._isCommandRunning$.next(this.commandRunningMap.get(id) ?? false)
+    this.stateService.switchActiveConversation(id)
   }
 
   deleteConversation(id: string): void {
@@ -364,17 +184,14 @@ export class ClaudeDefaultService implements ClaudeService {
       // エラーは IPC イベント経由で通知される
     })
     this.conversationStore.delete(id)
-    this.sessionStore.delete(id)
-    this.commandRunningMap.delete(id)
     this.pendingContentMap.delete(id)
+    this.stateService.removeSession(id)
     if (this._currentConversationId$.getValue() === id) {
       this._currentConversationId$.next(null)
       this._chatMessages$.next([])
-      this._currentSession$.next(null)
-      this._isCommandRunning$.next(false)
     }
     this.refreshConversationSummaries()
-    this.persistConversations().catch((e) => console.error('[ClaudeService] persist failed:', e))
+    this.persistConversations().catch((e) => console.error('[ChatHistoryService] persist failed:', e))
   }
 
   getConversationWorktreePath(conversationId: string): string | null {
@@ -382,12 +199,23 @@ export class ClaudeDefaultService implements ClaudeService {
     return conversation?.worktreePath ?? null
   }
 
+  getCurrentConversationId(): string | null {
+    return this._currentConversationId$.getValue()
+  }
+
   startNewConversation(): void {
     this.saveCurrentConversationMessages()
     this._currentConversationId$.next(null)
     this._chatMessages$.next([])
-    this._currentSession$.next(null)
-    this._isCommandRunning$.next(false)
+    this.stateService.clearActiveConversation()
+  }
+
+  syncClaudeSessionId(conversationId: string, claudeSessionId: string | undefined): void {
+    if (!claudeSessionId) return
+    const conv = this.conversationStore.get(conversationId)
+    if (conv) {
+      conv.claudeSessionId = claudeSessionId
+    }
   }
 
   private saveCurrentConversationMessages(): void {
@@ -423,10 +251,10 @@ export class ClaudeDefaultService implements ClaudeService {
     this.refreshConversationSummaries()
   }
 
-  async persistConversations(): Promise<void> {
+  private async persistConversations(): Promise<void> {
     const conversations: Conversation[] = []
     for (const conv of this.conversationStore.values()) {
-      const session = this.sessionStore.get(conv.id)
+      const session = this.stateService.getSession(conv.id)
       conversations.push({
         ...conv,
         claudeSessionId: session?.claudeSessionId ?? conv.claudeSessionId,
@@ -436,7 +264,7 @@ export class ClaudeDefaultService implements ClaudeService {
   }
 
   private async ensureSession(conversationId: string): Promise<void> {
-    if (this.sessionStore.has(conversationId)) return
+    if (this.stateService.getSession(conversationId)) return
     const conversation = this.conversationStore.get(conversationId)
     if (!conversation) return
     const session = await this.repository.startSession(
@@ -444,8 +272,7 @@ export class ClaudeDefaultService implements ClaudeService {
       conversationId,
       conversation.claudeSessionId,
     )
-    this.sessionStore.set(conversationId, session)
-    this._currentSession$.next(session)
+    this.stateService.registerSession(conversationId, session)
   }
 
   private findOldestConversation(): Conversation | undefined {
