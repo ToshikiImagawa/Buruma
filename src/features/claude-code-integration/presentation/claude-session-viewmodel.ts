@@ -1,6 +1,7 @@
 import type { ChatMessage, ClaudeOutput, ConversationSummary, SessionStatus } from '@domain'
 import type { Observable } from 'rxjs'
-import type { ClaudeService } from '../application/services/claude-service-interface'
+import type { ChatHistoryService } from '../application/services/chat-history-service-interface'
+import type { ClaudeStateService } from '../application/services/claude-state-service-interface'
 import type {
   GetChatMessagesRendererUseCase,
   GetConversationsRendererUseCase,
@@ -35,7 +36,8 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
     getIsCommandRunningUseCase: GetIsCommandRunningRendererUseCase,
     getConversationsUseCase: GetConversationsRendererUseCase,
     getCurrentConversationIdUseCase: GetCurrentConversationIdRendererUseCase,
-    private readonly service: ClaudeService,
+    private readonly chatHistory: ChatHistoryService,
+    private readonly state: ClaudeStateService,
   ) {
     this.status$ = getStatusUseCase.store
     this.outputs$ = getOutputsUseCase.store
@@ -44,7 +46,7 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
     this.isCommandRunning$ = getIsCommandRunningUseCase.store
     this.conversations$ = getConversationsUseCase.store
     this.currentConversationId$ = getCurrentConversationIdUseCase.store
-    this.selectedModel$ = service.selectedModel$
+    this.selectedModel$ = state.selectedModel$
   }
 
   startSession(worktreePath: string): void {
@@ -52,8 +54,7 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
   }
 
   resumeSession(conversationId: string): void {
-    // エラーは IPC イベント経由で session-changed として通知される
-    this.service.resumeConversation(conversationId).catch(() => {})
+    this.chatHistory.resumeConversation(conversationId).catch(() => {})
   }
 
   stopSession(sessionId: string): void {
@@ -65,18 +66,18 @@ export class ClaudeSessionDefaultViewModel implements ClaudeSessionViewModel {
   }
 
   switchConversation(id: string): void {
-    this.service.switchConversation(id)
+    this.chatHistory.switchConversation(id)
   }
 
   deleteConversation(id: string): void {
-    this.service.deleteConversation(id)
+    this.chatHistory.deleteConversation(id)
   }
 
   startNewConversation(): void {
-    this.service.startNewConversation()
+    this.chatHistory.startNewConversation()
   }
 
   setSelectedModel(model: string): void {
-    this.service.setSelectedModel(model)
+    this.state.setSelectedModel(model)
   }
 }

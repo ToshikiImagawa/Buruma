@@ -1,6 +1,6 @@
 import type { ConflictResolveResult, ConflictResolvingProgress, ThreeWayContent } from '@domain'
 import type { Observable, Subscription } from 'rxjs'
-import type { ClaudeService } from '../application/services/claude-service-interface'
+import type { ClaudeStateService } from '../application/services/claude-state-service-interface'
 import type { ResolveConflictRendererUseCase } from '../di-tokens'
 import type { ClaudeConflictViewModel } from './viewmodel-interfaces'
 import { filter, skip, take } from 'rxjs'
@@ -14,31 +14,31 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
 
   constructor(
     private readonly resolveConflictUseCase: ResolveConflictRendererUseCase,
-    private readonly service: ClaudeService,
+    private readonly state: ClaudeStateService,
   ) {
-    this.isResolvingConflict$ = service.isResolvingConflict$
-    this.conflictResult$ = service.conflictResult$
-    this.resolvingProgress$ = service.resolvingProgress$
+    this.isResolvingConflict$ = state.isResolvingConflict$
+    this.conflictResult$ = state.conflictResult$
+    this.resolvingProgress$ = state.resolvingProgress$
   }
 
   resolveConflict(worktreePath: string, filePath: string, threeWayContent: ThreeWayContent): void {
-    this.service.setResolvingConflict(true)
-    this.service.setResolvingProgress(null)
-    this.service.setConflictResult(null)
+    this.state.setResolvingConflict(true)
+    this.state.setResolvingProgress(null)
+    this.state.setConflictResult(null)
 
-    const sub = this.service.conflictResult$
+    const sub = this.state.conflictResult$
       .pipe(
         skip(1),
         filter((r): r is ConflictResolveResult => r !== null),
         take(1),
       )
       .subscribe(() => {
-        this.service.setResolvingConflict(false)
+        this.state.setResolvingConflict(false)
       })
 
     this.resolveConflictUseCase.invoke({ worktreePath, filePath, threeWayContent }).catch(() => {
       sub.unsubscribe()
-      this.service.setResolvingConflict(false)
+      this.state.setResolvingConflict(false)
     })
   }
 
@@ -46,9 +46,9 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
     const total = files.length
     if (total === 0) return
 
-    this.service.setResolvingConflict(true)
-    this.service.setResolvingProgress({ total, completed: 0, failed: 0 })
-    this.service.setConflictResult(null)
+    this.state.setResolvingConflict(true)
+    this.state.setResolvingProgress({ total, completed: 0, failed: 0 })
+    this.state.setConflictResult(null)
 
     const queue = [...files]
     let completed = 0
@@ -61,11 +61,11 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
       inFlightPaths.delete(filePath)
       if (success) completed++
       else failed++
-      this.service.setResolvingProgress({ total, completed, failed })
+      this.state.setResolvingProgress({ total, completed, failed })
       launchNext()
       if (completed + failed >= total) {
         sub?.unsubscribe()
-        this.service.setResolvingConflict(false)
+        this.state.setResolvingConflict(false)
       }
     }
 
@@ -85,7 +85,7 @@ export class ClaudeConflictDefaultViewModel implements ClaudeConflictViewModel {
       }
     }
 
-    sub = this.service.conflictResult$
+    sub = this.state.conflictResult$
       .pipe(
         skip(1),
         filter((r): r is ConflictResolveResult => r !== null),

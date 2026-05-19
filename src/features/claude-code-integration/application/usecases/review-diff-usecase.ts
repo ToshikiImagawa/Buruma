@@ -1,7 +1,7 @@
 import type { DiffTarget } from '@domain'
 import type { ConsumerUseCase } from '@lib/usecase/types'
 import type { ClaudeRepository } from '../repositories/claude-repository'
-import type { ClaudeService } from '../services/claude-service-interface'
+import type { ClaudeStateService } from '../services/claude-state-service-interface'
 
 export interface ReviewDiffInput {
   worktreePath: string
@@ -12,15 +12,15 @@ export interface ReviewDiffInput {
 export class ReviewDiffUseCase implements ConsumerUseCase<ReviewDiffInput> {
   constructor(
     private readonly repository: ClaudeRepository,
-    private readonly service: ClaudeService,
+    private readonly state: ClaudeStateService,
   ) {}
 
   async invoke(input: ReviewDiffInput): Promise<void> {
-    this.service.setReviewing(true)
+    this.state.setReviewing(true)
     try {
       await this.repository.reviewDiff(input.worktreePath, input.diffTarget, input.diffText)
     } catch (error) {
-      this.service.setReviewing(false)
+      this.state.setReviewing(false)
       throw error
     }
   }

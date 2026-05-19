@@ -11,7 +11,8 @@ import type {
 } from '@domain'
 import type { ConsumerUseCase, FunctionUseCase, ObservableStoreUseCase, SupplierUseCase } from '@lib/usecase/types'
 import type { ClaudeRepository } from './application/repositories/claude-repository'
-import type { ClaudeService } from './application/services/claude-service-interface'
+import type { ChatHistoryService } from './application/services/chat-history-service-interface'
+import type { ClaudeStateService } from './application/services/claude-state-service-interface'
 import type { ExplainDiffInput } from './application/usecases/explain-diff-usecase'
 import type { ReviewDiffInput } from './application/usecases/review-diff-usecase'
 import type {
@@ -23,7 +24,8 @@ import type {
 import { createToken } from '@lib/di'
 
 export type { ClaudeRepository } from './application/repositories/claude-repository'
-export type { ClaudeService } from './application/services/claude-service-interface'
+export type { ChatHistoryService } from './application/services/chat-history-service-interface'
+export type { ClaudeStateService } from './application/services/claude-state-service-interface'
 export type { ClaudeSessionViewModel } from './presentation/viewmodel-interfaces'
 
 // UseCase types
@@ -55,7 +57,8 @@ export type GetCurrentConversationIdRendererUseCase = ObservableStoreUseCase<str
 
 // Tokens
 export const ClaudeRepositoryToken = createToken<ClaudeRepository>('ClaudeRepository')
-export const ClaudeServiceToken = createToken<ClaudeService>('ClaudeService')
+export const ClaudeStateServiceToken = createToken<ClaudeStateService>('ClaudeStateService')
+export const ChatHistoryServiceToken = createToken<ChatHistoryService>('ChatHistoryService')
 
 export const StartSessionRendererUseCaseToken = createToken<StartSessionRendererUseCase>('StartSessionRendererUseCase')
 export const StopSessionRendererUseCaseToken = createToken<StopSessionRendererUseCase>('StopSessionRendererUseCase')
