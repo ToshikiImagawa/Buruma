@@ -57,7 +57,10 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | FR-005 | エラー時にセッションを自動再接続する | 推奨 | FR_501_05 |
 | FR-006 | 自然言語入力フィールドを提供する | 必須 | FR_502_01 |
 | FR-007 | 自然言語指示を Claude Code に送信する | 必須 | FR_502_02 |
-| FR-008 | 実行予定の Git コマンドを表示し確認ダイアログを提供する | 必須 | FR_502_03 |
+| FR-008 | Git 委譲モード（`ClaudeCommand.type='git-delegation'`）で送信した場合、Claude Code は Git コマンドを直接実行せず提案のみ返答し、Buruma が実行前に確認ダイアログを表示してユーザーが明示的に承認するまで実行しない | 必須 | FR_502_03, B-002 |
+| FR-008-1 | リスクレベル `high` の不可逆操作（`push --force` / `push --force-with-lease` / `reset --hard` / `branch -D` / `clean -fd` / `checkout -f` / `rm -rf`）はダイアログ内で強調表示し、対象コマンド文字列の再入力（タイプ確認）を要求する | 必須 | FR_502_03, B-002 |
+| FR-008-2 | リスクレベル `medium` の操作（`rebase` / `cherry-pick` / `revert` / `merge --no-ff` / `stash drop` / `stash pop` / `tag -d`）は「内容を理解しました」チェックボックスの ON を要求する | 必須 | FR_502_03, B-002 |
+| FR-008-3 | リスクレベル `low` のその他 Git コマンドは単純な「実行 / キャンセル」ボタンで承認可能とする | 必須 | FR_502_03 |
 | FR-009 | Git 操作の実行結果を表示する | 必須 | FR_502_04 |
 | FR-010 | 操作結果をステータス・ログに自動反映する | 推奨 | FR_502_05 |
 | FR-011 | 現在の差分（staged/unstaged）を Claude Code に送信してレビューを取得する | 推奨 | FR_503_01 |
@@ -141,7 +144,15 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 |-----------|------|------|--------|
 | `claude_resolve_conflict` | 単一コンフリクトファイルを AI で解決する（ワンショット実行） | `ConflictResolveRequest` | `void` |
 
-### 4.1.8. イベント通知（Events, Core → Webview `emit` / `listen`）
+### 4.1.8. Git 委譲（Commands, Webview → Core `invoke`、FR-008）
+
+| Command 名 | 概要 | 引数 | 戻り値 |
+|-----------|------|------|--------|
+| `claude_execute_approved_git_command` | ユーザーが確認ダイアログで承認した Git コマンド提案を Buruma 内蔵の Git 実行経路で実行する | `{ proposal: GitCommandProposal; userConfirmed: true }`（cwd は `proposal.worktreePath`） | `GitCommandExecutionResult` |
+
+> `ClaudeCommand.type='git-delegation'` で `claude_send_command` を呼び出した場合、Rust 側はシステムプロンプトに「Git コマンドは実行せず提案のみ返答」の指示を付与し、Claude Code CLI を `--deny-tool Bash` 相当の制約付きで起動する。返答の出力からは Buruma 側の検出器が Git コマンドを抽出し、`claude-git-command-proposed` イベントで Webview に通知する。
+
+### 4.1.9. イベント通知（Events, Core → Webview `emit` / `listen`）
 
 | Event 名 | 概要 | ペイロード |
 |---------|------|-----------|
@@ -151,6 +162,7 @@ Claude Code 連携は以下の5つのサブシステムで構成される：
 | `claude-review-result` | レビュー結果が返された | `{ worktreePath: string; comments: ReviewComment[]; summary: string }` |
 | `claude-explain-result` | 解説結果が返された | `{ worktreePath: string; explanation: string }` |
 | `claude-conflict-resolved` | AI コンフリクト解決結果が返された | `ConflictResolveResult` |
+| `claude-git-command-proposed` | Git 委譲モードで Claude が Git コマンドを提案した（実行前確認の起点、FR-008）。1 回の応答に複数の提案が含まれる場合は配列でまとめて 1 イベントとして emit する | `GitCommandProposal[]`（少なくとも 1 件以上、出現順） |
 
 > **IPCResult<T> 互換**: Webview 側は `src/lib/invoke/commands.ts` の `invokeCommand<T>` ラッパーを経由して呼び出す。イベント購読は `src/lib/invoke/events.ts` の `listenEventSync<T>` を使用する。
 
@@ -261,6 +273,29 @@ type ConflictResolveResult =
 //   theirs: string;  // 相手の変更
 //   merged: string;  // 現在のマージ結果
 // }
+
+// Git コマンドリスクレベル（FR-008）
+type GitCommandRiskLevel = 'high' | 'medium' | 'low';
+
+// Git コマンド提案（Claude が git-delegation モードで返答した内容を Buruma 側で抽出した構造）
+interface GitCommandProposal {
+  worktreePath: string;
+  rawText: string;                  // Claude 出力に含まれていたコマンド原文（例: "git push --force origin main"）
+  argv: string[];                   // argv 形式（例: ["push", "--force", "origin", "main"]、先頭の "git" は除外）
+  riskLevel: GitCommandRiskLevel;
+  description?: string;             // Claude が併記した説明文（任意）
+  detectedAt: string;               // ISO 8601
+}
+
+// 承認済み Git コマンド実行結果
+interface GitCommandExecutionResult {
+  proposal: GitCommandProposal;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  startedAt: string;                // ISO 8601
+  finishedAt: string;               // ISO 8601
+}
 
 // IPC 通信の統一レスポンス型（application-foundation_spec から再利用）
 type IPCResult<T> =
@@ -543,7 +578,7 @@ sequenceDiagram
 | FR_502 | FR-006〜FR-010 + コマンド実行フロー図 | 対応済み |
 | FR_502_01 | FR-006 + CommandInput コンポーネント | 対応済み |
 | FR_502_02 | FR-007 + `claude_send_command` API | 対応済み |
-| FR_502_03 | FR-008 | 未対応（#32 で対応中） |
+| FR_502_03 | FR-008 / FR-008-1 / FR-008-2 / FR-008-3 | 未対応（#32 で対応中、spec/design 確定済み・実装待ち） |
 | FR_502_04 | FR-009 | 対応済み |
 | FR_502_05 | FR-010 | 対応済み |
 | FR_503 | FR-011〜FR-015 + コードレビューフロー図 | 対応済み |

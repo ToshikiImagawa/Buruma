@@ -40,6 +40,10 @@ risk: "high"
 | Prompt Builder | 🟢 | `infrastructure/prompts/`（commit_message / review / explain / conflict_resolve）に分離（11. リファクタリング計画 R-04 で対応済み） |
 | OutputParser | 🟢 | `infrastructure/output_parser.rs` に独立モジュール化（11. リファクタリング計画 R-03 で対応済み） |
 | `presentation/commands.rs` | 🟢 | 15 個の `#[tauri::command]`（claude_start_session / claude_stop_session / claude_get_session / claude_get_all_sessions / claude_send_command / claude_get_output / claude_check_auth / claude_login / claude_logout / claude_generate_commit_message / claude_review_diff / claude_explain_diff / claude_resolve_conflict / claude_get_conversations / claude_save_conversations） |
+| `infrastructure/git_command_proposal_detector.rs` | 🟡 | FR-008: 設計完了（§6.7）、実装は別 PR で対応 |
+| `infrastructure/git_command_risk_classifier.rs` | 🟡 | FR-008: 設計完了（§6.8）、実装は別 PR で対応 |
+| `infrastructure/approved_git_command_executor.rs` | 🟡 | FR-008: 設計完了（§6.9）、実装は別 PR で対応 |
+| `claude_execute_approved_git_command` Tauri コマンド | 🟡 | FR-008: 設計完了（§4.1.8）、実装は別 PR で対応 |
 
 ### 1.1.2. Webview 側（src/features/claude-code-integration/）
 
@@ -56,12 +60,15 @@ risk: "high"
 | React Components（9 種） | 🟢 | ClaudeSessionPanel / ClaudeOutputView / CommandInput / ChatMessageList / ConversationSidebar / ModelSelector / ReviewCommentList / DiffExplanationView / SessionStatusIndicator |
 | Settings UI (commitMessageRules) | 🟢 | SettingsDialog に textarea でカスタムルール編集 |
 | ConflictResolver AI ボタン統合 | 🟢 | FR_506: Props 経由で AI Resolve / AI Resolve All ボタン + 進捗バーを統合 |
+| `presentation/components/git-delegation-confirm-dialog.tsx` | 🟡 | FR-008: 設計完了（§6.10、ConfirmationDialog 再利用）、実装は別 PR で対応 |
+| Git 委譲モード送信フック（CommandInput） | 🟡 | FR-008: 設計完了、実装は別 PR で対応 |
+| `claude-git-command-proposed` イベント購読 + ダイアログ表示 ViewModel | 🟡 | FR-008: 設計完了、実装は別 PR で対応 |
 
 ### 1.1.3. 仕様との差分（既知の未実装）
 
 | spec | 内容 | 状況 |
 |------|------|------|
-| FR-008 | 実行予定の Git コマンド表示と確認ダイアログ | 🔴 未実装（別 ticket で対応） |
+| FR-008 | 実行予定の Git コマンド表示と確認ダイアログ | 🟡 設計完了（§5 型 / §6.7〜6.10 IF / §9.1 設計判断 / §10.5 セキュリティ）、実装は #32 で対応中（spec/design 確定後に実装フェーズ） |
 | FR-019 | 解説のエクスポート機能 | 🟡 コピーのみ（エクスポート未実装） |
 | FR-014 | レビューコメントの差分上へのインライン表示 | 🔴 未実装（一覧表示のみ） |
 
@@ -252,6 +259,33 @@ type ConflictResolveResult =
 
 // ThreeWayContent は src/domain/ に配置する共有型
 // interface ThreeWayContent { base: string; ours: string; theirs: string; merged: string }
+
+// FR-008: Git 委譲モードの提案・実行
+type GitCommandRiskLevel = 'high' | 'medium' | 'low';
+
+interface GitCommandProposal {
+  worktreePath: string;
+  rawText: string;
+  argv: string[];
+  riskLevel: GitCommandRiskLevel;
+  description?: string;
+  detectedAt: string;
+}
+
+interface GitCommandExecutionResult {
+  proposal: GitCommandProposal;
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  startedAt: string;
+  finishedAt: string;
+}
+
+// リスクレベル分類ルール（Rust 側 GitCommandRiskClassifier で評価）
+//   high   : push --force / push --force-with-lease / reset --hard / branch -D /
+//            clean -fd / checkout -f / rm -rf
+//   medium : rebase / cherry-pick / revert / merge --no-ff / stash drop / stash pop / tag -d
+//   low    : 上記以外の git サブコマンド全般（status, add, commit, fetch, log, diff ...）
 ```
 
 ---
@@ -544,6 +578,9 @@ claude: {
   // FR_506: AI コンフリクト解決
   resolveConflict: (args: ConflictResolveRequest): Promise<IPCResult<void>> =>
     invoke<T>('claude_resolve_conflict', args),
+  // FR-008: 承認済み Git コマンド提案の実行（cwd は proposal.worktreePath を使用）
+  executeApprovedGitCommand: (args: { proposal: GitCommandProposal; userConfirmed: true }): Promise<IPCResult<GitCommandExecutionResult>> =>
+    invoke<T>('claude_execute_approved_git_command', args),
 
   // イベント購読（listenEventSync / listenEvent ラッパー経由）
   onOutput: (callback: (output: ClaudeOutput) => void): (() => void) => {
@@ -565,6 +602,10 @@ claude: {
   onConflictResolved: (callback: (result: ConflictResolveResult) => void): (() => void) => {
     return listenEventSync<ConflictResolveResult>('claude-conflict-resolved', callback)
   },
+  // FR-008: Claude が git-delegation モードで提案した Git コマンドの通知（配列、1 件以上）
+  onGitCommandProposed: (callback: (proposals: GitCommandProposal[]) => void): (() => void) => {
+    return listenEventSync<GitCommandProposal[]>('claude-git-command-proposed', callback)
+  },
 },
 ```
 
@@ -574,6 +615,82 @@ claude: {
 // Tauri 移行後は不要。invokeCommand / listenEventSync ラッパーを使用
 // 各コマンドの型は src/lib/ipc.ts の IPCCommandMap で定義
 // イベントの型は src/lib/ipc.ts の IPCEventMap で定義
+```
+
+## 6.7. GitCommandProposalDetector（FR-008、Rust 側）
+
+```rust
+// src-tauri/src/features/claude_code_integration/infrastructure/git_command_proposal_detector.rs
+// Claude Code が git-delegation モードで返した stdout テキストから git コマンド提案を抽出する。
+
+pub struct GitCommandProposalDetector;
+
+impl GitCommandProposalDetector {
+    /// Claude のレスポンス本文から git コマンド候補を抽出する。
+    ///   - フェンス付きコードブロック（```bash / ```sh / ```shell / 言語指定なし）内の "git ..." 行
+    ///   - 単独行頭で "git " で始まる行（フェンス外）
+    ///   - 抽出結果は GitCommandRiskClassifier に渡してリスクレベル分類
+    /// 複数提案がある場合は出現順で配列を返す。
+    pub fn extract(&self, stdout_text: &str, worktree_path: &str) -> Vec<GitCommandProposal>;
+}
+```
+
+## 6.8. GitCommandRiskClassifier（FR-008、Rust 側）
+
+```rust
+// src-tauri/src/features/claude_code_integration/infrastructure/git_command_risk_classifier.rs
+
+pub struct GitCommandRiskClassifier;
+
+impl GitCommandRiskClassifier {
+    /// argv（先頭は git サブコマンド名）からリスクレベルを判定する。
+    ///   - high: push --force / push --force-with-lease / reset --hard / branch -D /
+    ///           clean -fd / checkout -f / rm -rf （フラグの順不同を考慮）
+    ///   - medium: rebase / cherry-pick / revert / merge --no-ff / stash drop / stash pop / tag -d
+    ///   - low: 上記以外
+    pub fn classify(&self, argv: &[String]) -> GitCommandRiskLevel;
+}
+```
+
+## 6.9. ApprovedGitCommandExecutor（FR-008、Rust 側）
+
+```rust
+// src-tauri/src/features/claude_code_integration/infrastructure/approved_git_command_executor.rs
+// claude_execute_approved_git_command の本体。承認済みプロポーザルを既存の git CLI ラッパー
+// （src-tauri/src/git/command.rs）経由で実行する。
+//
+// 重要な制約:
+//   - args.user_confirmed != true の場合はエラーで拒否（Rust 側 defense-in-depth ガード）
+//   - 実行前に再度 GitCommandRiskClassifier で argv を再分類し、proposal.risk_level と一致しない
+//     場合はエラー（中間者改ざん検知。例: medium 提案を high コマンドに置き換える攻撃）
+//   - cwd は proposal.worktree_path に固定（パストラバーサル検証）
+
+pub struct ApprovedGitCommandExecutor { /* deps */ }
+
+impl ApprovedGitCommandExecutor {
+    pub async fn execute(
+        &self,
+        proposal: &GitCommandProposal,
+    ) -> Result<GitCommandExecutionResult, AppError>;
+}
+```
+
+## 6.10. GitDelegationConfirmDialog（FR-008、Webview 側）
+
+```typescript
+// src/features/claude-code-integration/presentation/components/git-delegation-confirm-dialog.tsx
+// 既存の src/components/confirmation-dialog.tsx を内部利用しつつ、リスクレベル別 UX を提供する。
+
+interface GitDelegationConfirmDialogProps {
+  proposals: GitCommandProposal[];           // 空配列の間は閉状態。先頭から順に 1 件ずつ確認
+  onApprove: (proposal: GitCommandProposal) => Promise<void>; // 1 件承認するたびに先頭を pop
+  onReject: () => void;                      // 全提案を破棄してダイアログを閉じる
+}
+
+// リスクレベル別の追加 UI:
+//   high   : <input type="text" /> でコマンド原文の再入力を求め、一致するまで Approve ボタン disabled
+//   medium : <Checkbox /> 「内容を理解しました」を ON にするまで Approve ボタン disabled
+//   low    : Approve ボタンを即時 enabled
 ```
 
 ---
@@ -621,6 +738,10 @@ claude: {
 | プロンプトビルダーの設計 (FR_506) | A) 既存パターン踏襲 / B) 専用設計 | A) 既存の ReviewDiff/ExplainDiff パターン踏襲 | `conflict-resolve-prompt.rs` を新規作成。プロンプト構造は base/ours/theirs のセクション区切り + ファイルパス・種別情報 + merged 結果のみ返却指示 |
 | ConflictResolver への AI ボタン注入 (FR_506) | A) claude-code-integration が Props 経由で注入 / B) advanced-git-operations が DI で UseCase を取得 | A) Props 経由で注入 | claude-code-integration が ConflictResolver に `onAIResolve` / `onAIResolveAll` コールバックを注入。ui-integration の統合レイヤーで接続。A-004 feature 間直接参照禁止に準拠 |
 | 一括解決の並列数制御 (FR_506) | A) 無制限並列 / B) 同時実行数制限 | B) 同時実行数を3に制限 | Claude Code CLI の同時実行数が多すぎるとリソース消費が増大。3並列で進捗バーの表示も自然 |
+| Git 委譲フロー (FR-008) | A) 通常モードのまま Claude が `Bash` で git 直接実行 + 事後通知 / B) `git-delegation` モード時はシステムプロンプトで「git は提案のみ・実行禁止」を指示し Buruma 側で確認後に実行 / C) Claude CLI の `--permission-prompt-tool` で全 git 実行を hook | B) モード分離 | A は実行を止められず B-002 を満たさない。C は CLI 仕様調査・hook サーバ実装の負荷が大きい。B は既存の `ClaudeCommandType='git-delegation'` 型を活かせて最小変更で実現でき、Buruma の basic-git-operations 既存実行経路に乗せられる |
+| Git コマンド検出ロジックの所在 (FR-008) | A) Webview 側のみ / B) Rust 側のみ / C) 両側 | C) 検出は Rust 側（`GitCommandProposalDetector`）、実行直前に Rust 側で再分類して改ざん検知（`ApprovedGitCommandExecutor`） | Webview 側のみだと bypass 可能、Rust 側のみだと UI に raw text しか渡せず段階確認 UX が困難。Rust 側で構造化（`GitCommandProposal`）して Webview に渡し、承認後 Rust 側で再分類することで攻撃面を最小化 |
+| 確認ダイアログコンポーネント (FR-008) | A) 既存 `ConfirmationDialog` 再利用 / B) 専用ダイアログ新設 | A) `ConfirmationDialog` を内部利用した薄いラッパー（`GitDelegationConfirmDialog`） | rebase / WorktreeList で既に運用中の AlertDialog ベース実装を活用。リスクレベル別の UX（タイプ確認 / チェックボックス / 即承認）はラッパー側で吸収。原則 A-002（Library-First / 既存基盤再利用） |
+| 明示的承認 UX (FR-008, B-002) | A) 全リスク同じ UI / B) リスクレベル別の段階確認 | B) 段階確認 | high は誤操作防止に強い摩擦が必要（タイプ確認）、low は頻発するため軽い確認、medium はその中間。CONSTITUTION.md B-002「不可逆操作の保護」を満たしつつ通常 git 操作の UX を損なわない |
 
 ## 9.2. 未解決の課題
 
@@ -630,6 +751,9 @@ claude: {
 | Claude Code CLI のインタラクティブモード対応 | 中 | CLI が確認プロンプト（y/n）を出す場合の stdin 制御。初期実装では `--yes` フラグ等の非対話オプションを調査し、対話が必要な場合はWebviewに確認を委譲 |
 | 大量出力時のWebviewパフォーマンス | 中 | 仮想スクロール（react-window 等）の導入を検討。初期実装では出力件数制限（1000件）で対応 |
 | Claude Code CLI のバージョン互換性 | 中 | 起動時に `claude --version` でバージョンチェックを行い、非互換バージョンの場合は警告を表示 |
+| FR-008: 通常モード（`type='general'`）での git 実行確認 | 中 | 9.1 の決定で「git-delegation モード時のみ」事前確認の対象とした。通常モードで Claude が `Bash` 経由 git を実行する経路は引き続き直接実行となる。将来的に Claude CLI の `--permission-prompt-tool` 機能を活用して全モードで git 実行を hook する拡張を検討（C 案）。spec の FR-008 はあくまで `git-delegation` モード前提の要件であることを §3.1 で明示済み |
+| FR-008: `git-delegation` モードのシステムプロンプト設計 | 中 | 「git コマンドは絶対に実行せず、提案のみ ` ```bash` フェンスで返答する」指示の堅牢性は Claude のモデルバージョン依存。CI で代表的な依頼文に対する応答を契約テストとして監視する。`--deny-tool Bash` 相当のフラグが利用可能な場合は併用する |
+| FR-008: コードブロック以外で提案された git コマンドの抽出精度 | 低 | `GitCommandProposalDetector` の正規表現が誤検出・誤拾いする可能性。初期実装はフェンス内 + 行頭 `git ` の併用。誤検出が多い場合はフェンス内のみに絞る運用テストを行う |
 
 ---
 
@@ -658,6 +782,15 @@ claude: {
 - コンフリクトファイルの内容（base/ours/theirs）は Claude Code CLI にプロンプトとして送信される。ソースコードが外部 AI サービスに送信されることをユーザーに認識させる
 - `ConflictResolveRequest.filePath` に対してパストラバーサル攻撃の検証を行う（10.2 の入力バリデーションと同様）
 - AI が生成した merged コンテンツは必ずプレビュー表示し、ユーザーの承認を経てから適用する（B-002 準拠）
+
+## 10.5. Git 委譲モードの実行確認（FR-008、B-002）
+
+- `claude_execute_approved_git_command` は型シグネチャで `userConfirmed: true` を強制する（Webview 経由のアプリ内コード向け）。型レベル強制は IPC を直接叩く経路には効かないため、Rust 側ハンドラは `args.user_confirmed != true` の場合エラーで拒否する **defense-in-depth ガードを必須** とする
+- `ApprovedGitCommandExecutor` は実行直前に `GitCommandRiskClassifier` で `proposal.argv` を再分類し、`proposal.riskLevel` との不一致を検知したらエラーで拒否（Webview → Rust 経路における改ざん検知。例: medium 提案を `--force` 付きに置換する攻撃を阻止）
+- 実行 cwd は `proposal.worktreePath` に固定し、10.2 と同様のパストラバーサル検証を適用
+- 引数 argv は shell インジェクションを避けるため文字列連結せず `Command::new("git").args(argv)` で渡す
+- リスクレベル `high` の操作はダイアログ内でコマンド原文の再入力（タイプ確認）を求め、不可逆操作に対する明示的承認を強制（B-002）
+- `git-delegation` モードのシステムプロンプトには「Git コマンドは絶対に実行せず提案のみ」「絶対に `Bash` ツールで git を呼ばない」と明記し、Claude CLI 側で `--deny-tool Bash` 相当のフラグが利用可能な場合は併用する
 
 ---
 

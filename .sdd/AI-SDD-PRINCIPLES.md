@@ -513,21 +513,6 @@ Criteria for when to update each document:
 - Bug fixes (correcting deviations from specifications)
 - Refactoring (no behavior changes)
 
-### Mandatory Updates on Implementation Completion
-
-When a feature or fix is merged, the following design document sections **must** be updated in the same PR to prevent doc/code drift:
-
-| Section | Update Rule |
-|:---|:---|
-| `*_design.md` §1.1 Implementation Status / 実装進捗 | Update each module's marker (🟢 / 🟡 / 🔴) to reflect the post-merge state |
-| `*_design.md` §1.1.x Spec Differences (e.g., 既知の未実装) | Remove rows whose status becomes 🟢 implemented; update partial implementations |
-| `*_design.md` §9.x Unresolved Issues / 未解決の課題 | Move resolved issues from "未対応" to "**解決済み**" with file path and line number references |
-| `*_spec.md` Traceability Table | Update FR-xxx status (対応済み / 部分対応 / 未対応) to match the design doc |
-
-**Verification**: Run `spec-reviewer` agent on any PR that touches `src/`, `src-tauri/`, or `.sdd/specification/`. The agent detects status drift across spec ↔ design ↔ implementation.
-
-**Rationale**: When status tables in `*_design.md` and `*_spec.md` lag behind the codebase, AI agents and new contributors make decisions based on stale assumptions, causing rework and Vibe Coding regressions.
-
 ---
 
 This document defines the principles for AI-SDD workflow, treating **specifications as the source of truth**, preventing Vibe Coding problems, and achieving high-quality implementations by AI agents.
